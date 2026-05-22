@@ -1,0 +1,176 @@
+.pf-c-content {
+  color: #000000;
+  padding: 0px 20px;
+  text-shadow: 0 0 10px rgb(196, 0, 0);
+}
+.library-page-title {
+  color: #000000;
+  text-shadow: 0 0 10px rgb(196, 0, 0);
+}
+/* Base styles (optional fallback) */
+.pf-u-display-none.pf-u-display-block-on-md,
+.pf-u-display-none.pf-u-display-block-on-md:focus,
+.pf-u-display-none.pf-u-display-block-on-md:active {
+  background-color: rgba(255, 255, 255, 0.7); /* default to light */
+  color: black !important;
+  padding: 0.4em 0.6em;
+  border-radius: 4px;
+}
+.pf-u-display-none.pf-u-display-block-on-md::placeholder {
+  color: black;
+  opacity: 1;
+}
+
+/* Light mode specific */
+@media (prefers-color-scheme: light) {
+  .pf-u-display-none.pf-u-display-block-on-md,
+  .pf-c-empty-state__content {
+    color: black !important;
+    background-color: rgba(255, 255, 255, 0.7);
+    padding: 0.4em 0.6em;
+    border-radius: 4px;
+  }
+
+  .pf-u-display-none.pf-u-display-block-on-md::placeholder {
+    color: black;
+  }
+
+  #library-page-title,
+  .app-group-header,
+  .pf-c-tabs,
+  .pf-c-page__header-tools-group,
+  .ak-nav-buttons {
+    color: black !important;
+    background-color: rgba(255, 255, 255, 0.7);
+    padding: 0.3em 0.5em;
+    border-radius: 4px;
+  }
+
+  .pf-c-button {
+    color: black !important;
+    padding: 0.3em 0.6em;
+    border-radius: 4px;
+  }
+
+  .pf-c-button.pf-m-control {
+    color: black !important;
+    background-color: rgba(255, 255, 255, 0.8);
+    border-color: rgba(0, 0, 0, 0.3);
+  }
+
+  /* Password toggle button - white bg with black icon */
+  ak-stage-password .pf-c-button.pf-m-control {
+    background-color: rgba(255, 255, 255, 0.9) !important;
+    border-color: rgba(255, 255, 255, 0.5);
+  }
+
+  ak-stage-password .pf-c-button.pf-m-control .fas {
+    color: black !important;
+  }
+
+  .pf-c-page__title,
+  .pf-c-content,
+  search {
+    color: black !important;
+    background-color: rgba(255, 255, 255, 0.9);
+    padding: 0.4em 0.6em;
+    border-radius: 4px;
+  }
+
+  /* App group legend headers */
+  legend[part="app-group-header"],
+  legend.pf-c-content {
+    margin: 0.5em 0 0.75em 0;
+    padding: 0.5em 1em;
+    border-radius: 12px;
+  }
+
+  #application-search-input {
+    color: white !important;
+    background-color: rgba(0, 0, 0, 0.8);
+    border-color: rgba(0, 0, 0, 0.5);
+  }
+
+  #application-search-input::placeholder {
+    color: rgba(255, 255, 255, 0.7);
+  }
+}
+
+/* Dark mode specific */
+@media (prefers-color-scheme: dark) {
+  .pf-u-display-none.pf-u-display-block-on-md,
+  .pf-c-empty-state__content {
+    color: white !important;
+    background-color: rgba(0, 0, 0, 0.7);
+    padding: 0.4em 0.6em;
+    border-radius: 4px;
+  }
+
+  .pf-u-display-none.pf-u-display-block-on-md::placeholder {
+    color: white;
+  }
+
+  #library-page-title,
+  .app-group-header,
+  .pf-c-page__header-tools-group,
+  .pf-c-tabs,
+  .ak-nav-buttons {
+    color: white !important;
+    background-color: rgba(0, 0, 0, 0.7);
+    padding: 0.3em 0.5em;
+    border-radius: 4px;
+  }
+
+  .pf-c-button {
+    color: white !important;
+    padding: 0.3em 0.6em;
+    border-radius: 4px;
+  }
+
+  .pf-c-button.pf-m-control {
+    color: white !important;
+    background-color: rgba(0, 0, 0, 0.6);
+    border-color: rgba(255, 255, 255, 0.3);
+  }
+
+  /* Password toggle button - black bg with white icon */
+  ak-stage-password .pf-c-button.pf-m-control {
+    background-color: rgba(0, 0, 0, 0.9) !important;
+    border-color: rgba(0, 0, 0, 0.5);
+  }
+
+  ak-stage-password .pf-c-button.pf-m-control .fas {
+    color: white !important;
+  }
+
+  .pf-c-page__title,
+  .pf-c-content,
+  search {
+    color: white !important;
+    background-color: rgba(0, 0, 0, 0.9);
+    padding: 0.4em 0.6em;
+    border-radius: 4px;
+  }
+
+  /* App group legend headers */
+  legend[part="app-group-header"],
+  legend.pf-c-content {
+    margin: 0.5em 0 0.75em 0;
+    padding: 0.5em 1em;
+    border-radius: 12px;
+  }
+
+  #application-search-input {
+    color: black !important;
+    background-color: rgba(255, 255, 255, 0.8);
+    border-color: rgba(255, 255, 255, 0.5);
+  }
+
+  #application-search-input::placeholder {
+    color: rgba(0, 0, 0, 0.7);
+  }
+
+  .fas.fa-cubes {
+    color: white !important;
+  }
+}
