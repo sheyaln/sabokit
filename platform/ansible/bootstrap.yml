@@ -33,7 +33,7 @@
     - role: monitoring-agent
       vars:
         monitoring_host_label: "{{ inventory_hostname }}"
-        monitoring_environment: "{{ environment | default('prod') }}"
+        monitoring_environment: "{{ env_name | default('prod') }}"
         monitoring_loki_push_url: "{{ monitoring_loki_push_url | default('') }}"
 
 # Identity-host install: runs Authentik server on hosts in the [identity]
