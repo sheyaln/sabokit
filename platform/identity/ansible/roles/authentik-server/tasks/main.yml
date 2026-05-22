@@ -70,10 +70,11 @@
   no_log: true
   when: authentik_smtp_secret_id | length > 0
 
-- name: Ensure Authentik internal Docker network exists
-  community.docker.docker_network:
-    name: authentik-internal
-    state: present
+# NOTE: We intentionally do NOT pre-create the authentik-internal network
+# here. docker-compose owns it and labels it with project metadata; creating
+# it out-of-band leads to "incorrect label com.docker.compose.network" errors
+# on every subsequent `compose up`. The compose template defines it under
+# `networks:` so compose creates and manages it on first up.
 
 - name: Ensure Authentik directory tree
   ansible.builtin.file:
