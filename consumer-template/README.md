@@ -1,103 +1,100 @@
 # consumer-template
 
-The starter every new consumer of `sabokit` copies. Fill in `terraform.tfvars` + `inventory.ini`, run `terraform apply && ansible-playbook site.yml`, you have a working stack.
+The starter you copy into your own infrastructure repo. Two layers:
 
-## What it does
+- **`modules/stack/`** — shared TF wiring. Every environment calls this module. When `sabokit` ships a new app bundle, you add one `module` block here once and every env picks it up.
+- **`environments/<env>/`** — one dir per environment (prod, staging, …). Per-env tfvars, remote-state backend config, Ansible inventory, and a `deploy.sh` that runs `terraform apply && ansible-playbook` in order.
 
-`terraform/` calls `module.base` once (provisions Scaleway network, compute, Postgres, default security group, and Authentik instance config) and `module.<app>` per app you enable (provisions per-app Authentik OIDC/SAML/proxy config, DNS, S3 buckets, databases, secrets).
+## Layout
 
-`ansible/` bootstraps the compute hosts (Docker, Traefik, fail2ban, log management, scw-secrets, monitoring agent) and then deploys each enabled app's stack via `import_playbook`.
-
-The set of "enabled apps" is the single source of truth — flip `apps.outline.enabled = true` in `terraform.tfvars` and one playbook import in `site.yml`, and Outline ships end-to-end.
+```
+consumer-template/
+├── modules/stack/                # Shared module wiring (one source of truth)
+│   ├── base.tf                   # module "base"     — Scaleway primitives
+│   ├── identity.tf               # module "identity" — Authentik instance
+│   ├── apps.tf                   # module "<app>" per shipped app
+│   ├── variables.tf, outputs.tf, versions.tf
+│   └── README.md
+├── environments/
+│   ├── _template/                # Copy this to create new envs
+│   │   ├── main.tf               # module "stack" { source = "../../modules/stack" ... }
+│   │   ├── providers.tf          # Scaleway + Authentik provider config + S3 backend
+│   │   ├── variables.tf
+│   │   ├── terraform.tfvars.example
+│   │   ├── backend.hcl.example
+│   │   ├── inventory.ini.example
+│   │   ├── deploy.sh             # TF first, Ansible second
+│   │   ├── .gitignore
+│   │   └── README.md
+│   └── (your envs land here)
+├── scripts/
+│   └── bump-version.sh           # Bump every ?ref=… pin to a new tag
+├── .gitignore
+└── README.md
+```
 
 ## Quick start
 
 ```bash
-# 1. Copy this template into your own repo
-cp -r consumer-template/* ~/my-org/infrastructure/
-cd ~/my-org/infrastructure/
+# 1. cp the template into your infra repo (alongside sabokit as a submodule)
+git clone https://github.com/sheyaln/sabokit.git
+cp -r sabokit/consumer-template/* my-infra/
 
-# 2. Configure
-cp terraform/terraform.tfvars.example terraform/terraform.tfvars
-$EDITOR terraform/terraform.tfvars                  # fill in credentials, domains, app list
+# 2. Create your first environment
+cd my-infra
+cp -r environments/_template environments/prod
+cd environments/prod
 
-cp ansible/inventory.ini.example ansible/inventory.ini
-cp ansible/group_vars/all.yml.example ansible/group_vars/all.yml
+# 3. Configure
+cp terraform.tfvars.example terraform.tfvars       $EDITOR terraform.tfvars
+cp backend.hcl.example      backend.hcl            $EDITOR backend.hcl
+cp inventory.ini.example    inventory.ini          # update later with real IPs
 
-# 3. Provision infrastructure
-cd terraform
-terraform init
-terraform apply
+# 4. Provision + deploy
+./deploy.sh
 
-# 4. Wait for hosts to come up, then drop the public IPs into inventory.ini
+# 5. After first apply, drop the host IPs into inventory.ini, re-run
 terraform output compute_hosts
-$EDITOR ../ansible/inventory.ini
-
-# 5. Pipe per-app Terraform outputs into Ansible
-terraform output -json enabled_apps > ../ansible/enabled_apps.json
-
-# 6. Deploy
-cd ../ansible
-ansible-playbook site.yml -e @enabled_apps.json
+$EDITOR inventory.ini
+./deploy.sh --skip-tags bootstrap
 ```
 
-## File layout
+For a second env (staging), `cp -r environments/_template environments/staging` and repeat. Each env has its own state, its own credentials, and its own deploy.
 
-```
-consumer-template/
-├── terraform/
-│   ├── versions.tf                 # required providers + backend stub
-│   ├── providers.tf                # scaleway + authentik provider config
-│   ├── variables.tf                # consumer inputs
-│   ├── base.tf                     # module.base + module.authentik
-│   ├── apps.tf                     # one module call per app
-│   ├── outputs.tf                  # surfaces what ansible consumes
-│   └── terraform.tfvars.example    # copy + fill in
-├── ansible/
-│   ├── ansible.cfg
-│   ├── inventory.ini.example
-│   ├── site.yml                    # bootstrap + per-app imports
-│   └── group_vars/
-│       └── all.yml.example
-├── scripts/
-│   └── bump-version.sh             # bump every ?ref=… pin to a new tag
-└── README.md
-```
+## Deploy cadence
+
+- **First apply on a fresh env**: `./deploy.sh` — terraform apply, then full Ansible bootstrap + apps.
+- **Routine app redeploy**: `./deploy.sh --skip-tags bootstrap` — seconds.
+- **One app at a time**: `./deploy.sh --tags outline`.
+- **Terraform-only**: `terraform -chdir=environments/prod apply` and skip Ansible.
 
 ## Adding an app
 
-1. Find the app under `apps/<name>/` in the sabokit repo. Read its README for required inputs and what it provisions.
-2. In your `terraform/apps.tf`, add a `module "<name>"` call following the Outline example. The shape is always the same: `enabled`, `hostname`, `base = local.base`.
-3. In your `terraform.tfvars`, add `apps.<name> = { enabled = true, hostname = "<sub>.example.org" }`.
-4. In your `ansible/site.yml`, uncomment (or add) the matching `import_playbook` line for the app.
-5. `terraform apply && ansible-playbook site.yml`.
-
-## Disabling an app
-
-Set `apps.<name>.enabled = false` in tfvars and `terraform apply`. Terraform tears down the Authentik resources, DNS records, S3 buckets, databases, and secrets. The Docker stack on the host is **not** auto-removed — `ssh <host> && cd /opt/<app> && docker compose down -v && sudo rm -rf /opt/<app>`.
+1. Find the app under `platform/apps/<name>/` in `sabokit`. Read its README.
+2. In `modules/stack/apps.tf`, add a `module "<name>"` block following the Outline pattern.
+3. In each env's `terraform.tfvars`, add `apps.<name> = { enabled = true, hostname = "…" }`.
+4. In `sabokit/platform/ansible/apps.yml`, the `import_playbook` for that app is already there if the bundle ships — `deploy.sh` will pick it up.
+5. `./deploy.sh`.
 
 ## Bumping sabokit
 
 ```bash
 ./scripts/bump-version.sh v1.1.0
-cd terraform && terraform init -upgrade && terraform plan
+for env in environments/*/; do
+  [[ -d "$env" && "$env" != */"_template"/ ]] || continue
+  (cd "$env" && terraform init -upgrade && terraform plan)
+done
 ```
 
-The script rewrites every `?ref=` pin in `terraform/` to the new tag. Check the plan, then `apply`. See [sabokit CHANGELOG](https://github.com/sheyaln/sabokit/releases) for what changed between tags — major bumps may require `terraform state mv`.
+Major bumps may require `terraform state mv` — check the release notes.
 
 ## Secrets hygiene
 
-- `terraform.tfvars`, `inventory.ini`, `group_vars/all.yml` should all be gitignored if they contain secrets. The `.example` siblings are tracked.
-- Prefer `TF_VAR_*` environment variables for CI; tfvars files for local apply.
-- Ansible loads Outline's app secrets from Scaleway Secret Manager at deploy time via `lookup('scaleway.scaleway.scaleway_secret', ...)`. The Scaleway credentials it uses come from `SCW_SECRETS_ACCESS_KEY` / `SCW_SECRETS_SECRET_KEY` env vars (set in your shell before `ansible-playbook`).
+`terraform.tfvars`, `backend.hcl`, `inventory.ini`, and any `.json` runtime artifact are gitignored. `.example` siblings are tracked. Prefer `TF_VAR_*` env vars for CI; tfvars files for local apply.
 
-## Required Ansible collections
+## Required tools
 
 ```bash
+brew install terraform ansible jq        # or apt/dnf equivalents
 ansible-galaxy collection install community.docker community.general scaleway.scaleway
 ```
-
-## Notes
-
-- This template uses `git::https://github.com/sheyaln/sabokit.git//...?ref=v1.0.0` everywhere. Replace `sheyaln/sabokit` with your fork if you maintain one.
-- The `apps/outline/` reference bundle is the worked example. Once 2-3 more apps ship (Nextcloud, Vikunja), this template will gain commented-out call sites for them. For now, add them yourself by copying the Outline pattern.

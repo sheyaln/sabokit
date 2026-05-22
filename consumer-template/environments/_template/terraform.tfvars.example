@@ -1,0 +1,35 @@
+# Copy to terraform.tfvars (gitignored) and fill in.
+#
+# Credentials can also come from TF_VAR_* env vars (preferred in CI):
+#   export TF_VAR_scaleway_access_key=...
+#   export TF_VAR_scaleway_secret_key=...
+#   export TF_VAR_authentik_admin_token=...
+
+scaleway_access_key   = "SCWXXXXXXXXXXXXXXXXX"
+scaleway_secret_key   = "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+scaleway_project_id   = "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+authentik_admin_token = "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+
+org_slug    = "acme"
+org_name    = "Acme Cooperative"
+environment = "prod"          # match the env directory name
+
+base_domain    = "example.org"
+gateway_domain = "auth.example.org"
+infra_email    = "ops@example.org"
+# mgmt_domain  = "ops.example.org"  # optional; defaults to base_domain
+
+# compute_hosts can be overridden here if you need a different topology
+# than the default (single "apps" DEV1-L host).
+
+apps = {
+  outline = {
+    enabled  = true
+    hostname = "wiki.example.org"
+  }
+
+  # nextcloud = {
+  #   enabled  = true
+  #   hostname = "cloud.example.org"
+  # }
+}

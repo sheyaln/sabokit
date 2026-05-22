@@ -1,0 +1,11 @@
+# Per-env secrets and runtime artifacts. Anything not .example or .sh.
+.terraform/
+.terraform.lock.hcl
+terraform.tfvars
+backend.hcl
+inventory.ini
+.tf-output.json
+.ansible-vars.json
+*.tfplan
+*.tfstate
+*.tfstate.*

@@ -1,0 +1,37 @@
+---
+# Bootstrap the prereqs every host needs before any app can deploy. Run once
+# per fresh host. Re-run only when bootstrap config changes (rare).
+#
+# Tagged `bootstrap` so consumers can `ansible-playbook site.yml --skip-tags
+# bootstrap` for fast app-only redeploys.
+
+- name: Bootstrap all hosts
+  hosts: all
+  become: true
+  tags: [bootstrap]
+  roles:
+    - role: log-management
+    - role: unattended-upgrades
+    - role: ufw
+    - role: docker
+    - role: fail2ban
+
+- name: Bootstrap application hosts (Traefik + secrets + monitoring agent)
+  hosts: apps
+  become: true
+  tags: [bootstrap]
+  roles:
+    - role: traefik
+      vars:
+        traefik_acme_email: "{{ traefik_acme_email }}"
+        traefik_authentik_outpost_url: "https://{{ gateway_domain }}/outpost.goauthentik.io/auth/traefik"
+
+    - role: scw-secrets
+      vars:
+        scw_secrets_project_id: "{{ scaleway_project_id }}"
+
+    - role: monitoring-agent
+      vars:
+        monitoring_host_label: "{{ inventory_hostname }}"
+        monitoring_environment: "{{ environment | default('prod') }}"
+        monitoring_loki_push_url: "{{ monitoring_loki_push_url | default('') }}"

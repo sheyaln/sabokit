@@ -1,0 +1,93 @@
+# Inputs the per-env caller passes through. Credentials are NOT here — they
+# belong to the per-env root, not the shared stack module.
+
+variable "scaleway_project_id" {
+  description = "Scaleway project ID. All resources land in this project."
+  type        = string
+}
+
+variable "scaleway_region" {
+  description = "Scaleway region."
+  type        = string
+  default     = "fr-par"
+}
+
+variable "scaleway_zone" {
+  description = "Scaleway zone for compute instances."
+  type        = string
+  default     = "fr-par-1"
+}
+
+variable "org_slug" {
+  description = "Short URL-safe slug used to name resources (e.g. \"acme\")."
+  type        = string
+}
+
+variable "org_name" {
+  description = "Organization display name shown in Authentik UI."
+  type        = string
+}
+
+variable "environment" {
+  description = "Short environment label (\"prod\", \"staging\", \"dev\")."
+  type        = string
+  default     = "prod"
+}
+
+variable "base_domain" {
+  description = "Primary apps domain (e.g. \"example.org\"). Must be registered + delegated to Scaleway DNS before apply."
+  type        = string
+}
+
+variable "mgmt_domain" {
+  description = "Management-apps domain. Defaults to base_domain (single-domain setup)."
+  type        = string
+  default     = null
+}
+
+variable "gateway_domain" {
+  description = "Hostname Authentik is served at (e.g. \"auth.example.org\")."
+  type        = string
+}
+
+variable "infra_email" {
+  description = "Operations contact email shown in Authentik notification bodies."
+  type        = string
+}
+
+variable "compute_hosts" {
+  description = "Compute hosts to provision. Keyed by short host name."
+  type = map(object({
+    instance_type     = string
+    image             = optional(string, "ubuntu_jammy")
+    disk_size         = optional(number, 30)
+    disk_type         = optional(string, "sbs_volume")
+    role              = string
+    ansible_group     = string
+    protected         = optional(bool, false)
+    user_data         = optional(map(string), {})
+    security_group_id = optional(string, null)
+    tags              = optional(list(string), [])
+  }))
+  default = {
+    apps = {
+      instance_type = "DEV1-L"
+      disk_size     = 100
+      role          = "apps"
+      ansible_group = "apps"
+      protected     = true
+    }
+  }
+}
+
+variable "private_network_subnet" {
+  description = "Private network CIDR (required when running managed PostgreSQL; a /22 is recommended)."
+  type        = string
+  default     = "10.0.0.0/22"
+}
+
+variable "apps" {
+  description = "Per-app enable flag and overrides. Each app has its own schema; see platform/apps/<name>/terraform/variables.tf."
+  type        = any
+  default     = {}
+}

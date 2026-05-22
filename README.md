@@ -13,29 +13,41 @@ Modules cover the two layers that are tedious to get right: provider-side primit
 ## Repository layout
 
 ```
-terraform/
-├── infrastructure/modules/
-│   ├── app_dns/                  # Data-driven DNS records (A/AAAA/CNAME/TXT/MX)
-│   ├── common_security_rules/    # Reusable inbound/outbound rule sets
-│   ├── compute/                  # Scaleway Instance + cloud-init
-│   ├── network/                  # Private network + VPC wiring
-│   ├── secrets/                  # Scaleway Secret Manager wrapper
-│   ├── security_group/           # Security group + rules composition
-│   └── storage/
-│       ├── object_bucket/        # S3-compatible bucket + IAM
-│       └── postgres/             # Managed PostgreSQL
-│
-└── authentik/
-    ├── modules/
-    │   ├── instance/             # Instance-wide config: brand, flows, sources, outpost
-    │   ├── oidc-app/             # One OIDC provider + application
-    │   ├── saml-app/             # One SAML provider + application
-    │   ├── bookmark/             # External-link application tile
-    │   └── traefik-forward-auth/ # Forward-auth provider for Traefik
-    └── apps/                     # Pre-composed per-app bundles (Outline, Nextcloud, ...)
+modules/                                # Low-level Terraform primitives. No application semantics.
+├── infrastructure/{app_dns, common_security_rules, compute, network,
+│                    secrets, security_group, storage/{object_bucket,
+│                    postgres, postgres_database}}
+└── authentik/{oidc-app, saml-app, bookmark, traefik-forward-auth}
+
+platform/                               # The platform every consumer needs.
+├── base/                               # Always-on Scaleway primitives.
+│   ├── terraform/                      #   Network, compute, postgres, default SG.
+│   └── ansible/roles/                  #   Bootstrap roles: docker, traefik, fail2ban,
+│                                       #   scw-secrets, monitoring-agent, ufw, log-mgmt,
+│                                       #   unattended-upgrades.
+├── identity/                           # Authentik instance (always-on by default;
+│   ├── terraform/                      #   pluggable if you bring your own IdP).
+│   └── ansible/roles/                  #   Reserved.
+├── apps/                               # One self-contained bundle per app.
+│   └── outline/{terraform, ansible/roles/outline, monitoring}
+└── ansible/                            # Orchestration only — no role definitions here.
+    ├── ansible.cfg                     #   roles_path points at every bundle's ansible/roles.
+    ├── bootstrap.yml                   #   tag: bootstrap. Runs once per fresh host.
+    ├── apps.yml                        #   tag: apps. Per-enabled-app import_playbook.
+    └── site.yml                        #   bootstrap + apps.
+
+consumer-template/                      # The starter you cp into your own repo.
+├── modules/stack/                      #   Shared TF wiring; one source of truth across envs.
+├── environments/_template/             #   Copy to prod/, staging/, etc.
+│   ├── main.tf, providers.tf, variables.tf
+│   ├── terraform.tfvars.example, backend.hcl.example, inventory.ini.example
+│   └── deploy.sh                       #   `terraform apply` then `ansible-playbook`.
+└── scripts/bump-version.sh
+
+examples/local-validate/                # In-repo terraform-validate harness for CI.
 ```
 
-A reference consumer lives under [`consumer-template/`](./consumer-template/) — copy it, fill in your config, and `terraform apply`.
+A reference consumer lives under [`consumer-template/`](./consumer-template/) — copy it, add `sabokit` as a submodule, fill in per-env config, run `deploy.sh`.
 
 ---
 
@@ -45,43 +57,36 @@ Every module is consumed by Git ref, pinned to a tag. **Never** consume `master`
 
 ```hcl
 module "private_network" {
-  source = "git::https://github.com/sheyaln/sabokit.git//terraform/infrastructure/modules/network?ref=infra-modules-v0.4.0"
+  source = "git::https://github.com/sheyaln/sabokit.git//modules/infrastructure/network?ref=v1.0.0"
 
   name   = "prod-internal"
   region = "fr-par"
 }
 ```
 
+Most consumers won't call low-level modules directly — they'll call `module.stack` from `consumer-template/modules/stack/` which composes `module.base` + `module.identity` + `module.<app>` per enabled app.
+
 The `?ref=<tag>` is mandatory. See [Versioning](#versioning) below for what each tag promises.
 
 ### Bumping a version
 
-Use a single sed pass across your consumer repo:
-
-```bash
-OLD=infra-modules-v0.4.0
-NEW=infra-modules-v0.5.0
-grep -rl "ref=$OLD" terraform/ | xargs sed -i '' "s|ref=$OLD|ref=$NEW|g"
-terraform -chdir=terraform/infrastructure init -upgrade
-terraform -chdir=terraform/infrastructure plan
-```
-
-A pinned-bump helper script is included in the consumer template.
+`consumer-template/scripts/bump-version.sh v1.1.0` rewrites every `?ref=` pin under `modules/stack/` in one pass, then runs `terraform plan` per environment.
 
 ---
 
-## What you bring, what the modules bring
+## What this repo provides, what you provide
 
-Modules are **infrastructure primitives and identity wiring** only.
+The blueprint covers **infrastructure provisioning + identity wiring + app deployment scaffolding**. You bring credentials, hostnames, and the apps' own runtime config.
 
-| Modules provide                        | You provide                                  |
-|----------------------------------------|----------------------------------------------|
-| Network, compute, storage, DNS, secrets| Provider credentials, region, project IDs    |
-| Authentik flows, sources, outpost      | Authentik server (run via Helm/Docker/etc.)  |
-| Per-app OIDC/SAML providers            | The app itself (Helm chart, Compose, k8s)    |
-| Group taxonomy hooks                   | Your group names and member assignments      |
+| Blueprint provides                                          | You provide                                       |
+|-------------------------------------------------------------|---------------------------------------------------|
+| Scaleway network, compute, postgres, storage, DNS, secrets  | Scaleway project + IAM credentials                |
+| Authentik instance (flows, brand, social sources, outpost)  | Authentik admin token + your group taxonomy       |
+| Per-app OIDC/SAML providers + S3 buckets + per-app DBs      | Your hostnames (`wiki.example.org`, etc.)         |
+| Ansible roles to deploy each app via docker-compose         | Your inventory (host IPs from `terraform output`) |
+| `consumer-template/` with per-env deploy script             | Your domains, registered + delegated to Scaleway  |
 
-Application runtimes (Docker, Kubernetes, Ansible) are intentionally not in scope. The modules give you the identity provider, the DNS records, and the storage your apps will plug into.
+Substrate assumption: Docker Compose on Scaleway VMs. K8s consumers would fork the `ansible/` side of each app bundle and replace it with manifests.
 
 ---
 
@@ -89,22 +94,22 @@ Application runtimes (Docker, Kubernetes, Ansible) are intentionally not in scop
 
 Tagged releases follow [semver](https://semver.org/):
 
-- **Patch** (`v0.4.1`) — bug fixes, doc-only changes. Always safe.
-- **Minor** (`v0.5.0`) — additive: new variables (with defaults), new outputs, new modules. Safe.
-- **Major** (`v1.0.0`) — breaking: variable renames, removed inputs/outputs, resource address changes requiring `terraform state mv`. Upgrade notes ship with the release.
+- **Patch** (`v1.0.1`) — bug fixes, doc-only changes. Always safe.
+- **Minor** (`v1.1.0`) — additive: new variables (with defaults), new outputs, new app bundles. Safe.
+- **Major** (`v2.0.0`) — breaking: variable renames, removed outputs, resource address changes requiring `terraform state mv`. Migration notes ship with the release.
 
-Find tags at [github.com/sheyaln/sabokit/tags](https://github.com/sheyaln/sabokit/tags). Release notes describe required state moves for major bumps.
+Find tags at [github.com/sheyaln/sabokit/tags](https://github.com/sheyaln/sabokit/tags). Pre-1.0 tags (`infra-modules-v0.4.0`) exist for the legacy library shape and are not compatible with the v1.x platform layout.
 
 ---
 
 ## Module conventions
 
-Every module follows the contract in [CONVENTIONS.md](./CONVENTIONS.md). Highlights:
+Every module follows the contract in [CONVENTIONS.md](./CONVENTIONS.md). The platform↔app contract lives in [ARCHITECTURE.md](./ARCHITECTURE.md). Highlights:
 
 - Required inputs have no default. Optional inputs default to a generic value or `null` (meaning "create one for me").
 - Modules never assemble subdomains. You pass full hostnames as inputs.
-- Every module exposes raw resource IDs and an `extra_*` pass-through where useful.
-- No org-specific defaults. No hardcoded group names, no hardcoded URLs.
+- Every app bundle is `enabled`-gated. `enabled = false` provisions zero resources.
+- No org-specific defaults. No hardcoded group names. No hardcoded URLs.
 
 Per-module documentation lives next to each module's `main.tf`.
 
@@ -112,7 +117,7 @@ Per-module documentation lives next to each module's `main.tf`.
 
 ## Project status
 
-`v0.x` — module APIs may still shift. Breaking changes will be tagged as `v1.0.0` once the contract stabilises. Consumer feedback that this should happen sooner is welcome via issues.
+`v1.0` candidate. The platform/app contract is validated end-to-end via `examples/local-validate/`. The reference app bundle (Outline) is complete; the other 13 apps replicate the same pattern and are being added in subsequent minor releases. Feedback on the contract is welcome via issues before v1.0.0 tags.
 
 ## License
 

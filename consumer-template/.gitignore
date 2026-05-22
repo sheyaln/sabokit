@@ -1,26 +1,27 @@
-# Consumer-side gitignore. Copy this file along with the template.
+# Consumer-side gitignore. Copy along with the template.
 
-# Terraform state and credentials
+# Terraform
 **/.terraform/
-*.tfstate
-*.tfstate.*
-*.tfvars
-!*.tfvars.example
-*.tfplan
+**/.terraform.lock.hcl
+**/*.tfstate
+**/*.tfstate.*
+**/*.tfvars
+!**/*.tfvars.example
+**/*.tfplan
 crash.log
-.terraform.lock.hcl
 
-# Ansible
-inventory.ini
-!inventory.ini.example
-group_vars/all.yml
-!group_vars/all.yml.example
+# Per-env runtime files
+**/backend.hcl
+!**/backend.hcl.example
+**/inventory.ini
+!**/inventory.ini.example
+**/.tf-output.json
+**/.ansible-vars.json
+
+# Ansible runtime
 *.retry
 .ansible/
 .vault_pass.txt
-
-# Terraform→Ansible bridge
-ansible/enabled_apps.json
 
 # Secrets
 .env

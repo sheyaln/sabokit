@@ -6,7 +6,7 @@
 # The Proxy Provider works with Traefik's forwardAuth middleware to protect
 # applications that don't have native OIDC/SAML support. The consumer is
 # responsible for binding the resulting provider_id to an Authentik outpost
-# (typically the embedded outpost provided by base/authentik/).
+# (typically the embedded outpost provided by platform/identity/terraform/).
 
 resource "authentik_provider_proxy" "provider" {
   name = "${var.application_name} Forward Auth Provider"

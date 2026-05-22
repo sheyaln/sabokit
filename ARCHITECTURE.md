@@ -40,13 +40,13 @@ apps/<name>/         # One self-contained bundle per app. Owns its Authentik
                      # and its Ansible deploy role. Inert when disabled.
 
 consumer-template/   # The starter a new org copies. Calls base/ once and
-                     # calls apps/<name>/ as many times as the org needs.
+                     # calls platform/apps/<name>/ as many times as the org needs.
                      # Holds tfvars, inventory.ini, and site.yml.
 ```
 
 **Dependency direction**: `consumer-template` → `base` and `apps/*`. `apps/*` → `base` (via consumer-passed outputs) and `modules/*`. `base` → `modules/*`. `modules/*` depends on nothing in this tree.
 
-Apps never depend on each other directly. Cross-app coupling lives in `apps/<name>/integrations/<other-app>.tf` and is gated by a toggle that only fires if both apps are enabled.
+Apps never depend on each other directly. Cross-app coupling lives in `platform/apps/<name>/integrations/<other-app>.tf` and is gated by a toggle that only fires if both apps are enabled.
 
 ---
 
@@ -59,7 +59,7 @@ Apps never depend on each other directly. Cross-app coupling lives in `apps/<nam
 The contract is split by concern:
 
 ```hcl
-# From base/scaleway/outputs.tf
+# From platform/base/terraform/outputs.tf
 output "scaleway" {
   description = "Scaleway platform handles. Apps use these to provision their own resources."
   value = {
@@ -91,7 +91,7 @@ output "compute" {
   }
 }
 
-# From base/authentik/outputs.tf
+# From platform/identity/terraform/outputs.tf
 output "authentik" {
   description = "Authentik platform handles. Apps use these to register OIDC/SAML/proxy providers."
   value = {
@@ -135,7 +135,7 @@ Apps consume `var.base` as one object. Adding a field to `base` requires no cons
 
 ### What every app bundle consumes
 
-Every app bundle MUST declare these inputs in `apps/<name>/variables.tf`:
+Every app bundle MUST declare these inputs in `platform/apps/<name>/variables.tf`:
 
 ```hcl
 variable "enabled" {
@@ -193,7 +193,7 @@ An app MAY declare additional inputs for its own specifics (e.g. `outline_smtp_f
 
 ### What every app bundle exports
 
-Every app bundle MUST export these outputs in `apps/<name>/outputs.tf`:
+Every app bundle MUST export these outputs in `platform/apps/<name>/outputs.tf`:
 
 ```hcl
 output "enabled" {
@@ -243,10 +243,10 @@ The `null when disabled` pattern is load-bearing. Consumers and other apps use `
 
 ## App bundle layout
 
-Every `apps/<name>/` directory follows this exact structure:
+Every `platform/apps/<name>/` directory follows this exact structure:
 
 ```
-apps/outline/
+platform/apps/outline/
 ├── terraform/
 │   ├── versions.tf          # Required providers (scaleway, authentik, random)
 │   ├── variables.tf         # The contract inputs above, plus app-specific ones
@@ -306,7 +306,7 @@ The consumer's `apps.tf` reads `var.apps` and passes per-app config to each modu
 
 ```hcl
 module "outline" {
-  source   = "git::https://github.com/sheyaln/sabokit.git//apps/outline/terraform?ref=v1.0.0"
+  source   = "git::https://github.com/sheyaln/sabokit.git//platform/apps/outline/terraform?ref=v1.0.0"
   enabled  = try(var.apps.outline.enabled, false)
   hostname = try(var.apps.outline.hostname, "")
   base     = module.base
@@ -335,7 +335,7 @@ Every app declares its monitoring artifacts whether or not monitoring is enabled
 ### Inside an app: `monitoring.tf`
 
 ```hcl
-# apps/outline/terraform/monitoring.tf
+# platform/apps/outline/terraform/monitoring.tf
 output "monitoring" {
   description = "Monitoring contribution. null when disabled or opted out."
   value = (var.enabled && var.monitoring_enabled) ? {
@@ -454,9 +454,9 @@ If Nextcloud is disabled, `module.nextcloud.authentik_application_group_id` is `
 
 ## Outpost binding mechanism
 
-The Authentik embedded outpost lives in `base/authentik/` and binds forward-auth provider IDs from any enabled forward-auth app (Backrest variants, BentoPDF, etc.).
+The Authentik embedded outpost lives in `platform/identity/terraform/` and binds forward-auth provider IDs from any enabled forward-auth app (Backrest variants, BentoPDF, etc.).
 
-`base/authentik/` exposes a variable:
+`platform/identity/terraform/` exposes a variable:
 
 ```hcl
 variable "extra_forward_auth_provider_ids" {
@@ -493,7 +493,7 @@ module "base" {
 - **Variable names**: `lowercase_snake_case`. Always.
 - **Resource names inside an app**: `this` for the primary resource, descriptive snake_case for others. `authentik_application.this`, `scaleway_object_bucket.attachments`.
 - **No hardcoded subdomains in modules.** Consumers pass `hostname = "wiki.example.org"` as a full string. Modules NEVER do `"wiki.${var.domain}"`.
-- **No hardcoded group names in leaf modules.** Group taxonomy lives in `base/authentik/`; apps reference `var.base.authentik.groups["admin"]` etc.
+- **No hardcoded group names in leaf modules.** Group taxonomy lives in `platform/identity/terraform/`; apps reference `var.base.authentik.groups["admin"]` etc.
 - **Sensitive outputs** are marked `sensitive = true`. Secrets are stored in Scaleway Secret Manager, not in Terraform state where avoidable.
 - **Descriptions are mandatory.** Every variable and output has a `description = "..."`. The description is the API doc — it should read as docs, not as a code comment.
 - **Defaults**: required inputs have NO default. Optional inputs default to a generic value (`"Tools"` for category) or `null` (meaning "module creates one for me").
@@ -505,7 +505,7 @@ module "base" {
 Tags drive everything. Consumers pin module sources to a tag:
 
 ```hcl
-source = "git::https://github.com/sheyaln/sabokit.git//apps/outline/terraform?ref=v1.0.0"
+source = "git::https://github.com/sheyaln/sabokit.git//platform/apps/outline/terraform?ref=v1.0.0"
 ```
 
 Tag scheme: `v<major>.<minor>.<patch>` at the repo root. **One tag covers the whole monorepo** — every module under `base/`, `apps/`, and `modules/` is versioned together. This trades fine-grained independence for "the whole platform moves as one", which is the right trade-off for a blueprint.
@@ -537,7 +537,7 @@ apps = {
 
 ```hcl
 module "outline" {
-  source   = "git::https://github.com/sheyaln/sabokit.git//apps/outline/terraform?ref=v1.0.0"
+  source   = "git::https://github.com/sheyaln/sabokit.git//platform/apps/outline/terraform?ref=v1.0.0"
   enabled  = try(var.apps.outline.enabled, false)
   hostname = try(var.apps.outline.hostname, "")
   base     = module.base
@@ -568,14 +568,14 @@ module "outline" {
 
 ### What the Ansible role does
 
-`apps/outline/ansible/role/tasks/main.yml`:
+`platform/apps/outline/ansible/role/tasks/main.yml`:
 1. Fetches the bag of secrets from Scaleway Secret Manager (uses base's `scw-secrets` role)
 2. Renders `docker-compose.yml.j2` with the secret values and the Outline image
 3. Renders `env.j2` with non-secret config (FORCE_HTTPS=true, hostname, etc.)
 4. Ensures Traefik labels are present on the compose service for routing
 5. Runs `docker compose up -d` on the target host
 
-`apps/outline/ansible/playbook.yml`:
+`platform/apps/outline/ansible/playbook.yml`:
 ```yaml
 - name: Deploy Outline
   hosts: "{{ outline_host_group | default('apps') }}"

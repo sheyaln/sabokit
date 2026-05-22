@@ -1,0 +1,26 @@
+---
+# Deploy every enabled app. Apps assume the bootstrap roles are already on the
+# host (Docker, Traefik, scw-secrets). Each app's role asserts its prereqs at
+# the top of tasks/main.yml — failures here mean bootstrap was skipped or
+# something got removed.
+#
+# Each import is conditional on `enabled_apps.<name>` being non-null. That map
+# is produced by `terraform output -json enabled_apps` in the per-env deploy.sh
+# and passed via `-e @.enabled_apps.json`. Apps the consumer didn't enable
+# evaluate to null and the import is skipped.
+
+- import_playbook: ../apps/outline/ansible/playbook.yml
+  vars:
+    outline_host_group:                "{{ enabled_apps.outline.ansible_group }}"
+    outline_hostname:                  "{{ enabled_apps.outline.url | regex_replace('^https?://', '') }}"
+    outline_app_secret_id:             "{{ enabled_apps.outline.ansible_vars.outline_app_secret_id }}"
+    outline_db_credentials_secret_id:  "{{ enabled_apps.outline.ansible_vars.outline_db_credentials_secret_id }}"
+  when: enabled_apps.outline is defined and enabled_apps.outline is not none
+  tags: [apps, outline]
+
+# More app imports land here as bundles ship. Same shape every time:
+#
+# - import_playbook: ../apps/nextcloud/ansible/playbook.yml
+#   vars: ...
+#   when: enabled_apps.nextcloud is defined and enabled_apps.nextcloud is not none
+#   tags: [apps, nextcloud]

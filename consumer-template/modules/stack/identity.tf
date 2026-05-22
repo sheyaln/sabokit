@@ -1,0 +1,33 @@
+module "identity" {
+  source = "git::https://github.com/sheyaln/sabokit.git//platform/identity/terraform?ref=v1.0.0"
+
+  gateway_domain = module.base.domains.gateway_domain
+  base_domain    = module.base.domains.base_domain
+
+  org_name    = var.org_name
+  org_slug    = var.org_slug
+  infra_email = var.infra_email
+
+  # Forward-auth providers from any enabled apps/* bundles register here.
+  # compact() drops nulls from disabled apps.
+  extra_forward_auth_provider_ids = compact([
+    # Example (uncomment when bundles ship):
+    # module.bentopdf.authentik_provider_id,
+    # module.backrest.authentik_provider_id,
+  ])
+}
+
+# The merged "base" object app bundles consume. Apps reference
+# var.base.{scaleway, identity, compute, domains}.
+locals {
+  base = {
+    scaleway = module.base.scaleway
+    compute  = module.base.compute
+    domains  = module.base.domains
+
+    # Authentik is exposed under base.authentik for app convenience even
+    # though it's produced by module.identity — apps don't need to know
+    # whether identity is platform-provided or external.
+    authentik = module.identity.authentik
+  }
+}

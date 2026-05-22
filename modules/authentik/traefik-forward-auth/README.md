@@ -2,7 +2,7 @@
 
 Creates an Authentik Proxy Provider in `forward_single` mode, an Application backed by it, a per-app Authentik group, and one policy binding per group in `authorized_group_ids`. The Proxy Provider pairs with Traefik's `forwardAuth` middleware to protect applications that don't have native OIDC/SAML support.
 
-The consumer is responsible for binding the resulting `provider_id` to an Authentik outpost (typically the embedded outpost provided by `base/authentik/`). Pass `cookie_domain` to share session cookies across multiple subdomains; pass `skip_path_regex` to bypass authentication on webhook or health-check paths.
+The consumer is responsible for binding the resulting `provider_id` to an Authentik outpost (typically the embedded outpost provided by `platform/identity/terraform/`). Pass `cookie_domain` to share session cookies across multiple subdomains; pass `skip_path_regex` to bypass authentication on webhook or health-check paths.
 
 ## Usage
 

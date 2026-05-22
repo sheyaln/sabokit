@@ -1,4 +1,4 @@
-# End-to-end terraform validate harness. Wires base/scaleway + base/authentik
+# End-to-end terraform validate harness. Wires platform/base/terraform + platform/identity/terraform
 # + apps/outline together with relative paths to catch type mismatches in CI
 # without needing real Scaleway credentials.
 #
@@ -35,7 +35,7 @@ provider "authentik" {
 }
 
 module "base" {
-  source = "../../base/scaleway"
+  source = "../../platform/base/terraform"
 
   scaleway_project_id    = "00000000-0000-0000-0000-000000000000"
   org_slug               = "fctest"
@@ -54,7 +54,7 @@ module "base" {
 }
 
 module "authentik" {
-  source = "../../base/authentik"
+  source = "../../platform/identity/terraform"
 
   gateway_domain = module.base.domains.gateway_domain
   base_domain    = module.base.domains.base_domain
@@ -73,7 +73,7 @@ locals {
 }
 
 module "outline" {
-  source = "../../apps/outline/terraform"
+  source = "../../platform/apps/outline/terraform"
 
   enabled  = true
   hostname = "wiki.example.org"

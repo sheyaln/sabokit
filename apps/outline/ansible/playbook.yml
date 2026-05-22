@@ -1,9 +1,0 @@
----
-# Deploy Outline. Vars supplied by the consumer's site.yml (or directly on the
-# command line). All required vars are documented in the apps/outline/ README.
-
-- name: Deploy Outline
-  hosts: "{{ outline_host_group | default('apps') }}"
-  become: true
-  roles:
-    - role: outline

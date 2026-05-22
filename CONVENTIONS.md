@@ -75,7 +75,7 @@ In app bundles, the `hostname` variable is REQUIRED (no default). Consumers alwa
 
 ### Naming
 - Match the input name when reflecting back: input `private_network_id`, output `private_network_id`.
-- Prefer one structured output (`output "scaleway" { value = {...} }`) over many flat outputs for the platform-contract surface. See `base/scaleway/outputs.tf` for the canonical shape.
+- Prefer one structured output (`output "scaleway" { value = {...} }`) over many flat outputs for the platform-contract surface. See `platform/base/terraform/outputs.tf` for the canonical shape.
 - App bundle outputs are defined in [ARCHITECTURE.md "What every app bundle exports"](./ARCHITECTURE.md#what-every-app-bundle-exports). Don't add others without updating the contract.
 
 ### Sensitive
@@ -171,5 +171,5 @@ No fluff. No "why we built this" essays — that's for ARCHITECTURE.md and commi
 ## When in doubt
 
 1. Read [ARCHITECTURE.md](./ARCHITECTURE.md).
-2. Look at how `base/scaleway/` does it (canonical platform module) or `apps/outline/` (canonical app bundle, once built).
+2. Look at how `platform/base/terraform/` does it (canonical platform module) or `platform/apps/outline/` (canonical app bundle, once built).
 3. If still in doubt, copy the closest existing pattern and ask in a PR.
