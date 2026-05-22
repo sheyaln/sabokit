@@ -129,7 +129,7 @@ fi
 c_ok "SCW_ACCESS_KEY/SCW_SECRET_KEY exported"
 
 # Sanity-check the creds resolve the project.
-if ! scw account project get "$scw_project_id" >/dev/null 2>&1; then
+if ! scw account project get project-id="$scw_project_id" >/dev/null 2>&1; then
   fatal "scw can't fetch project $scw_project_id with the current credentials." \
     "Double-check SCW_ACCESS_KEY and SCW_SECRET_KEY have access to this project."
 fi
@@ -222,7 +222,8 @@ zone="$base_domain"
 
 # Cross-project DNS: if base_domain's Scaleway DNS zone lives in a different
 # project from the deploy project, the user exports separate credentials.
-declare -a dns_creds_env=()
+# Always prefix with `env` so the array is never empty (set -u tripwire).
+dns_creds_env=(env)
 if [[ -n "${SCW_DNS_ACCESS_KEY:-}" && -n "${SCW_DNS_SECRET_KEY:-}" ]]; then
   c_info "Using SCW_DNS_* credentials for the DNS zone (cross-project setup)."
   dns_creds_env=(env "SCW_ACCESS_KEY=$SCW_DNS_ACCESS_KEY" "SCW_SECRET_KEY=$SCW_DNS_SECRET_KEY")
@@ -260,9 +261,8 @@ else
   else
     c_warn "No A record for $gateway_domain — creating placeholder pointing to 1.1.1.1"
     c_info "(deploy.sh phase 1 will overwrite this with the real gateway IP.)"
-    "${dns_creds_env[@]}" scw dns record set-records \
-      dns-zone="$zone" name="$subdomain" type=A \
-      records.0.data=1.1.1.1 records.0.ttl=60 >/dev/null
+    "${dns_creds_env[@]}" scw dns record add "$zone" \
+      name="$subdomain" type=A data=1.1.1.1 ttl=60 >/dev/null
     c_ok "Placeholder A record created"
   fi
 fi
