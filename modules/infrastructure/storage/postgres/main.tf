@@ -80,7 +80,7 @@ resource "scaleway_rdb_user" "users" {
 resource "scaleway_secret" "admin_credentials" {
   name        = "${var.instance_name}-admin-credentials"
   description = "Admin credentials for the ${var.instance_name} PostgreSQL instance. Used by downstream modules to provision per-app databases."
-  tags        = concat(var.tags, ["postgres", "admin"])
+  tags        = distinct(concat(var.tags, ["postgres", "admin"]))
   type        = "database_credentials"
 }
 

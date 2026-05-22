@@ -41,7 +41,7 @@ resource "scaleway_rdb_privilege" "this" {
 resource "scaleway_secret" "this" {
   name        = "postgres-${var.database_name}-credentials"
   description = "Database credentials for ${var.database_name}"
-  tags        = concat(var.tags, ["postgres"])
+  tags        = distinct(concat(var.tags, ["postgres"]))
   type        = "database_credentials"
 }
 
