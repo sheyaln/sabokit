@@ -1,0 +1,10 @@
+---
+# Org-wide variables. Copy to group_vars/all.yml. Safe to commit unless
+# you embed secrets here (use Ansible Vault if you do).
+
+# These should match your terraform.tfvars values.
+scaleway_project_id: "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+gateway_domain:      "auth.example.org"
+
+# Traefik / Let's Encrypt
+traefik_acme_email:  "ops@example.org"

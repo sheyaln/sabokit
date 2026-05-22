@@ -1,0 +1,55 @@
+---
+# Consumer site playbook.
+#
+# Vars are supplied via:
+#   - group_vars/all.yml (org-wide; safe to commit if no secrets)
+#   - vars file rendered by `terraform output -json enabled_apps > tf-out.json`
+#     and passed via -e @tf-out.json
+#
+# Bootstrap layer runs first on every host. Then per-app playbooks deploy
+# their bundles. Comment out the import for apps you have not enabled.
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Bootstrap: roles every host needs.
+# ─────────────────────────────────────────────────────────────────────────────
+
+- name: Bootstrap all hosts
+  hosts: all
+  become: true
+  roles:
+    - role: log-management
+    - role: unattended-upgrades
+      vars:
+        unattended_upgrades_automatic_reboot: true
+        unattended_upgrades_automatic_reboot_time: "03:30"
+    - role: ufw
+    - role: docker
+    - role: fail2ban
+
+- name: Bootstrap application hosts
+  hosts: apps
+  become: true
+  roles:
+    - role: traefik
+      vars:
+        traefik_acme_email: "{{ traefik_acme_email }}"
+        traefik_authentik_outpost_url: "https://{{ gateway_domain }}/outpost.goauthentik.io/auth/traefik"
+
+    - role: scw-secrets
+      vars:
+        scw_secrets_project_id: "{{ scaleway_project_id }}"
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Apps. Uncomment when the matching tfvars apps.<name>.enabled = true.
+# ─────────────────────────────────────────────────────────────────────────────
+
+- import_playbook: "../../sabokit/apps/outline/ansible/playbook.yml"
+  vars:
+    outline_host_group: "{{ enabled_apps.outline.ansible_group }}"
+    outline_hostname: "{{ enabled_apps.outline.url | regex_replace('^https?://', '') }}"
+    outline_app_secret_id: "{{ enabled_apps.outline.ansible_vars.outline_app_secret_id }}"
+    outline_db_credentials_secret_id: "{{ enabled_apps.outline.ansible_vars.outline_db_credentials_secret_id }}"
+  when: enabled_apps.outline is not none
+
+# - import_playbook: "../../sabokit/apps/nextcloud/ansible/playbook.yml"
+#   when: enabled_apps.nextcloud is not none
