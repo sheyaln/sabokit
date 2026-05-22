@@ -2,7 +2,7 @@
 # Uncomment / enable in terraform.tfvars to turn an app on.
 
 module "outline" {
-  source = "git::https://github.com/sheyaln/sabokit.git//apps/outline/terraform?ref=v1.0.0"
+  source = "git::https://github.com/sheyaln/sabokit.git//platform/apps/outline/terraform?ref=v1.0.0"
 
   enabled  = try(var.apps.outline.enabled, false)
   hostname = try(var.apps.outline.hostname, "")
@@ -19,7 +19,7 @@ module "outline" {
 # Add more apps here as bundles ship. Same shape every time:
 #
 # module "nextcloud" {
-#   source   = "git::...//apps/nextcloud/terraform?ref=v1.0.0"
+#   source   = "git::https://github.com/sheyaln/sabokit.git//platform/apps/nextcloud/terraform?ref=v1.0.0"
 #   enabled  = try(var.apps.nextcloud.enabled, false)
 #   hostname = try(var.apps.nextcloud.hostname, "")
 #   base     = local.base

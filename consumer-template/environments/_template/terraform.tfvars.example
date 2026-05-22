@@ -26,10 +26,15 @@ apps = {
   outline = {
     enabled  = true
     hostname = "wiki.example.org"
+
+    # deployment_host_key must be a key in compute_hosts above. Defaults to
+    # "apps". Override when your topology renames hosts:
+    # deployment_host_key = "tools"
   }
 
   # nextcloud = {
-  #   enabled  = true
-  #   hostname = "cloud.example.org"
+  #   enabled             = true
+  #   hostname            = "cloud.example.org"
+  #   deployment_host_key = "apps"
   # }
 }
