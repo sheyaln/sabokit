@@ -33,30 +33,40 @@
   register: authentik_traefik_net
   failed_when: not authentik_traefik_net.exists
 
+# Strip the leading `region/` prefix that Scaleway's terraform provider
+# adds to secret IDs — the Ansible lookup wants a bare UUID.
+- name: Normalize Scaleway secret IDs
+  ansible.builtin.set_fact:
+    _authentik_postgres_secret_uuid: "{{ authentik_postgres_secret_id | regex_replace('^[^/]+/', '') }}"
+    _authentik_admin_secret_uuid:    "{{ authentik_admin_secret_id    | regex_replace('^[^/]+/', '') }}"
+    _authentik_server_secret_uuid:   "{{ authentik_server_secret_id   | regex_replace('^[^/]+/', '') }}"
+    _authentik_media_s3_secret_uuid: "{{ authentik_media_s3_secret_id | regex_replace('^[^/]+/', '') }}"
+    _authentik_smtp_secret_uuid:     "{{ authentik_smtp_secret_id     | regex_replace('^[^/]+/', '') }}"
+
 - name: Fetch Postgres credentials from Scaleway Secret Manager
   ansible.builtin.set_fact:
-    authentik_postgres: "{{ lookup('scaleway.scaleway.scaleway_secret', authentik_postgres_secret_id) | b64decode | from_json }}"
+    authentik_postgres: "{{ lookup('scaleway.scaleway.scaleway_secret', _authentik_postgres_secret_uuid) | b64decode | from_json }}"
   no_log: true
 
 - name: Fetch Authentik admin bootstrap credentials
   ansible.builtin.set_fact:
-    authentik_admin: "{{ lookup('scaleway.scaleway.scaleway_secret', authentik_admin_secret_id) | b64decode | from_json }}"
+    authentik_admin: "{{ lookup('scaleway.scaleway.scaleway_secret', _authentik_admin_secret_uuid) | b64decode | from_json }}"
   no_log: true
 
 - name: Fetch Authentik server secret_key
   ansible.builtin.set_fact:
-    authentik_server: "{{ lookup('scaleway.scaleway.scaleway_secret', authentik_server_secret_id) | b64decode | from_json }}"
+    authentik_server: "{{ lookup('scaleway.scaleway.scaleway_secret', _authentik_server_secret_uuid) | b64decode | from_json }}"
   no_log: true
 
 - name: Fetch optional Authentik media S3 credentials
   ansible.builtin.set_fact:
-    authentik_media_s3: "{{ lookup('scaleway.scaleway.scaleway_secret', authentik_media_s3_secret_id) | b64decode | from_json }}"
+    authentik_media_s3: "{{ lookup('scaleway.scaleway.scaleway_secret', _authentik_media_s3_secret_uuid) | b64decode | from_json }}"
   no_log: true
   when: authentik_media_s3_secret_id | length > 0
 
 - name: Fetch optional Authentik SMTP config
   ansible.builtin.set_fact:
-    authentik_smtp: "{{ lookup('scaleway.scaleway.scaleway_secret', authentik_smtp_secret_id) | b64decode | from_json }}"
+    authentik_smtp: "{{ lookup('scaleway.scaleway.scaleway_secret', _authentik_smtp_secret_uuid) | b64decode | from_json }}"
   no_log: true
   when: authentik_smtp_secret_id | length > 0
 

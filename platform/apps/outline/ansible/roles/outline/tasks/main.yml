@@ -42,14 +42,19 @@
     owner: root
     group: root
 
+- name: Normalize Scaleway secret IDs (strip leading region/ prefix)
+  ansible.builtin.set_fact:
+    _outline_app_secret_uuid: "{{ outline_app_secret_id | regex_replace('^[^/]+/', '') }}"
+    _outline_db_credentials_secret_uuid: "{{ outline_db_credentials_secret_id | regex_replace('^[^/]+/', '') }}"
+
 - name: Look up Outline app secrets from Scaleway
   ansible.builtin.set_fact:
-    outline_app_secrets: "{{ lookup('scaleway.scaleway.scaleway_secret', outline_app_secret_id) | b64decode | from_json }}"
+    outline_app_secrets: "{{ lookup('scaleway.scaleway.scaleway_secret', _outline_app_secret_uuid) | b64decode | from_json }}"
   no_log: true
 
 - name: Look up Outline DB credentials from Scaleway
   ansible.builtin.set_fact:
-    outline_db_credentials: "{{ lookup('scaleway.scaleway.scaleway_secret', outline_db_credentials_secret_id) | b64decode | from_json }}"
+    outline_db_credentials: "{{ lookup('scaleway.scaleway.scaleway_secret', _outline_db_credentials_secret_uuid) | b64decode | from_json }}"
   no_log: true
 
 - name: Look up SMTP config from Scaleway (best-effort)
