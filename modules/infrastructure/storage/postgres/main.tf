@@ -5,7 +5,7 @@ locals {
 
 resource "scaleway_rdb_instance" "this" {
   name               = var.instance_name
-  node_type          = "db-dev-s"
+  node_type          = var.node_type
   engine             = var.database_engine
   is_ha_cluster      = var.high_availability
   user_name          = var.psql_default_user
@@ -17,7 +17,7 @@ resource "scaleway_rdb_instance" "this" {
   backup_schedule_retention = var.backup_schedule_retention
 
   volume_size_in_gb = var.volume_size_in_gb
-  volume_type       = "sbs_5k"
+  volume_type       = var.volume_type
 
   settings = {
     "effective_cache_size"            = "1300"
@@ -77,6 +77,26 @@ resource "scaleway_rdb_user" "users" {
   depends_on = [scaleway_rdb_database.dbs]
 }
 
+resource "scaleway_secret" "admin_credentials" {
+  name        = "${var.instance_name}-admin-credentials"
+  description = "Admin credentials for the ${var.instance_name} PostgreSQL instance. Used by downstream modules to provision per-app databases."
+  tags        = concat(var.tags, ["postgres", "admin"])
+  type        = "database_credentials"
+}
+
+resource "scaleway_secret_version" "admin_credentials" {
+  secret_id = scaleway_secret.admin_credentials.id
+  data = jsonencode({
+    engine      = var.database_engine
+    username    = var.psql_default_user
+    password    = random_password.db_passwords[var.psql_default_user].result
+    host        = scaleway_rdb_instance.this.private_network[0].ip
+    port        = tostring(scaleway_rdb_instance.this.private_network[0].port)
+    endpoint_id = scaleway_rdb_instance.this.private_network[0].endpoint_id
+  })
+  description = "Admin credentials for ${var.instance_name}."
+}
+
 resource "scaleway_rdb_privilege" "privileges" {
   for_each = toset(local.dbs)
 
@@ -121,4 +141,29 @@ output "database_passwords" {
 output "instance_id" {
   value       = scaleway_rdb_instance.this.id
   description = "ID of the created RDB instance"
+}
+
+output "endpoint" {
+  description = "Private-network endpoint for the instance. Use these to provision per-app databases from other modules."
+  value = {
+    ip          = scaleway_rdb_instance.this.private_network[0].ip
+    port        = tonumber(scaleway_rdb_instance.this.private_network[0].port)
+    endpoint_id = scaleway_rdb_instance.this.private_network[0].endpoint_id
+  }
+}
+
+output "admin_user" {
+  description = "Admin username for the RDB instance."
+  value       = var.psql_default_user
+}
+
+output "admin_password" {
+  description = "Admin password for the RDB instance. Prefer reading from admin_credentials_secret_id."
+  value       = random_password.db_passwords[var.psql_default_user].result
+  sensitive   = true
+}
+
+output "admin_credentials_secret_id" {
+  description = "Scaleway Secret Manager ID holding admin credentials (engine, username, password, host, port)."
+  value       = scaleway_secret.admin_credentials.id
 }

@@ -34,6 +34,13 @@ terraform.rc
 .Trashes
 Thumbs.db
 
+# Design source files (large; export to png for the repo)
+*.afphoto
+*.afdesign
+*.psd
+*.sketch
+*.fig
+
 # Secrets
 *.pem
 *.key

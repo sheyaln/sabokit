@@ -1,0 +1,46 @@
+variable "instance_id" {
+  description = "ID of the managed PostgreSQL instance to provision the database in (typically base.scaleway.postgres_instance_id)."
+  type        = string
+}
+
+variable "instance_endpoint" {
+  description = "Private-network endpoint of the instance (typically base.scaleway.postgres_endpoint). Object with ip and port."
+  type = object({
+    ip   = string
+    port = number
+  })
+}
+
+variable "database_name" {
+  description = "Database name to create. Used as the secret prefix too."
+  type        = string
+}
+
+variable "user_name" {
+  description = "Database user name. Defaults to database_name when null."
+  type        = string
+  default     = null
+}
+
+variable "is_admin" {
+  description = "Whether the database user should have admin privileges (required for apps that CREATE DATABASE at runtime, e.g. multi-tenant apps)."
+  type        = bool
+  default     = false
+}
+
+variable "permission" {
+  description = "Privilege level on the database. 'all' is the default and right for almost every app."
+  type        = string
+  default     = "all"
+}
+
+variable "engine" {
+  description = "Engine identifier copied into the secret. Should match the instance engine, e.g. 'PostgreSQL-16'."
+  type        = string
+}
+
+variable "tags" {
+  description = "Extra tags applied to the Scaleway secret."
+  type        = list(string)
+  default     = []
+}

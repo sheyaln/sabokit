@@ -8,6 +8,18 @@ variable "database_engine" {
   type        = string
 }
 
+variable "node_type" {
+  description = "Scaleway RDB node type. See https://www.scaleway.com/en/database/ for available types. 'db-dev-s' is the smallest (2 vCPU / 2 GB RAM)."
+  type        = string
+  default     = "db-dev-s"
+}
+
+variable "volume_type" {
+  description = "Storage volume type. 'sbs_5k' is the default block-storage; 'bssd' is the legacy local SSD."
+  type        = string
+  default     = "sbs_5k"
+}
+
 variable "psql_default_user" {
   description = "Default admin user name"
   type        = string
@@ -59,8 +71,9 @@ variable "network" {
 }
 
 variable "databases" {
-  description = "List of databases to create"
+  description = "Optional list of databases to provision in this instance. Each database also gets a same-named user, a 32-char password, and a Scaleway secret with credentials. Apps that own their own databases should pass [] here and provision them via the postgres_database helper or raw scaleway_rdb_database resources against this instance's endpoint."
   type        = list(string)
+  default     = []
 }
 
 variable "admin_databases" {
