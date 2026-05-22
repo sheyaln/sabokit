@@ -1,0 +1,80 @@
+---
+# Managed by sabokit apps/outline/ansible/role.
+# Do not edit by hand — regenerated on every ansible-playbook run.
+
+services:
+  outline-redis:
+    image: redis:7-alpine
+    container_name: outline-redis
+    restart: always
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+    networks:
+      - outline_network
+    security_opt:
+      - no-new-privileges:true
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+          cpus: '0.25'
+        reservations:
+          memory: 64M
+          cpus: '0.1'
+
+  outline:
+    image: "{{ outline_image }}:{{ outline_image_tag }}"
+    container_name: outline
+    restart: always
+    depends_on:
+      - outline-redis
+    volumes:
+      - storage-data:/var/lib/outline/data
+    env_file:
+      - .env
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network={{ outline_traefik_docker_network }}"
+      - "traefik.http.services.outline.loadbalancer.server.port=3000"
+      - "traefik.http.routers.outline.rule=Host(`{{ outline_hostname }}`)"
+      - "traefik.http.routers.outline.entrypoints=websecure"
+      - "traefik.http.routers.outline.tls.certresolver=le"
+      - "traefik.http.routers.outline.service=outline"
+      # Large-upload buffering middleware — important for the file-upload size set in terraform.
+      - "traefik.http.middlewares.outline-buffering.buffering.maxRequestBodyBytes={{ outline_max_upload_size_bytes }}"
+      - "traefik.http.middlewares.outline-buffering.buffering.maxResponseBodyBytes={{ outline_max_upload_size_bytes }}"
+      - "traefik.http.routers.outline.middlewares=outline-buffering@docker"
+    networks:
+      - "{{ outline_traefik_docker_network }}"
+      - outline_network
+    security_opt:
+      - no-new-privileges:true
+    deploy:
+      resources:
+        limits:
+          memory: "{{ outline_memory_limit }}"
+          cpus: "{{ outline_cpu_limit }}"
+        reservations:
+          memory: "{{ outline_memory_reservation }}"
+          cpus: "{{ outline_cpu_reservation }}"
+    healthcheck:
+      test: ["CMD-SHELL", "node -e \"require('net').connect(3000,'127.0.0.1').on('connect',()=>process.exit(0)).on('error',()=>process.exit(1));\""]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+
+volumes:
+  redis-data:
+  storage-data:
+
+networks:
+  outline_network:
+    driver: bridge
+  "{{ outline_traefik_docker_network }}":
+    external: true

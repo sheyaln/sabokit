@@ -1,0 +1,7 @@
+{
+  "title": "Outline (Traefik)",
+  "description": "Request rate, error rate, and latency for the Outline router as seen by Traefik. Placeholder dashboard — replace with the team's actual exported JSON.",
+  "panels": [],
+  "schemaVersion": 39,
+  "version": 0
+}

@@ -1,0 +1,16 @@
+locals {
+  slug = "outline"
+
+  # Authorized group IDs = the access-level group from base + any extras.
+  authorized_group_ids = var.enabled ? concat(
+    [var.base.authentik.groups[var.access_level]],
+    var.extra_authorized_groups,
+  ) : []
+
+  oidc_callback_url = "https://${var.hostname}/auth/oidc.callback"
+  app_url           = "https://${var.hostname}"
+
+  # Bucket name must be globally unique across all Scaleway customers.
+  # Convention: {secrets_namespace}-outline-attachments. Override via Scaleway dashboard if collision occurs.
+  bucket_name = "${var.base.scaleway.secrets_namespace}-${local.slug}-attachments"
+}
