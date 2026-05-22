@@ -45,13 +45,13 @@ variable "description" {
   default     = null
 }
 
-variable "authorized_group_ids" {
-  description = "Authentik group IDs allowed to access this application. The module creates one policy binding per group."
-  type        = list(string)
+variable "authorized_groups" {
+  description = "Map of role-name → Authentik group ID for groups allowed to access this application. Keys MUST be static strings (e.g. \"admin\", \"member\", \"delegate\") so for_each can plan even when group IDs are not yet known. The module creates one policy binding per entry."
+  type        = map(string)
 
   validation {
-    condition     = length(var.authorized_group_ids) > 0
-    error_message = "At least one authorized group ID must be provided. To restrict the application to administrators only, pass [base.authentik.groups[\"admin\"]]."
+    condition     = length(var.authorized_groups) > 0
+    error_message = "At least one authorized group must be provided. To restrict the application to administrators only, pass { admin = base.authentik.groups[\"admin\"] }."
   }
 }
 

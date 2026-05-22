@@ -1,7 +1,7 @@
 # Traefik forward-auth module for Authentik.
 #
 # Creates an Authentik Proxy Provider in forward-auth mode, an Application,
-# a per-app group, and one policy binding per group in var.authorized_group_ids.
+# a per-app group, and one policy binding per entry in var.authorized_groups.
 #
 # The Proxy Provider works with Traefik's forwardAuth middleware to protect
 # applications that don't have native OIDC/SAML support. The consumer is
@@ -55,7 +55,7 @@ resource "authentik_policy_binding" "application_group" {
 }
 
 resource "authentik_policy_binding" "authorized" {
-  for_each = toset(var.authorized_group_ids)
+  for_each = var.authorized_groups
 
   target = authentik_application.application.uuid
   group  = each.value

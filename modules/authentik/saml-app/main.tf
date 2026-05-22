@@ -5,7 +5,7 @@
 #   - A SAML provider
 #   - An application backed by the provider
 #   - A per-application Authentik group
-#   - One policy binding per group in var.authorized_group_ids
+#   - One policy binding per entry in var.authorized_groups
 #   - SAML configuration stored in Scaleway Secret Manager (secrets.tf)
 
 resource "authentik_property_mapping_provider_saml" "email" {
@@ -122,7 +122,7 @@ resource "authentik_policy_binding" "application_group" {
 }
 
 resource "authentik_policy_binding" "authorized" {
-  for_each = toset(var.authorized_group_ids)
+  for_each = var.authorized_groups
 
   target = authentik_application.application.uuid
   group  = each.value

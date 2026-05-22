@@ -1,6 +1,8 @@
 # saml-app
 
-Creates one SAML application + provider in Authentik, plus standard SAML property mappings (email, given/family name, display name, UPN; optionally groups), a per-application Authentik group, one policy binding per group in `authorized_group_ids`, and a Scaleway secret holding the SAML configuration.
+Creates one SAML application + provider in Authentik, plus standard SAML property mappings (email, given/family name, display name, UPN; optionally groups), a per-application Authentik group, one policy binding per entry in `authorized_groups`, and a Scaleway secret holding the SAML configuration.
+
+`authorized_groups` is a `map(string)` keyed by static role names (e.g. `admin`, `member`) so the underlying `for_each` plans cleanly even when the group UUIDs themselves are not yet known.
 
 The module emits the metadata/SSO/SLO URL paths as outputs (relative to the Authentik host) so consumers can hand them to the service provider during configuration. Use `generate_rsa_signing_key = true` to give the provider a dedicated signing certificate instead of Authentik's default self-signed pair.
 
@@ -16,7 +18,9 @@ module "nextcloud_saml" {
   saml_assertion_consumer_service_url = "https://cloud.example.org/apps/user_saml/saml/acs"
   saml_audience                       = "https://cloud.example.org/apps/user_saml/saml/metadata"
 
-  authorized_group_ids     = [var.base.authentik.groups["member"]]
+  authorized_groups = {
+    member = var.base.authentik.groups["member"]
+  }
   authentication_flow_uuid = var.base.authentik.flows.authentication_flow
   authorization_flow_uuid  = var.base.authentik.flows.authorization_flow
   invalidation_flow_uuid   = var.base.authentik.flows.invalidation_flow
@@ -33,7 +37,7 @@ module "nextcloud_saml" {
 | `launch_url` | `string` | `null` | Optional launch URL shown in the user portal. |
 | `icon_url` | `string` | `null` | Optional icon path (relative to Authentik media) or full URL. |
 | `description` | `string` | `null` | Optional one-line app description shown in the user portal. |
-| `authorized_group_ids` | `list(string)` | — | Authentik group IDs allowed to access this application. The module creates one policy binding per group. |
+| `authorized_groups` | `map(string)` | — | Map of role-name → Authentik group ID. Keys MUST be static strings so `for_each` can plan before group UUIDs exist. One policy binding is created per entry. |
 | `authentication_flow_uuid` | `string` | — | Authentication flow UUID. |
 | `authorization_flow_uuid` | `string` | — | Authorization flow UUID. |
 | `invalidation_flow_uuid` | `string` | — | Invalidation flow UUID. |

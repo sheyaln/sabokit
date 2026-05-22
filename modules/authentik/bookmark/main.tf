@@ -27,7 +27,7 @@ resource "authentik_application" "bookmark" {
 }
 
 resource "authentik_policy_binding" "authorized" {
-  for_each = toset(var.authorized_group_ids)
+  for_each = var.authorized_groups
 
   target = authentik_application.bookmark.uuid
   group  = each.value

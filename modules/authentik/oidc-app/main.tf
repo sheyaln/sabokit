@@ -5,7 +5,7 @@
 #     consumer-supplied additional property mappings)
 #   - An application backed by the provider
 #   - A per-application Authentik group (authorized via the app itself)
-#   - One policy binding per group in var.authorized_group_ids
+#   - One policy binding per entry in var.authorized_groups
 #   - OIDC client credentials stored in Scaleway Secret Manager (secrets.tf)
 
 resource "authentik_property_mapping_provider_scope" "openid" {
@@ -153,7 +153,7 @@ resource "authentik_policy_binding" "application_group" {
 }
 
 resource "authentik_policy_binding" "authorized" {
-  for_each = toset(var.authorized_group_ids)
+  for_each = var.authorized_groups
 
   target = authentik_application.application.uuid
   group  = each.value

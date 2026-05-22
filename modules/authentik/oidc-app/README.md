@@ -1,6 +1,8 @@
 # oidc-app
 
-Creates one OIDC application + OAuth2 provider in Authentik, plus a per-application Authentik group, one policy binding per group in `authorized_group_ids`, and a Scaleway secret holding the generated client credentials. Property mappings for the standard OIDC scopes (`openid`, `profile`, `email`, `groups`, etc.) are emitted as `authentik_property_mapping_provider_scope` resources when the scope is listed in `oidc_scopes`.
+Creates one OIDC application + OAuth2 provider in Authentik, plus a per-application Authentik group, one policy binding per entry in `authorized_groups`, and a Scaleway secret holding the generated client credentials. Property mappings for the standard OIDC scopes (`openid`, `profile`, `email`, `groups`, etc.) are emitted as `authentik_property_mapping_provider_scope` resources when the scope is listed in `oidc_scopes`.
+
+`authorized_groups` is a `map(string)` keyed by static role names (e.g. `admin`, `member`) so the underlying `for_each` plans cleanly even when the group UUIDs themselves are not yet known (i.e. when this module is applied in the same root as the identity module that mints those groups).
 
 Use `additional_property_mapping_ids` to inject app-specific custom scopes without forking the module. Use `generate_rsa_signing_key = true` to give the provider a dedicated signing certificate instead of Authentik's default self-signed pair.
 
@@ -17,7 +19,9 @@ module "outline_oidc" {
     url = "https://wiki.example.org/auth/oidc.callback"
   }]
 
-  authorized_group_ids     = [var.base.authentik.groups["member"]]
+  authorized_groups = {
+    member = var.base.authentik.groups["member"]
+  }
   authentication_flow_uuid = var.base.authentik.flows.authentication_flow
   authorization_flow_uuid  = var.base.authentik.flows.authorization_flow
   invalidation_flow_uuid   = var.base.authentik.flows.invalidation_flow
@@ -35,7 +39,7 @@ module "outline_oidc" {
 | `launch_url` | `string` | `null` | Optional launch URL shown in the user portal. Defaults to Authentik's first-redirect-uri behaviour. |
 | `icon_url` | `string` | `null` | Optional icon path (relative to Authentik media, e.g. `outline-icon.png`) or full URL. |
 | `description` | `string` | `null` | Optional one-line app description shown in the user portal. |
-| `authorized_group_ids` | `list(string)` | — | Authentik group IDs allowed to access this application. The module creates one policy binding per group. |
+| `authorized_groups` | `map(string)` | — | Map of role-name → Authentik group ID. Keys MUST be static strings so `for_each` can plan before group UUIDs exist. One policy binding is created per entry. |
 | `oidc_scopes` | `list(string)` | `["openid", "profile", "email", "groups"]` | OIDC scopes the provider will expose. Defaults cover the common set; pass a different list to opt out of any. |
 | `additional_property_mapping_ids` | `list(string)` | `[]` | IDs of property mappings the consumer wants attached to the provider in addition to the built-in scope mappings. Use this to inject app-specific custom scopes. |
 | `access_token_validity` | `string` | `"minutes=10"` | Access token validity (Authentik duration syntax, e.g. `minutes=10`, `hours=1`). |

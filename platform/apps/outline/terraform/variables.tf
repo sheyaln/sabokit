@@ -36,9 +36,9 @@ variable "access_level" {
 }
 
 variable "extra_authorized_groups" {
-  description = "Additional Authentik group IDs allowed to access Outline beyond access_level."
-  type        = list(string)
-  default     = []
+  description = "Additional Authentik groups allowed to access Outline beyond access_level. Map of role-name → group ID; keys MUST be static strings (e.g. \"delegate\", \"manager\") so the underlying for_each can plan even when group IDs are not yet known."
+  type        = map(string)
+  default     = {}
 }
 
 variable "monitoring_enabled" {

@@ -10,7 +10,7 @@ module "outline" {
 
   # Optional overrides
   access_level            = try(var.apps.outline.access_level, "member")
-  extra_authorized_groups = try(var.apps.outline.extra_authorized_groups, [])
+  extra_authorized_groups = try(var.apps.outline.extra_authorized_groups, {})
   smtp_from_email         = try(var.apps.outline.smtp_from_email, "")
   monitoring_enabled      = try(var.apps.outline.monitoring_enabled, true)
   deployment_host_key     = try(var.apps.outline.deployment_host_key, "apps")

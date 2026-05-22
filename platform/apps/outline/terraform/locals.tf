@@ -1,11 +1,13 @@
 locals {
   slug = "outline"
 
-  # Authorized group IDs = the access-level group from base + any extras.
-  authorized_group_ids = var.enabled ? concat(
-    [var.base.authentik.groups[var.access_level]],
+  # Authorized groups = the access-level group from base + any extras.
+  # Map keys are static role names so for_each can plan before identity-apply
+  # has populated the actual group UUIDs.
+  authorized_groups = var.enabled ? merge(
+    { (var.access_level) = var.base.authentik.groups[var.access_level] },
     var.extra_authorized_groups,
-  ) : []
+  ) : {}
 
   oidc_callback_url = "https://${var.hostname}/auth/oidc.callback"
   app_url           = "https://${var.hostname}"

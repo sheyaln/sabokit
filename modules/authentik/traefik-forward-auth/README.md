@@ -1,6 +1,8 @@
 # traefik-forward-auth
 
-Creates an Authentik Proxy Provider in `forward_single` mode, an Application backed by it, a per-app Authentik group, and one policy binding per group in `authorized_group_ids`. The Proxy Provider pairs with Traefik's `forwardAuth` middleware to protect applications that don't have native OIDC/SAML support.
+Creates an Authentik Proxy Provider in `forward_single` mode, an Application backed by it, a per-app Authentik group, and one policy binding per entry in `authorized_groups`. The Proxy Provider pairs with Traefik's `forwardAuth` middleware to protect applications that don't have native OIDC/SAML support.
+
+`authorized_groups` is a `map(string)` keyed by static role names (e.g. `admin`, `member`) so the underlying `for_each` plans cleanly even when the group UUIDs themselves are not yet known.
 
 The consumer is responsible for binding the resulting `provider_id` to an Authentik outpost (typically the embedded outpost provided by `platform/identity/terraform/`). Pass `cookie_domain` to share session cookies across multiple subdomains; pass `skip_path_regex` to bypass authentication on webhook or health-check paths.
 
@@ -15,7 +17,9 @@ module "backrest_forward_auth" {
   external_host    = "https://backrest.example.org"
   cookie_domain    = "example.org"
 
-  authorized_group_ids     = [var.base.authentik.groups["admin"]]
+  authorized_groups = {
+    admin = var.base.authentik.groups["admin"]
+  }
   authentication_flow_uuid = var.base.authentik.flows.authentication_flow
   authorization_flow_uuid  = var.base.authentik.flows.authorization_flow
   invalidation_flow_uuid   = var.base.authentik.flows.invalidation_flow
@@ -33,7 +37,7 @@ module "backrest_forward_auth" {
 | `launch_url` | `string` | `null` | Launch URL for the application. Defaults to `external_host`. |
 | `icon_url` | `string` | `null` | Optional icon path or full URL. |
 | `description` | `string` | `null` | Optional one-line app description. |
-| `authorized_group_ids` | `list(string)` | — | Authentik group IDs allowed to access this application. The module creates one policy binding per group. |
+| `authorized_groups` | `map(string)` | — | Map of role-name → Authentik group ID. Keys MUST be static strings so `for_each` can plan before group UUIDs exist. One policy binding is created per entry. |
 | `authentication_flow_uuid` | `string` | — | Authentication flow UUID. |
 | `authorization_flow_uuid` | `string` | — | Authorization flow UUID. |
 | `invalidation_flow_uuid` | `string` | — | Invalidation flow UUID. |

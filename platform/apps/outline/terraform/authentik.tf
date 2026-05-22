@@ -14,7 +14,7 @@ module "authentik" {
     url           = local.oidc_callback_url
   }]
 
-  authorized_group_ids = local.authorized_group_ids
+  authorized_groups = local.authorized_groups
 
   oidc_scopes = ["openid", "profile", "email", "groups", "offline_access"]
   sub_mode    = "user_email"

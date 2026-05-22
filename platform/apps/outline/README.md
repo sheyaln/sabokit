@@ -56,7 +56,7 @@ In `site.yml`:
 | `category_group` | `string` | `"Knowledge"` | Authentik portal category. |
 | `icon_url` | `string` | `null` | Optional icon path in Authentik media. |
 | `access_level` | `string` | `"member"` | Key in `base.authentik.groups` granting baseline access. |
-| `extra_authorized_groups` | `list(string)` | `[]` | Additional Authentik group IDs allowed beyond `access_level`. |
+| `extra_authorized_groups` | `map(string)` | `{}` | Additional Authentik groups allowed beyond `access_level`. Keys are static role names (e.g. `delegate = base.authentik.groups["delegate"]`) so `for_each` can plan before group UUIDs exist. |
 | `monitoring_enabled` | `bool` | `true` | If true and a monitoring app is enabled, dashboards/logs wire up. |
 | `deployment_host_key` | `string` | `"apps"` | Key in `base.compute.hosts` identifying the deploy target. |
 | `image_tag` | `string` | `"latest"` | Outline Docker image tag. |
