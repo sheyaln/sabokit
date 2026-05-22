@@ -1,0 +1,102 @@
+x-logging: &default-logging
+  driver: "json-file"
+  options:
+    max-size: "20m"
+    max-file: "10"
+    compress: "true"
+
+services:
+  n8n:
+    image: docker.n8n.io/n8nio/n8n:latest
+    pull_policy: always
+    container_name: n8n
+    restart: unless-stopped
+    # SECURITY: Only expose port internally to Docker - NOT mapped to host.
+    # n8n is ONLY accessible through Traefik with Authentik forward auth.
+    expose:
+      - 5678
+    environment:
+      # Database
+      - DB_TYPE=postgresdb
+      - DB_POSTGRESDB_HOST=${DB_HOST}
+      - DB_POSTGRESDB_PORT=${DB_PORT}
+      - DB_POSTGRESDB_DATABASE=${DB_NAME}
+      - DB_POSTGRESDB_USER=${DB_USER}
+      - DB_POSTGRESDB_PASSWORD=${DB_PASSWORD}
+      - DB_POSTGRESDB_SSL_REJECT_UNAUTHORIZED=false
+      # Core settings
+      - N8N_ENCRYPTION_KEY=${N8N_ENCRYPTION_KEY}
+      - WEBHOOK_URL=${WEBHOOK_URL}
+      - N8N_HOST=${N8N_HOST}
+      - N8N_PROTOCOL=https
+      - N8N_PORT=5678
+      - GENERIC_TIMEZONE=America/New_York
+      - TZ=America/New_York
+      # Trust Traefik proxy for X-Forwarded headers and rate limiting
+      - N8N_SECURE_COOKIE=false
+      - N8N_PROXY_HOPS=1
+      - N8N_TRUST_PROXY=true
+      # OIDC Configuration
+      - EXTERNAL_HOOK_FILES=/home/node/.n8n/hooks.js
+      - OIDC_ISSUER_URL=${OIDC_ISSUER_URL}
+      - OIDC_CLIENT_ID=${OIDC_CLIENT_ID}
+      - OIDC_CLIENT_SECRET=${OIDC_CLIENT_SECRET}
+      - OIDC_REDIRECT_URI=${OIDC_REDIRECT_URI}
+      - EXTERNAL_FRONTEND_HOOKS_URLS=/assets/oidc-frontend-hook.js
+      - N8N_ADDITIONAL_NON_UI_ROUTES=auth
+      # SECURITY: Disable public API access
+      - N8N_PUBLIC_API_DISABLED=true
+    volumes:
+      - n8n_data:/home/node/.n8n
+      - /opt/n8n/hooks.js:/home/node/.n8n/hooks.js:ro
+    networks:
+      - traefik
+{% if enable_protonmail | default(false) %}
+      - protonmail
+{% endif %}
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.services.n8n.loadbalancer.server.port=5678"
+      # Main router: UI and API access - OIDC auth handled by n8n hooks.js
+      - "traefik.http.routers.n8n.entrypoints=websecure"
+      - "traefik.http.routers.n8n.rule=Host(`n8n.{{ management_domain }}`) && !PathPrefix(`/webhook/`) && !PathPrefix(`/webhook-test/`) && !PathPrefix(`/form/`) && !PathPrefix(`/mcp-server`)"
+      - "traefik.http.routers.n8n.tls.certresolver=le"
+      - "traefik.http.routers.n8n.service=n8n"
+      - "traefik.http.routers.n8n.priority=10"
+      # Webhook router: External webhook callbacks - public with rate-limit
+      - "traefik.http.routers.n8n-webhooks.entrypoints=websecure"
+      - "traefik.http.routers.n8n-webhooks.rule=Host(`n8n.{{ management_domain }}`) && (PathPrefix(`/webhook/`) || PathPrefix(`/webhook-test/`) || PathPrefix(`/form/`) || PathPrefix(`/mcp-server`))"
+      - "traefik.http.routers.n8n-webhooks.middlewares=n8n-webhook-ratelimit@docker"
+      - "traefik.http.routers.n8n-webhooks.tls.certresolver=le"
+      - "traefik.http.routers.n8n-webhooks.service=n8n"
+      - "traefik.http.routers.n8n-webhooks.priority=20"
+      # Rate limit middleware for webhooks (since they bypass auth)
+      - "traefik.http.middlewares.n8n-webhook-ratelimit.ratelimit.average=100"
+      - "traefik.http.middlewares.n8n-webhook-ratelimit.ratelimit.burst=50"
+      - "traefik.http.middlewares.n8n-webhook-ratelimit.ratelimit.period=1m"
+      - "traefik.docker.network=traefik"
+      - "com.centurylinklabs.watchtower.enable=true"
+      - "com.centurylinklabs.watchtower.scope=production"
+    security_opt:
+      - no-new-privileges:true
+    healthcheck:
+      test: ["CMD-SHELL", "wget --spider -q http://localhost:5678/healthz || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    logging: *default-logging
+
+volumes:
+  n8n_data:
+
+networks:
+  traefik:
+    external: true
+{% if enable_protonmail | default(false) %}
+  protonmail:
+    external: true
+{% endif %}
+
+
+

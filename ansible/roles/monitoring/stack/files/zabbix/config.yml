@@ -1,0 +1,39 @@
+# Zabbix Configuration
+# This file documents the Zabbix configuration applied via template import
+
+# JSON Failure Alert Configuration
+# Configured directly in the "Website by Browser" template (website-by-browser.yaml)
+#
+# Triggers:
+# 1. "Failed to get JSON (5 min continuous failure)"
+#    - Expression: count(website.metrics.check,5m)>0 and count(website.metrics.check,5m,"eq","")=0
+#    - Priority: HIGH
+#    - Requires ALL checks in the 5-minute window to fail before alerting
+#
+# 2. "JSON failure (2 consecutive)"
+#    - Expression: count(website.metrics.check,5m,"ne","")=2
+#    - Priority: WARNING
+#    - Fires when exactly 2 failures occur in 5 minutes
+#    - Has dependency on Major trigger (suppressed when major fires)
+#
+# 3. "Major JSON failure (3+ consecutive)"
+#    - Expression: count(website.metrics.check,5m,"ne","")>=3
+#    - Priority: HIGH
+#    - Fires when 3 or more failures occur in 5 minutes
+#    - Suppresses individual failure alerts via dependency mechanism
+
+# Host Groups
+host_groups:
+  - name: "Production Web Applications"
+    description: "Production web applications monitored via browser checks"
+  - name: "Infrastructure"
+    description: "Core infrastructure components"
+  - name: "Management Services"
+    description: "Management and monitoring services"
+
+# Templates
+# The "Website by Browser" template is imported from templates/website-by-browser.yaml
+# It includes:
+# - Browser-based website monitoring
+# - Custom JSON failure handling with 5-minute delay
+# - Escalation logic (2 failures = individual, 3+ = major with suppression)

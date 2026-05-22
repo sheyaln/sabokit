@@ -1,0 +1,157 @@
+---
+- name: Ensure Traefik network exists
+  community.docker.docker_network:
+    name: traefik
+    state: present
+
+- name: Ensure Traefik directory
+  ansible.builtin.file:
+    path: /opt/traefik
+    state: directory
+    mode: '0755'
+    owner: ubuntu
+    group: ubuntu
+
+- name: Ensure Traefik logs directory
+  ansible.builtin.file:
+    path: /opt/traefik/logs
+    state: directory
+    mode: '0755'
+    owner: ubuntu
+    group: ubuntu
+
+# - name: Copy 404 HTML page
+#   ansible.builtin.copy:
+#     src: 404.html
+#     dest: /opt/traefik/404.html
+#     mode: '0644'
+#     owner: ubuntu
+#     group: ubuntu
+
+# - name: Copy 502 HTML page
+#   ansible.builtin.copy:
+#     src: 502.html
+#     dest: /opt/traefik/502.html
+#     mode: '0644'
+#     owner: ubuntu
+#     group: ubuntu
+
+- name: Copy docker-compose file
+  ansible.builtin.copy:
+    src: docker-compose.yml
+    dest: /opt/traefik/docker-compose.yml
+    mode: '0644'
+    owner: ubuntu
+    group: ubuntu
+
+- name: Copy dynamic configuration file
+  ansible.builtin.copy:
+    src: dynamic.yml
+    dest: /opt/traefik/dynamic.yml
+    mode: '0644'
+    owner: ubuntu
+    group: ubuntu
+
+- name: Deploy Traefik log rotation configuration
+  ansible.builtin.copy:
+    src: logrotate-traefik.conf
+    dest: /etc/logrotate.d/traefik
+    mode: '0644'
+
+- name: Check if Fail2Ban is installed
+  ansible.builtin.stat:
+    path: /etc/fail2ban/filter.d
+  register: fail2ban_dir
+
+- name: Copy Fail2Ban filter for Traefik authentication
+  ansible.builtin.copy:
+    src: fail2ban-traefik-auth.conf
+    dest: /etc/fail2ban/filter.d/traefik-auth.conf
+    mode: '0644'
+  when: ansible_facts['os_family'] == "Debian" and fail2ban_dir.stat.exists
+  notify: Restart fail2ban
+
+- name: Copy Fail2Ban filter for Traefik rate limiting
+  ansible.builtin.copy:
+    src: fail2ban-traefik-ratelimit.conf
+    dest: /etc/fail2ban/filter.d/traefik-ratelimit.conf
+    mode: '0644'
+  when: ansible_facts['os_family'] == "Debian" and fail2ban_dir.stat.exists
+  notify: Restart fail2ban
+
+- name: Copy Fail2Ban filter for Traefik bot search
+  ansible.builtin.copy:
+    src: fail2ban-traefik-botsearch.conf
+    dest: /etc/fail2ban/filter.d/traefik-botsearch.conf
+    mode: '0644'
+  when: ansible_facts['os_family'] == "Debian" and fail2ban_dir.stat.exists
+  notify: Restart fail2ban
+
+- name: Copy Fail2Ban jail configuration for Traefik
+  ansible.builtin.copy:
+    src: fail2ban-traefik-jail.conf
+    dest: /etc/fail2ban/jail.d/traefik.conf
+    mode: '0644'
+  when: ansible_facts['os_family'] == "Debian" and fail2ban_dir.stat.exists
+  notify: Restart fail2ban
+
+- name: Render environment file
+  ansible.builtin.template:
+    src: env.j2
+    dest: /opt/traefik/.env
+    mode: '0600'
+    owner: ubuntu
+    group: ubuntu
+
+- name: Check for existing Traefik container
+  community.docker.docker_container_info:
+    name: traefik
+  register: traefik_container
+  ignore_errors: true
+
+- name: Check for existing Traefik 404 container
+  community.docker.docker_container_info:
+    name: traefik-404
+  register: traefik_404_container
+  ignore_errors: true
+
+- name: Shut down existing Traefik containers
+  community.docker.docker_compose_v2:
+    project_src: /opt/traefik
+    state: absent
+  when: traefik_container.exists | default(false) or traefik_404_container.exists | default(false)
+
+- name: Clean up orphan containers
+  community.docker.docker_compose_v2:
+    project_src: /opt/traefik
+    state: absent
+    remove_orphans: true
+
+- name: Deploy Traefik using Docker Compose
+  community.docker.docker_compose_v2:
+    project_src: /opt/traefik
+    state: present
+
+- name: Wait for Traefik to be ready
+  ansible.builtin.wait_for:
+    port: 80
+    host: "{{ ansible_default_ipv4.address }}"
+    timeout: 60
+  failed_when: false
+
+- name: Wait for Docker Socket Proxy to be ready
+  ansible.builtin.wait_for:
+    port: 2375
+    host: 127.0.0.1
+    timeout: 60
+  failed_when: false
+
+- name: Ensure ACME certificate store has strict permissions (Traefik requires 600)
+  ansible.builtin.command:
+    cmd: docker exec traefik chmod 600 /letsencrypt/acme.json
+  changed_when: false
+  failed_when: false
+
+- import_tasks: backup.yml
+  tags:
+    - traefik_acme_backup

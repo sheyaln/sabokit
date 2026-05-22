@@ -1,0 +1,59 @@
+---
+# Main tasks for Traefik-Authentik role
+
+- name: Ensure Traefik network exists
+  community.docker.docker_network:
+    name: "traefik"
+    state: present
+
+- name: Ensure Traefik directory
+  ansible.builtin.file:
+    path: "{{ traefik_dir }}"
+    state: directory
+    mode: '0755'
+
+- name: Ensure Traefik subdirectories
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    mode: '0755'
+  loop:
+    - "{{ traefik_dir }}/logs"
+    - "{{ traefik_dir }}/data"
+    - "{{ traefik_dir }}/config"
+    - "{{ traefik_dir }}/config/dynamic"
+
+- name: Create ACME file
+  ansible.builtin.file:
+    path: "{{ traefik_dir }}/data/acme.json"
+    state: touch
+    mode: '0600'
+
+- name: Copy docker-compose file
+  ansible.builtin.copy:
+    src: docker-compose.yml
+    dest: "{{ traefik_dir }}/docker-compose.yml"
+    mode: '0644'
+
+- name: Deploy Traefik log rotation configuration
+  ansible.builtin.copy:
+    src: logrotate-traefik.conf
+    dest: /etc/logrotate.d/traefik-authentik
+    mode: '0644'
+
+- name: Render environment file
+  ansible.builtin.template:
+    src: env.j2
+    dest: "{{ traefik_dir }}/.env"
+    mode: '0600'
+
+- name: Copy dynamic middleware configuration
+  ansible.builtin.template:
+    src: middlewares.yml.j2
+    dest: "{{ traefik_dir }}/config/dynamic/middlewares.yml"
+    mode: '0644'
+
+- name: Start Traefik using Docker Compose
+  community.docker.docker_compose_v2:
+    project_src: "{{ traefik_dir }}"
+    state: present

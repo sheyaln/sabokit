@@ -1,0 +1,30 @@
+[req]
+distinguished_name = req_distinguished_name
+req_extensions = v3_req
+prompt = no
+
+authorityKeyIdentifier=keyid,issuer
+basicConstraints=CA:FALSE
+keyUsage = digitalSignature, nonRepudiation, keyEncipherment, dataEncipherment
+extendedKeyUsage = serverAuth, clientAuth
+subjectAltName = @alt_names
+
+[req_distinguished_name]
+C = {{ wazuh_certificate_subject.country }}
+ST = {{ wazuh_certificate_subject.state }}
+L = {{ wazuh_certificate_subject.locality }}
+O = {{ wazuh_certificate_subject.organization }}
+CN = {{ wazuh_component_common_name | default('wazuh-component') }}
+
+[v3_req]
+keyUsage = keyEncipherment, dataEncipherment
+extendedKeyUsage = serverAuth, clientAuth
+subjectAltName = @alt_names
+
+[alt_names]
+{% for dns_name in wazuh_certificate_dns_sans %}
+DNS.{{ loop.index }} = {{ dns_name }}
+{% endfor %}
+{% for ip_address in wazuh_certificate_ip_sans %}
+IP.{{ loop.index }} = {{ ip_address }}
+{% endfor %}

@@ -1,0 +1,56 @@
+FROM debian:bookworm-slim
+
+# Install dependencies
+RUN apt-get update && apt-get install -y \
+    wget \
+    gnupg2 \
+    ca-certificates \
+    pass \
+    libsecret-1-0 \
+    dbus-x11 \
+    netcat-openbsd \
+    socat \
+    && rm -rf /var/lib/apt/lists/*
+
+# Download and install Proton Mail Bridge
+ARG BRIDGE_VERSION={{ protonmail_bridge_version | default('3.13.0-1') }}
+RUN wget -q "https://proton.me/download/bridge/protonmail-bridge_${BRIDGE_VERSION}_amd64.deb" -O /tmp/protonmail-bridge.deb \
+    && apt-get update \
+    && apt-get install -y /tmp/protonmail-bridge.deb \
+    && rm /tmp/protonmail-bridge.deb \
+    && rm -rf /var/lib/apt/lists/*
+
+# Create non-root user
+RUN useradd -m -s /bin/bash bridge
+
+# Create data directories with proper permissions
+RUN mkdir -p /home/bridge/.config/protonmail/bridge-v3 \
+    && mkdir -p /home/bridge/.local/share/protonmail/bridge-v3 \
+    && mkdir -p /home/bridge/.cache/protonmail/bridge-v3 \
+    && mkdir -p /home/bridge/.gnupg \
+    && mkdir -p /home/bridge/.password-store \
+    && chmod 700 /home/bridge/.gnupg \
+    && chown -R bridge:bridge /home/bridge
+
+# Copy entrypoint script
+COPY entrypoint.sh /usr/local/bin/entrypoint.sh
+RUN chmod +x /usr/local/bin/entrypoint.sh
+
+USER bridge
+WORKDIR /home/bridge
+
+# Set environment variables
+ENV HOME=/home/bridge
+ENV GNUPGHOME=/home/bridge/.gnupg
+ENV PASSWORD_STORE_DIR=/home/bridge/.password-store
+
+# Expose socat-forwarded IMAP and SMTP ports
+# Bridge binds to 127.0.0.1:1143/1025; socat exposes on 0.0.0.0:11143/11025
+EXPOSE 11143 11025
+
+ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
+CMD ["--noninteractive"]
+
+
+
+

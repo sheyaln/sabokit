@@ -1,0 +1,129 @@
+<?php
+/**
+ * EspoCRM Webhook Configuration Script
+ * 
+ * Creates webhooks for n8n integration
+ */
+
+$basePath = '/var/www/html';
+$configPath = $basePath . '/data/config.php';
+
+if (!file_exists($configPath)) {
+    echo "Error: Config file not found\n";
+    exit(1);
+}
+
+$config = include($configPath);
+
+// Database connection
+$dbConfig = $config['database'] ?? [];
+$dbHost = $dbConfig['host'] ?? ($config['databaseHost'] ?? '{{ ESPO_DB_HOST }}');
+$dbPort = $dbConfig['port'] ?? ($config['databasePort'] ?? '{{ ESPO_DB_PORT }}');
+$dbName = $dbConfig['dbname'] ?? ($config['databaseName'] ?? '{{ ESPO_DB_NAME }}');
+$dbUser = $dbConfig['user'] ?? ($config['databaseUser'] ?? '{{ ESPO_DB_USER }}');
+$dbPass = $dbConfig['password'] ?? ($config['databasePassword'] ?? '{{ ESPO_DB_PASS }}');
+
+try {
+    $dsn = "pgsql:host=$dbHost;port=$dbPort;dbname=$dbName";
+    $pdo = new PDO($dsn, $dbUser, $dbPass, [
+        PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION
+    ]);
+    
+    echo "Connected to database.\n";
+    
+    // ============================================================================
+    // WEBHOOK CONFIGURATION
+    // ============================================================================
+    
+    echo "\nConfiguring webhooks...\n";
+    
+    // Webhook definitions
+    $webhooks = [
+        [
+            'id' => 'webhook_member_at_large',
+            'name' => 'Member At-Large Notification',
+            'event' => 'afterSave',
+            'entity' => 'Member',
+            'url' => 'https://n8n.{{ management_domain }}/webhook/espocrm-slack-notification',
+            'field' => 'branchMembership',
+            'type' => 'create',
+            'isActive' => true
+        ]
+    ];
+    
+    foreach ($webhooks as $webhook) {
+        // Check if webhook exists
+        $stmt = $pdo->prepare("SELECT id FROM webhook WHERE id = ?");
+        $stmt->execute([$webhook['id']]);
+        $existing = $stmt->fetch();
+        
+        // Prepare webhook data as JSON
+        $webhookData = [
+            'entity' => $webhook['entity'],
+            'event' => $webhook['event'],
+            'url' => $webhook['url'],
+            'field' => $webhook['field'] ?? null,
+            'type' => $webhook['type'] ?? 'create'
+        ];
+        
+        if ($existing) {
+            // Update existing webhook
+            $stmt = $pdo->prepare("
+                UPDATE webhook 
+                SET name = ?, 
+                    event = ?, 
+                    entity_type = ?, 
+                    url = ?, 
+                    is_active = ?,
+                    modified_at = NOW()
+                WHERE id = ?
+            ");
+            $stmt->execute([
+                $webhook['name'],
+                $webhook['event'],
+                $webhook['entity'],
+                $webhook['url'],
+                $webhook['isActive'] ? 1 : 0,
+                $webhook['id']
+            ]);
+            echo "Updated webhook: {$webhook['name']}\n";
+        } else {
+            // Create new webhook
+            $stmt = $pdo->prepare("
+                INSERT INTO webhook (
+                    id, 
+                    name, 
+                    event, 
+                    entity_type, 
+                    url, 
+                    is_active,
+                    deleted,
+                    created_at
+                ) VALUES (?, ?, ?, ?, ?, ?, false, NOW())
+            ");
+            $stmt->execute([
+                $webhook['id'],
+                $webhook['name'],
+                $webhook['event'],
+                $webhook['entity'],
+                $webhook['url'],
+                $webhook['isActive'] ? 1 : 0
+            ]);
+            echo "Created webhook: {$webhook['name']}\n";
+        }
+        
+        echo "  Entity: {$webhook['entity']}\n";
+        echo "  Event: {$webhook['event']}\n";
+        echo "  URL: {$webhook['url']}\n";
+        echo "  Active: " . ($webhook['isActive'] ? 'Yes' : 'No') . "\n";
+    }
+    
+    echo "\nWebhooks configured successfully.\n";
+    
+} catch (PDOException $e) {
+    echo "Database error: " . $e->getMessage() . "\n";
+    echo "Webhooks will need to be configured manually.\n";
+    exit(1);
+}
+
+echo "\nWebhook configuration complete.\n";

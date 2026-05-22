@@ -1,0 +1,19 @@
+# ── Traefik Authentik Configuration ─────────────────────────
+TRAEFIK_EMAIL: "{{ infra_email }}"
+TRAEFIK_VERSION: v3.1
+TRAEFIK_LOG_LEVEL: INFO
+
+# ── Domain Configuration ─────────────────────────
+AUTHENTIK_DOMAIN: "{{ gateway_domain }}"
+TRAEFIK_DOMAIN: "{{ tools_domain }}"
+
+# ── Security Configuration ─────────────────────────
+TRAEFIK_ENABLE_DASHBOARD: false
+TRAEFIK_ENABLE_SECURITY_HEADERS: true
+TRAEFIK_ENABLE_RATE_LIMITING: true
+TRAEFIK_RATE_LIMIT_AVERAGE: 100
+TRAEFIK_RATE_LIMIT_BURST: 50
+
+# ── Metrics Configuration ─────────────────────────
+traefik_metrics_enabled: true
+traefik_metrics_port: 9102

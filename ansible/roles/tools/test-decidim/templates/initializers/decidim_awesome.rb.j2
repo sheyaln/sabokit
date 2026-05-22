@@ -1,0 +1,36 @@
+# frozen_string_literal: true
+
+# Decidim Awesome Configuration
+# Enhanced features and improvements for Decidim
+
+Decidim::Awesome.configure do |config|
+  # Enable/disable features
+  config.allow_images_in_full_editor = {{ DECIDIM_AWESOME_IMAGES_IN_EDITOR | default('true') }}
+  config.allow_images_in_small_editor = {{ DECIDIM_AWESOME_IMAGES_IN_SMALL_EDITOR | default('false') }}
+  config.use_markdown_editor = {{ DECIDIM_AWESOME_MARKDOWN_EDITOR | default('true') }}
+  config.auto_save_forms = {{ DECIDIM_AWESOME_AUTO_SAVE | default('true') }}
+  config.scoped_styles = {{ DECIDIM_AWESOME_SCOPED_STYLES | default('true') }}
+  
+  # Admin accountability features
+  config.admin_accountability = {{ DECIDIM_AWESOME_ADMIN_ACCOUNTABILITY | default('true') }}
+  
+  # Custom redirects after login/signup
+  # config.custom_redirects = {
+  #   after_sign_in_path: '/processes',
+  #   after_sign_up_path: '/pages/welcome'
+  # }
+  
+  # Intergram chat widget (optional)
+  # config.intergram_for_admins = true
+  # config.intergram_chat_id = 'your-chat-id'
+  
+  # Menu hacks - allow custom menu modifications
+  config.menu_hacks = {{ DECIDIM_AWESOME_MENU_HACKS | default('true') }}
+  
+  # Proposal custom fields
+  config.proposal_custom_fields = {{ DECIDIM_AWESOME_PROPOSAL_CUSTOM_FIELDS | default('true') }}
+  
+  # Validate body length for proposals and other content
+  # config.validate_body_max_length = 10000
+end
+

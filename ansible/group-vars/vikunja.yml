@@ -1,0 +1,24 @@
+# Managed PostgreSQL credentials (Scaleway Secret Manager)
+vikunja_db_creds: "{{ lookup('scaleway.scaleway.scaleway_secret', 'postgres-vikunja-credentials') | b64decode | from_json }}"
+
+VIKUNJA_DATABASE_DATABASE: "{{ vikunja_db_creds.dbname }}"
+VIKUNJA_DATABASE_USER: "{{ vikunja_db_creds.username }}"
+VIKUNJA_DATABASE_PASSWORD: "{{ vikunja_db_creds.password }}"
+VIKUNJA_DATABASE_HOST: "{{ vikunja_db_creds.host }}"
+VIKUNJA_DATABASE_PORT: "{{ vikunja_db_creds.port }}"
+
+# Vikunja JWT Secret
+VIKUNJA_SERVICE_JWTSECRET: "{{ lookup('scaleway.scaleway.scaleway_secret', 'vikunja-jwt-secret') | b64decode }}"
+
+# Authentik OIDC
+VIKUNJA_AUTH_OPENID_AUTHURL: "https://{{ gateway_domain }}/application/o/vikunja/"
+VIKUNJA_AUTH_OPENID_LOGOUTURL: "https://{{ gateway_domain }}/application/o/vikunja/end-session/"
+VIKUNJA_AUTH_OPENID_CLIENTID: "{{ (lookup('scaleway.scaleway.scaleway_secret', 'authentik-app-vikunja') | b64decode | from_json).client_id }}"
+VIKUNJA_AUTH_OPENID_CLIENTSECRET: "{{ (lookup('scaleway.scaleway.scaleway_secret', 'authentik-app-vikunja') | b64decode | from_json).client_secret }}"
+
+# SMTP Configuration
+VIKUNJA_MAILER_HOST: "{{ (lookup('scaleway.scaleway.scaleway_secret', 'smtp-config') | b64decode | from_json).smtp_host }}"
+VIKUNJA_MAILER_PORT: "{{ (lookup('scaleway.scaleway.scaleway_secret', 'smtp-config') | b64decode | from_json).smtp_port }}"
+VIKUNJA_MAILER_USERNAME: "{{ (lookup('scaleway.scaleway.scaleway_secret', 'smtp-config') | b64decode | from_json).smtp_username }}"
+VIKUNJA_MAILER_PASSWORD: "{{ (lookup('scaleway.scaleway.scaleway_secret', 'smtp-config') | b64decode | from_json).smtp_password }}"
+VIKUNJA_MAILER_FROMEMAIL: "{{ org_name }} Tasks <tasks@{{ tools_domain }}>"

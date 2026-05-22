@@ -1,0 +1,17 @@
+// {{ ansible_managed }}
+// Enable the update/upgrade script (0=disable)
+APT::Periodic::Update-Package-Lists "{{ 1 if unattended_upgrades_update_package_lists else 0 }}";
+APT::Periodic::Unattended-Upgrade "1";
+
+// Clean downloaded packages cache (0=disable)
+APT::Periodic::AutocleanInterval "7";
+
+// Remove unused kernel packages and configurations (0=disable)
+APT::Periodic::Remove-Unused-Kernel-Packages "{{ 1 if unattended_upgrades_remove_unused_kernel_packages else 0 }}";
+
+// Remove packages that were automatically installed to satisfy
+// dependencies for some package and that are no longer needed (0=disable)
+APT::Periodic::Remove-Unused-Dependencies "{{ 1 if unattended_upgrades_remove_unused_dependencies else 0 }}";
+
+// Verbose level for apt
+APT::Periodic::Verbose "2"; 

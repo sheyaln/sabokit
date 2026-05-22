@@ -1,0 +1,72 @@
+# ── Managed PostgreSQL credentials (Scaleway Secret Manager) ──
+decidim_db_creds: "{{ lookup('scaleway.scaleway.scaleway_secret', 'postgres-decidim-credentials') | b64decode | from_json }}"
+
+DECIDIM_DB_NAME: "{{ decidim_db_creds.dbname }}"
+DECIDIM_DB_USER: "{{ decidim_db_creds.username }}"
+DECIDIM_DB_PASSWORD: "{{ decidim_db_creds.password }}"
+DECIDIM_DB_HOST: "{{ decidim_db_creds.host }}"
+DECIDIM_DB_PORT: "{{ decidim_db_creds.port }}"
+
+# ── Application Configuration ────────
+decidim_app_image_tag: "0.28.6"
+decidim_force_db_init: false  # Set to true to force database reinitialization
+DECIDIM_HOST: "https://test-decidim.{{ default_domain }}"
+DECIDIM_SECRET_KEY_BASE: "{{ lookup('scaleway.scaleway.scaleway_secret', 'decidim-secret-key-base') | b64decode }}"
+
+# ── SMTP Configuration ────────
+DECIDIM_SMTP_FROM_EMAIL: "test-voting@{{ default_domain }}"
+DECIDIM_SMTP_ADDRESS: "{{ smtp_host }}"
+DECIDIM_SMTP_DOMAIN: "{{ default_domain }}"
+DECIDIM_SMTP_USERNAME: "{{ smtp_username }}"
+DECIDIM_SMTP_PASSWORD: "{{ smtp_password }}"
+DECIDIM_SMTP_PORT: "{{ smtp_port }}"
+SMTP_STARTTLS_AUTO: "false"
+DECIDIM_SMTP_AUTHENTICATION: "login"
+
+# ── Default admin email ────────
+DECIDIM_DEFAULT_ADMIN_EMAIL: "{{ infra_email }}"
+DECIDIM_DEFAULT_ADMIN_PASSWORD: "{{ lookup('scaleway.scaleway.scaleway_secret', 'decidim-default-admin-password') | b64decode }}"
+
+# ── OAuth2 Configuration (Generic Provider) ────────
+# Set to true to enable OAuth2 authentication
+DECIDIM_OAUTH2_ENABLED: false
+DECIDIM_OAUTH2_PROVIDER_NAME: "authentik"  # Display name for the OAuth2 provider
+# Uncomment and configure these when ready to enable OAuth2:
+# DECIDIM_OAUTH2_CLIENT_ID: "{{ lookup('scaleway.scaleway.scaleway_secret', 'decidim-oauth2-client-id') | b64decode }}"
+# DECIDIM_OAUTH2_CLIENT_SECRET: "{{ lookup('scaleway.scaleway.scaleway_secret', 'decidim-oauth2-client-secret') | b64decode }}"
+# DECIDIM_OAUTH2_SITE: "https://sso.{{ default_domain }}"
+# DECIDIM_OAUTH2_ISSUER: "https://sso.{{ default_domain }}/application/o/decidim"
+# DECIDIM_OAUTH2_AUTHORIZE_URL: "/application/o/authorize/"
+# DECIDIM_OAUTH2_TOKEN_URL: "/application/o/token/"
+# DECIDIM_OAUTH2_USER_INFO_URL: "/application/o/userinfo/"
+
+# ── LDAP Configuration ────────
+# Set to true to enable LDAP authentication
+DECIDIM_LDAP_ENABLED: false
+# Uncomment and configure these when ready to enable LDAP:
+# DECIDIM_LDAP_HOST: "ldap.{{ default_domain }}"
+# DECIDIM_LDAP_PORT: "389"
+# DECIDIM_LDAP_METHOD: "plain"  # Options: plain, ssl, tls
+# DECIDIM_LDAP_BIND_DN: "cn=admin,dc=example,dc=org"
+# DECIDIM_LDAP_PASSWORD: "{{ lookup('scaleway.scaleway.scaleway_secret', 'decidim-ldap-password') | b64decode }}"
+# DECIDIM_LDAP_BASE: "ou=users,dc=example,dc=org"
+# DECIDIM_LDAP_FILTER: "(objectClass=person)"
+# DECIDIM_LDAP_UID: "uid"
+# DECIDIM_LDAP_ATTR_EMAIL: "mail"
+# DECIDIM_LDAP_ATTR_NAME: "cn"
+# DECIDIM_LDAP_ATTR_NICKNAME: "uid"
+
+# ── Decidim Awesome Configuration ────────
+DECIDIM_AWESOME_IMAGES_IN_EDITOR: "true"
+DECIDIM_AWESOME_IMAGES_IN_SMALL_EDITOR: "false"
+DECIDIM_AWESOME_MARKDOWN_EDITOR: "true"
+DECIDIM_AWESOME_AUTO_SAVE: "true"
+DECIDIM_AWESOME_SCOPED_STYLES: "true"
+DECIDIM_AWESOME_ADMIN_ACCOUNTABILITY: "true"
+DECIDIM_AWESOME_MENU_HACKS: "true"
+DECIDIM_AWESOME_PROPOSAL_CUSTOM_FIELDS: "true"
+
+
+
+
+

@@ -1,0 +1,26 @@
+---
+# Dev Environment Configuration
+#
+# This file overrides production settings for localhost development.
+# No Scaleway secrets, no Traefik, no UFW/fail2ban.
+
+# -----------------------------------------------------------------------------
+# Environment Identification
+# -----------------------------------------------------------------------------
+is_dev: true
+environment_name: "dev"
+
+# -----------------------------------------------------------------------------
+# Domain Configuration (Dev)
+# -----------------------------------------------------------------------------
+tools_domain: "localhost"
+management_domain: "localhost"
+
+# -----------------------------------------------------------------------------
+# Feature Flags (Dev)
+# -----------------------------------------------------------------------------
+ssl_enabled: false
+enable_fail2ban: false
+enable_ufw: false
+backup_enabled: false
+ha_enabled: false

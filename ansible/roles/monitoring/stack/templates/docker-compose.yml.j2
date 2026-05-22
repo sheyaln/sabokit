@@ -1,0 +1,198 @@
+---
+services:
+  # Prometheus - Internal only (access via Grafana or SSH tunnel)
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: prometheus
+    restart: unless-stopped
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --storage.tsdb.path=/prometheus
+      - --storage.tsdb.retention.time={{ prometheus_retention }}
+      - --web.enable-lifecycle
+      - --web.enable-remote-write-receiver
+      - --web.console.libraries=/etc/prometheus/console_libraries
+      - --web.console.templates=/etc/prometheus/consoles
+    ports:
+      # Localhost only - use SSH tunnel for direct access: ssh -L 9090:127.0.0.1:9090 user@host
+      - "127.0.0.1:9090:9090"
+    volumes:
+      - {{ prometheus_dir }}:/etc/prometheus:ro
+      - prometheus-data:/prometheus
+    networks:
+      - {{ monitoring_network }}
+    labels:
+      - "com.centurylinklabs.watchtower.enable=false"
+    security_opt:
+      - no-new-privileges:true
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:9090/-/healthy"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  loki:
+    image: grafana/loki:latest
+    container_name: loki
+    restart: unless-stopped
+    command: -config.file=/etc/loki/loki-config.yml
+    ports:
+      # Bind to private network IP so remote Alloy agents can push logs.
+      - "{{ server_ips.management }}:3100:3100"
+    volumes:
+      - {{ loki_dir }}/loki-config.yml:/etc/loki/loki-config.yml:ro
+      - loki-data:/loki
+    networks:
+      - {{ monitoring_network }}
+    labels:
+      - "com.centurylinklabs.watchtower.enable=false"
+    security_opt:
+      - no-new-privileges:true
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3100/ready"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: grafana
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:3000:3000"
+    env_file:
+      - .env
+    volumes:
+      - grafana-data:/var/lib/grafana
+      - {{ grafana_dir }}/provisioning:/etc/grafana/provisioning:ro
+    networks:
+      - {{ monitoring_network }}
+      - {{ traefik_network }}
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.grafana.rule=Host(`grafana.{{ monitoring_domain }}`)"
+      - "traefik.http.routers.grafana.entrypoints=websecure"
+      - "traefik.http.routers.grafana.tls.certresolver=le"
+      - "traefik.http.services.grafana.loadbalancer.server.port=3000"
+      - "traefik.docker.network={{ traefik_network }}"
+      - "com.centurylinklabs.watchtower.enable=false"
+    security_opt:
+      - no-new-privileges:true
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    depends_on:
+      - prometheus
+      - loki
+
+  # Selenium for Zabbix browser-based web checks
+  selenium:
+    image: selenium/standalone-chrome:latest
+    container_name: selenium
+    restart: unless-stopped
+    shm_size: 2g
+    environment:
+      SE_NODE_MAX_SESSIONS: 5
+      SE_NODE_SESSION_TIMEOUT: 300
+      SE_VNC_NO_PASSWORD: 1
+    networks:
+      - {{ monitoring_network }}
+    security_opt:
+      - no-new-privileges:true
+    labels:
+      - "com.centurylinklabs.watchtower.enable=false"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:4444/wd/hub/status"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+  # Zabbix Server (uses managed PostgreSQL)
+  zabbix-server:
+    image: zabbix/zabbix-server-pgsql:alpine-latest
+    container_name: zabbix-server
+    restart: unless-stopped
+    environment:
+      DB_SERVER_HOST: ${ZABBIX_DB_HOST}
+      DB_SERVER_PORT: ${ZABBIX_DB_PORT}
+      POSTGRES_DB: ${ZABBIX_DB_NAME}
+      POSTGRES_USER: ${ZABBIX_DB_USER}
+      POSTGRES_PASSWORD: ${ZABBIX_DB_PASSWORD}
+      ZBX_STARTPOLLERS: 5
+      ZBX_STARTPOLLERSUNREACHABLE: 1
+      ZBX_STARTPINGERS: 1
+      ZBX_STARTTRAPPERS: 5
+      ZBX_STARTDISCOVERERS: 1
+      ZBX_STARTHTTPPOLLERS: 1
+      ZBX_STARTBROWSERPOLLERS: {{ zabbix_browser_pollers }}
+      ZBX_WEBDRIVERURL: http://selenium:4444
+      ZBX_CACHESIZE: 32M
+      ZBX_HISTORYCACHESIZE: 16M
+      ZBX_HISTORYINDEXCACHESIZE: 4M
+      ZBX_TRENDCACHESIZE: 4M
+      ZBX_VALUECACHESIZE: 8M
+    ports:
+      - "{{ zabbix_server_port }}:10051"
+    volumes:
+      - {{ zabbix_dir }}/alertscripts:/usr/lib/zabbix/alertscripts:ro
+      - {{ zabbix_dir }}/externalscripts:/usr/lib/zabbix/externalscripts:ro
+    networks:
+      - {{ monitoring_network }}
+    security_opt:
+      - no-new-privileges:true
+    labels:
+      - "com.centurylinklabs.watchtower.enable=false"
+    healthcheck:
+      test: ["CMD", "zabbix_server", "-R", "config_cache_reload"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 120s
+
+  # Zabbix Web Frontend (accessed via Traefik only, no host port)
+  zabbix-web:
+    image: zabbix/zabbix-web-nginx-pgsql:alpine-latest
+    container_name: zabbix-web
+    restart: unless-stopped
+    environment:
+      ZBX_SERVER_HOST: zabbix-server
+      DB_SERVER_HOST: ${ZABBIX_DB_HOST}
+      DB_SERVER_PORT: ${ZABBIX_DB_PORT}
+      POSTGRES_DB: ${ZABBIX_DB_NAME}
+      POSTGRES_USER: ${ZABBIX_DB_USER}
+      POSTGRES_PASSWORD: ${ZABBIX_DB_PASSWORD}
+      PHP_TZ: America/New_York
+    networks:
+      - {{ monitoring_network }}
+      - {{ traefik_network }}
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.zabbix.rule=Host(`zabbix.{{ monitoring_domain }}`)"
+      - "traefik.http.routers.zabbix.entrypoints=websecure"
+      - "traefik.http.routers.zabbix.tls.certresolver=le"
+      - "traefik.http.services.zabbix.loadbalancer.server.port=8080"
+      - "traefik.docker.network={{ traefik_network }}"
+      - "com.centurylinklabs.watchtower.enable=false"
+    security_opt:
+      - no-new-privileges:true
+    depends_on:
+      - zabbix-server
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+networks:
+  {{ monitoring_network }}:
+    driver: bridge
+  {{ traefik_network }}:
+    external: true
+
+volumes:
+  prometheus-data:
+  loki-data:
+  grafana-data:

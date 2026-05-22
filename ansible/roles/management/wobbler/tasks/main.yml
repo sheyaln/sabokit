@@ -1,0 +1,138 @@
+---
+- name: Ensure wobbler directory exists
+  ansible.builtin.file:
+    path: /opt/wobbler
+    state: directory
+    mode: '0755'
+    owner: ubuntu
+    group: ubuntu
+
+- name: Clone wobbler repository
+  ansible.builtin.git:
+    repo: https://github.com/DCWobs/script-server.git
+    dest: /opt/wobbler
+    version: master
+    force: true
+  register: git_clone
+
+- name: Ensure conf directories exist
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    mode: '0755'
+    owner: ubuntu
+    group: ubuntu
+  loop:
+    - /opt/wobbler/conf/scripts
+    - /opt/wobbler/conf/runners
+
+# SSH key setup for accessing target servers
+- name: Create SSH directory for wobbler
+  ansible.builtin.file:
+    path: /opt/wobbler/.ssh
+    state: directory
+    mode: '0700'
+    owner: ubuntu
+    group: ubuntu
+
+- name: Write wobbler SSH private key
+  ansible.builtin.copy:
+    content: "{{ wobbler_ssh_private_key }}{{ '' if wobbler_ssh_private_key.endswith('\n') else '\n' }}"
+    dest: /opt/wobbler/.ssh/id_ed25519
+    mode: '0600'
+    owner: ubuntu
+    group: ubuntu
+  no_log: true
+
+- name: Generate SSH config for target servers
+  ansible.builtin.template:
+    src: ssh_config.j2
+    dest: /opt/wobbler/.ssh/config
+    mode: '0600'
+    owner: ubuntu
+    group: ubuntu
+
+- name: Generate Dockerfile
+  ansible.builtin.template:
+    src: Dockerfile.j2
+    dest: /opt/wobbler/Dockerfile
+    mode: '0644'
+    owner: ubuntu
+    group: ubuntu
+
+- name: Generate entrypoint script
+  ansible.builtin.template:
+    src: entrypoint.sh.j2
+    dest: /opt/wobbler/entrypoint.sh
+    mode: '0755'
+    owner: ubuntu
+    group: ubuntu
+
+- name: Generate conf.json
+  ansible.builtin.template:
+    src: conf.json.j2
+    dest: /opt/wobbler/conf/conf.json
+    mode: '0644'
+    owner: ubuntu
+    group: ubuntu
+
+- name: Copy wobbler scripts
+  ansible.builtin.copy:
+    src: "{{ item }}"
+    dest: /opt/wobbler/conf/scripts/
+    mode: '0755'
+    owner: ubuntu
+    group: ubuntu
+  with_fileglob:
+    - "scripts/*"
+  register: scripts_copy
+
+- name: Copy wobbler runner configs
+  ansible.builtin.copy:
+    src: "{{ item }}"
+    dest: /opt/wobbler/conf/runners/
+    mode: '0644'
+    owner: ubuntu
+    group: ubuntu
+  with_fileglob:
+    - "runners/*"
+  register: runners_copy
+
+- name: Generate docker-compose file
+  ansible.builtin.template:
+    src: docker-compose.yml.j2
+    dest: /opt/wobbler/docker-compose.yml
+    mode: '0644'
+    owner: ubuntu
+    group: ubuntu
+
+- name: Check for existing wobbler container
+  community.docker.docker_container_info:
+    name: wobbler
+  register: wobbler_container
+  ignore_errors: true
+
+- name: Set rebuild flag
+  ansible.builtin.set_fact:
+    wobbler_rebuild: "{{ git_clone.changed or (scripts_copy.changed | default(false)) or (runners_copy.changed | default(false)) }}"
+
+- name: Shut down existing wobbler containers
+  community.docker.docker_compose_v2:
+    project_src: /opt/wobbler
+    state: absent
+  when: wobbler_container.exists | default(false) or wobbler_rebuild
+
+- name: Build and start wobbler containers
+  community.docker.docker_compose_v2:
+    project_src: /opt/wobbler
+    state: present
+    build: always
+  when: wobbler_rebuild
+
+- name: Ensure wobbler containers are running
+  community.docker.docker_compose_v2:
+    project_src: /opt/wobbler
+    state: present
+  when: not wobbler_rebuild
+
+

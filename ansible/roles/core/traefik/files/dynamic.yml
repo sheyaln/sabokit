@@ -1,0 +1,39 @@
+# Traefik Dynamic Configuration
+# TLS options, external redirects, and other dynamic settings
+
+tls:
+  options:
+    # WebSocket TLS option - forces HTTP/1.1 by excluding h2 from ALPN
+    # Required for services that need WebSocket upgrades (Talk signaling, etc.)
+    # HTTP/2 strips Connection: Upgrade header, breaking WebSocket handshake
+    websocket:
+      alpnProtocols:
+        - http/1.1
+
+# External redirects - domain redirects to third-party services
+# These use the file provider so no container is needed
+# Example: Uncomment and customize for your organization's external redirects
+# http:
+#   routers:
+#     help-redirect:
+#       rule: "Host(`help.example.org`)"
+#       entryPoints:
+#         - websecure
+#       tls:
+#         certResolver: le
+#       middlewares:
+#         - help-redirect
+#       service: noop
+#
+#   middlewares:
+#     help-redirect:
+#       redirectRegex:
+#         regex: ".*"
+#         replacement: "https://your-helpdesk-url.com"
+#         permanent: true
+#
+#   services:
+#     noop:
+#       loadBalancer:
+#         servers:
+#           - url: "http://localhost"

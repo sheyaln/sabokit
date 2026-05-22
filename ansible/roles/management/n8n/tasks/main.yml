@@ -1,0 +1,59 @@
+---
+- name: Ensure n8n directory
+  ansible.builtin.file:
+    path: /opt/n8n
+    state: directory
+    mode: '0755'
+    owner: ubuntu
+    group: ubuntu
+
+- name: Deploy OIDC hooks.js file
+  ansible.builtin.copy:
+    src: hooks.js
+    dest: /opt/n8n/hooks.js
+    mode: '0644'
+    owner: ubuntu
+    group: ubuntu
+  register: hooks_changed
+
+- name: Generate docker-compose file
+  ansible.builtin.template:
+    src: docker-compose.yml.j2
+    dest: /opt/n8n/docker-compose.yml
+    mode: '0644'
+    owner: ubuntu
+    group: ubuntu
+  register: compose_changed
+
+- name: Render environment file
+  ansible.builtin.template:
+    src: env.j2
+    dest: /opt/n8n/.env
+    mode: '0600'
+    owner: ubuntu
+    group: ubuntu
+  register: env_changed
+
+- name: Check for existing n8n container
+  community.docker.docker_container_info:
+    name: n8n
+  register: n8n_container
+  ignore_errors: true
+
+- name: Shut down existing n8n containers
+  community.docker.docker_compose_v2:
+    project_src: /opt/n8n
+    state: absent
+  when: n8n_container.exists | default(false) and (hooks_changed.changed or compose_changed.changed or env_changed.changed)
+
+- name: Ensure n8n containers are running
+  community.docker.docker_compose_v2:
+    project_src: /opt/n8n
+    state: present
+    pull: always
+
+
+
+
+
+

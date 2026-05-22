@@ -1,0 +1,10 @@
+# Core Traefik configuration shared across hosts
+
+traefik_email: "{{ infra_email }}"
+
+# Name of the Scaleway Object Storage bucket where Traefik stores its ACME certificate file (acme.json)
+traefik_acme_bucket: "{{ _project_config.environments.production.storage.bucket_prefix }}-traefik-acme-prod-0"
+
+# Metrics configuration for Prometheus scraping
+traefik_metrics_enabled: true
+traefik_metrics_port: 9101

@@ -1,0 +1,36 @@
+# frozen_string_literal: true
+
+# LDAP Authentication Configuration
+# This initializer configures LDAP authentication for Decidim
+
+{% if DECIDIM_LDAP_ENABLED | default(false) %}
+Rails.application.config.to_prepare do
+  Decidim::Ldap.configure do |config|
+    config.enabled = true
+    
+    # LDAP server configuration
+    config.host = ENV.fetch('LDAP_HOST', '{{ DECIDIM_LDAP_HOST | default('') }}')
+    config.port = ENV.fetch('LDAP_PORT', '{{ DECIDIM_LDAP_PORT | default('389') }}').to_i
+    config.method = ENV.fetch('LDAP_METHOD', '{{ DECIDIM_LDAP_METHOD | default('plain') }}').to_sym # :plain, :ssl, or :tls
+    
+    # LDAP bind credentials (optional - for authenticated bind)
+    config.bind_dn = ENV.fetch('LDAP_BIND_DN', '{{ DECIDIM_LDAP_BIND_DN | default('') }}')
+    config.password = ENV.fetch('LDAP_PASSWORD', '{{ DECIDIM_LDAP_PASSWORD | default('') }}')
+    
+    # LDAP search configuration
+    config.base = ENV.fetch('LDAP_BASE', '{{ DECIDIM_LDAP_BASE | default('') }}')
+    config.filter = ENV.fetch('LDAP_FILTER', '{{ DECIDIM_LDAP_FILTER | default('') }}')
+    config.uid = ENV.fetch('LDAP_UID', '{{ DECIDIM_LDAP_UID | default('uid') }}')
+    
+    # Attribute mapping
+    config.attributes = {
+      email: ENV.fetch('LDAP_ATTR_EMAIL', '{{ DECIDIM_LDAP_ATTR_EMAIL | default('mail') }}'),
+      name: ENV.fetch('LDAP_ATTR_NAME', '{{ DECIDIM_LDAP_ATTR_NAME | default('cn') }}'),
+      nickname: ENV.fetch('LDAP_ATTR_NICKNAME', '{{ DECIDIM_LDAP_ATTR_NICKNAME | default('uid') }}')
+    }
+  end
+end
+{% else %}
+# LDAP authentication is disabled
+{% endif %}
+

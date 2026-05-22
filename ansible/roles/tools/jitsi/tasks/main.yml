@@ -1,0 +1,89 @@
+---
+- name: Allow JVB UDP port 10000 for WebRTC media
+  community.general.ufw:
+    rule: allow
+    port: '10000'
+    proto: udp
+    comment: "Jitsi Videobridge WebRTC media"
+
+- name: Ensure Jitsi directory
+  ansible.builtin.file:
+    path: /opt/jitsi
+    state: directory
+    mode: '0755'
+    owner: ubuntu
+    group: ubuntu
+
+- name: Ensure Jitsi config directories
+  ansible.builtin.file:
+    path: "/opt/jitsi/{{ item }}"
+    state: directory
+    mode: '0755'
+    owner: ubuntu
+    group: ubuntu
+  loop:
+    - web
+    - web/crontabs
+    - prosody/config
+    - prosody/prosody-plugins-custom
+    - jicofo
+    - jvb
+    - transcripts
+    - jigasi
+    - oidc-adapter
+
+- name: Copy OIDC adapter files
+  ansible.builtin.copy:
+    src: "oidc-adapter/"
+    dest: /opt/jitsi/oidc-adapter/
+    mode: '0644'
+    owner: ubuntu
+    group: ubuntu
+
+- name: Ensure OIDC adapter session directory exists
+  ansible.builtin.file:
+    path: /opt/jitsi/oidc-adapter/flask_session
+    state: directory
+    mode: '0755'
+    owner: ubuntu
+    group: ubuntu
+
+- name: Generate docker-compose file
+  ansible.builtin.template:
+    src: docker-compose.yml.j2
+    dest: /opt/jitsi/docker-compose.yml
+    mode: '0644'
+    owner: ubuntu
+    group: ubuntu
+
+- name: Render environment file
+  ansible.builtin.template:
+    src: env.j2
+    dest: /opt/jitsi/.env
+    mode: '0600'
+    owner: ubuntu
+    group: ubuntu
+
+- name: Check for existing Jitsi containers
+  community.docker.docker_container_info:
+    name: jitsi-web
+  register: jitsi_container
+  ignore_errors: true
+
+- name: Shut down existing Jitsi containers
+  community.docker.docker_compose_v2:
+    project_src: /opt/jitsi
+    state: absent
+  when: jitsi_container.exists | default(false)
+
+- name: Clean up orphan containers
+  community.docker.docker_compose_v2:
+    project_src: /opt/jitsi
+    state: absent
+    remove_orphans: true
+  when: jitsi_container.exists | default(false)
+
+- name: Ensure Jitsi containers are running
+  community.docker.docker_compose_v2:
+    project_src: /opt/jitsi
+    state: present

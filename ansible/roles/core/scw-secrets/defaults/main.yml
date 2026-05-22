@@ -1,0 +1,79 @@
+---
+
+# SCW Secrets - Default Variables
+
+# This role installs the Scaleway CLI and configures it to fetch secrets
+# at container runtime, storing them in tmpfs (never on persistent storage).
+
+
+# -----------------------------------------------------------------------------
+# SCW CLI Configuration
+# -----------------------------------------------------------------------------
+# Version of the Scaleway CLI to install (use 'latest' for most recent)
+scw_cli_version: "latest"
+
+# Installation directory for the scw binary
+scw_cli_install_dir: "/usr/local/bin"
+
+# -----------------------------------------------------------------------------
+# Service User Configuration
+# -----------------------------------------------------------------------------
+# Dedicated system user for running secret fetch operations
+# This user has no login shell and minimal permissions
+scw_secrets_user: "scw-secrets"
+scw_secrets_group: "scw-secrets"
+
+# User/group IDs (using high numbers to avoid conflicts)
+scw_secrets_uid: 990
+scw_secrets_gid: 990
+
+# -----------------------------------------------------------------------------
+# Directory Configuration
+# -----------------------------------------------------------------------------
+# Base directory for scw-secrets configuration and scripts
+scw_secrets_base_dir: "/opt/scw-secrets"
+
+# Where the scw CLI config will be stored (0600 permissions)
+scw_secrets_config_dir: "{{ scw_secrets_base_dir }}/config"
+
+# Where helper scripts are stored
+scw_secrets_bin_dir: "{{ scw_secrets_base_dir }}/bin"
+
+# Where secret mappings are stored (which secrets each app needs)
+scw_secrets_mappings_dir: "{{ scw_secrets_base_dir }}/mappings"
+
+# -----------------------------------------------------------------------------
+# Scaleway API Configuration
+# -----------------------------------------------------------------------------
+# These should be set via environment variables or Ansible vault
+# The API key should be scoped to ONLY SecretManagerReadOnly permissions
+scw_secrets_access_key: "{{ lookup('env', 'SCW_SECRETS_ACCESS_KEY') | default(scaleway_access_key, true) }}"
+scw_secrets_secret_key: "{{ lookup('env', 'SCW_SECRETS_SECRET_KEY') | default(scaleway_secret_key, true) }}"
+
+# Scaleway organization and project for secret lookups
+scw_secrets_organization_id: "{{ lookup('env', 'SCW_DEFAULT_ORGANIZATION_ID') | default('', true) }}"
+scw_secrets_project_id: "{{ lookup('env', 'SCW_DEFAULT_PROJECT_ID') | default('', true) }}"
+
+# Default region for Secret Manager
+scw_secrets_region: "{{ scaleway_region | default('fr-par') }}"
+
+# -----------------------------------------------------------------------------
+# Security Configuration
+# -----------------------------------------------------------------------------
+# File permissions for the scw config file (0600 = owner read/write only)
+scw_config_file_mode: "0600"
+
+# File permissions for helper scripts (0750 = owner rwx, group rx)
+scw_scripts_mode: "0750"
+
+# Whether to allow the docker group to execute fetch scripts
+scw_secrets_allow_docker_group: true
+
+# -----------------------------------------------------------------------------
+# Logging Configuration
+# -----------------------------------------------------------------------------
+# Log level for fetch operations (debug, info, warn, error)
+scw_secrets_log_level: "info"
+
+# Log file location (set to empty to disable file logging)
+scw_secrets_log_file: "/var/log/scw-secrets/fetch.log"

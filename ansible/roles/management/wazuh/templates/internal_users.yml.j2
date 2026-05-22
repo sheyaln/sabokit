@@ -1,0 +1,24 @@
+# Wazuh indexer internal users configuration
+---
+_meta:
+  type: "internalusers"
+  config_version: 2
+
+admin:
+  hash: "{{ wazuh_indexer_password | htpasswd_bcrypt(wazuh_bcrypt_cost) }}"
+  reserved: true
+  backend_roles:
+  - "admin"
+  description: "Admin user"
+
+kibanaserver:
+  hash: "{{ wazuh_dashboard_password | htpasswd_bcrypt(wazuh_bcrypt_cost) }}"
+  reserved: true
+  description: "Dashboard user"
+
+wazuh-wui:
+  hash: "{{ wazuh_api_password | htpasswd_bcrypt(wazuh_bcrypt_cost) }}"
+  reserved: true
+  backend_roles:
+  - "admin"
+  description: "Wazuh API user"

@@ -1,0 +1,20 @@
+#!/bin/bash
+
+# Watchtower notification script
+# This script can be used to send custom notifications when containers are updated
+
+set -euo pipefail
+
+CONTAINER_NAME="${1:-unknown}"
+UPDATE_STATUS="${2:-unknown}"
+TIMESTAMP=$(date '+%Y-%m-%d %H:%M:%S')
+
+log_message() {
+    echo "[$TIMESTAMP] Container: $CONTAINER_NAME | Status: $UPDATE_STATUS"
+}
+
+log_message
+
+# Add custom notification logic here if needed
+# For example, send to a webhook, email, or Slack
+

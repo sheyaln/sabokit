@@ -1,0 +1,219 @@
+---
+
+# STAGING ENVIRONMENT PLAYBOOK
+
+# This playbook deploys the staging environment on a single VPS.
+# It uses local PostgreSQL container instead of managed database.
+#
+# Cost: ~$5-10/month (single small VPS + minimal S3)
+#
+# Usage:
+#   ansible-playbook playbook-staging.yml -i inventory.ini --tags <TAG>
+#
+# Tags:
+#   - staging-infra : Deploy local PostgreSQL and base infrastructure
+#   - staging-core  : Deploy Traefik, Docker, security
+#   - staging-auth  : Deploy Authentik
+#   - staging-apps  : Deploy applications (Outline, etc.)
+#   - staging-all   : Deploy everything
+
+
+# ============================================
+# STAGING INFRASTRUCTURE
+# ============================================
+
+- name: Configure Staging - System Updates
+  hosts: staging
+  tags:
+    - staging-infra
+    - staging-core
+    - staging-all
+    - system-updates
+  become: true
+  vars_files:
+    - group-vars/all.yml
+    - group-vars/staging.yml
+    - group-vars/core.yml
+    - group-vars/unattended-upgrades.yml
+  roles:
+    - core/unattended-upgrades
+
+- name: Configure Staging - Log Management
+  hosts: staging
+  tags:
+    - staging-infra
+    - staging-core
+    - staging-all
+    - log-management
+  become: true
+  vars_files:
+    - group-vars/all.yml
+    - group-vars/staging.yml
+    - group-vars/core.yml
+  roles:
+    - core/log-management
+
+- name: Configure Staging - Firewall
+  hosts: staging
+  tags:
+    - staging-infra
+    - staging-core
+    - staging-all
+    - ufw
+  become: true
+  vars_files:
+    - group-vars/all.yml
+    - group-vars/staging.yml
+    - group-vars/core.yml
+    - group-vars/tools-ufw.yml
+  roles:
+    - core/ufw
+
+- name: Configure Staging - Docker Runtime
+  hosts: staging
+  tags:
+    - staging-infra
+    - staging-core
+    - staging-all
+    - docker
+  become: true
+  vars_files:
+    - group-vars/all.yml
+    - group-vars/staging.yml
+    - group-vars/core.yml
+  roles:
+    - core/docker
+
+- name: Configure Staging - Traefik Reverse Proxy
+  hosts: staging
+  tags:
+    - staging-infra
+    - staging-core
+    - staging-all
+    - traefik
+  become: true
+  vars_files:
+    - group-vars/all.yml
+    - group-vars/staging.yml
+    - group-vars/traefik.yml
+  roles:
+    - core/traefik
+
+- name: Configure Staging - Fail2ban (after Traefik)
+  hosts: staging
+  tags:
+    - staging-infra
+    - staging-core
+    - staging-all
+    - fail2ban
+  become: true
+  vars_files:
+    - group-vars/all.yml
+    - group-vars/staging.yml
+    - group-vars/core.yml
+  roles:
+    - core/fail2ban
+
+# ============================================
+# LOCAL POSTGRESQL (Staging Only)
+# ============================================
+
+- name: Configure Staging - Local PostgreSQL Container
+  hosts: staging
+  tags:
+    - staging-infra
+    - staging-all
+    - postgres-local
+  become: true
+  vars_files:
+    - group-vars/all.yml
+    - group-vars/staging.yml
+  roles:
+    - staging/postgres-local
+
+# ============================================
+# AUTHENTIK (Staging)
+# ============================================
+# NOTE: Staging uses the core/traefik instance (single VPS).
+# The authentik/traefik role is skipped - Authentik registers
+# with Traefik via Docker labels in its docker-compose.yml.
+
+- name: Configure Staging - Authentik SSO
+  hosts: staging
+  tags:
+    - staging-auth
+    - staging-all
+    - authentik
+  become: true
+  vars_files:
+    - group-vars/all.yml
+    - group-vars/staging.yml
+    # CRITICAL: Use staging-specific Authentik config, NOT production!
+    # This ensures complete isolation from production Authentik
+    - group-vars/authentik-staging.yml
+  vars:
+    # Override to use local PostgreSQL
+    POSTGRES_HOST: "{{ local_postgres_host }}"
+    POSTGRES_PORT: "{{ local_postgres_port }}"
+    POSTGRES_DB: "{{ staging_app_databases.authentik.dbname }}"
+    POSTGRES_USER: "{{ staging_app_databases.authentik.username }}"
+    POSTGRES_PASSWORD: "{{ staging_app_databases.authentik.password }}"
+  roles:
+    # Skip authentik/traefik - staging uses single core/traefik instance
+    - authentik/authentik
+  post_tasks:
+    # Connect Authentik to local PostgreSQL network (only needed when db_type == 'local')
+    - name: Connect Authentik server to local PostgreSQL network
+      community.docker.docker_network:
+        name: "{{ local_postgres_network }}"
+        connected:
+          - authentik-server
+        appends: true
+      ignore_errors: true
+      when: db_type == 'local'
+
+    # Connect all Authentik worker replicas to local PostgreSQL network
+    - name: Connect Authentik workers to local PostgreSQL network
+      ansible.builtin.shell: |
+        for container in $(docker ps --filter "name=authentik-worker" --format "{% raw %}{{.Names}}{% endraw %}"); do
+          docker network connect {{ local_postgres_network }} "$container" 2>/dev/null || true
+        done
+      changed_when: false
+      ignore_errors: true
+      when: db_type == 'local'
+
+# ============================================
+# APPLICATIONS (Staging)
+# ============================================
+
+- name: Configure Staging - Outline Wiki
+  hosts: staging
+  tags:
+    - staging-apps
+    - staging-all
+    - outline
+  become: true
+  vars_files:
+    - group-vars/all.yml
+    - group-vars/staging.yml
+    - group-vars/outline-staging.yml  # Uses staging-specific config (no Scaleway secrets)
+  roles:
+    - tools/outline
+
+# ============================================
+# MONITORING (Staging - Minimal)
+# ============================================
+
+- name: Configure Staging - Basic Monitoring
+  hosts: staging
+  tags:
+    - staging-monitoring
+    - staging-all
+    - monitoring
+  become: true
+  vars_files:
+    - group-vars/all.yml
+    - group-vars/staging.yml
+    - group-vars/monitoring.yml
+  roles:
+    - monitoring/exporters

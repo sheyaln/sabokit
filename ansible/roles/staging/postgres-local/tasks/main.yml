@@ -1,0 +1,83 @@
+---
+
+# Local PostgreSQL Container for Staging
+
+# Deploys a PostgreSQL container that replaces managed PostgreSQL in staging.
+# This significantly reduces costs while maintaining compatibility.
+
+
+- name: Create staging directories
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    owner: "999"  # postgres user in container
+    group: "999"
+    mode: "0755"
+  loop:
+    - "{{ postgres_local_data_dir }}"
+    - "{{ postgres_local_init_dir }}"
+
+- name: Create Docker network for staging
+  community.docker.docker_network:
+    name: "{{ postgres_local_network }}"
+    state: present
+
+- name: Generate database initialization script
+  ansible.builtin.template:
+    src: init-databases.sql.j2
+    dest: "{{ postgres_local_init_dir }}/01-init-databases.sql"
+    mode: "0644"
+
+- name: Deploy PostgreSQL container
+  community.docker.docker_container:
+    name: "{{ postgres_local_container_name }}"
+    image: "{{ postgres_local_image }}"
+    state: started
+    restart_policy: unless-stopped
+    
+    # Environment
+    env:
+      POSTGRES_USER: "{{ postgres_local_superuser }}"
+      POSTGRES_PASSWORD: "{{ postgres_local_superuser_password }}"
+      POSTGRES_DB: "postgres"
+      PGDATA: "/var/lib/postgresql/data/pgdata"
+    
+    # Volumes
+    volumes:
+      - "{{ postgres_local_data_dir }}:/var/lib/postgresql/data"
+      - "{{ postgres_local_init_dir }}:/docker-entrypoint-initdb.d:ro"
+    
+    # Network
+    networks:
+      - name: "{{ postgres_local_network }}"
+    
+    # Expose port on localhost only (not publicly)
+    published_ports:
+      - "127.0.0.1:{{ postgres_local_port }}:5432"
+    
+    # Resource limits
+    memory: "{{ postgres_local_memory_limit }}"
+    
+    # Health check
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U {{ postgres_local_superuser }}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+- name: Wait for PostgreSQL to be ready
+  ansible.builtin.wait_for:
+    host: 127.0.0.1
+    port: "{{ postgres_local_port }}"
+    state: started
+    timeout: 60
+
+- name: Verify PostgreSQL is accepting connections
+  ansible.builtin.command: >
+    docker exec {{ postgres_local_container_name }}
+    pg_isready -U {{ postgres_local_superuser }}
+  register: pg_ready
+  retries: 10
+  delay: 3
+  until: pg_ready.rc == 0
+  changed_when: false

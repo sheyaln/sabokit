@@ -1,0 +1,221 @@
+---
+# Monitoring Stack - Grafana, Loki, Prometheus
+# Deployed on the management server
+
+# Open firewall for log ingestion from remote servers
+- name: Allow Loki push from tools-prod
+  community.general.ufw:
+    rule: allow
+    port: "3100"
+    proto: tcp
+    from_ip: "{{ server_ips['tools-prod'] }}"
+    comment: "Loki push from tools-prod"
+
+- name: Allow Loki push from authentik
+  community.general.ufw:
+    rule: allow
+    port: "3100"
+    proto: tcp
+    from_ip: "{{ server_ips.authentik }}"
+    comment: "Loki push from authentik"
+
+- name: Allow Zabbix agent from tools-prod
+  community.general.ufw:
+    rule: allow
+    port: "{{ zabbix_server_port | string }}"
+    proto: tcp
+    from_ip: "{{ server_ips['tools-prod'] }}"
+    comment: "Zabbix agent from tools-prod"
+
+- name: Allow Zabbix agent from authentik
+  community.general.ufw:
+    rule: allow
+    port: "{{ zabbix_server_port | string }}"
+    proto: tcp
+    from_ip: "{{ server_ips.authentik }}"
+    comment: "Zabbix agent from authentik"
+
+- name: Create monitoring directories
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    mode: '0755'
+    owner: ubuntu
+    group: ubuntu
+  loop:
+    - "{{ monitoring_base_dir }}"
+    - "{{ prometheus_dir }}"
+    - "{{ prometheus_dir }}/rules"
+    - "{{ loki_dir }}"
+    - "{{ grafana_dir }}"
+    - "{{ grafana_dir }}/provisioning"
+    - "{{ grafana_dir }}/provisioning/datasources"
+    - "{{ zabbix_dir }}"
+    - "{{ zabbix_dir }}/alertscripts"
+    - "{{ zabbix_dir }}/externalscripts"
+
+- name: Deploy Zabbix media type scripts
+  ansible.builtin.copy:
+    src: "zabbix/jsm-ops-mediatype.js"
+    dest: "{{ zabbix_dir }}/alertscripts/"
+    mode: '0644'
+    owner: ubuntu
+    group: ubuntu
+
+- name: Ensure monitoring network exists
+  community.docker.docker_network:
+    name: "{{ monitoring_network }}"
+    state: present
+    driver: bridge
+
+- name: Ensure traefik network exists
+  community.docker.docker_network:
+    name: "{{ traefik_network }}"
+    state: present
+    driver: bridge
+
+- name: Render Prometheus configuration
+  ansible.builtin.template:
+    src: prometheus.yml.j2
+    dest: "{{ prometheus_dir }}/prometheus.yml"
+    mode: '0644'
+    owner: ubuntu
+    group: ubuntu
+  notify: Reload prometheus
+
+- name: Render Prometheus alerting rules
+  ansible.builtin.template:
+    src: alerts.yml.j2
+    dest: "{{ prometheus_dir }}/rules/alerts.yml"
+    mode: '0644'
+    owner: ubuntu
+    group: ubuntu
+  notify: Reload prometheus
+
+- name: Render Loki configuration
+  ansible.builtin.template:
+    src: loki-config.yml.j2
+    dest: "{{ loki_dir }}/loki-config.yml"
+    mode: '0644'
+    owner: ubuntu
+    group: ubuntu
+
+- name: Render Grafana datasources
+  ansible.builtin.template:
+    src: datasources.yml.j2
+    dest: "{{ grafana_dir }}/provisioning/datasources/datasources.yml"
+    mode: '0644'
+    owner: ubuntu
+    group: ubuntu
+
+- name: Render docker-compose file
+  ansible.builtin.template:
+    src: docker-compose.yml.j2
+    dest: "{{ monitoring_base_dir }}/docker-compose.yml"
+    mode: '0644'
+    owner: ubuntu
+    group: ubuntu
+
+- name: Render environment file
+  ansible.builtin.template:
+    src: env.j2
+    dest: "{{ monitoring_base_dir }}/.env"
+    mode: '0600'
+    owner: ubuntu
+    group: ubuntu
+
+- name: Stop existing monitoring stack
+  community.docker.docker_compose_v2:
+    project_src: "{{ monitoring_base_dir }}"
+    state: absent
+    remove_orphans: true
+  ignore_errors: true
+
+- name: Deploy monitoring stack
+  community.docker.docker_compose_v2:
+    project_src: "{{ monitoring_base_dir }}"
+    state: present
+    pull: always
+
+- name: Wait for Prometheus to be ready
+  ansible.builtin.wait_for:
+    host: 127.0.0.1
+    port: 9090
+    timeout: 120
+
+- name: Wait for Loki to be ready
+  ansible.builtin.wait_for:
+    host: "{{ server_ips.management }}"
+    port: 3100
+    timeout: 120
+
+- name: Wait for Grafana to be ready
+  ansible.builtin.wait_for:
+    host: 127.0.0.1
+    port: 3000
+    timeout: 120
+
+- name: Verify Prometheus is healthy
+  ansible.builtin.uri:
+    url: http://127.0.0.1:9090/-/healthy
+    method: GET
+    return_content: false
+  register: prometheus_health
+  retries: 5
+  delay: 5
+  until: prometheus_health.status == 200
+
+- name: Verify Loki is ready
+  ansible.builtin.uri:
+    url: "http://{{ server_ips.management }}:3100/ready"
+    method: GET
+    return_content: false
+  register: loki_health
+  retries: 5
+  delay: 5
+  until: loki_health.status == 200
+
+- name: Verify Grafana is healthy
+  ansible.builtin.uri:
+    url: http://127.0.0.1:3000/api/health
+    method: GET
+    return_content: false
+  register: grafana_health
+  retries: 5
+  delay: 5
+  until: grafana_health.status == 200
+
+- name: Wait for Zabbix Server to be ready
+  ansible.builtin.wait_for:
+    host: 127.0.0.1
+    port: "{{ zabbix_server_port }}"
+    timeout: 180
+
+- name: Wait for Zabbix Web to be accessible
+  ansible.builtin.uri:
+    url: "http://127.0.0.1:8080/"
+    method: GET
+    return_content: false
+  register: zabbix_web_health
+  retries: 10
+  delay: 10
+  until: zabbix_web_health.status == 200
+
+# Configure Zabbix via API (only if API token is available)
+- name: Configure Zabbix monitoring
+  ansible.builtin.include_tasks: zabbix-configure.yml
+  when: zabbix_api_token | default('') | length > 0
+  tags:
+    - zabbix-configure
+
+- name: Zabbix API token not configured warning
+  ansible.builtin.debug:
+    msg: |
+      Zabbix API token not configured. Skipping automated template import.
+      To enable automated configuration:
+      1. Log into Zabbix web interface
+      2. Go to Users > API tokens
+      3. Create an API token for the Admin user
+      4. Store the token in Scaleway Secret Manager as 'zabbix-api-token'
+      5. Re-run this playbook with --tags zabbix-configure
+  when: zabbix_api_token | default('') | length == 0

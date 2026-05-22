@@ -1,0 +1,21 @@
+
+# Authentik Secret Mappings
+
+# Maps local secret filenames to Scaleway Secret Manager paths.
+
+
+secrets:
+  # Database credentials (Authentik's PostgreSQL)
+  postgres_password: postgres-authentik-credentials/password
+  postgres_user: postgres-authentik-credentials/username
+  postgres_host: postgres-authentik-credentials/host
+  postgres_db: postgres-authentik-credentials/database
+
+  # Authentik core secrets
+  secret_key: authentik-secret-key
+  admin_password: authentik-admin-credentials/password
+
+  # SMTP configuration
+  smtp_password: smtp-config/smtp_password
+  smtp_username: smtp-config/smtp_username
+  smtp_host: smtp-config/smtp_host

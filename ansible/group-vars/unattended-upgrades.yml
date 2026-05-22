@@ -1,0 +1,74 @@
+# Unattended Upgrades Configuration
+# Override these values as needed for your environment
+
+# Email Configuration
+unattended_upgrades_email_enabled: true
+unattended_upgrades_mail_to: "{{ admin_email }}"
+unattended_upgrades_mail_from: "unattended-upgrades@{{ ansible_hostname }}.{{ tools_domain }}"
+unattended_upgrades_mail_report: "on-change" # "always", "only-on-error", "on-change"
+
+# Automatic Reboot Configuration
+# CAUTION: This will reboot servers automatically if kernel updates require it
+unattended_upgrades_automatic_reboot: true
+unattended_upgrades_automatic_reboot_time: "02:00" # 2 AM
+unattended_upgrades_automatic_reboot_with_users: false # Don't reboot if users logged in
+
+# Package Management
+unattended_upgrades_remove_unused_dependencies: true
+unattended_upgrades_remove_unused_kernel_packages: true
+unattended_upgrades_remove_new_unused_dependencies: true
+unattended_upgrades_keep_debs_after_install: false
+
+# Update Sources (repositories to update from)
+unattended_upgrades_origins:
+  - "origin=Ubuntu,archive=${distro_codename}-security,label=Ubuntu"
+  - "origin=Ubuntu,archive=${distro_codename}-updates,label=Ubuntu"
+  # Uncomment next line to include all Ubuntu updates (not just security)
+  # - "origin=Ubuntu,archive=${distro_codename},label=Ubuntu"
+
+# Package Blacklist - Never auto-update these packages
+# Add any critical services that need manual update control
+unattended_upgrades_package_blacklist:
+  # Docker packages - require careful coordination
+  - "docker-ce"
+  - "docker-ce-cli"
+  - "containerd.io"
+  - "docker-compose-plugin"
+
+  # Web servers and reverse proxies
+  - "nginx"
+  - "apache2"
+  - "traefik"
+
+  # Databases - require backup and careful planning
+  - "postgresql*"
+  - "mysql*"
+  - "mariadb*"
+  - "mongodb*"
+
+  # Container orchestration
+  - "kubernetes*"
+  - "k8s*"
+
+  # Add more packages as needed for your environment
+  # Examples:
+  # - "php*"
+  # - "redis*"
+  # - "elasticsearch"
+
+# Bandwidth limiting (kb/s, 0 = unlimited)
+unattended_upgrades_download_limit: 0
+
+# Logging
+unattended_upgrades_syslog_enable: true
+unattended_upgrades_syslog_facility: "daemon"
+
+# Timing and behavior
+unattended_upgrades_update_package_lists: true
+unattended_upgrades_auto_fix_interrupted_dpkg: true
+unattended_upgrades_minimal_steps: true
+unattended_upgrades_install_on_shutdown: false
+
+
+
+

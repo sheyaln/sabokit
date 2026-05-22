@@ -1,0 +1,202 @@
+---
+
+# SCW Secrets - Main Tasks
+
+# Installs and configures Scaleway CLI for runtime secret fetching.
+# Secrets are fetched at container start and stored in tmpfs, never on disk.
+
+
+# -----------------------------------------------------------------------------
+# System User Setup
+# -----------------------------------------------------------------------------
+- name: Create scw-secrets group
+  ansible.builtin.group:
+    name: "{{ scw_secrets_group }}"
+    gid: "{{ scw_secrets_gid }}"
+    state: present
+    system: true
+
+- name: Create scw-secrets service user
+  ansible.builtin.user:
+    name: "{{ scw_secrets_user }}"
+    uid: "{{ scw_secrets_uid }}"
+    group: "{{ scw_secrets_group }}"
+    home: "{{ scw_secrets_base_dir }}"
+    shell: /usr/sbin/nologin
+    create_home: false
+    system: true
+    state: present
+    comment: "Scaleway secrets fetch service account"
+
+# -----------------------------------------------------------------------------
+# Directory Structure
+# -----------------------------------------------------------------------------
+- name: Create scw-secrets base directory
+  ansible.builtin.file:
+    path: "{{ scw_secrets_base_dir }}"
+    state: directory
+    owner: "{{ scw_secrets_user }}"
+    group: "{{ scw_secrets_group }}"
+    mode: "0750"
+
+- name: Create scw-secrets config directory
+  ansible.builtin.file:
+    path: "{{ scw_secrets_config_dir }}"
+    state: directory
+    owner: "{{ scw_secrets_user }}"
+    group: "{{ scw_secrets_group }}"
+    mode: "0700"
+
+- name: Create scw-secrets bin directory
+  ansible.builtin.file:
+    path: "{{ scw_secrets_bin_dir }}"
+    state: directory
+    owner: root
+    group: "{{ 'docker' if scw_secrets_allow_docker_group else scw_secrets_group }}"
+    mode: "0750"
+
+- name: Create scw-secrets mappings directory
+  ansible.builtin.file:
+    path: "{{ scw_secrets_mappings_dir }}"
+    state: directory
+    owner: "{{ scw_secrets_user }}"
+    group: "{{ scw_secrets_group }}"
+    mode: "0750"
+
+- name: Create log directory
+  ansible.builtin.file:
+    path: "{{ scw_secrets_log_file | dirname }}"
+    state: directory
+    owner: "{{ scw_secrets_user }}"
+    group: "{{ scw_secrets_group }}"
+    mode: "0750"
+  when: scw_secrets_log_file | length > 0
+
+# -----------------------------------------------------------------------------
+# SCW CLI Installation
+# -----------------------------------------------------------------------------
+- name: Check if scw CLI is installed
+  ansible.builtin.stat:
+    path: "{{ scw_cli_install_dir }}/scw"
+  register: scw_cli_stat
+
+- name: Get current scw CLI version
+  ansible.builtin.command: "{{ scw_cli_install_dir }}/scw version -o json"
+  register: scw_current_version
+  changed_when: false
+  failed_when: false
+  when: scw_cli_stat.stat.exists
+
+- name: Get latest scw CLI version from GitHub
+  ansible.builtin.uri:
+    url: https://api.github.com/repos/scaleway/scaleway-cli/releases/latest
+    return_content: true
+  register: scw_latest_release
+  when: scw_cli_version == 'latest'
+
+- name: Set scw CLI version to install
+  ansible.builtin.set_fact:
+    scw_cli_target_version: >-
+      {{ scw_latest_release.json.tag_name | regex_replace('^v', '')
+         if scw_cli_version == 'latest'
+         else scw_cli_version }}
+
+- name: Determine if scw CLI needs installation/upgrade
+  ansible.builtin.set_fact:
+    scw_cli_needs_install: >-
+      {{ not scw_cli_stat.stat.exists or
+         (scw_current_version.stdout | default('{}') | from_json).version | default('0.0.0')
+         is version(scw_cli_target_version, '<') }}
+
+- name: Download scw CLI binary
+  ansible.builtin.get_url:
+    url: "https://github.com/scaleway/scaleway-cli/releases/download/v{{ scw_cli_target_version }}/scaleway-cli_{{ scw_cli_target_version }}_linux_{{ 'amd64' if ansible_architecture == 'x86_64' else 'arm64' }}"
+    dest: "/tmp/scw-{{ scw_cli_target_version }}"
+    mode: "0755"
+  when: scw_cli_needs_install
+
+- name: Install scw CLI binary
+  ansible.builtin.copy:
+    src: "/tmp/scw-{{ scw_cli_target_version }}"
+    dest: "{{ scw_cli_install_dir }}/scw"
+    owner: root
+    group: root
+    mode: "0755"
+    remote_src: true
+  when: scw_cli_needs_install
+
+- name: Clean up downloaded binary
+  ansible.builtin.file:
+    path: "/tmp/scw-{{ scw_cli_target_version }}"
+    state: absent
+  when: scw_cli_needs_install
+
+- name: Verify scw CLI installation
+  ansible.builtin.command: "{{ scw_cli_install_dir }}/scw version"
+  register: scw_verify
+  changed_when: false
+
+# -----------------------------------------------------------------------------
+# SCW CLI Configuration
+# -----------------------------------------------------------------------------
+- name: Create scw config file with scoped credentials
+  ansible.builtin.template:
+    src: config.yaml.j2
+    dest: "{{ scw_secrets_config_dir }}/config.yaml"
+    owner: "{{ scw_secrets_user }}"
+    group: "{{ scw_secrets_group }}"
+    mode: "{{ scw_config_file_mode }}"
+  no_log: true
+
+# -----------------------------------------------------------------------------
+# Helper Scripts
+# -----------------------------------------------------------------------------
+- name: Install fetch-secrets script
+  ansible.builtin.template:
+    src: fetch-secrets.sh.j2
+    dest: "{{ scw_secrets_bin_dir }}/fetch-secrets"
+    owner: root
+    group: "{{ 'docker' if scw_secrets_allow_docker_group else scw_secrets_group }}"
+    mode: "{{ scw_scripts_mode }}"
+
+- name: Install entrypoint wrapper script
+  ansible.builtin.template:
+    src: entrypoint-with-secrets.sh.j2
+    dest: "{{ scw_secrets_bin_dir }}/entrypoint-with-secrets"
+    owner: root
+    group: "{{ 'docker' if scw_secrets_allow_docker_group else scw_secrets_group }}"
+    mode: "{{ scw_scripts_mode }}"
+
+# -----------------------------------------------------------------------------
+# Sudo Configuration (for docker containers to fetch secrets)
+# -----------------------------------------------------------------------------
+- name: Configure sudo for secret fetching
+  ansible.builtin.template:
+    src: sudoers-scw-secrets.j2
+    dest: /etc/sudoers.d/scw-secrets
+    owner: root
+    group: root
+    mode: "0440"
+    validate: "visudo -cf %s"
+
+# -----------------------------------------------------------------------------
+# Verification
+# -----------------------------------------------------------------------------
+- name: Test scw CLI can authenticate
+  ansible.builtin.command: >
+    {{ scw_cli_install_dir }}/scw
+    --config {{ scw_secrets_config_dir }}/config.yaml
+    account project get {{ scw_secrets_project_id }}
+  become: true
+  become_user: "{{ scw_secrets_user }}"
+  register: scw_auth_test
+  changed_when: false
+  failed_when: false
+  no_log: true
+
+- name: Display authentication status
+  ansible.builtin.debug:
+    msg: >-
+      SCW CLI authentication {{ 'successful' if scw_auth_test.rc == 0 else 'FAILED' }}.
+      {{ 'Check credentials and permissions.' if scw_auth_test.rc != 0 else '' }}
+  when: scw_auth_test is defined

@@ -1,0 +1,24 @@
+---
+# Default variables for Authentik role
+
+# Authentik configuration
+authentik_dir: "/opt/authentik"
+authentik_network_name: "authentik-internal"
+
+# Domain configuration
+authentik_domain: "{{ AUTHENTIK_DOMAIN | default(gateway_domain) }}"
+
+# Database configuration
+postgres_user: "{{ POSTGRES_USER | default('authentik') }}"
+postgres_password: "{{ POSTGRES_PASSWORD }}"
+postgres_db: "{{ POSTGRES_DB | default('authentik') }}"
+
+# Authentik configuration
+authentik_secret_key: "{{ AUTHENTIK_SECRET_KEY }}"
+authentik_admin_user: "{{ AUTHENTIK_ADMIN_USER | default('admin') }}"
+authentik_admin_email: "{{ AUTHENTIK_ADMIN_EMAIL | default('infra@' + tools_domain) }}"
+authentik_admin_password: "{{ AUTHENTIK_ADMIN_PASSWORD }}"
+
+# Image configuration
+authentik_image: "{{ AUTHENTIK_IMAGE | default('ghcr.io/goauthentik/server') }}"
+authentik_version: "{{ AUTHENTIK_TAG | default('2025.12.1') }}"

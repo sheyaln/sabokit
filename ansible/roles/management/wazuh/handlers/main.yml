@@ -1,0 +1,34 @@
+---
+- name: restart wazuh
+  community.docker.docker_compose_v2:
+    project_src: /opt/wazuh
+    state: present
+    recreate: always
+  listen: restart wazuh
+
+- name: restart wazuh-manager
+  community.docker.docker_compose_v2:
+    project_src: /opt/wazuh
+    services:
+      - wazuh-manager
+    state: present
+    recreate: always
+  listen: restart wazuh-manager
+
+- name: restart wazuh-indexer
+  community.docker.docker_compose_v2:
+    project_src: /opt/wazuh
+    services:
+      - wazuh-indexer
+    state: present
+    recreate: always
+  listen: restart wazuh-indexer
+
+- name: restart wazuh-dashboard
+  community.docker.docker_compose_v2:
+    project_src: /opt/wazuh
+    services:
+      - wazuh-dashboard
+    state: present
+    recreate: always
+  listen: restart wazuh-dashboard

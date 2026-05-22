@@ -1,0 +1,108 @@
+---
+# Render templates and copy files for a single service
+#
+# Required variables:
+#   current_service: Name of the service to process
+#   service_role_map: Mapping of service name to role path
+#   template_discovery: Results from find module for all services (templates)
+#   file_discovery: Results from find module for all services (static files)
+#   template_dest_overrides: Mapping of template names to destination names
+#   files_only: If true, skip templates
+#   include_files: If true, also copy static files
+
+- name: "{{ current_service }} - Check for service group-vars"
+  ansible.builtin.stat:
+    path: "{{ playbook_dir }}/group-vars/{{ current_service }}.yml"
+  delegate_to: localhost
+  become: false
+  register: service_vars_check
+
+- name: "{{ current_service }} - Check for staging group-vars"
+  ansible.builtin.stat:
+    path: "{{ playbook_dir }}/group-vars/{{ current_service }}-staging.yml"
+  delegate_to: localhost
+  become: false
+  register: staging_vars_check
+  when: is_staging | default(false)
+
+- name: "{{ current_service }} - Load service group-vars"
+  ansible.builtin.include_vars:
+    file: "group-vars/{{ current_service }}.yml"
+  when: service_vars_check.stat.exists
+
+- name: "{{ current_service }} - Load staging group-vars"
+  ansible.builtin.include_vars:
+    file: "group-vars/{{ current_service }}-staging.yml"
+  when: 
+    - is_staging | default(false)
+    - staging_vars_check.stat.exists | default(false)
+
+# =============================================================================
+# TEMPLATES
+# =============================================================================
+- name: "{{ current_service }} - Get templates for this service"
+  ansible.builtin.set_fact:
+    _current_templates: "{{ (template_discovery.results | default([]) | selectattr('item', 'equalto', current_service) | first | default({'files': []})).files | default([]) }}"
+  when: not (files_only | default(false))
+
+- name: "{{ current_service }} - Display templates"
+  ansible.builtin.debug:
+    msg: "Rendering {{ _current_templates | length }} templates for {{ current_service }}"
+  when: not (files_only | default(false))
+
+- name: "{{ current_service }} - Render templates"
+  ansible.builtin.template:
+    src: "roles/{{ service_role_map[current_service] }}/templates/{{ item.path | basename }}"
+    dest: "/opt/{{ current_service }}/{{ template_dest_overrides.get(item.path | basename, (item.path | basename) | regex_replace('\\.j2$', '')) }}"
+    mode: "{{ '0600' if template_dest_overrides.get(item.path | basename, '') == '.env' else '0644' }}"
+    owner: ubuntu
+    group: ubuntu
+  loop: "{{ _current_templates | default([]) }}"
+  loop_control:
+    label: "{{ item.path | basename }}"
+  register: template_results
+  when: not (files_only | default(false))
+
+- name: "{{ current_service }} - Template rendering summary"
+  ansible.builtin.debug:
+    msg: >-
+      {{ current_service }}: Rendered {{ _current_templates | default([]) | length }} templates
+      ({{ template_results.results | default([]) | selectattr('changed', 'defined') | selectattr('changed') | list | length }} changed)
+  when: not (files_only | default(false))
+
+# =============================================================================
+# STATIC FILES
+# =============================================================================
+- name: "{{ current_service }} - Get files for this service"
+  ansible.builtin.set_fact:
+    _current_files: "{{ (file_discovery.results | default([]) | selectattr('item', 'equalto', current_service) | first | default({'files': []})).files | default([]) }}"
+  when: (include_files | default(false)) or (files_only | default(false))
+
+- name: "{{ current_service }} - Display files"
+  ansible.builtin.debug:
+    msg: "Copying {{ _current_files | length }} static files for {{ current_service }}"
+  when: 
+    - (include_files | default(false)) or (files_only | default(false))
+    - _current_files | default([]) | length > 0
+
+- name: "{{ current_service }} - Copy static files"
+  ansible.builtin.copy:
+    src: "{{ item.path }}"
+    dest: "/opt/{{ current_service }}/{{ item.path | basename }}"
+    mode: "0644"
+    owner: ubuntu
+    group: ubuntu
+  loop: "{{ _current_files | default([]) }}"
+  loop_control:
+    label: "{{ item.path | basename }}"
+  register: file_results
+  when: (include_files | default(false)) or (files_only | default(false))
+
+- name: "{{ current_service }} - File copy summary"
+  ansible.builtin.debug:
+    msg: >-
+      {{ current_service }}: Copied {{ _current_files | default([]) | length }} files
+      ({{ file_results.results | default([]) | selectattr('changed', 'defined') | selectattr('changed') | list | length }} changed)
+  when: 
+    - (include_files | default(false)) or (files_only | default(false))
+    - _current_files | default([]) | length > 0

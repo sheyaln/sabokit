@@ -1,0 +1,27 @@
+# EspoCRM Configuration (Production)
+# Uses Scaleway Managed PostgreSQL
+
+# ── Managed PostgreSQL credentials (Scaleway Secret Manager) ──
+espocrm_db_creds: "{{ lookup('scaleway.scaleway.scaleway_secret', 'postgres-espocrm-credentials') | b64decode | from_json }}"
+
+ESPO_DB_NAME: "{{ espocrm_db_creds.dbname }}"
+ESPO_DB_USER: "{{ espocrm_db_creds.username }}"
+ESPO_DB_PASS: "{{ espocrm_db_creds.password }}"
+ESPO_DB_HOST: "{{ espocrm_db_creds.host }}"
+ESPO_DB_PORT: "{{ espocrm_db_creds.port }}"
+
+# ── EspoCRM Admin Configuration ──
+ESPO_ADMIN_USER: "{{ infra_email }}"
+ESPO_ADMIN_PASSWORD: "{{ lookup('scaleway.scaleway.scaleway_secret', 'espocrm-admin-password') | b64decode }}"
+
+# ── OIDC Configuration (Authentik) ──
+espocrm_oidc_creds: "{{ lookup('scaleway.scaleway.scaleway_secret', 'authentik-app-espocrm') | b64decode | from_json }}"
+
+ESPO_OIDC_CLIENT_ID: "{{ espocrm_oidc_creds.client_id }}"
+ESPO_OIDC_CLIENT_SECRET: "{{ espocrm_oidc_creds.client_secret }}"
+ESPO_OIDC_AUTHORIZATION_ENDPOINT: "https://gateway.{{ default_domain }}/application/o/authorize/"
+ESPO_OIDC_TOKEN_ENDPOINT: "https://gateway.{{ default_domain }}/application/o/token/"
+ESPO_OIDC_USERINFO_ENDPOINT: "https://gateway.{{ default_domain }}/application/o/userinfo/"
+ESPO_OIDC_JWKS_ENDPOINT: "https://gateway.{{ default_domain }}/application/o/espocrm/jwks/"
+ESPO_OIDC_REDIRECT_URI: "https://espo.{{ default_domain }}/oauth-callback.php"
+ESPO_OIDC_LOGOUT_URL: "https://gateway.{{ default_domain }}/application/o/espocrm/end-session/"

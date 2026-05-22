@@ -1,0 +1,138 @@
+<?php
+// EspoCRM OIDC Configuration Script
+// This script configures OIDC authentication and role mapping
+
+$basePath = '/var/www/html';
+$configPath = $basePath . '/data/config.php';
+
+if (!file_exists($configPath)) {
+    echo "Error: Config file not found\n";
+    exit(1);
+}
+
+$config = include($configPath);
+
+// OIDC Configuration
+$config['authenticationMethod'] = 'Oidc';
+$config['oidcClientId'] = '{{ ESPO_OIDC_CLIENT_ID }}';
+$config['oidcClientSecret'] = '{{ ESPO_OIDC_CLIENT_SECRET }}';
+$config['oidcAuthorizationEndpoint'] = '{{ ESPO_OIDC_AUTHORIZATION_ENDPOINT }}';
+$config['oidcTokenEndpoint'] = '{{ ESPO_OIDC_TOKEN_ENDPOINT }}';
+$config['oidcUserinfoEndpoint'] = '{{ ESPO_OIDC_USERINFO_ENDPOINT }}';
+$config['oidcJwksEndpoint'] = '{{ ESPO_OIDC_JWKS_ENDPOINT }}';
+$config['oidcRedirectUri'] = '{{ ESPO_OIDC_REDIRECT_URI }}';
+$config['oidcLogoutUrl'] = '{{ ESPO_OIDC_LOGOUT_URL }}';
+
+// Scopes and Claims
+$config['oidcScopes'] = ['openid', 'profile', 'email', 'groups'];
+$config['oidcUsernameClaim'] = 'email';
+$config['oidcGroupClaim'] = 'groups';
+
+// User and Team Sync
+$config['oidcCreateUser'] = true;
+$config['oidcSync'] = true;
+$config['oidcSyncTeams'] = true;
+$config['oidcTeamIdPrefix'] = 'union-';
+
+// Fallback and Admin Settings
+$config['oidcFallback'] = true;
+$config['oidcAllowRegularUserFallback'] = false;
+$config['oidcAllowAdminUser'] = true;
+
+// ============================================================================
+// SYSTEM SETTINGS
+// ============================================================================
+
+// Timezone and locale settings
+$config['timeZone'] = 'America/New_York';
+$config['weekStart'] = 1; // 0 = Sunday, 1 = Monday
+$config['dateFormat'] = 'MM/DD/YYYY';
+$config['timeFormat'] = 'hh:mm A';
+
+// B2C Settings (Business to Consumer / Customer Portal)
+$config['b2cMode'] = true;
+
+// Disable password recovery for OIDC-only authentication
+$config['passwordRecoveryDisabled'] = true;
+$config['passwordRecoveryForInternalUsersDisabled'] = true;
+$config['passwordRecoveryForAdminDisabled'] = false; // Keep enabled for admin fallback
+
+// Write config back
+$configContent = "<?php\nreturn " . var_export($config, true) . ";\n";
+file_put_contents($configPath, $configContent);
+
+echo "OIDC configuration updated successfully\n";
+echo "System settings configured:\n";
+echo "  - Timezone: America/New_York\n";
+echo "  - Week starts on: Monday\n";
+echo "  - B2C Mode: Enabled\n";
+echo "  - Password Recovery: Disabled (except admin)\n";
+
+// ============================================================================
+// ROLE MAPPING: Map Authentik groups to EspoCRM roles
+// ============================================================================
+
+echo "\nConfiguring group-to-role mapping...\n";
+
+// Connect to the database using EspoCRM's internal config format
+$dbConfig = $config['database'] ?? [];
+$dbHost = $dbConfig['host'] ?? ($config['databaseHost'] ?? '{{ ESPO_DB_HOST }}');
+$dbPort = $dbConfig['port'] ?? ($config['databasePort'] ?? '{{ ESPO_DB_PORT }}');
+$dbName = $dbConfig['dbname'] ?? ($config['databaseName'] ?? '{{ ESPO_DB_NAME }}');
+$dbUser = $dbConfig['user'] ?? ($config['databaseUser'] ?? '{{ ESPO_DB_USER }}');
+$dbPass = $dbConfig['password'] ?? ($config['databasePassword'] ?? '{{ ESPO_DB_PASS }}');
+
+try {
+    $dsn = "pgsql:host=$dbHost;port=$dbPort;dbname=$dbName";
+    $pdo = new PDO($dsn, $dbUser, $dbPass, [
+        PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION
+    ]);
+    
+    // Authentik group to EspoCRM role mapping
+    // Format: 'authentik_group_name' => 'EspoCRM Role Name'
+    $groupRoleMapping = [
+        'admin' => 'Admin',
+        'union-delegate' => 'Union Delegate',
+        'union_delegate' => 'Delegate',
+        'union_treasurer' => 'Treasurer',
+        'mcp_server' => 'MCP Server'
+    ];
+    
+    // Get role IDs from database
+    $roleIds = [];
+    $stmt = $pdo->prepare("SELECT id, name FROM role WHERE deleted = false");
+    $stmt->execute();
+    while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
+        $roleIds[$row['name']] = $row['id'];
+    }
+    
+    // Create or update group_role_link table entries would require the group
+    // to exist in EspoCRM. Instead, we'll store the mapping in config for
+    // the OIDC handler to use when creating/updating users.
+    
+    // Store group-role mapping in EspoCRM config
+    $config['oidcGroupRoleMapping'] = [];
+    foreach ($groupRoleMapping as $group => $roleName) {
+        if (isset($roleIds[$roleName])) {
+            $config['oidcGroupRoleMapping'][$group] = $roleIds[$roleName];
+            echo "Mapped group '$group' to role '$roleName' (ID: {$roleIds[$roleName]})\n";
+        } else {
+            echo "Warning: Role '$roleName' not found in database\n";
+        }
+    }
+    
+    // Enable role sync on login
+    $config['oidcSyncRoles'] = true;
+    
+    // Re-write config with role mapping
+    $configContent = "<?php\nreturn " . var_export($config, true) . ";\n";
+    file_put_contents($configPath, $configContent);
+    
+    echo "Group-to-role mapping configured successfully.\n";
+    
+} catch (PDOException $e) {
+    echo "Database connection failed: " . $e->getMessage() . "\n";
+    echo "Group-to-role mapping will need to be configured manually.\n";
+}
+
+echo "\nOIDC and role configuration complete.\n";

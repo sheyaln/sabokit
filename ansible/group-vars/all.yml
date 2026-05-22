@@ -1,0 +1,205 @@
+
+# Ansible Global Variables
+
+# This file loads configuration from the central config/project.yml
+# and derives all other variables from it.
+#
+# DO NOT hardcode domain names or project settings here!
+# Edit config/project.yml in the repository root instead.
+
+
+# -----------------------------------------------------------------------------
+# Load Central Configuration
+# -----------------------------------------------------------------------------
+# The project config is the single source of truth
+_project_config: "{{ lookup('file', playbook_dir + '/../config/project.yml') | from_yaml }}"
+
+# -----------------------------------------------------------------------------
+# Project Identity (from central config)
+# -----------------------------------------------------------------------------
+project_name: "{{ _project_config.project.name }}"
+org_name: "{{ _project_config.project.org_name }}"
+org_slug: "{{ _project_config.project.org_slug }}"
+
+# -----------------------------------------------------------------------------
+# Domain Configuration (from central config)
+# -----------------------------------------------------------------------------
+tools_domain: "{{ _project_config.domains.tools }}"
+management_domain: "{{ _project_config.domains.management }}"
+staging_domain: "{{ _project_config.domains.staging }}"
+gateway_domain: "gateway.{{ tools_domain }}"
+
+# -----------------------------------------------------------------------------
+# Email Configuration (from central config)
+# -----------------------------------------------------------------------------
+infra_email: "{{ _project_config.emails.infra }}"
+admin_email: "{{ _project_config.emails.admin }}"
+email_from_name: "{{ _project_config.emails.from_name }}"
+
+# Derived email settings
+traefik_email: "{{ infra_email }}"
+smtp_from_email: "{{ email_from_name }} <{{ infra_email }}>"
+
+# -----------------------------------------------------------------------------
+# Cloud Configuration (from central config)
+# -----------------------------------------------------------------------------
+scaleway_region: "{{ _project_config.cloud.region }}"
+scaleway_s3_endpoint: "{{ _project_config.cloud.s3_endpoint }}"
+
+# Credentials from environment variables (never in config files!)
+scaleway_access_key: "{{ lookup('env', 'SCW_ACCESS_KEY') }}"
+scaleway_secret_key: "{{ lookup('env', 'SCW_SECRET_KEY') }}"
+
+# GitHub Container Registry authentication
+github_username: "{{ lookup('env', 'GITHUB_USERNAME') }}"
+github_token: "{{ lookup('env', 'GITHUB_TOKEN') }}"
+
+# -----------------------------------------------------------------------------
+# S3 Configuration
+# -----------------------------------------------------------------------------
+scaleway_s3_region: "{{ scaleway_region }}"
+scaleway_s3_bucket: "{{ _project_config.environments.production.storage.bucket_prefix }}-appdata-prod-0"
+scaleway_s3_key: "{{ scaleway_access_key }}"
+scaleway_s3_secret: "{{ scaleway_secret_key }}"
+scaleway_s3_use_path_style_endpoint: "true"
+scaleway_s3_skip_region_validation: "true"
+scaleway_s3_skip_credentials_validation: "true"
+scaleway_s3_skip_metadata_api_check: "true"
+scaleway_s3_skip_requesting_account_id: "true"
+
+# -----------------------------------------------------------------------------
+# Secrets from Scaleway Secret Manager
+# -----------------------------------------------------------------------------
+# Wobbler service account SSH public key
+wobbler_ssh_public_key: "{{ lookup('scaleway.scaleway.scaleway_secret', 'wobbler-ssh-public-key') | b64decode }}"
+
+# SMTP configuration from secrets
+smtp_host: "{{ (lookup('scaleway.scaleway.scaleway_secret', 'smtp-config') | b64decode | from_json).smtp_host }}"
+smtp_port: "{{ (lookup('scaleway.scaleway.scaleway_secret', 'smtp-config') | b64decode | from_json).smtp_port }}"
+smtp_username: "{{ (lookup('scaleway.scaleway.scaleway_secret', 'smtp-config') | b64decode | from_json).smtp_username }}"
+smtp_password: "{{ (lookup('scaleway.scaleway.scaleway_secret', 'smtp-config') | b64decode | from_json).smtp_password }}"
+smtp_secure: "true"
+smtp_encryption_method: "ssl"
+
+# Grafana Cloud integration
+grafana_cloud_prometheus_config: "{{ lookup('scaleway.scaleway.scaleway_secret', 'grafana-cloud-prometheus-config') | b64decode | from_json }}"
+grafana_cloud_promtail_url: "{{ lookup('scaleway.scaleway.scaleway_secret', 'grafana-cloud-promtail-config') | b64decode }}"
+
+# Extract Prometheus configuration
+cockpit_prom_remote_write_url: "{{ grafana_cloud_prometheus_config.url }}"
+cockpit_prom_remote_write_bearer: ""
+cockpit_prom_remote_write_username: "{{ grafana_cloud_prometheus_config.username }}"
+cockpit_prom_remote_write_password: "{{ grafana_cloud_prometheus_config.password }}"
+
+# -----------------------------------------------------------------------------
+# Server Network Configuration (from Terraform via Secret Manager)
+# -----------------------------------------------------------------------------
+# Server IPs are managed by Terraform and stored in Secret Manager.
+# This avoids hardcoding IPs in config files and keeps them in sync with infra.
+_server_network_config_raw: "{{ lookup('scaleway.scaleway.scaleway_secret', 'server-network-config', errors='ignore') | default('', true) }}"
+_server_network_config: "{{ _server_network_config_raw | b64decode | b64decode | from_json if _server_network_config_raw else {} }}"
+
+# Server private IPs (for inter-server communication on private network)
+management_private_ip: "{{ _server_network_config.servers.management.private_ip | default('') }}"
+tools_prod_private_ip: "{{ _server_network_config.servers.tools_prod.private_ip | default('') }}"
+authentik_private_ip: "{{ _server_network_config.servers.authentik.private_ip | default('') }}"
+staging_private_ip: "{{ _server_network_config.servers.staging.private_ip | default('') }}"
+
+# Server public IPs (for reference)
+management_public_ip: "{{ _server_network_config.servers.management.public_ip | default('') }}"
+tools_prod_public_ip: "{{ _server_network_config.servers.tools_prod.public_ip | default('') }}"
+authentik_public_ip: "{{ _server_network_config.servers.authentik.public_ip | default('') }}"
+staging_public_ip: "{{ _server_network_config.servers.staging.public_ip | default('') }}"
+
+# -----------------------------------------------------------------------------
+# Environment Detection
+# -----------------------------------------------------------------------------
+# Domain configuration by environment
+environment_domains:
+  tools: "{{ tools_domain }}"
+  staging: "{{ staging_domain }}"
+  management: "{{ management_domain }}"
+  authentik: "{{ tools_domain }}"
+
+# Default domain based on inventory group
+default_domain: >-
+  {%- if inventory_hostname in groups.get('tools-prod', []) -%}
+    {{ environment_domains.tools }}
+  {%- elif inventory_hostname in groups.get('tools-staging', []) or inventory_hostname in groups.get('staging', []) -%}
+    {{ environment_domains.staging }}
+  {%- elif inventory_hostname in groups.get('management', []) -%}
+    {{ environment_domains.management }}
+  {%- elif inventory_hostname in groups.get('authentik-prod', []) -%}
+    {{ environment_domains.authentik }}
+  {%- elif inventory_hostname in groups.get('authentik-staging', []) -%}
+    {{ environment_domains.staging }}
+  {%- else -%}
+    {{ tools_domain }}
+  {%- endif -%}
+
+# Service-specific domain overrides (if needed)
+service_domains:
+  # Override specific services if they need different domains
+  # Example: heimdall: "custom.domain.com"
+
+# Environment type detection
+environment_type: >-
+  {%- if inventory_hostname in groups.get('tools-prod', []) -%}
+    production
+  {%- elif inventory_hostname in groups.get('tools-staging', []) or inventory_hostname in groups.get('staging', []) -%}
+    staging
+  {%- elif inventory_hostname in groups.get('management', []) -%}
+    management
+  {%- elif inventory_hostname in groups.get('authentik-prod', []) -%}
+    production
+  {%- elif inventory_hostname in groups.get('authentik-staging', []) -%}
+    staging
+  {%- elif inventory_hostname in groups.get('dev', []) -%}
+    dev
+  {%- else -%}
+    unknown
+  {%- endif -%}
+
+# Is this a staging environment?
+is_staging: "{{ environment_type == 'staging' }}"
+is_dev: "{{ environment_type == 'dev' }}"
+
+# -----------------------------------------------------------------------------
+# Database Configuration (Environment-Aware)
+# -----------------------------------------------------------------------------
+# Production: Uses Scaleway Managed PostgreSQL (credentials from Secret Manager)
+# Staging: Uses local PostgreSQL container (credentials from staging.yml)
+
+# Helper to get database type for current environment
+db_type: "{{ 'local' if is_staging else 'managed' }}"
+
+# Local PostgreSQL settings (for staging)
+local_postgres_host: "postgres-staging"
+local_postgres_port: 5432
+local_postgres_network: "staging-network"
+
+# -----------------------------------------------------------------------------
+# Common Configuration (from central config)
+# -----------------------------------------------------------------------------
+timezone: "{{ _project_config.defaults.timezone }}"
+locale: "{{ _project_config.defaults.locale }}"
+
+# Security settings
+security_level: "high"
+enable_fail2ban: "{{ _project_config.features.fail2ban }}"
+enable_ufw: "{{ _project_config.features.ufw }}"
+enable_monitoring: true
+
+# Backup configuration
+backup_enabled: true
+backup_retention_days: "{{ _project_config.defaults.backup_retention_days }}"
+
+# SSL/TLS configuration
+ssl_enabled: true
+ssl_provider: "letsencrypt"
+
+# Docker configuration
+docker_compose_version: "v2"
+docker_log_driver: "json-file"
+docker_log_max_size: "10m"
+docker_log_max_file: "3"

@@ -1,0 +1,101 @@
+---
+# Backup and restore Traefik ACME (LetsEncrypt) certificates to Scaleway Object Storage
+
+- name: Gather facts (minimal) for backup tasks
+  ansible.builtin.setup:
+    gather_subset:
+      - "min"
+  tags: ["always", "traefik_acme_backup"]
+#
+# Prerequisites:
+#   - rclone installed on target host (installed below if using Debian/Ubuntu)
+#   - Access key / secret key available via vars `scaleway_access_key` & `scaleway_secret_key`
+#   - Variable `traefik_acme_bucket` defines bucket name in Scaleway Object Storage
+#     (created manually beforehand or via Terraform)
+#
+# Directory layout:
+#   /var/lib/docker/volumes/traefik_data/_data/acme.json → ACME certificate store
+#
+# The tasks perform:
+#   1. Install rclone (if not already)
+#   2. Render rclone config scoped to current user (ubuntu)
+#   3. If acme.json exists in remote bucket but not locally, download it before Traefik starts
+#   4. After Traefik deployment is complete, upload the latest acme.json to the bucket.
+#
+# NOTE: Tasks 3–4 rely on tags so that they can be run selectively (e.g., --tags traefik_acme_backup)
+
+- name: Ensure rclone is installed
+  ansible.builtin.apt:
+    name: rclone
+    state: present
+    update_cache: true
+  become: true
+  when: ansible_facts['os_family'] | default('') in ["Debian", "Ubuntu"]
+  tags: ["traefik_acme_backup"]
+
+- name: Ensure rclone config directory exists
+  ansible.builtin.file:
+    path: "/home/ubuntu/.config/rclone"
+    state: directory
+    owner: ubuntu
+    group: ubuntu
+    mode: "0700"
+  become: true
+  tags: ["traefik_acme_backup"]
+
+- name: Render rclone configuration for Scaleway
+  ansible.builtin.template:
+    src: rclone.conf.j2
+    dest: "/home/ubuntu/.config/rclone/rclone.conf"
+    owner: ubuntu
+    group: ubuntu
+    mode: "0600"
+  become: true
+  tags: ["traefik_acme_backup"]
+
+- name: Download existing acme.json from Scaleway (if not present locally)
+  ansible.builtin.command: >
+    rclone copy scaleway:"{{ traefik_acme_bucket }}" /tmp/traefik-acme-download --include acme.json --ignore-existing
+  args:
+    creates: "/tmp/traefik-acme-download/acme.json"
+  become_user: ubuntu
+  changed_when: false
+  tags: ["traefik_acme_backup"]
+
+- name: Check if downloaded acme.json exists on remote host
+  ansible.builtin.stat:
+    path: /tmp/traefik-acme-download/acme.json
+  register: downloaded_acme
+  become: true
+  tags: ["traefik_acme_backup"]
+
+- name: Move downloaded acme.json into Traefik volume
+  ansible.builtin.copy:
+    src: "/tmp/traefik-acme-download/acme.json"
+    dest: "/var/lib/docker/volumes/traefik_data/_data/acme.json"
+    remote_src: true
+    owner: 0
+    group: 0
+    mode: "0600"
+  when: downloaded_acme.stat.exists | default(false)
+  become: true
+  tags: ["traefik_acme_backup"]
+
+# -----------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
+# Upload the latest acme.json (post-deployment).
+# -----------------------------------------------------------------------------
+- name: Check if local acme.json exists
+  ansible.builtin.stat:
+    path: /var/lib/docker/volumes/traefik_data/_data/acme.json
+  register: traefik_acme_local
+  become: true
+  tags: ["traefik_acme_backup"]
+
+- name: Upload acme.json to Scaleway bucket
+  ansible.builtin.command: >
+    rclone copyto /var/lib/docker/volumes/traefik_data/_data/acme.json scaleway:"{{ traefik_acme_bucket }}/acme.json"
+  become_user: ubuntu
+  when: traefik_acme_local.stat.exists
+  changed_when: false
+  tags: ["traefik_acme_backup"]

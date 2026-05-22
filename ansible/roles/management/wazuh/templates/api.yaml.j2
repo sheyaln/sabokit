@@ -1,0 +1,20 @@
+host: 0.0.0.0
+port: 55000
+
+https:
+  enabled: yes
+  address: 0.0.0.0
+  port: 55000
+  key: /etc/ssl/wazuh/wazuh-manager-key.pem
+  cert: /etc/ssl/wazuh/wazuh-manager.pem
+  use_ca: yes
+  ca: /etc/ssl/wazuh/ca.pem
+
+logs:
+  level: info
+  format: plain
+
+access:
+  max_login_attempts: 50
+  block_time: 300
+  max_request_per_minute: 300

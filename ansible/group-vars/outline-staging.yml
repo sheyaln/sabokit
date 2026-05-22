@@ -1,0 +1,61 @@
+
+# Outline Configuration - STAGING
+
+# This file provides staging-specific Outline configuration that doesn't
+# rely on Scaleway Secret Manager lookups.
+#
+# Database credentials are pulled from staging.yml's staging_app_databases
+
+
+# ── Database Configuration (overridden by playbook vars) ──
+PG_DB: "{{ staging_app_databases.outline.dbname }}"
+PG_USER: "{{ staging_app_databases.outline.username }}"
+PG_PASS: "{{ staging_app_databases.outline.password }}"
+PG_HOST: "{{ local_postgres_host }}"
+PG_PORT: "{{ local_postgres_port }}"
+
+# ── Outline application secrets ──
+# For staging, use simple secrets (not for production!)
+OUTLINE_SECRET_KEY: "{{ lookup('env', 'STAGING_OUTLINE_SECRET_KEY') | default('staging-secret-key-change-in-production', true) }}"
+OUTLINE_UTILS_SECRET: "{{ lookup('env', 'STAGING_OUTLINE_UTILS_SECRET') | default('staging-utils-secret-change-in-production', true) }}"
+OUTLINE_URL: "https://wiki.{{ tools_domain }}"
+
+# ── Google OAuth (disabled for staging) ──
+GOOGLE_CLIENT_ID: ""
+GOOGLE_CLIENT_SECRET: ""
+
+# ── Slack (disabled for staging) ──
+SLACK_CLIENT_ID: ""
+SLACK_CLIENT_SECRET: ""
+SLACK_SIGNING_SECRET: ""
+SLACK_BOT_TOKEN: ""
+
+# ── Authentik OIDC ──
+# These need to be configured after Authentik is set up
+OIDC_CLIENT_ID: "{{ lookup('env', 'STAGING_OUTLINE_OIDC_CLIENT_ID') | default('outline', true) }}"
+OIDC_CLIENT_SECRET: "{{ lookup('env', 'STAGING_OUTLINE_OIDC_CLIENT_SECRET') | default('change-me-after-authentik-setup', true) }}"
+OIDC_AUTH_URI: "https://{{ gateway_domain }}/application/o/authorize/"
+OIDC_TOKEN_URI: "https://{{ gateway_domain }}/application/o/token/"
+OIDC_USERINFO_URI: "https://{{ gateway_domain }}/application/o/userinfo/"
+OIDC_LOGOUT_URI: "https://{{ gateway_domain }}/application/o/outline/end-session/"
+OIDC_DISPLAY_NAME: "Authentik"
+OIDC_USERNAME_CLAIM: sub
+OIDC_SCOPES: "openid profile email"
+
+# ── S3 Storage Configuration ──
+# For staging, we need S3 storage for file uploads
+# These should be set via environment variables or use staging bucket
+scaleway_s3_region: "fr-par"
+scaleway_s3_use_path_style_endpoint: "true"
+scaleway_s3_bucket: "{{ lookup('env', 'STAGING_S3_BUCKET') | default(_project_config.environments.staging.storage.bucket_prefix + '-outline', true) }}"
+scaleway_s3_endpoint: "https://s3.fr-par.scw.cloud"
+scaleway_s3_key: "{{ lookup('env', 'STAGING_S3_ACCESS_KEY') | default(scaleway_access_key | default(''), true) }}"
+scaleway_s3_secret: "{{ lookup('env', 'STAGING_S3_SECRET_KEY') | default(scaleway_secret_key | default(''), true) }}"
+
+# ── SMTP (disabled for staging by default) ──
+SMTP_FROM_EMAIL: "{{ org_name }} Wiki <wiki@{{ tools_domain }}>"
+SMTP_HOST: "{{ lookup('env', 'STAGING_SMTP_HOST') | default('localhost', true) }}"
+SMTP_USERNAME: "{{ lookup('env', 'STAGING_SMTP_USERNAME') | default('', true) }}"
+SMTP_PASSWORD: "{{ lookup('env', 'STAGING_SMTP_PASSWORD') | default('', true) }}"
+SMTP_PORT: "{{ lookup('env', 'STAGING_SMTP_PORT') | default('587', true) }}"
+SMTP_SECURE: "false"

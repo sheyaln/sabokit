@@ -1,0 +1,91 @@
+---
+services:
+  espocrm:
+    image: espocrm/espocrm:latest
+    container_name: espocrm
+    restart: unless-stopped
+    environment:
+      - ESPOCRM_DATABASE_PLATFORM=Postgresql
+      - ESPOCRM_DATABASE_HOST=${ESPO_DB_HOST}
+      - ESPOCRM_DATABASE_PORT=${ESPO_DB_PORT}
+      - ESPOCRM_DATABASE_NAME=${ESPO_DB_NAME}
+      - ESPOCRM_DATABASE_USER=${ESPO_DB_USER}
+      - ESPOCRM_DATABASE_PASSWORD=${ESPO_DB_PASS}
+      - ESPOCRM_ADMIN_USERNAME=${ESPO_ADMIN_USER}
+      - ESPOCRM_ADMIN_PASSWORD=${ESPO_ADMIN_PASSWORD}
+      - ESPOCRM_SITE_URL=https://espo.{{ default_domain | default(tools_domain) }}
+      - TZ=America/New_York
+    volumes:
+      - espo_data:/var/www/html
+    networks:
+      - traefik
+{% if db_type == 'local' %}
+      - {{ local_postgres_network }}
+{% endif %}
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.espocrm.rule=Host(`espo.{{ default_domain | default(tools_domain) }}`)"
+      - "traefik.http.routers.espocrm.entrypoints=websecure"
+      - "traefik.http.routers.espocrm.tls.certresolver=le"
+      - "traefik.http.services.espocrm.loadbalancer.server.port=80"
+      - "traefik.docker.network=traefik"
+      - "com.centurylinklabs.watchtower.enable=true"
+      - "com.centurylinklabs.watchtower.scope=production"
+    security_opt:
+      - no-new-privileges:true
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: '0.5'
+        reservations:
+          memory: 256M
+          cpus: '0.25'
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost/ || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+
+  espocrm-daemon:
+    image: espocrm/espocrm:latest
+    container_name: espocrm-daemon
+    restart: unless-stopped
+    entrypoint: docker-daemon.sh
+    environment:
+      - TZ=America/New_York
+    volumes:
+      - espo_data:/var/www/html
+    networks:
+      - traefik
+{% if db_type == 'local' %}
+      - {{ local_postgres_network }}
+{% endif %}
+    labels:
+      - "com.centurylinklabs.watchtower.enable=true"
+      - "com.centurylinklabs.watchtower.scope=production"
+    security_opt:
+      - no-new-privileges:true
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+          cpus: '0.25'
+        reservations:
+          memory: 128M
+          cpus: '0.1'
+    depends_on:
+      espocrm:
+        condition: service_healthy
+
+volumes:
+  espo_data:
+
+networks:
+  traefik:
+    external: true
+{% if db_type == 'local' %}
+  {{ local_postgres_network }}:
+    external: true
+{% endif %}

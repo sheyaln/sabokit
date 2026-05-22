@@ -1,0 +1,142 @@
+---
+- name: Create EspoCRM directory
+  ansible.builtin.file:
+    path: "/opt/espocrm"
+    state: directory
+    mode: "0755"
+    owner: ubuntu
+    group: ubuntu
+
+- name: Deploy EspoCRM docker-compose file
+  ansible.builtin.template:
+    src: docker-compose.yml.j2
+    dest: "/opt/espocrm/docker-compose.yml"
+    mode: "0644"
+    owner: ubuntu
+    group: ubuntu
+
+- name: Render EspoCRM environment file
+  ansible.builtin.template:
+    src: env.j2
+    dest: "/opt/espocrm/.env"
+    mode: "0600"
+    owner: ubuntu
+    group: ubuntu
+
+- name: Check for existing EspoCRM container
+  community.docker.docker_container_info:
+    name: espocrm
+  register: espocrm_container
+  ignore_errors: true
+
+- name: Shut down existing EspoCRM containers
+  community.docker.docker_compose_v2:
+    project_src: "/opt/espocrm"
+    state: absent
+  when: espocrm_container.exists | default(false)
+
+- name: Clean up orphan containers
+  community.docker.docker_compose_v2:
+    project_src: "/opt/espocrm"
+    state: absent
+    remove_orphans: true
+
+- name: Deploy EspoCRM with Docker Compose
+  community.docker.docker_compose_v2:
+    project_src: "/opt/espocrm"
+    state: present
+    pull: always
+    remove_orphans: true
+
+- name: Connect EspoCRM to local PostgreSQL network (staging only)
+  community.docker.docker_network:
+    name: "{{ local_postgres_network }}"
+    connected:
+      - espocrm
+    appends: true
+  when: db_type == 'local'
+  ignore_errors: true
+
+- name: Wait for EspoCRM container to be healthy
+  community.docker.docker_container_info:
+    name: espocrm
+  register: espocrm_health
+  until: espocrm_health.container.State.Health.Status == 'healthy'
+  retries: 30
+  delay: 10
+  ignore_errors: true
+
+- name: Deploy OIDC configuration script
+  tags: [espocrm-oidc]
+  ansible.builtin.template:
+    src: configure-oidc.php.j2
+    dest: "/opt/espocrm/configure-oidc.php"
+    mode: "0644"
+    owner: ubuntu
+    group: ubuntu
+  when: ESPO_OIDC_CLIENT_ID is defined
+
+- name: Configure OIDC authentication
+  tags: [espocrm-oidc]
+  ansible.builtin.shell: |
+    docker cp /opt/espocrm/configure-oidc.php espocrm:/tmp/configure-oidc.php
+    docker exec espocrm php /tmp/configure-oidc.php
+    docker exec espocrm php command.php clear-cache
+  when: ESPO_OIDC_CLIENT_ID is defined
+  register: oidc_setup
+
+- name: Display OIDC configuration result
+  tags: [espocrm-oidc]
+  ansible.builtin.debug:
+    msg: "{{ oidc_setup.stdout_lines | default(['OIDC not configured']) }}"
+  when: ESPO_OIDC_CLIENT_ID is defined
+
+- name: Deploy Member entity configuration script
+  tags: [espocrm-member]
+  ansible.builtin.template:
+    src: configure-member-entity.php.j2
+    dest: "/opt/espocrm/configure-member-entity.php"
+    mode: "0644"
+    owner: ubuntu
+    group: ubuntu
+
+- name: Configure Member entity and roles
+  tags: [espocrm-member]
+  ansible.builtin.shell: |
+    docker cp /opt/espocrm/configure-member-entity.php espocrm:/tmp/configure-member-entity.php
+    docker exec espocrm php /tmp/configure-member-entity.php
+  register: member_entity_setup
+
+- name: Display Member entity configuration result
+  tags: [espocrm-member]
+  ansible.builtin.debug:
+    msg: "{{ member_entity_setup.stdout_lines | default(['Member entity not configured']) }}"
+
+- name: Deploy Webhook configuration script
+  tags: [espocrm-webhooks]
+  ansible.builtin.template:
+    src: configure-webhooks.php.j2
+    dest: "/opt/espocrm/configure-webhooks.php"
+    mode: "0644"
+    owner: ubuntu
+    group: ubuntu
+
+- name: Configure EspoCRM webhooks
+  tags: [espocrm-webhooks]
+  ansible.builtin.shell: |
+    docker cp /opt/espocrm/configure-webhooks.php espocrm:/tmp/configure-webhooks.php
+    docker exec espocrm php /tmp/configure-webhooks.php
+  register: webhook_setup
+
+- name: Display webhook configuration result
+  tags: [espocrm-webhooks]
+  ansible.builtin.debug:
+    msg: "{{ webhook_setup.stdout_lines | default(['Webhooks not configured']) }}"
+
+- name: Clear EspoCRM cache after configuration
+  tags: [espocrm-webhooks, espocrm-cache]
+  ansible.builtin.shell: |
+    docker exec espocrm php command.php clear-cache
+    docker exec espocrm php command.php rebuild
+  register: cache_clear
+

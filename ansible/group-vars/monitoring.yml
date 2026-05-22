@@ -1,0 +1,143 @@
+---
+
+# Monitoring Configuration
+
+# Shared variables for the monitoring stack and exporters
+# Domain settings are inherited from all.yml (which reads config/project.yml)
+
+
+# Domain for monitoring services (inherited from all.yml)
+monitoring_domain: "{{ management_domain }}"
+
+# Server IPs for inter-server communication
+# These are populated from Scaleway Secret Manager via all.yml
+# Terraform manages the 'server-network-config' secret with all IPs
+server_ips:
+  management: "{{ management_private_ip }}"
+  tools-prod: "{{ tools_prod_private_ip }}"
+  authentik: "{{ authentik_private_ip }}"
+  staging: "{{ staging_private_ip }}"
+
+# Central Loki endpoint for all servers to push logs
+loki_push_url: "http://{{ server_ips.management }}:3100/loki/api/v1/push"
+
+# Retention settings
+prometheus_retention: "15d"
+loki_retention: "168h"  # 7 days
+
+# Server public IPs (for reference/external access only)
+# Also from Scaleway Secret Manager via all.yml
+server_public_ips:
+  management: "{{ management_public_ip }}"
+  tools-prod: "{{ tools_prod_public_ip }}"
+  authentik: "{{ authentik_public_ip }}"
+  staging: "{{ staging_public_ip }}"
+
+# Exporter ports (consistent across all servers)
+exporter_ports:
+  node_exporter: 9100
+  cadvisor: 8080
+  alloy: 12345
+
+# Traefik metrics ports per server
+# Each server has its own Traefik instance
+traefik_metrics_ports:
+  management: 9101
+  tools-prod: 9101
+  authentik: 9102
+
+# Application-specific metrics ports
+app_metrics_ports:
+  authentik: 9300  # Authentik server metrics
+
+# Server identification (computed based on inventory group)
+server_name: >-
+  {%- if inventory_hostname in groups.get('tools-prod', []) -%}
+    tools-prod
+  {%- elif inventory_hostname in groups.get('tools-staging', []) -%}
+    tools-staging
+  {%- elif inventory_hostname in groups.get('management', []) -%}
+    management
+  {%- elif inventory_hostname in groups.get('authentik-prod', []) -%}
+    authentik
+  {%- else -%}
+    {{ inventory_hostname }}
+  {%- endif -%}
+
+# Environment type
+environment_type: >-
+  {%- if inventory_hostname in groups.get('tools-prod', []) -%}
+    production
+  {%- elif inventory_hostname in groups.get('tools-staging', []) -%}
+    staging
+  {%- elif inventory_hostname in groups.get('management', []) -%}
+    management
+  {%- elif inventory_hostname in groups.get('authentik-prod', []) -%}
+    production
+  {%- else -%}
+    unknown
+  {%- endif -%}
+
+# Grafana admin credentials from Scaleway Secret Manager
+# Secret format: {"username": "admin", "password": "your_password"}
+# IMPORTANT: Create this secret in Scaleway Secret Manager before deploying
+_grafana_creds_raw: "{{ lookup('scaleway.scaleway.scaleway_secret', 'grafana-admin-credentials', errors='ignore') | default('', true) }}"
+_grafana_creds: "{{ _grafana_creds_raw | b64decode | from_json if _grafana_creds_raw else {'username': 'admin', 'password': 'SECRETS_NOT_CONFIGURED'} }}"
+grafana_admin_user: "{{ _grafana_creds.username }}"
+grafana_admin_password: "{{ _grafana_creds.password }}"
+
+# Grafana OAuth/SSO Configuration via Authentik
+# Credentials stored in Scaleway Secret Manager by terraform-authentik
+_grafana_oauth_raw: "{{ lookup('scaleway.scaleway.scaleway_secret', 'authentik-app-grafana', errors='ignore') | default('', true) }}"
+_grafana_oauth: "{{ _grafana_oauth_raw | b64decode | from_json if _grafana_oauth_raw else {} }}"
+grafana_oauth_client_id: "{{ _grafana_oauth.client_id | default('') }}"
+grafana_oauth_client_secret: "{{ _grafana_oauth.client_secret | default('') }}"
+grafana_oauth_enabled: "{{ grafana_oauth_client_id | length > 0 }}"
+
+# Authentik OAuth endpoints (inherited from all.yml)
+authentik_url: "https://{{ gateway_domain }}"
+authentik_oauth_auth_url: "{{ authentik_url }}/application/o/authorize/"
+authentik_oauth_token_url: "{{ authentik_url }}/application/o/token/"
+authentik_oauth_api_url: "{{ authentik_url }}/application/o/userinfo/"
+authentik_oauth_signout_url: "{{ authentik_url }}/application/o/grafana/end-session/"
+
+# Zabbix database credentials from managed PostgreSQL
+# Secret created by terraform-scaleway-infra postgres module
+# IMPORTANT: Create this secret in Scaleway Secret Manager before deploying Zabbix
+_zabbix_db_creds_raw: "{{ lookup('scaleway.scaleway.scaleway_secret', 'postgres-zabbix-credentials', errors='ignore') | default('', true) }}"
+_zabbix_db_creds: "{{ _zabbix_db_creds_raw | b64decode | from_json if _zabbix_db_creds_raw else {} }}"
+zabbix_db_host: "{{ _zabbix_db_creds.host | default('zabbix-db') }}"
+zabbix_db_port: "{{ _zabbix_db_creds.port | default('5432') }}"
+zabbix_db_name: "{{ _zabbix_db_creds.dbname | default('zabbix') }}"
+zabbix_db_user: "{{ _zabbix_db_creds.username | default('zabbix') }}"
+zabbix_db_password: "{{ _zabbix_db_creds.password | default('SECRETS_NOT_CONFIGURED') }}"
+
+# Zabbix Server address for agents
+zabbix_server_address: "{{ server_ips.management }}"
+
+# Feature flags
+enable_nextcloud_metrics: false
+enable_authentik_metrics: true
+
+# UFW rules for monitoring
+monitoring_ufw_rules:
+  - rule: allow
+    port: "{{ exporter_ports.node_exporter }}"
+    proto: tcp
+    from_ip: "{{ server_ips.management }}"
+    comment: "Node Exporter from management"
+  - rule: allow
+    port: "{{ exporter_ports.cadvisor }}"
+    proto: tcp
+    from_ip: "{{ server_ips.management }}"
+    comment: "CAdvisor from management"
+  - rule: allow
+    port: "3100"
+    proto: tcp
+    from_ip: "{{ server_ips['tools-prod'] }}"
+    comment: "Loki ingestion from tools-prod"
+  - rule: allow
+    port: "3100"
+    proto: tcp
+    from_ip: "{{ server_ips.authentik }}"
+    comment: "Loki ingestion from authentik"

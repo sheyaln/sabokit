@@ -1,0 +1,48 @@
+---
+- name: Ensure Outline directory
+  ansible.builtin.file:
+    path: /opt/outline
+    state: directory
+    mode: '0755'
+    owner: ubuntu
+    group: ubuntu
+
+- name: Generate docker-compose file with environment-specific domains
+  ansible.builtin.template:
+    src: docker-compose.yml.j2
+    dest: /opt/outline/docker-compose.yml
+    mode: '0644'
+    owner: ubuntu
+    group: ubuntu
+
+- name: Render environment file
+  ansible.builtin.template:
+    src: env.j2
+    dest: /opt/outline/.env
+    mode: '0600'
+    owner: ubuntu
+    group: ubuntu
+
+- name: Check for existing Outline container
+  community.docker.docker_container_info:
+    name: outline
+  register: outline_container
+  ignore_errors: true
+
+- name: Shut down existing Outline container
+  community.docker.docker_compose_v2:
+    project_src: /opt/outline
+    state: absent
+  when: outline_container.exists | default(false)
+
+- name: Clean up orphan containers
+  community.docker.docker_compose_v2:
+    project_src: /opt/outline
+    state: absent
+    remove_orphans: true
+  when: outline_container.exists | default(false)
+
+- name: Ensure Outline containers are running
+  community.docker.docker_compose_v2:
+    project_src: /opt/outline
+    state: present

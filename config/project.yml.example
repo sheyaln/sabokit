@@ -1,0 +1,130 @@
+
+# Federated Commons - Central Configuration
+
+# This is THE source of truth for project-wide configuration.
+# Both Ansible and Terraform read from this file.
+#
+# CUSTOMIZE THIS FILE FOR YOUR DEPLOYMENT
+
+
+# -----------------------------------------------------------------------------
+# Project Identity
+# -----------------------------------------------------------------------------
+project:
+  # Short name used for S3 buckets, cluster names, resource prefixes
+  # Keep it short (3-10 chars), lowercase, no spaces
+  name: "fedcommons"
+  
+  # Full organization name for display/branding
+  org_name: "Federated Commons"
+  
+  # URL-safe slug for the organization (lowercase, hyphens ok)
+  org_slug: "federatedcommons"
+
+# -----------------------------------------------------------------------------
+# Domain Configuration
+# -----------------------------------------------------------------------------
+# You need at least 3 domains for a full deployment:
+#   - tools: Where your production applications live
+#   - management: Where monitoring/automation tools live
+#   - staging: For testing before production
+# tools server only is possible, but not recommended.
+#
+# Note: Authentik SSO gateway is always at gateway.{tools_domain}
+
+domains:
+  tools: "example.org"
+  management: "example.cc"
+  staging: "example.com"
+
+# -----------------------------------------------------------------------------
+# Email Configuration
+# -----------------------------------------------------------------------------
+# These emails are used throughout the infrastructure for:
+#   - SSL certificate registration (Let's Encrypt)
+#   - System notifications
+#   - Application "from" addresses
+
+emails:
+  # Infrastructure/system notifications
+  infra: "infra@example.org"
+  
+  # Admin contact for user-facing messages
+  admin: "admin@example.org"
+  
+  # Default "from" name for system emails
+  from_name: "Federated Commons"
+
+# -----------------------------------------------------------------------------
+# Cloud Provider Configuration
+# -----------------------------------------------------------------------------
+# Currently supports Scaleway. Credentials should be in environment variables
+# or terraform.tfvars, NOT in this file.
+
+cloud:
+  provider: "scaleway"
+  region: "fr-par"
+  
+  # S3-compatible storage endpoint
+  s3_endpoint: "https://s3.fr-par.scw.cloud"
+
+# -----------------------------------------------------------------------------
+# Feature Flags
+# -----------------------------------------------------------------------------
+# Enable/disable optional features
+
+features:
+  # High availability for databases
+  ha_enabled: false
+  
+  # Automatic security updates
+  auto_updates: true
+  
+  # Fail2ban intrusion prevention
+  fail2ban: true
+  
+  # UFW firewall
+  ufw: true
+
+# -----------------------------------------------------------------------------
+# Defaults
+# -----------------------------------------------------------------------------
+# Default values that can be overridden per-environment
+
+defaults:
+  timezone: "America/New_York"
+  locale: "en_US.UTF-8"
+  backup_retention_days: 30
+
+# -----------------------------------------------------------------------------
+# Environment-Specific Configuration
+# -----------------------------------------------------------------------------
+# Production uses Scaleway managed services (PostgreSQL, etc.)
+# Staging uses local Docker containers to minimize costs
+
+environments:
+  production:
+    # Database: Scaleway Managed PostgreSQL
+    database:
+      type: "managed"
+      # Credentials come from Scaleway Secret Manager
+      # Format: lookup('scaleway.scaleway.scaleway_secret', 'postgres-{app}-credentials')
+    
+    # S3: Scaleway Object Storage
+    storage:
+      type: "scaleway_s3"
+      bucket_prefix: "obs"
+  
+  staging:
+    # Database: Local PostgreSQL container on the VPS
+    database:
+      type: "local"
+      host: "postgres-staging"  # Docker network name
+      port: 5432
+      # Credentials stored in local .env file or Ansible vault
+    
+    # S3: Scaleway Object Storage (cheap, pay-per-use)
+    # Could also use MinIO container if even cheaper needed
+    storage:
+      type: "scaleway_s3"
+      bucket_prefix: "obs-staging"

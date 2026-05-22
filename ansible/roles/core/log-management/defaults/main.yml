@@ -1,0 +1,22 @@
+---
+# Log Management Configuration
+# Override these values as needed for your environment
+
+# Journald settings
+journald_system_max_use: "500M"        # Max disk space for persistent journal
+journald_system_keep_free: "1G"        # Keep at least this much free on disk
+journald_system_max_file_size: "50M"   # Max size per individual log file
+journald_runtime_max_use: "100M"       # Max memory for runtime journal
+journald_max_retention_sec: "2weeks"   # Maximum retention period
+journald_compress: true                # Compress journal files
+
+# Docker log settings (applied via docker role, listed here for reference)
+# docker_log_driver: "json-file"
+# docker_log_max_size: "100m"
+# docker_log_max_file: "3"
+
+# Logrotate settings
+logrotate_ensure_timer_enabled: true
+
+# Initial vacuum on role application
+log_management_vacuum_on_apply: true

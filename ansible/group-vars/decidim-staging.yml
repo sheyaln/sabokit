@@ -1,0 +1,38 @@
+
+# Decidim Configuration - STAGING
+
+# This file provides staging-specific Decidim configuration that doesn't
+# rely on Scaleway Secret Manager lookups.
+#
+# Database credentials are pulled from staging.yml's staging_app_databases
+
+
+# ── Database Configuration (overridden by playbook vars) ──
+# These are defaults that get overridden by playbook vars section
+DECIDIM_DB_NAME: "{{ staging_app_databases.decidim.dbname }}"
+DECIDIM_DB_USER: "{{ staging_app_databases.decidim.username }}"
+DECIDIM_DB_PASSWORD: "{{ staging_app_databases.decidim.password }}"
+DECIDIM_DB_HOST: "{{ local_postgres_host }}"
+DECIDIM_DB_PORT: "{{ local_postgres_port }}"
+
+# ── Application Configuration ──
+decidim_app_image_tag: "0.28.6"
+decidim_force_db_init: false
+
+# For staging, use the staging domain
+DECIDIM_HOST: "https://voting.{{ tools_domain }}"
+DECIDIM_SECRET_KEY_BASE: "{{ lookup('env', 'STAGING_DECIDIM_SECRET_KEY') | default('staging-secret-key-base-change-in-production-' + ansible_date_time.epoch, true) }}"
+
+# ── SMTP Configuration ──
+DECIDIM_SMTP_FROM_EMAIL: "voting@{{ tools_domain }}"
+DECIDIM_SMTP_ADDRESS: "{{ smtp_host | default('localhost') }}"
+DECIDIM_SMTP_DOMAIN: "{{ tools_domain }}"
+DECIDIM_SMTP_USERNAME: "{{ smtp_username | default('') }}"
+DECIDIM_SMTP_PASSWORD: "{{ smtp_password | default('') }}"
+DECIDIM_SMTP_PORT: "{{ smtp_port | default('587') }}"
+SMTP_STARTTLS_AUTO: "false"
+DECIDIM_SMTP_AUTHENTICATION: "login"
+
+# ── Default admin ──
+DECIDIM_DEFAULT_ADMIN_EMAIL: "{{ infra_email }}"
+DECIDIM_DEFAULT_ADMIN_PASSWORD: "{{ lookup('env', 'STAGING_DECIDIM_ADMIN_PASSWORD') | default('staging-admin-password', true) }}"

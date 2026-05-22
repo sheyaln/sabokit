@@ -1,0 +1,20 @@
+
+# Scaleway CLI Configuration - Secrets Fetch Only
+
+# This configuration is scoped to SECRET MANAGER READ ONLY operations.
+# The API key should have minimal permissions (SecretManagerReadOnly).
+#
+# SECURITY:
+# - File permissions: 0600 (owner read/write only)
+# - Owned by: {{ scw_secrets_user }}:{{ scw_secrets_group }}
+# - API key is scoped to read-only access
+
+
+access_key: {{ scw_secrets_access_key }}
+secret_key: {{ scw_secrets_secret_key }}
+default_organization_id: {{ scw_secrets_organization_id }}
+default_project_id: {{ scw_secrets_project_id }}
+default_region: {{ scw_secrets_region }}
+
+# Disable telemetry
+send_telemetry: false

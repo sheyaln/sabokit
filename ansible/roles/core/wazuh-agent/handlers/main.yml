@@ -1,0 +1,17 @@
+---
+# Handlers for Wazuh Agent role
+# Note: Most functionality now uses Docker container auto-configuration
+
+- name: restart rsyslog
+  ansible.builtin.service:
+    name: rsyslog
+    state: restarted
+  become: true
+
+# Only used when wazuh_enable_auditd is true (disabled by default)
+- name: restart auditd
+  ansible.builtin.service:
+    name: auditd
+    state: restarted
+  become: true
+  when: ansible_service_mgr == "systemd"

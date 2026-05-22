@@ -1,0 +1,31 @@
+# ── Managed PostgreSQL credentials (Scaleway Secret Manager) ──
+decidim_db_creds: "{{ lookup('scaleway.scaleway.scaleway_secret', 'postgres-decidim-credentials') | b64decode | from_json }}"
+
+DECIDIM_DB_NAME: "{{ decidim_db_creds.dbname }}"
+DECIDIM_DB_USER: "{{ decidim_db_creds.username }}"
+DECIDIM_DB_PASSWORD: "{{ decidim_db_creds.password }}"
+DECIDIM_DB_HOST: "{{ decidim_db_creds.host }}"
+DECIDIM_DB_PORT: "{{ decidim_db_creds.port }}"
+
+# ── Application Configuration ────────
+decidim_app_image_tag: "0.28.6"
+decidim_force_db_init: false  # Set to true to force database reinitialization
+DECIDIM_HOST: "https://voting.{{ default_domain }}"
+DECIDIM_SECRET_KEY_BASE: "{{ lookup('scaleway.scaleway.scaleway_secret', 'decidim-secret-key-base') | b64decode }}"
+
+# ── SMTP Configuration ────────
+DECIDIM_SMTP_FROM_EMAIL: "voting@{{ default_domain }}"
+DECIDIM_SMTP_ADDRESS: "{{ smtp_host }}"
+DECIDIM_SMTP_DOMAIN: "{{ default_domain }}"
+DECIDIM_SMTP_USERNAME: "{{ smtp_username }}"
+DECIDIM_SMTP_PASSWORD: "{{ smtp_password }}"
+DECIDIM_SMTP_PORT: "{{ smtp_port }}"
+SMTP_STARTTLS_AUTO: "false"
+DECIDIM_SMTP_AUTHENTICATION: "login"
+
+# ── Default admin email ────────
+DECIDIM_DEFAULT_ADMIN_EMAIL: "{{ infra_email }}"
+DECIDIM_DEFAULT_ADMIN_PASSWORD: "{{ lookup('scaleway.scaleway.scaleway_secret', 'decidim-default-admin-password') | b64decode }}"
+
+
+

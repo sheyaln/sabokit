@@ -1,0 +1,161 @@
+---
+# Monitoring Exporters - Node Exporter, CAdvisor, Alloy
+# Deployed on all servers to export metrics and logs
+
+# Open firewall for Prometheus scraping from management server
+- name: Allow Node Exporter from management
+  community.general.ufw:
+    rule: allow
+    port: "{{ node_exporter_port | string }}"
+    proto: tcp
+    from_ip: "{{ server_ips.management }}"
+    comment: "Node Exporter from management"
+
+- name: Allow CAdvisor from management
+  community.general.ufw:
+    rule: allow
+    port: "{{ cadvisor_port | string }}"
+    proto: tcp
+    from_ip: "{{ server_ips.management }}"
+    comment: "CAdvisor from management"
+
+- name: Determine Traefik metrics port for this server
+  ansible.builtin.set_fact:
+    traefik_metrics_port: "{{ traefik_metrics_ports[server_name] | default(9101) }}"
+
+- name: Allow Traefik metrics from management
+  community.general.ufw:
+    rule: allow
+    port: "{{ traefik_metrics_port | string }}"
+    proto: tcp
+    from_ip: "{{ server_ips.management }}"
+    comment: "Traefik metrics from management"
+
+# Authentik-specific: allow metrics port
+- name: Allow Authentik metrics from management
+  community.general.ufw:
+    rule: allow
+    port: "{{ app_metrics_ports.authentik | string }}"
+    proto: tcp
+    from_ip: "{{ server_ips.management }}"
+    comment: "Authentik metrics from management"
+  when: server_name == 'authentik' and enable_authentik_metrics | default(true)
+
+# Zabbix Agent: allow connections from Zabbix Server
+- name: Allow Zabbix Agent from management
+  community.general.ufw:
+    rule: allow
+    port: "{{ zabbix_agent_port | string }}"
+    proto: tcp
+    from_ip: "{{ server_ips.management }}"
+    comment: "Zabbix Agent from management"
+
+- name: Create exporters directories
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    mode: '0755'
+    owner: ubuntu
+    group: ubuntu
+  loop:
+    - "{{ exporters_base_dir }}"
+    - "{{ alloy_config_dir }}"
+
+- name: Create node-exporter textfile collector directory
+  ansible.builtin.file:
+    path: "{{ textfile_collector_dir }}"
+    state: directory
+    mode: '0755'
+    owner: ubuntu
+    group: ubuntu
+
+- name: Ensure monitoring network exists
+  community.docker.docker_network:
+    name: "{{ monitoring_network }}"
+    state: present
+    driver: bridge
+
+- name: Render Alloy configuration
+  ansible.builtin.template:
+    src: alloy-config.alloy.j2
+    dest: "{{ alloy_config_dir }}/config.alloy"
+    mode: '0644'
+    owner: ubuntu
+    group: ubuntu
+
+- name: Render docker-compose file
+  ansible.builtin.template:
+    src: docker-compose.yml.j2
+    dest: "{{ exporters_base_dir }}/docker-compose.yml"
+    mode: '0644'
+    owner: ubuntu
+    group: ubuntu
+
+- name: Render environment file
+  ansible.builtin.template:
+    src: env.j2
+    dest: "{{ exporters_base_dir }}/.env"
+    mode: '0600'
+    owner: ubuntu
+    group: ubuntu
+
+- name: Stop existing monitoring exporters
+  community.docker.docker_compose_v2:
+    project_src: "{{ exporters_base_dir }}"
+    state: absent
+    remove_orphans: true
+  ignore_errors: true
+
+- name: Deploy monitoring exporters
+  community.docker.docker_compose_v2:
+    project_src: "{{ exporters_base_dir }}"
+    state: present
+    pull: always
+
+- name: Wait for Node Exporter to be ready
+  ansible.builtin.wait_for:
+    host: 0.0.0.0
+    port: "{{ node_exporter_port }}"
+    timeout: 60
+
+- name: Wait for CAdvisor to be ready
+  ansible.builtin.wait_for:
+    host: 0.0.0.0
+    port: "{{ cadvisor_port }}"
+    timeout: 60
+
+- name: Verify Node Exporter is serving metrics
+  ansible.builtin.uri:
+    url: "http://127.0.0.1:{{ node_exporter_port }}/metrics"
+    method: GET
+    return_content: false
+  register: node_exporter_check
+  retries: 3
+  delay: 5
+  until: node_exporter_check.status == 200
+
+- name: Verify CAdvisor is serving metrics
+  ansible.builtin.uri:
+    url: "http://127.0.0.1:{{ cadvisor_port }}/metrics"
+    method: GET
+    return_content: false
+  register: cadvisor_check
+  retries: 3
+  delay: 5
+  until: cadvisor_check.status == 200
+
+- name: Verify Alloy is ready
+  ansible.builtin.uri:
+    url: "http://127.0.0.1:{{ alloy_port }}/ready"
+    method: GET
+    return_content: false
+  register: alloy_check
+  retries: 5
+  delay: 5
+  until: alloy_check.status == 200
+
+- name: Wait for Zabbix Agent to be ready
+  ansible.builtin.wait_for:
+    host: 0.0.0.0
+    port: "{{ zabbix_agent_port }}"
+    timeout: 60

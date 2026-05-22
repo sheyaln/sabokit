@@ -1,0 +1,21 @@
+[Journal]
+# Managed by Ansible - log-management role
+# Do not edit manually
+
+# Limit total disk usage for persistent journal logs
+SystemMaxUse={{ journald_system_max_use }}
+
+# Keep at least this much free on the disk
+SystemKeepFree={{ journald_system_keep_free }}
+
+# Max size per individual journal file
+SystemMaxFileSize={{ journald_system_max_file_size }}
+
+# Limit runtime (in-memory) journal
+RuntimeMaxUse={{ journald_runtime_max_use }}
+
+# Compress journal files
+Compress={{ 'yes' if journald_compress else 'no' }}
+
+# Maximum retention period
+MaxRetentionSec={{ journald_max_retention_sec }}

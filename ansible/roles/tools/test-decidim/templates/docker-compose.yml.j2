@@ -1,0 +1,276 @@
+services:
+  redis:
+    image: redis:7-alpine
+    restart: always
+    container_name: test-decidim-redis
+
+    volumes:
+      - redis-data:/data
+
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+
+    networks:
+      - test-decidim
+
+    security_opt:
+      - no-new-privileges:true
+
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+          cpus: "0.25"
+        reservations:
+          memory: 64M
+          cpus: "0.1"
+
+  memcached:
+    image: memcached:1.6-alpine
+    restart: always
+    container_name: test-decidim-memcached
+
+    command: memcached -m 128 -o modern
+
+    networks:
+      - test-decidim
+
+    security_opt:
+      - no-new-privileges:true
+
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+          cpus: "0.25"
+        reservations:
+          memory: 64M
+          cpus: "0.1"
+
+  db-init:
+    image: ghcr.io/decidim/decidim:{{ decidim_app_image_tag | default('latest') }}
+    restart: "no"
+    container_name: test-decidim-db-init
+
+    env_file:
+      - .env
+
+    depends_on:
+      - redis
+      - memcached
+
+    volumes:
+      - uploads-data:/code/public/uploads
+      - logs-data:/code/log
+      - init-marker:/init
+
+    networks:
+      - test-decidim
+
+    security_opt:
+      - no-new-privileges:true
+
+    entrypoint: ["/bin/bash", "-c"]
+    command:
+      - |
+        if [ ! -f /init/db_initialized ]; then
+          echo "Running first-time database initialization..."
+          bundle exec rails db:create || echo "Database already exists"
+          bundle exec rails db:migrate
+          bundle exec rails db:seed
+          touch /init/db_initialized
+          echo "Database initialization complete"
+        else
+          echo "Database already initialized, skipping..."
+        fi
+
+        # Create system admin if credentials are provided and admin doesn't exist
+        if [ -n "$DECIDIM_SYSTEM_EMAIL" ] && [ -n "$DECIDIM_SYSTEM_PASSWORD" ]; then
+          echo "Checking for system admin..."
+          bundle exec rails runner "
+            if Decidim::System::Admin.exists?(email: ENV['DECIDIM_SYSTEM_EMAIL'])
+              puts 'System admin already exists, skipping creation'
+            else
+              puts 'Creating system admin...'
+              Decidim::System::Admin.create!(
+                email: ENV['DECIDIM_SYSTEM_EMAIL'],
+                password: ENV['DECIDIM_SYSTEM_PASSWORD'],
+                password_confirmation: ENV['DECIDIM_SYSTEM_PASSWORD']
+              )
+              puts 'System admin created successfully'
+            end
+          "
+        else
+          echo "DECIDIM_SYSTEM_EMAIL or DECIDIM_SYSTEM_PASSWORD not set, skipping admin creation"
+        fi
+
+        # Create default organization if it doesn't exist
+        if [ -n "$DECIDIM_ORG_NAME" ] && [ -n "$DECIDIM_ORG_HOST" ]; then
+          echo "Checking for default organization..."
+          bundle exec rails runner "
+            host = ENV['DECIDIM_ORG_HOST'].sub(/^https?:\/\//, '')
+            
+            if Decidim::Organization.exists?(host: host)
+              puts \"Organization with host '#{host}' already exists, skipping creation\"
+            else
+              puts 'Creating default organization...'
+              
+              org = Decidim::Organization.create!(
+                name: ENV['DECIDIM_ORG_NAME'],
+                host: host,
+                default_locale: ENV.fetch('DECIDIM_DEFAULT_LOCALE', 'en'),
+                available_locales: ENV.fetch('DECIDIM_AVAILABLE_LOCALES', 'en').split(','),
+                reference_prefix: ENV.fetch('DECIDIM_REFERENCE_PREFIX', 'DEC'),
+                users_registration_mode: 'enabled',
+                available_authorizations: [],
+                smtp_settings: {
+                  'from' => ENV['SMTP_FROM_EMAIL'],
+                  'from_email' => ENV['SMTP_FROM_EMAIL'],
+                  'from_label' => ENV.fetch('DECIDIM_ORG_NAME', 'Decidim'),
+                  'address' => ENV['SMTP_ADDRESS'],
+                  'port' => ENV.fetch('SMTP_PORT', '587').to_i,
+                  'user_name' => ENV['SMTP_USERNAME'],
+                  'password' => ENV['SMTP_PASSWORD'],
+                  'authentication' => ENV.fetch('SMTP_AUTHENTICATION', 'login')
+                }
+              )
+              puts \"Organization '#{org.name}' created successfully\"
+              
+              # Create the first organization admin
+              admin_email = ENV.fetch('DECIDIM_ORG_ADMIN_EMAIL', ENV['DECIDIM_SYSTEM_EMAIL'])
+              admin_password = ENV.fetch('DECIDIM_ORG_ADMIN_PASSWORD', ENV['DECIDIM_SYSTEM_PASSWORD'])
+              
+              if admin_email.present? && admin_password.present?
+                admin = Decidim::User.new(
+                  email: admin_email,
+                  name: ENV.fetch('DECIDIM_ORG_ADMIN_NAME', 'Admin'),
+                  nickname: ENV.fetch('DECIDIM_ORG_ADMIN_NICKNAME', 'admin'),
+                  organization: org,
+                  admin: true,
+                  password: admin_password,
+                  password_confirmation: admin_password,
+                  tos_agreement: true,
+                  accepted_tos_version: org.tos_version
+                )
+                admin.skip_confirmation!
+                admin.save!
+                puts \"Organization admin '#{admin.email}' created successfully\"
+              end
+            end
+          "
+        else
+          echo "DECIDIM_ORG_NAME or DECIDIM_ORG_HOST not set, skipping organization creation"
+        fi
+
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+          cpus: "0.5"
+
+  app:
+    image: ghcr.io/decidim/decidim:{{ decidim_app_image_tag | default('latest') }}
+    restart: always
+    container_name: test-decidim-app
+
+    command: bundle exec rails server -p 3000 -b 0.0.0.0
+
+    env_file:
+      - .env
+
+    depends_on:
+      db-init:
+        condition: service_completed_successfully
+      redis:
+        condition: service_healthy
+      memcached:
+        condition: service_started
+
+    volumes:
+      - uploads-data:/code/public/uploads
+      - logs-data:/code/log
+      # Mount custom Gemfile and config directories for module installation
+      - ./config:/opt/test-decidim/config:rw
+      - gemfile-data:/code/Gemfile.d:rw
+
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.services.test-decidim.loadbalancer.server.port=3000"
+      - "traefik.http.routers.test-decidim.rule=Host(`test-decidim.{{ default_domain | default(tools_domain) }}`)"
+      - "traefik.http.routers.test-decidim.entrypoints=websecure"
+      - "traefik.http.routers.test-decidim.tls.certresolver=le"
+      - "traefik.http.routers.test-decidim.service=test-decidim"
+      - "traefik.docker.network=traefik"
+
+    networks:
+      - traefik
+      - test-decidim
+
+    security_opt:
+      - no-new-privileges:true
+
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost:3000/ || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+          cpus: "0.75"
+        reservations:
+          memory: 512M
+          cpus: "0.25"
+
+#  worker:
+#    image: ghcr.io/decidim/decidim:{{ decidim_app_image_tag | default('latest') }}
+#    restart: always
+#    container_name: test-decidim-worker
+#
+#    command: bundle exec sidekiq -C config/sidekiq.yml
+#
+#    env_file:
+#      - .env
+#
+#    depends_on:
+#      - redis
+#
+#    volumes:
+#      - uploads-data:/code/public/uploads
+#      # Mount custom Gemfile for worker as well
+#      - ./config:/opt/test-decidim/config:rw
+#      - gemfile-data:/code/Gemfile.d:rw
+#
+#    networks:
+#      - test-decidim
+#
+#    security_opt:
+#      - no-new-privileges:true
+#
+#    deploy:
+#      resources:
+#        limits:
+#          memory: 1G
+#          cpus: "0.5"
+#        reservations:
+#          memory: 256M
+#          cpus: "0.25"
+
+volumes:
+  uploads-data:
+  logs-data:
+  redis-data:
+  init-marker:
+  gemfile-data:
+
+networks:
+  test-decidim:
+    driver: bridge
+  traefik:
+    external: true
+

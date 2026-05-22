@@ -1,0 +1,26 @@
+# ===== Domain defaults (for your own services, not Grafana Cloud) =====
+default_domain: "{{ management_domain }}"
+traefik_network: "traefik"
+
+grafana_cloud_prometheus: >-
+  {{ lookup('scaleway.scaleway.scaleway_secret','grafana-cloud-prometheus-config')
+     | b64decode | from_json }}
+
+prometheus_retention: "7d"
+prometheus_remote_write_enabled: true
+prometheus_remote_write_url: "{{ grafana_cloud_prometheus.url }}"
+prometheus_remote_write_username: "{{ grafana_cloud_prometheus.username }}"
+prometheus_remote_write_password: "{{ grafana_cloud_prometheus.password }}"
+prometheus_remote_write_queue:
+  max_samples_per_send: 2000
+  max_shards: 4
+  capacity: 20000
+
+loki_remote_enabled: true
+loki_remote_push_url: >-
+  {{ lookup('scaleway.scaleway.scaleway_secret','grafana-cloud-promtail-config') | b64decode }}
+
+enable_traefik_metrics: "{{ 'tools-prod' in group_names | default([]) }}"
+enable_authentik_metrics: "{{ 'authentik-prod' in group_names | default([]) }}"
+authentik_metrics_target: "authentik:9300"
+authentik_traefik_host: "{{ hostvars[groups['authentik-prod'][0]]['ansible_host'] | default('192.0.2.30') }}"

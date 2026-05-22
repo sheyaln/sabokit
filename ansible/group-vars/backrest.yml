@@ -1,0 +1,19 @@
+# Backrest Configuration
+
+# S3 credentials from Scaleway Secret Manager
+_backrest_s3_credentials: "{{ lookup('scaleway.scaleway.scaleway_secret', 'backrest-s3-credentials') | b64decode | from_json }}"
+
+backrest_s3_access_key: "{{ _backrest_s3_credentials.access_key }}"
+backrest_s3_secret_key: "{{ _backrest_s3_credentials.secret_key }}"
+backrest_s3_bucket: "{{ _backrest_s3_credentials.bucket_name }}"
+backrest_s3_endpoint: "{{ _backrest_s3_credentials.endpoint }}"
+
+# Restic repository encryption password
+backrest_restic_password: "{{ lookup('scaleway.scaleway.scaleway_secret', 'backrest-restic-password') | b64decode }}"
+
+# Wobbler SSH private key for SFTP access to remote servers
+backrest_ssh_private_key: "{{ (lookup('scaleway.scaleway.scaleway_secret', 'wobbler-ssh-key') | b64decode | from_json).ssh_private_key }}"
+
+# Remote server IPs for SSHFS mounts (inventory hostname is the IP)
+tools_prod_ip: "{{ groups['tools-prod'][0] }}"
+authentik_prod_ip: "{{ groups['authentik-prod'][0] }}"

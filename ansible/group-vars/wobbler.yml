@@ -1,0 +1,33 @@
+# Wobbler Configuration
+
+# Application settings
+wobbler_title: "Wobbler"
+wobbler_port: 5000
+
+# Authentik OAuth2 credentials from Scaleway
+wobbler_authentik_creds: "{{ lookup('scaleway.scaleway.scaleway_secret', 'authentik-app-wobbler') | b64decode | from_json }}"
+wobbler_client_id: "{{ wobbler_authentik_creds.client_id }}"
+wobbler_client_secret: "{{ wobbler_authentik_creds.client_secret }}"
+
+# Authentik configuration
+wobbler_authentik_url: "https://{{ gateway_domain }}/"
+
+# Scaleway API credentials for snapshot manager script
+wobbler_scw_access_key: "{{ scaleway_access_key }}"
+wobbler_scw_secret_key: "{{ scaleway_secret_key }}"
+wobbler_scw_project_id: "{{ lookup('env', 'SCW_DEFAULT_PROJECT_ID') }}"
+wobbler_scw_zone: "fr-par-1"
+
+# SSH key for accessing target servers (docker cleanup, etc.)
+# The ssh_key type returns JSON with ssh_private_key field
+wobbler_ssh_private_key: "{{ (lookup('scaleway.scaleway.scaleway_secret', 'wobbler-ssh-key') | b64decode | from_json).ssh_private_key }}"
+
+# Target servers that Wobbler can SSH into
+# Update these IPs to match your inventory
+wobbler_ssh_targets:
+  - host: "{{ hostvars[groups['tools-prod'][0]]['ansible_host'] | default('192.0.2.10') }}"
+    name: "tools-prod"
+  - host: "{{ hostvars[groups['authentik-prod'][0]]['ansible_host'] | default('192.0.2.30') }}"
+    name: "authentik-prod"
+
+

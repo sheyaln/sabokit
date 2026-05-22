@@ -1,0 +1,62 @@
+---
+# Wazuh Agent Deployment - uses container's built-in auto-enrollment
+- name: Determine owner and group for Wazuh agent files
+  ansible.builtin.set_fact:
+    wazuh_agent_owner: "{{ wazuh_agent_file_owner }}"
+    wazuh_agent_group: "{{ wazuh_agent_file_group }}"
+
+- name: Ensure Wazuh agent directory exists
+  ansible.builtin.file:
+    path: "{{ wazuh_agent_base_path }}"
+    state: directory
+    owner: "{{ wazuh_agent_owner }}"
+    group: "{{ wazuh_agent_group }}"
+    mode: '0755'
+
+- name: Generate agent name
+  ansible.builtin.set_fact:
+    wazuh_agent_name: "{{ inventory_hostname }}-{{ ansible_facts['hostname'] }}"
+
+- name: Deploy Wazuh agent Docker Compose definition
+  ansible.builtin.template:
+    src: docker-compose.yml.j2
+    dest: "{{ wazuh_agent_compose_file }}"
+    owner: "{{ wazuh_agent_owner }}"
+    group: "{{ wazuh_agent_group }}"
+    mode: '0644'
+  register: compose_changed
+
+- name: Pull Wazuh agent Docker image
+  community.docker.docker_image:
+    name: "wazuh/wazuh-agent:{{ wazuh_version }}"
+    source: pull
+
+- name: Ensure Wazuh agent container is running
+  community.docker.docker_compose_v2:
+    project_src: "{{ wazuh_agent_base_path }}"
+    state: present
+    recreate: "{{ 'always' if compose_changed.changed else 'never' }}"
+
+- name: Wait for agent auto-enrollment
+  ansible.builtin.pause:
+    seconds: 20
+
+- name: Check agent status
+  ansible.builtin.shell: |
+    set -euo pipefail
+    docker exec wazuh-agent /var/ossec/bin/wazuh-control status 2>&1 || echo "not running"
+  register: agent_status
+  changed_when: false
+  failed_when: false
+  args:
+    executable: /bin/bash
+
+- name: Display agent status
+  ansible.builtin.debug:
+    msg: |
+      Wazuh Agent Deployment:
+      Name: {{ wazuh_agent_name }}
+      Manager: {{ wazuh_manager_ip }}:1514
+      
+      Status: 
+      {{ agent_status.stdout }}

@@ -1,0 +1,38 @@
+# frozen_string_literal: true
+
+# OAuth2 Generic Provider Configuration
+# This initializer configures generic OAuth2 authentication for Decidim
+
+Rails.application.config.to_prepare do
+  Decidim::Devise.configure do |config|
+{% if DECIDIM_OAUTH2_ENABLED | default(false) %}
+    config.omniauth :oauth2_generic,
+      name: :{{ DECIDIM_OAUTH2_PROVIDER_NAME | default('oauth2') }},
+      client_id: ENV.fetch('OAUTH2_CLIENT_ID', '{{ DECIDIM_OAUTH2_CLIENT_ID | default('') }}'),
+      client_secret: ENV.fetch('OAUTH2_CLIENT_SECRET', '{{ DECIDIM_OAUTH2_CLIENT_SECRET | default('') }}'),
+      client_options: {
+        site: ENV.fetch('OAUTH2_SITE', '{{ DECIDIM_OAUTH2_SITE | default('') }}'),
+        authorize_url: ENV.fetch('OAUTH2_AUTHORIZE_URL', '{{ DECIDIM_OAUTH2_AUTHORIZE_URL | default('/application/o/authorize/') }}'),
+        token_url: ENV.fetch('OAUTH2_TOKEN_URL', '{{ DECIDIM_OAUTH2_TOKEN_URL | default('/application/o/token/') }}'),
+        user_info_url: ENV.fetch('OAUTH2_USER_INFO_URL', '{{ DECIDIM_OAUTH2_USER_INFO_URL | default('/application/o/userinfo/') }}')
+      },
+      user_response_structure: {
+        root_path: [],
+        id_path: 'sub',
+        attributes: {
+          email: 'email',
+          name: 'name',
+          nickname: 'preferred_username',
+          first_name: 'given_name',
+          last_name: 'family_name'
+        }
+      },
+      authorize_params: {
+        scope: 'openid profile email'
+      },
+      issuer: ENV.fetch('OAUTH2_ISSUER', '{{ DECIDIM_OAUTH2_ISSUER | default('') }}'),
+      discovery: true
+{% endif %}
+  end
+end
+

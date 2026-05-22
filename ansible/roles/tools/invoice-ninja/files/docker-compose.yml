@@ -1,0 +1,139 @@
+---
+services:
+  invoice-ninja:
+    image: invoiceninja/invoiceninja:5
+    container_name: invoice-ninja
+    environment:
+      - APP_ENV=production
+      - APP_KEY=${APP_KEY}
+      - APP_NAME=${APP_NAME}
+      - APP_URL=${APP_URL}
+      - REQUIRE_HTTPS=${REQUIRE_HTTPS}
+      - DB_HOST=invoice-ninja-db
+      - DB_PORT=3306
+      - DB_DATABASE=${DB_DATABASE}
+      - DB_USERNAME=${DB_USERNAME}
+      - DB_PASSWORD=${DB_PASSWORD}
+      - REDIS_HOST=invoice-ninja-redis
+      - REDIS_PORT=6379
+      - REDIS_PASSWORD=${REDIS_PASSWORD}
+      - CACHE_DRIVER=redis
+      - SESSION_DRIVER=redis
+      - QUEUE_CONNECTION=redis
+      - MAIL_MAILER=${MAIL_MAILER}
+      - MAIL_HOST=${MAIL_HOST}
+      - MAIL_PORT=${MAIL_PORT}
+      - MAIL_USERNAME=${MAIL_USERNAME}
+      - MAIL_PASSWORD=${MAIL_PASSWORD}
+      - MAIL_ENCRYPTION=${MAIL_ENCRYPTION}
+      - MAIL_FROM_ADDRESS=${MAIL_FROM_ADDRESS}
+      - MAIL_FROM_NAME=${MAIL_FROM_NAME}
+      - MULTI_DB_ENABLED=false
+      - PHANTOMJS_PDF_GENERATION=false
+      - TRUSTED_PROXIES=${TRUSTED_PROXIES}
+    volumes:
+      - invoice_ninja_public:/var/www/app/public
+      - invoice_ninja_storage:/var/www/app/storage
+    networks:
+      - invoice-ninja
+    depends_on:
+      - invoice-ninja-db
+      - invoice-ninja-redis
+    restart: always
+
+  invoice-ninja-web:
+    image: nginx:alpine
+    container_name: invoice-ninja-web
+    volumes:
+      - invoice_ninja_public:/var/www/app/public:ro
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+    networks:
+      - traefik
+      - invoice-ninja
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.invoice-ninja.rule=Host(`{{ INVOICE_NINJA_DOMAIN }}`)"
+      - "traefik.http.routers.invoice-ninja.entrypoints=websecure"
+      - "traefik.http.routers.invoice-ninja.tls.certresolver=le"
+      - "traefik.http.services.invoice-ninja.loadbalancer.server.port=80"
+      - "traefik.docker.network=traefik"
+    depends_on:
+      - invoice-ninja
+    restart: always
+
+  invoice-ninja-queue:
+    image: invoiceninja/invoiceninja:5
+    container_name: invoice-ninja-queue
+    environment:
+      - APP_ENV=production
+      - APP_KEY=${APP_KEY}
+      - APP_NAME=${APP_NAME}
+      - APP_URL=${APP_URL}
+      - DB_HOST=invoice-ninja-db
+      - DB_PORT=3306
+      - DB_DATABASE=${DB_DATABASE}
+      - DB_USERNAME=${DB_USERNAME}
+      - DB_PASSWORD=${DB_PASSWORD}
+      - REDIS_HOST=invoice-ninja-redis
+      - REDIS_PORT=6379
+      - REDIS_PASSWORD=${REDIS_PASSWORD}
+      - CACHE_DRIVER=redis
+      - SESSION_DRIVER=redis
+      - QUEUE_CONNECTION=redis
+      - MAIL_MAILER=${MAIL_MAILER}
+      - MAIL_HOST=${MAIL_HOST}
+      - MAIL_PORT=${MAIL_PORT}
+      - MAIL_USERNAME=${MAIL_USERNAME}
+      - MAIL_PASSWORD=${MAIL_PASSWORD}
+      - MAIL_ENCRYPTION=${MAIL_ENCRYPTION}
+      - MAIL_FROM_ADDRESS=${MAIL_FROM_ADDRESS}
+      - MAIL_FROM_NAME=${MAIL_FROM_NAME}
+    command: php artisan queue:work --sleep=3 --tries=3 --max-time=3600
+    volumes:
+      - invoice_ninja_public:/var/www/app/public
+      - invoice_ninja_storage:/var/www/app/storage
+    networks:
+      - invoice-ninja
+    depends_on:
+      - invoice-ninja-db
+      - invoice-ninja-redis
+    restart: always
+
+  invoice-ninja-db:
+    image: mariadb:10.6
+    container_name: invoice-ninja-db
+    command: --transaction-isolation=READ-COMMITTED --binlog-format=ROW
+    environment:
+      - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD}
+      - MYSQL_PASSWORD=${DB_PASSWORD}
+      - MYSQL_DATABASE=${DB_DATABASE}
+      - MYSQL_USER=${DB_USERNAME}
+    volumes:
+      - invoice_ninja_db:/var/lib/mysql
+    networks:
+      - invoice-ninja
+    restart: always
+
+  invoice-ninja-redis:
+    image: redis:7-alpine
+    container_name: invoice-ninja-redis
+    command: redis-server --save 20 1 --loglevel warning --requirepass ${REDIS_PASSWORD}
+    environment:
+      - REDIS_PASSWORD=${REDIS_PASSWORD}
+    volumes:
+      - invoice_ninja_redis:/data
+    networks:
+      - invoice-ninja
+    restart: always
+
+volumes:
+  invoice_ninja_public:
+  invoice_ninja_storage:
+  invoice_ninja_db:
+  invoice_ninja_redis:
+
+networks:
+  traefik:
+    external: true
+  invoice-ninja:
+    driver: bridge

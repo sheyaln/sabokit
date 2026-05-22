@@ -1,0 +1,31 @@
+# Wazuh auditd rules - focused on security-relevant changes
+# Avoid overly broad rules (execve, connect) that can cause audit storms
+
+# User/group management
+-w /etc/passwd -p wa -k passwd_changes
+-w /etc/group -p wa -k group_changes
+-w /etc/shadow -p wa -k shadow_changes
+
+# Privilege escalation
+-w /etc/sudoers -p wa -k sudoers_changes
+-w /etc/sudoers.d/ -p wa -k sudoers_changes
+
+# SSH configuration
+-w /etc/ssh/sshd_config -p wa -k sshd_config
+-w /etc/ssh/sshd_config.d/ -p wa -k sshd_config
+
+# Docker configuration (not runtime data)
+-w /etc/docker/daemon.json -p wa -k docker_config
+
+# Critical system files
+-w /etc/crontab -p wa -k cron_changes
+-w /etc/cron.d/ -p wa -k cron_changes
+-w /var/spool/cron/ -p wa -k cron_changes
+
+# Network configuration
+-w /etc/hosts -p wa -k hosts_changes
+-w /etc/resolv.conf -p wa -k dns_changes
+
+# Systemd service changes
+-w /etc/systemd/system/ -p wa -k systemd_changes
+-w /lib/systemd/system/ -p wa -k systemd_changes

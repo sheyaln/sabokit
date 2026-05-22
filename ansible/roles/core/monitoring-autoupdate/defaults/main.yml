@@ -1,0 +1,27 @@
+---
+# Watchtower defaults
+watchtower_schedule: "0 0 3 * * *"  # 3 AM daily
+watchtower_cleanup: true
+watchtower_rolling_restart: true
+watchtower_timeout: 180
+
+# Autoheal defaults
+autoheal_interval: 30  # Check every 30 seconds
+autoheal_start_period: 0
+autoheal_stop_timeout: 10
+autoheal_curl_timeout: 30
+
+# Health monitoring
+health_check_interval: 60
+health_alert_email: ""
+
+# Timezone
+timezone: "UTC"
+
+# Notification URL (optional)
+# Format: smtp://username:password@host:port/?from=sender@example.com&to=recipient@example.com
+# Or: discord://token@webhookid
+# Or: slack://token@channel
+watchtower_notification_url: ""
+watchtower_notification_template: ""
+

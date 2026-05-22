@@ -1,0 +1,22 @@
+---
+# Handlers for Authentik role
+
+- name: restart authentik
+  community.docker.docker_compose_v2:
+    project_src: "{{ authentik_dir }}"
+    restarted: true
+  listen: "restart authentik"
+
+- name: restart authentik server
+  community.docker.docker_container:
+    name: authentik-server
+    restart: true
+  listen: "restart authentik server"
+
+- name: restart authentik worker
+  community.docker.docker_compose_v2:
+    project_src: "{{ authentik_dir }}"
+    services:
+      - worker
+    restarted: true
+  listen: "restart authentik worker"

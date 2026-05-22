@@ -1,0 +1,18 @@
+# UFW custom rules for tools servers (tools-prod, tools-staging)
+# Loaded by the core security play to open app-specific ports.
+# Kept separate from app group-vars to avoid pulling in secret lookups.
+
+ufw_custom_rules:
+  # Nextcloud Talk TURN/STUN (eturnal)
+  - rule: allow
+    port: "3478"
+    proto: tcp
+    comment: "Nextcloud Talk TURN TCP"
+  - rule: allow
+    port: "3478"
+    proto: udp
+    comment: "Nextcloud Talk TURN UDP"
+  - rule: allow
+    port: "49152:49252"
+    proto: udp
+    comment: "Nextcloud Talk TURN relay ports (eturnal)"

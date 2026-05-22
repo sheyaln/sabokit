@@ -1,0 +1,26 @@
+{
+  "title": "{{ wobbler_title }}",
+  "port": {{ wobbler_port }},
+  "address": "0.0.0.0",
+
+  "auth": {
+    "type": "authentik",
+    "authentik_url": "{{ wobbler_authentik_url }}",
+    "client_id": "{{ wobbler_client_id }}",
+    "secret": "{{ wobbler_client_secret }}",
+    "group_support": true,
+    "group_mapping": {
+      "admin": "admins",
+      "union-delegate": "users"
+    }
+  },
+
+  "access": {
+    "allowed_users": ["*"],
+    "admin_users": ["@admins"],
+    "groups": {
+      "admins": []
+    }
+  }
+}
+

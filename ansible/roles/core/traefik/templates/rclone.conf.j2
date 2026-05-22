@@ -1,0 +1,13 @@
+[scaleway]
+# S3-compatible backend for Scaleway Object Storage
+# Docs: https://rclone.org/s3/
+# Note: The endpoint varies by region; adjust if necessary.
+
+type = s3
+provider = Other
+access_key_id = {{ scaleway_access_key }}
+secret_access_key = {{ scaleway_secret_key }}
+endpoint = https://s3.fr-par.scw.cloud
+region = fr-par
+env_auth = false
+acl = private

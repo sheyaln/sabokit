@@ -1,0 +1,47 @@
+---
+
+# Deploy Secret Mapping
+
+# Deploys a secret mapping file for a specific application.
+# Called from application roles to register their secrets.
+#
+# Required variables:
+#   - scw_secrets_app_name: Name of the application (e.g., "outline")
+#   - scw_secrets_mapping: Dictionary of secret mappings
+#
+# Example usage in an application role:
+#   - name: Deploy secret mappings for Outline
+#     ansible.builtin.include_role:
+#       name: core/scw-secrets
+#       tasks_from: deploy-mapping
+#     vars:
+#       scw_secrets_app_name: "outline"
+#       scw_secrets_mapping:
+#         db_password: postgres-outline-credentials/password
+#         secret_key: outline-secret-key
+
+
+- name: Validate required variables
+  ansible.builtin.assert:
+    that:
+      - scw_secrets_app_name is defined
+      - scw_secrets_app_name | length > 0
+      - scw_secrets_mapping is defined
+      - scw_secrets_mapping | length > 0
+    fail_msg: "scw_secrets_app_name and scw_secrets_mapping must be defined"
+
+- name: Ensure mappings directory exists
+  ansible.builtin.file:
+    path: "{{ scw_secrets_mappings_dir }}"
+    state: directory
+    owner: "{{ scw_secrets_user }}"
+    group: "{{ scw_secrets_group }}"
+    mode: "0750"
+
+- name: Deploy secret mapping for {{ scw_secrets_app_name }}
+  ansible.builtin.template:
+    src: mapping.yml.j2
+    dest: "{{ scw_secrets_mappings_dir }}/{{ scw_secrets_app_name }}.yml"
+    owner: "{{ scw_secrets_user }}"
+    group: "{{ scw_secrets_group }}"
+    mode: "0640"

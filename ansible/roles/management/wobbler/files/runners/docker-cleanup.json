@@ -1,0 +1,43 @@
+{
+  "name": "Docker Cleanup",
+  "script_path": "/app/conf/scripts/docker-cleanup.sh",
+  "description": "Prunes unused Docker resources (containers, images, networks) on servers to free disk space",
+  "allowed_users": ["@admins"],
+  "scheduling": {
+    "enabled": true
+  },
+  "access": {
+    "shared_access": {
+      "type": "ALL_USERS"
+    }
+  },
+  "parameters": [
+    {
+      "name": "Servers",
+      "param": "",
+      "type": "multiselect",
+      "default": ["management", "tools-prod", "authentik-prod"],
+      "description": "Servers to clean up",
+      "values": ["management", "tools-prod", "authentik-prod"],
+      "multiselect_argument_type": "single_argument",
+      "separator": ","
+    },
+    {
+      "name": "Prune Volumes",
+      "param": "",
+      "type": "list",
+      "default": "false",
+      "description": "Also remove unused volumes (WARNING: may delete data)",
+      "values": ["false", "true"]
+    },
+    {
+      "name": "Dry Run",
+      "param": "",
+      "type": "list",
+      "default": "false",
+      "description": "Preview what would be cleaned without making changes",
+      "values": ["false", "true"]
+    }
+  ]
+}
+

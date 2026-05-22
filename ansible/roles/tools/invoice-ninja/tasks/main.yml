@@ -1,0 +1,73 @@
+---
+- name: Ensure Invoice Ninja directory
+  ansible.builtin.file:
+    path: /opt/invoice-ninja
+    state: directory
+    mode: "0755"
+    owner: ubuntu
+    group: ubuntu
+
+- name: Deploy docker-compose file
+  ansible.builtin.template:
+    src: docker-compose.yml.j2
+    dest: /opt/invoice-ninja/docker-compose.yml
+    mode: "0644"
+    owner: ubuntu
+    group: ubuntu
+
+- name: Copy nginx configuration file
+  ansible.builtin.copy:
+    src: nginx.conf
+    dest: /opt/invoice-ninja/nginx.conf
+    mode: "0644"
+    owner: ubuntu
+    group: ubuntu
+
+- name: Render environment file
+  ansible.builtin.template:
+    src: env.j2
+    dest: /opt/invoice-ninja/.env
+    mode: "0600"
+    owner: ubuntu
+    group: ubuntu
+
+- name: Check for existing Invoice Ninja container
+  community.docker.docker_container_info:
+    name: invoice-ninja
+  register: invoice_ninja_container
+  ignore_errors: true
+
+- name: Shut down existing Invoice Ninja container
+  community.docker.docker_compose_v2:
+    project_src: /opt/invoice-ninja
+    state: absent
+  when: invoice_ninja_container.exists | default(false)
+
+- name: Clean up orphan containers
+  community.docker.docker_compose_v2:
+    project_src: /opt/invoice-ninja
+    state: absent
+    remove_orphans: true
+  when: invoice_ninja_container.exists | default(false)
+
+- name: Ensure Invoice Ninja containers are running
+  community.docker.docker_compose_v2:
+    project_src: /opt/invoice-ninja
+    state: present
+
+- name: Wait for Invoice Ninja to be ready
+  ansible.builtin.uri:
+    url: "https://{{ INVOICE_NINJA_DOMAIN }}"
+    method: GET
+    status_code: [200, 302]
+    validate_certs: false
+  register: invoice_ninja_ready
+  until: invoice_ninja_ready is not failed
+  retries: 10
+  delay: 30
+  failed_when: false
+
+- name: Display Invoice Ninja status
+  ansible.builtin.debug:
+    msg: "Invoice Ninja is ready at https://{{ INVOICE_NINJA_DOMAIN }}"
+  when: invoice_ninja_ready is succeeded

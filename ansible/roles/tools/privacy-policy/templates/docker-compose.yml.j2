@@ -1,0 +1,22 @@
+services:
+  privacy-policy:
+    image: nginx:alpine
+    container_name: privacy-policy
+    restart: always
+    volumes:
+      - ./privacy-policy.html:/usr/share/nginx/html/index.html:ro
+      - ./DC-IWW_Logo.png:/usr/share/nginx/html/DC-IWW_Logo.png:ro
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.services.privacy-policy.loadbalancer.server.port=80"
+      - "traefik.http.routers.privacy-policy.rule=Host(`privacy.{{ default_domain | default(tools_domain) }}`)"
+      - "traefik.http.routers.privacy-policy.entrypoints=websecure"
+      - "traefik.http.routers.privacy-policy.tls.certresolver=le"
+      - "traefik.http.routers.privacy-policy.service=privacy-policy"
+      - "traefik.docker.network=traefik"
+    networks:
+      - traefik
+
+networks:
+  traefik:
+    external: true 

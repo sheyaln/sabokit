@@ -1,0 +1,103 @@
+---
+# Zabbix Configuration Tasks
+# Configure Zabbix via API after initial deployment
+# This task file is included by main.yml after Zabbix is running
+
+# Wait for Zabbix Web to be ready before API calls
+- name: Wait for Zabbix Web to be ready
+  ansible.builtin.uri:
+    url: "http://127.0.0.1:8080/api_jsonrpc.php"
+    method: POST
+    body_format: json
+    body:
+      jsonrpc: "2.0"
+      method: "apiinfo.version"
+      params: {}
+      id: 1
+    return_content: true
+    status_code: [200]
+  register: zabbix_api_check
+  retries: 10
+  delay: 10
+  until: zabbix_api_check.status == 200
+
+- name: Display Zabbix API version
+  ansible.builtin.debug:
+    msg: "Zabbix API version: {{ (zabbix_api_check.json.result | default('unknown')) }}"
+
+# Create directory for Zabbix configuration scripts
+- name: Ensure Zabbix config directory exists
+  ansible.builtin.file:
+    path: "{{ zabbix_dir }}/config"
+    state: directory
+    mode: '0755'
+    owner: ubuntu
+    group: ubuntu
+
+# Deploy configuration files
+- name: Deploy Zabbix configuration files
+  ansible.builtin.copy:
+    src: "zabbix/config.yml"
+    dest: "{{ zabbix_dir }}/config/"
+    mode: '0644'
+    owner: ubuntu
+    group: ubuntu
+
+# Deploy custom templates
+- name: Ensure Zabbix templates directory exists
+  ansible.builtin.file:
+    path: "{{ zabbix_dir }}/templates"
+    state: directory
+    mode: '0755'
+    owner: ubuntu
+    group: ubuntu
+
+- name: Deploy custom Zabbix templates
+  ansible.builtin.copy:
+    src: "zabbix/templates/"
+    dest: "{{ zabbix_dir }}/templates/"
+    mode: '0644'
+    owner: ubuntu
+    group: ubuntu
+
+
+# Import Website by Browser template with custom JSON failure handling
+- name: Import Website by Browser template
+  ansible.builtin.uri:
+    url: "http://127.0.0.1:8080/api_jsonrpc.php"
+    method: POST
+    body_format: json
+    body:
+      jsonrpc: "2.0"
+      method: "configuration.import"
+      params:
+        format: "yaml"
+        source: "{{ lookup('file', 'zabbix/templates/website-by-browser.yaml') }}"
+        rules:
+          templates:
+            createMissing: true
+            updateExisting: true
+          triggers:
+            createMissing: true
+            updateExisting: true
+          template_groups:
+            createMissing: true
+            updateExisting: false
+      auth: "{{ zabbix_api_token }}"
+      id: 2
+    return_content: true
+    status_code: [200]
+  register: template_import
+  when: zabbix_api_token is defined and zabbix_api_token | length > 0
+  ignore_errors: true
+
+- name: Display template import result
+  ansible.builtin.debug:
+    msg: "Template import result: {{ template_import.json | default('No response') }}"
+  when: template_import is defined
+
+# Note: JSON failure triggers are now configured directly in the Website by Browser template
+# The template includes:
+# - 5-minute delay before alerting on JSON failures (checks must fail continuously)
+# - Individual alert for exactly 2 consecutive failures (Warning)
+# - Major alert for 3+ consecutive failures (High) which suppresses individual alerts via dependency

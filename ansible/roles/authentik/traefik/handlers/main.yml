@@ -1,0 +1,14 @@
+---
+# Handlers for Traefik-Authentik role
+
+- name: restart traefik
+  community.docker.docker_compose_v2:
+    project_src: "{{ traefik_dir }}"
+    restarted: true
+  listen: "restart traefik"
+
+- name: reload traefik
+  community.docker.docker_container:
+    name: traefik-authentik
+    restart: true
+  listen: "reload traefik"

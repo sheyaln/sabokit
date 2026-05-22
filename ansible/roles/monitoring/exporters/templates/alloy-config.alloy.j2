@@ -1,0 +1,137 @@
+// Grafana Alloy configuration for log collection and forwarding
+// Server: {{ server_name }}
+
+// Loki client configuration
+loki.write "central_loki" {
+  endpoint {
+    url = env("LOKI_PUSH_URL")
+  }
+}
+
+// Docker container log discovery
+discovery.docker "containers" {
+  host             = "unix:///var/run/docker.sock"
+  refresh_interval = "30s"
+}
+
+// Relabel discovered docker containers
+discovery.relabel "docker_containers" {
+  targets = discovery.docker.containers.targets
+
+  // Set __path__ from container log path
+  rule {
+    source_labels = ["__meta_docker_container_log_path"]
+    target_label  = "__path__"
+  }
+
+  // Extract container name (remove leading /)
+  rule {
+    source_labels = ["__meta_docker_container_name"]
+    regex         = "/(.*)"
+    target_label  = "container_name"
+  }
+
+  // Service name from docker compose label
+  rule {
+    source_labels = ["__meta_docker_container_label_com_docker_compose_service"]
+    target_label  = "service_name"
+  }
+
+  // Project name from docker compose label
+  rule {
+    source_labels = ["__meta_docker_container_label_com_docker_compose_project"]
+    target_label  = "project_name"
+  }
+
+  // Server name
+  rule {
+    target_label = "server_name"
+    replacement  = "{{ server_name }}"
+  }
+
+  // Environment type
+  rule {
+    target_label = "environment"
+    replacement  = "{{ environment_type }}"
+  }
+
+  // Log type
+  rule {
+    target_label = "log_type"
+    replacement  = "application"
+  }
+}
+
+// Scrape docker container logs
+loki.source.docker "containers" {
+  host       = "unix:///var/run/docker.sock"
+  targets    = discovery.relabel.docker_containers.output
+  forward_to = [loki.process.docker_logs.receiver]
+}
+
+// Process docker logs
+loki.process "docker_logs" {
+  forward_to = [loki.write.central_loki.receiver]
+
+  // Drop noisy Traefik 2xx/3xx access logs to reduce storage
+  stage.match {
+    selector = "{service_name=\"traefik\"}"
+    
+    stage.json {
+      expressions = {
+        status = "status",
+      }
+    }
+
+    stage.match {
+      selector = "{service_name=\"traefik\"} |~ \"status.*[23][0-9][0-9]\""
+      action   = "drop"
+      drop_counter_reason = "traefik_success_logs"
+    }
+  }
+
+  // Drop high-cardinality labels
+  stage.label_drop {
+    values = ["container_id", "image_id", "stream", "compose_config_sha"]
+  }
+}
+
+// System log file discovery
+local.file_match "system_logs" {
+  path_targets = [
+    {
+      __path__    = "/var/log/syslog",
+      log_type    = "system",
+      server_name = "{{ server_name }}",
+      environment = "{{ environment_type }}",
+    },
+    {
+      __path__    = "/var/log/auth.log",
+      log_type    = "auth",
+      server_name = "{{ server_name }}",
+      environment = "{{ environment_type }}",
+    },
+  ]
+}
+
+// Scrape system log files
+loki.source.file "system_logs" {
+  targets    = local.file_match.system_logs.targets
+  forward_to = [loki.process.system_logs.receiver]
+}
+
+// Process system logs
+loki.process "system_logs" {
+  forward_to = [loki.write.central_loki.receiver]
+
+  // Parse syslog format
+  stage.regex {
+    expression = "^(?P<ts>\\w{3}\\s+\\d{1,2}\\s+\\d{2}:\\d{2}:\\d{2})\\s+(?P<host>\\S+)\\s+(?P<service>[^:\\[]+)"
+  }
+
+  stage.labels {
+    values = {
+      service = "",
+    }
+  }
+}

@@ -1,0 +1,372 @@
+---
+- name: Set deployment user for Wazuh files
+  ansible.builtin.set_fact:
+    wazuh_file_owner: "{{ ansible_facts.user | default(ansible_facts.user_id | default('ubuntu')) }}"
+    wazuh_file_group: "{{ ansible_facts.user | default(ansible_facts.user_id | default('ubuntu')) }}"
+
+- name: Set vm.max_map_count for OpenSearch
+  ansible.builtin.sysctl:
+    name: vm.max_map_count
+    value: '262144'
+    state: present
+    reload: true
+
+- name: Ensure Wazuh directory exists
+  ansible.builtin.file:
+    path: "{{ wazuh_compose_path }}"
+    state: directory
+    owner: "{{ wazuh_file_owner }}"
+    group: "{{ wazuh_file_group }}"
+    mode: '0755'
+
+- name: Check if wazuh-docker repo already exists
+  ansible.builtin.stat:
+    path: "{{ wazuh_compose_path }}/wazuh-docker"
+  register: wazuh_docker_repo
+
+- name: Clone wazuh-docker repository
+  ansible.builtin.git:
+    repo: 'https://github.com/wazuh/wazuh-docker.git'
+    dest: "{{ wazuh_compose_path }}/wazuh-docker"
+    version: 'v{{ wazuh_version }}'
+    force: yes
+  when: not wazuh_docker_repo.stat.exists or (wazuh_regenerate_certs | default(false) | bool)
+  register: git_clone_result
+
+- name: Check available branches/tags in wazuh-docker
+  ansible.builtin.command:
+    cmd: git tag -l
+    chdir: "{{ wazuh_compose_path }}/wazuh-docker"
+  register: git_tags
+  changed_when: false
+  when: git_clone_result.changed
+
+- name: Ensure config directory structure exists
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    owner: "{{ wazuh_file_owner }}"
+    group: "{{ wazuh_file_group }}"
+    mode: '0755'
+  loop:
+    - "{{ wazuh_compose_path }}/config"
+    - "{{ wazuh_compose_path }}/config/wazuh_indexer_ssl_certs"
+    - "{{ wazuh_compose_path }}/config/wazuh_indexer"
+    - "{{ wazuh_compose_path }}/config/wazuh_dashboard"
+    - "{{ wazuh_compose_path }}/config/wazuh_cluster"
+
+- name: Check if certificates already exist
+  ansible.builtin.stat:
+    path: "{{ wazuh_compose_path }}/config/wazuh_indexer_ssl_certs/root-ca.pem"
+  register: certs_exist
+
+- name: Render certs.yml configuration for certificate generator
+  ansible.builtin.template:
+    src: certs.yml.j2
+    dest: "{{ wazuh_compose_path }}/config/certs.yml"
+    owner: "{{ wazuh_file_owner }}"
+    group: "{{ wazuh_file_group }}"
+    mode: '0644'
+  when: not certs_exist.stat.exists or (wazuh_regenerate_certs | default(false) | bool)
+
+- name: Create certificate generator compose file
+  ansible.builtin.copy:
+    content: |
+      # Wazuh App Copyright (C) 2017, Wazuh Inc. (License GPLv2)
+      services:
+        generator:
+          image: wazuh/wazuh-certs-generator:{{ wazuh_certs_generator_version }}
+          hostname: wazuh-certs-generator
+          environment:
+            - CERT_TOOL_VERSION={{ wazuh_cert_tool_version }}
+          volumes:
+            - {{ wazuh_compose_path }}/config/wazuh_indexer_ssl_certs/:/certificates/
+            - {{ wazuh_compose_path }}/config/certs.yml:/config/certs.yml
+    dest: "{{ wazuh_compose_path }}/generate-certs-compose.yml"
+    owner: "{{ wazuh_file_owner }}"
+    group: "{{ wazuh_file_group }}"
+    mode: '0644'
+  when: not certs_exist.stat.exists or (wazuh_regenerate_certs | default(false) | bool)
+
+- name: Generate Wazuh certificates using official generator
+  community.docker.docker_compose_v2:
+    project_src: "{{ wazuh_compose_path }}"
+    project_name: wazuh-certs
+    files:
+      - generate-certs-compose.yml
+    state: present
+  when: not certs_exist.stat.exists or (wazuh_regenerate_certs | default(false) | bool)
+  register: cert_generation
+
+- name: Wait for certificate generation to complete
+  ansible.builtin.wait_for:
+    path: "{{ wazuh_compose_path }}/config/wazuh_indexer_ssl_certs/root-ca.pem"
+    state: present
+    timeout: 120
+  when: cert_generation.changed
+
+- name: Remove certificate generator stack
+  community.docker.docker_compose_v2:
+    project_src: "{{ wazuh_compose_path }}"
+    project_name: wazuh-certs
+    files:
+      - generate-certs-compose.yml
+    state: absent
+  when: cert_generation.changed
+
+- name: Set proper ownership for generated certificates
+  ansible.builtin.file:
+    path: "{{ wazuh_compose_path }}/config/wazuh_indexer_ssl_certs"
+    owner: "{{ wazuh_file_owner }}"
+    group: "{{ wazuh_file_group }}"
+    recurse: true
+
+- name: Check if wazuh-docker config directory exists
+  ansible.builtin.stat:
+    path: "{{ wazuh_compose_path }}/wazuh-docker/single-node/config"
+  register: wazuh_docker_config
+
+- name: List contents of wazuh-docker config directory
+  ansible.builtin.find:
+    paths: "{{ wazuh_compose_path }}/wazuh-docker/single-node/config"
+    recurse: yes
+    file_type: file
+  register: wazuh_docker_files
+  when: wazuh_docker_config.stat.exists
+
+- name: Debug available config files in wazuh-docker repo
+  ansible.builtin.debug:
+    msg: "Found files: {{ wazuh_docker_files.files | map(attribute='path') | list }}"
+  when: wazuh_docker_config.stat.exists
+
+- name: Synchronize entire config directory from wazuh-docker repo
+  ansible.posix.synchronize:
+    src: "{{ wazuh_compose_path }}/wazuh-docker/single-node/config/"
+    dest: "{{ wazuh_compose_path }}/config/"
+    delete: no
+    recursive: yes
+    owner: no
+    group: no
+    rsync_opts:
+      - "--exclude=wazuh_dashboard/wazuh.yml"
+      - "--exclude=wazuh_dashboard/opensearch_dashboards.yml"
+  delegate_to: "{{ inventory_hostname }}"
+  when: wazuh_docker_config.stat.exists
+
+- name: Fix ownership of synced config files
+  ansible.builtin.file:
+    path: "{{ wazuh_compose_path }}/config"
+    owner: "{{ wazuh_file_owner }}"
+    group: "{{ wazuh_file_group }}"
+    recurse: yes
+  when: wazuh_docker_config.stat.exists
+
+- name: Deploy OpenSearch Dashboards configuration
+  ansible.builtin.template:
+    src: opensearch_dashboards.yml.j2
+    dest: "{{ wazuh_compose_path }}/config/wazuh_dashboard/opensearch_dashboards.yml"
+    owner: "{{ wazuh_file_owner }}"
+    group: "{{ wazuh_file_group }}"
+    mode: '0644'
+
+- name: Deploy Wazuh Dashboard API configuration
+  ansible.builtin.template:
+    src: wazuh.yml.j2
+    dest: "{{ wazuh_compose_path }}/config/wazuh_dashboard/wazuh.yml"
+    owner: "{{ wazuh_file_owner }}"
+    group: "{{ wazuh_file_group }}"
+    mode: '0644'
+
+- name: Deploy internal users configuration
+  ansible.builtin.template:
+    src: internal_users.yml.j2
+    dest: "{{ wazuh_compose_path }}/config/wazuh_indexer/internal_users.yml"
+    owner: "{{ wazuh_file_owner }}"
+    group: "{{ wazuh_file_group }}"
+    mode: '0644'
+  register: internal_users_config
+
+- name: Deploy OpenSearch security configuration (SAML SSO)
+  ansible.builtin.template:
+    src: security_config.yml.j2
+    dest: "{{ wazuh_compose_path }}/config/wazuh_indexer/config.yml"
+    owner: "{{ wazuh_file_owner }}"
+    group: "{{ wazuh_file_group }}"
+    mode: '0644'
+  register: security_config
+
+- name: Deploy OpenSearch roles mapping configuration
+  ansible.builtin.template:
+    src: roles_mapping.yml.j2
+    dest: "{{ wazuh_compose_path }}/config/wazuh_indexer/roles_mapping.yml"
+    owner: "{{ wazuh_file_owner }}"
+    group: "{{ wazuh_file_group }}"
+    mode: '0644'
+  register: roles_mapping_config
+
+- name: Apply security configuration changes
+  community.docker.docker_container_exec:
+    container: wazuh.indexer
+    command: >-
+      bash -c "export JAVA_HOME=/usr/share/wazuh-indexer/jdk && 
+      /usr/share/wazuh-indexer/plugins/opensearch-security/tools/securityadmin.sh 
+      -cd /usr/share/wazuh-indexer/config/opensearch-security/ 
+      -nhnv 
+      -cacert /usr/share/wazuh-indexer/config/certs/root-ca.pem 
+      -cert /usr/share/wazuh-indexer/config/certs/admin.pem 
+      -key /usr/share/wazuh-indexer/config/certs/admin-key.pem"
+  when: (internal_users_config.changed or security_config.changed or roles_mapping_config.changed) and wazuh_compose.changed is not defined
+  ignore_errors: true # Best effort, might fail if container is not healthy yet
+
+- name: Verify all config files exist before deployment
+  ansible.builtin.stat:
+    path: "{{ wazuh_compose_path }}/config/{{ item }}"
+  loop:
+    - wazuh_indexer/wazuh.indexer.yml
+    - wazuh_indexer/internal_users.yml
+    - wazuh_indexer/config.yml
+    - wazuh_indexer/roles_mapping.yml
+    - wazuh_dashboard/opensearch_dashboards.yml
+    - wazuh_dashboard/wazuh.yml
+  register: config_files_check
+
+- name: Check that all required config files are present
+  ansible.builtin.assert:
+    that:
+      - item.stat.exists
+      - item.stat.isreg
+    fail_msg: "Config file {{ item.item }} does not exist or is not a regular file"
+    success_msg: "All config files verified"
+  loop: "{{ config_files_check.results }}"
+  loop_control:
+    label: "{{ item.item }}"
+
+- name: Render Docker Compose project
+  ansible.builtin.template:
+    src: docker-compose.yml.j2
+    dest: "{{ wazuh_compose_path }}/docker-compose.yml"
+    owner: "{{ wazuh_file_owner }}"
+    group: "{{ wazuh_file_group }}"
+    mode: '0644'
+
+- name: Render Wazuh environment configuration
+  ansible.builtin.template:
+    src: wazuh.env.j2
+    dest: "{{ wazuh_compose_path }}/.env"
+    owner: "{{ wazuh_file_owner }}"
+    group: "{{ wazuh_file_group }}"
+    mode: '0640'
+
+- name: Ensure .env file has correct ownership for docker compose
+  ansible.builtin.file:
+    path: "{{ wazuh_compose_path }}/.env"
+    owner: "{{ wazuh_file_owner }}"
+    group: "{{ wazuh_file_group }}"
+    mode: '0640'
+
+- name: Pull Wazuh container images
+  community.docker.docker_image:
+    name: "{{ item }}"
+    source: pull
+  loop:
+    - "wazuh/wazuh-manager:{{ wazuh_version }}"
+    - "wazuh/wazuh-indexer:{{ wazuh_version }}"
+    - "wazuh/wazuh-dashboard:{{ wazuh_version }}"
+
+- name: Ensure Wazuh compose stack is running
+  community.docker.docker_compose_v2:
+    project_src: "{{ wazuh_compose_path }}"
+    state: present
+  register: wazuh_compose
+
+- name: Recreate Wazuh services when artifacts change
+  community.docker.docker_compose_v2:
+    project_src: "{{ wazuh_compose_path }}"
+    services:
+      - wazuh.indexer
+      - wazuh.manager
+      - wazuh.dashboard
+    state: present
+    recreate: always
+  when: wazuh_compose.changed
+
+- name: Wait for Wazuh Manager API to become available
+  ansible.builtin.wait_for:
+    port: 55000
+    host: 127.0.0.1
+    delay: 30
+    timeout: 300
+
+- name: Wait for Wazuh Indexer HTTP endpoint
+  ansible.builtin.uri:
+    url: "https://127.0.0.1:9200"
+    mode: https
+    validate_certs: false
+    method: GET
+    status_code: [200, 401, 403]
+  register: indexer_health
+  retries: 12
+  delay: 10
+  until: indexer_health is succeeded
+
+- name: Apply security configuration after indexer is healthy
+  community.docker.docker_container_exec:
+    container: wazuh.indexer
+    command: >-
+      bash -c "export JAVA_HOME=/usr/share/wazuh-indexer/jdk && 
+      /usr/share/wazuh-indexer/plugins/opensearch-security/tools/securityadmin.sh 
+      -cd /usr/share/wazuh-indexer/config/opensearch-security/ 
+      -nhnv 
+      -cacert /usr/share/wazuh-indexer/config/certs/root-ca.pem 
+      -cert /usr/share/wazuh-indexer/config/certs/admin.pem 
+      -key /usr/share/wazuh-indexer/config/certs/admin-key.pem"
+  when: security_config.changed or roles_mapping_config.changed or internal_users_config.changed
+  register: securityadmin_result
+
+- name: Display securityadmin result
+  ansible.builtin.debug:
+    msg: "Security configuration applied: {{ securityadmin_result.stdout | default('No output') }}"
+  when: securityadmin_result is defined and securityadmin_result.changed
+
+- name: Configure firewall rules for Wazuh agents
+  ansible.builtin.ufw:
+    rule: allow
+    port: "{{ item }}"
+    proto: tcp
+    comment: "Wazuh agent {{ item }}"
+  loop:
+    - "1514"
+    - "1515"
+  when: not (is_dev | default(false) | bool)
+
+- name: Configure firewall for Syslog
+  ansible.builtin.ufw:
+    rule: allow
+    port: "514"
+    proto: udp
+    comment: "Wazuh Syslog"
+  when: not (is_dev | default(false) | bool)
+
+- name: Check Wazuh Manager health endpoint
+  ansible.builtin.uri:
+    url: "https://127.0.0.1:55000"
+    mode: https
+    validate_certs: false
+    method: GET
+    status_code: 401
+  register: wazuh_health
+  retries: 5
+  delay: 10
+
+- name: Display Wazuh access information
+  ansible.builtin.debug:
+    msg: |
+      Wazuh has been deployed successfully!
+
+      Dashboard URL: https://wazuh.{{ wazuh_domain }}
+      API URL: https://wazuh-api.{{ wazuh_domain }}
+
+      Default credentials are stored in Scaleway Secrets.
+
+      Agent enrollment port: {{ ansible_host }}:1515
+      Agent communication port: {{ ansible_host }}:1514

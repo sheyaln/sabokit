@@ -1,0 +1,21 @@
+---
+# Wazuh Agent Container
+# Uses official wazuh/wazuh-agent image with auto-enrollment via environment variables
+# Ref: https://documentation.wazuh.com/current/deployment-options/docker/wazuh-container.html
+services:
+  wazuh-agent:
+    image: wazuh/wazuh-agent:{{ wazuh_version }}
+    container_name: wazuh-agent
+    restart: always
+    hostname: {{ wazuh_agent_name }}
+    environment:
+      # WAZUH_MANAGER_SERVER is the official env var per Wazuh documentation
+      - WAZUH_MANAGER_SERVER={{ wazuh_manager_ip }}
+    # Host network required to reach manager on private network
+    network_mode: host
+    volumes:
+      # Log access (read-only) - agent monitors these directly
+      - /var/log:/var/log:ro
+    labels:
+      # Disable watchtower auto-update - Wazuh versions should be managed explicitly
+      - "com.centurylinklabs.watchtower.enable=false"

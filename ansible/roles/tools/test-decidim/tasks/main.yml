@@ -1,0 +1,131 @@
+---
+- name: Ensure Test Decidim directory
+  ansible.builtin.file:
+    path: /opt/test-decidim
+    state: directory
+    mode: '0755'
+    owner: ubuntu
+    group: ubuntu
+
+- name: Ensure Test Decidim config directory for custom Gemfile
+  ansible.builtin.file:
+    path: /opt/test-decidim/config
+    state: directory
+    mode: '0755'
+    owner: ubuntu
+    group: ubuntu
+
+- name: Ensure Test Decidim initializers directory
+  ansible.builtin.file:
+    path: /opt/test-decidim/config/initializers
+    state: directory
+    mode: '0755'
+    owner: ubuntu
+    group: ubuntu
+
+- name: Deploy Test Decidim docker-compose file
+  ansible.builtin.template:
+    src: docker-compose.yml.j2
+    dest: /opt/test-decidim/docker-compose.yml
+    mode: '0644'
+    owner: ubuntu
+    group: ubuntu
+
+- name: Render Test Decidim environment file
+  ansible.builtin.template:
+    src: env.j2
+    dest: /opt/test-decidim/.env
+    mode: '0600'
+    owner: ubuntu
+    group: ubuntu
+
+- name: Copy Gemfile append file for custom modules
+  ansible.builtin.copy:
+    src: Gemfile.append
+    dest: /opt/test-decidim/config/Gemfile.append
+    mode: '0644'
+    owner: ubuntu
+    group: ubuntu
+
+- name: Render module initializers
+  ansible.builtin.template:
+    src: "{{ item }}"
+    dest: "/opt/test-decidim/config/initializers/{{ item | basename | regex_replace('\\.j2$', '') }}"
+    mode: '0644'
+    owner: ubuntu
+    group: ubuntu
+  with_fileglob:
+    - ../templates/initializers/*.rb.j2
+
+- name: Copy configure-decidim-modules.sh script
+  ansible.builtin.copy:
+    src: configure-decidim-modules.sh
+    dest: /usr/local/bin/configure-test-decidim-modules.sh
+    mode: '0755'
+    owner: ubuntu
+    group: ubuntu
+
+- name: Check for existing Test Decidim stack
+  community.docker.docker_container_info:
+    name: test-decidim-app
+  register: test_decidim_app_container
+  ignore_errors: true
+
+- name: Shut down existing Test Decidim stack
+  community.docker.docker_compose_v2:
+    project_src: /opt/test-decidim
+    state: absent
+  when: test_decidim_app_container.exists | default(false)
+
+- name: Clean up Test Decidim orphan containers
+  community.docker.docker_compose_v2:
+    project_src: /opt/test-decidim
+    state: absent
+    remove_orphans: true
+  when: test_decidim_app_container.exists | default(false)
+
+- name: Remove initialization marker if force init is requested
+  ansible.builtin.command:
+    cmd: docker volume rm test-decidim_init-marker
+  ignore_errors: true
+  when: decidim_force_db_init | default(false)
+
+- name: Run Test Decidim database initialization
+  community.docker.docker_compose_v2:
+    project_src: /opt/test-decidim
+    services:
+      - db-init
+    state: present
+  register: test_decidim_init_result
+
+- name: Wait for database initialization to complete
+  ansible.builtin.pause:
+    seconds: 5
+  when: test_decidim_init_result.changed
+
+- name: Ensure Test Decidim containers are running
+  community.docker.docker_compose_v2:
+    project_src: /opt/test-decidim
+    state: present
+
+- name: Wait for Test Decidim app container to be ready
+  ansible.builtin.wait_for:
+    timeout: 30
+  delegate_to: localhost
+
+- name: Configure Test Decidim modules
+  ansible.builtin.command:
+    cmd: /usr/local/bin/configure-test-decidim-modules.sh
+  register: configure_modules_result
+  ignore_errors: true
+
+- name: Display module configuration result
+  ansible.builtin.debug:
+    var: configure_modules_result.stdout_lines
+  when: configure_modules_result.stdout_lines is defined
+
+- name: Display module configuration errors (if any)
+  ansible.builtin.debug:
+    var: configure_modules_result.stderr_lines
+  when: configure_modules_result.stderr_lines is defined and configure_modules_result.failed
+

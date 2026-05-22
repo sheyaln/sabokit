@@ -1,0 +1,18 @@
+# UFW custom rules for the management server.
+# Loaded by the core security play to open Wazuh Manager ports.
+# Kept separate from app group-vars to avoid pulling in secret lookups.
+
+ufw_custom_rules:
+  # Wazuh Manager
+  - rule: allow
+    port: "1514"
+    proto: tcp
+    comment: "Wazuh agent communication"
+  - rule: allow
+    port: "1515"
+    proto: tcp
+    comment: "Wazuh agent enrollment"
+  - rule: allow
+    port: "514"
+    proto: udp
+    comment: "Wazuh syslog"

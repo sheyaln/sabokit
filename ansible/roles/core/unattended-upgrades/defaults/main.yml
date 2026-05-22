@@ -1,0 +1,41 @@
+---
+# Unattended Upgrades Configuration
+# Override these values as needed for your environment
+
+# Email Configuration
+unattended_upgrades_email_enabled: true
+unattended_upgrades_mail_to: "{{ infra_email }}"
+unattended_upgrades_mail_from: "unattended-upgrades@{{ tools_domain }}"
+unattended_upgrades_mail_report: "on-change"  # "always", "only-on-error", "on-change"
+
+# Automatic reboot settings
+unattended_upgrades_automatic_reboot: false
+unattended_upgrades_automatic_reboot_time: "02:00"
+unattended_upgrades_automatic_reboot_with_users: false
+
+# Update origins (repositories to automatically update from)
+unattended_upgrades_origins:
+  - "origin=Ubuntu,archive=${distro_codename}-security,label=Ubuntu"
+  - "origin=Ubuntu,archive=${distro_codename}-updates,label=Ubuntu"
+
+# Package blacklist (packages to never automatically update)
+unattended_upgrades_package_blacklist: []
+
+# Additional options
+unattended_upgrades_remove_unused_dependencies: false
+unattended_upgrades_remove_unused_kernel_packages: false
+unattended_upgrades_remove_new_unused_dependencies: true
+unattended_upgrades_keep_debs_after_install: false
+
+# Bandwidth limit (in kb/s, 0 = unlimited)
+unattended_upgrades_download_limit: 0
+
+# Timing settings
+unattended_upgrades_update_package_lists: true
+unattended_upgrades_auto_fix_interrupted_dpkg: true
+unattended_upgrades_minimal_steps: true
+unattended_upgrades_install_on_shutdown: false
+
+# Logging
+unattended_upgrades_syslog_enable: false
+unattended_upgrades_syslog_facility: "daemon"

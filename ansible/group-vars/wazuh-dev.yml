@@ -1,0 +1,48 @@
+---
+# Wazuh Dev Configuration
+#
+# Replaces Scaleway Secret Manager lookups with env vars / local defaults.
+# Use for localhost development only.
+
+# Domain and connectivity
+wazuh_domain: "localhost"
+wazuh_manager_ip: "127.0.0.1"
+
+# Credentials (env vars with dev defaults)
+wazuh_indexer_password: "{{ lookup('env', 'WAZUH_INDEXER_PASSWORD') | default('dev-indexer-password', true) }}"
+wazuh_api_password: "{{ lookup('env', 'WAZUH_API_PASSWORD') | default('dev-api-password', true) }}"
+wazuh_dashboard_password: "{{ lookup('env', 'WAZUH_DASHBOARD_PASSWORD') | default('dev-dashboard-password', true) }}"
+
+# Agent configuration
+wazuh_agent_groups: "default,linux,docker"
+wazuh_enable_auditd: false
+
+# Email alerts
+admin_email: "dev@localhost"
+
+# Log retention
+wazuh_log_retention_days: 7
+wazuh_alert_retention_days: 14
+
+# Performance tuning (lower for dev)
+wazuh_indexer_heap_size: "512m"
+wazuh_manager_memory_limit: "1g"
+
+# Certificate SANs (localhost only)
+wazuh_certificate_dns_sans:
+  - "wazuh-indexer"
+  - "wazuh-manager"
+  - "wazuh-dashboard"
+  - "localhost"
+
+wazuh_certificate_ip_sans:
+  - "127.0.0.1"
+
+# Security settings
+wazuh_enable_vulnerability_detector: true
+wazuh_enable_security_configuration_assessment: false
+wazuh_enable_file_integrity_monitoring: true
+
+# Custom rules and decoders paths
+wazuh_custom_rules_path: "/var/ossec/etc/rules"
+wazuh_custom_decoders_path: "/var/ossec/etc/decoders"

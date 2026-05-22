@@ -1,0 +1,22 @@
+---
+# Wazuh Agent Role Defaults
+#
+# This role deploys the official Wazuh agent Docker container.
+# The agent auto-enrolls with the manager using WAZUH_MANAGER_SERVER env var.
+#
+# Required variables (from group-vars/wazuh.yml):
+#   - wazuh_manager_ip: Private IP of the Wazuh manager (from Scaleway Secret Manager)
+#
+# Optional variables:
+#   - wazuh_enable_auditd: Enable auditd rules (default: false, can cause instability)
+
+# Wazuh version - should match the manager version in management/wazuh role
+wazuh_version: "4.14.2"
+
+# Deployment paths
+wazuh_agent_base_path: "/opt/wazuh-agent"
+wazuh_agent_compose_file: "{{ wazuh_agent_base_path }}/docker-compose.yml"
+
+# File ownership - defaults to the ansible user
+wazuh_agent_file_owner: "{{ ansible_facts.user | default(ansible_facts.user_id | default('ubuntu')) }}"
+wazuh_agent_file_group: "{{ ansible_facts.user | default(ansible_facts.user_id | default('ubuntu')) }}"

@@ -1,0 +1,16 @@
+#!/bin/bash
+set -e
+
+# Copy SSH keys from mounted volume and fix permissions
+if [ -d "/ssh-keys" ]; then
+    cp -f /ssh-keys/* /root/.ssh/ 2>/dev/null || true
+    chmod 700 /root/.ssh
+    chmod 600 /root/.ssh/* 2>/dev/null || true
+fi
+
+# Execute the main command
+exec "$@"
+
+
+
+

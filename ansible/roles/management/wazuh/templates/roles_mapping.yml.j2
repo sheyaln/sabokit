@@ -1,0 +1,46 @@
+# OpenSearch Security Role Mappings for Wazuh
+# Maps backend roles (from SAML assertions) to OpenSearch security roles
+---
+_meta:
+  type: "rolesmapping"
+  config_version: 2
+
+# Full admin access - maps to Authentik admin group
+all_access:
+  reserved: false
+  hidden: false
+  backend_roles:
+    - "admin"
+{% if wazuh_sso_enabled | default(true) %}
+  description: "Maps admin group from SAML to full Wazuh access"
+{% endif %}
+
+# Kibana server user - internal service account
+kibana_server:
+  reserved: true
+  hidden: false
+  users:
+    - "kibanaserver"
+
+# Read-only access for delegates (optional, can view but not modify)
+readall:
+  reserved: false
+  hidden: false
+  backend_roles:
+    - "union-delegate"
+  description: "Read-only access for delegates"
+
+# Kibana read-only role
+kibana_read_only:
+  reserved: false
+  hidden: false
+  backend_roles:
+    - "union-delegate"
+
+# Own index access (users can only see their own data)
+own_index:
+  reserved: false
+  hidden: false
+  users:
+    - "*"
+  description: "Allow users to access their own indices"

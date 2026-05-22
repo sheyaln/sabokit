@@ -1,0 +1,199 @@
+---
+# ============================================
+# SYSTEM MAINTENANCE & SECURITY
+# ============================================
+
+- name: Configure Tools host - System Updates
+  hosts: tools-prod
+  tags: 
+    - core
+    - system-updates
+  become: true
+  vars_files:
+    - group-vars/all.yml
+    - group-vars/core.yml
+    - group-vars/unattended-upgrades.yml
+  roles:
+    - core/unattended-upgrades
+
+- name: Configure Tools host - Log Management
+  hosts: tools-prod
+  tags:
+    - core
+    - log-management
+  become: true
+  vars_files:
+    - group-vars/all.yml
+    - group-vars/core.yml
+  roles:
+    - core/log-management
+
+- name: Configure Tools host - Security & Firewall
+  hosts: tools-prod
+  tags: 
+    - core
+    - security
+  become: true
+  vars_files:
+    - group-vars/all.yml
+    - group-vars/core.yml
+    - group-vars/tools-ufw.yml
+    - group-vars/wazuh.yml
+  roles:
+    - core/fail2ban
+    - core/ufw
+
+- name: Configure Tools host - Core Configuration - Traefik
+  hosts: tools-prod
+  tags: traefik
+  become: true
+  vars_files:
+    - group-vars/all.yml
+    - group-vars/traefik.yml
+  roles:
+    - core/traefik
+
+# ============================================
+# INFRASTRUCTURE SERVICES
+# ============================================
+
+- name: Configure Tools host - Docker Runtime
+  hosts: tools-prod
+  tags: 
+    - core
+    - docker
+  become: true
+  vars_files:
+    - group-vars/all.yml
+    - group-vars/core.yml
+  roles:
+    - core/docker
+
+- name: Configure Tools host - Wobbler SSH Access
+  hosts: tools-prod
+  tags:
+    - core
+    - wobbler-access
+  become: true
+  vars_files:
+    - group-vars/all.yml
+  roles:
+    - core/wobbler-access
+
+- name: Configure Tools host - Backrest Backup Access
+  hosts: tools-prod
+  tags:
+    - core
+    - backrest-access
+  become: true
+  vars_files:
+    - group-vars/all.yml
+  roles:
+    - core/backrest-access
+
+# ============================================
+# MONITORING
+# ============================================
+
+- name: Deploy Monitoring Exporters on Tools host
+  hosts: tools-prod
+  tags: 
+    - monitoring
+    - monitoring-exporters
+  become: true
+  vars_files:
+    - group-vars/all.yml
+    - group-vars/monitoring.yml
+  roles:
+    - monitoring/exporters
+
+- name: Configure Tools host - Container Auto-Update & Auto-Heal
+  hosts: tools-prod
+  tags: 
+    - monitoring
+    - autoupdate
+    - autoheal
+  become: true
+  vars_files:
+    - group-vars/all.yml
+    - group-vars/monitoring-autoupdate.yml
+  roles:
+    - core/monitoring-autoupdate
+
+# ============================================
+# EMAIL INFRASTRUCTURE
+# ============================================
+
+- name: Configure Tools host - Proton Mail Bridge
+  hosts: tools-prod
+  tags: protonmail-bridge
+  become: true
+  vars_files:
+    - group-vars/all.yml
+    - group-vars/protonmail-bridge.yml
+  roles:
+    - management/protonmail-bridge
+
+# ============================================
+# APPLICATIONS
+# ============================================
+
+- name: Configure Tools host - Privacy Policy
+  hosts: tools-prod
+  tags: privacy-policy
+  become: true
+  vars_files:
+    - group-vars/all.yml
+  roles:
+    - tools/privacy-policy
+
+- name: Configure Tools host - EspoCRM
+  hosts: tools-prod
+  tags: espocrm
+  become: true
+  vars_files:
+    - group-vars/all.yml
+    - group-vars/espocrm.yml
+  roles:
+    - tools/espocrm
+
+- name: Configure Tools host - Outline
+  hosts: tools-prod
+  tags: outline
+  become: true
+  vars_files:
+    - group-vars/all.yml
+    - group-vars/outline.yml
+  roles:
+    - tools/outline
+
+- name: Configure Tools host - Nextcloud Suite (Nextcloud + OnlyOffice Document Server)
+  hosts: tools-prod
+  tags: nextcloud-suite
+  become: true
+  vars_files:
+    - group-vars/all.yml
+    - group-vars/nextcloud-suite.yml
+  roles:
+    - tools/nextcloud-suite
+
+- name: Configure Tools host - Vikunja
+  hosts: tools-prod
+  tags: vikunja
+  become: true
+  vars_files:
+    - group-vars/all.yml
+    - group-vars/vikunja.yml
+  roles:
+    - tools/vikunja
+
+- name: Deploy Security Services - Wazuh Agent
+  hosts: tools-prod
+  tags: wazuh-agent
+  become: true
+  vars_files:
+    - group-vars/all.yml
+    - group-vars/wazuh.yml
+  roles:
+    - core/wazuh-agent
+

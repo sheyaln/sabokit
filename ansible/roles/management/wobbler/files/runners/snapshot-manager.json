@@ -1,0 +1,46 @@
+{
+  "name": "Scaleway Snapshot Manager",
+  "script_path": "/app/conf/scripts/snapshot-manager.py",
+  "description": "Creates disk snapshots for Scaleway servers and manages retention (3-day rolling backup)",
+  "allowed_users": ["@admins"],
+  "scheduling": {
+    "enabled": true
+  },
+  "access": {
+    "shared_access": {
+      "type": "ALL_USERS"
+    }
+  },
+  "parameters": [
+    {
+      "name": "Action",
+      "param": "--action",
+      "type": "list",
+      "default": "backup",
+      "description": "Action to perform",
+      "values": ["backup", "list", "cleanup"]
+    },
+    {
+      "name": "Servers",
+      "param": "--server",
+      "description": "Target specific servers (comma-separated). Leave empty for all servers.",
+      "required": false
+    },
+    {
+      "name": "Retention",
+      "param": "--retention",
+      "type": "int",
+      "default": "3",
+      "min": "1",
+      "max": "30",
+      "description": "Number of snapshots to keep per server"
+    },
+    {
+      "name": "Dry Run",
+      "param": "--dry-run",
+      "no_value": true,
+      "description": "Preview changes without executing"
+    }
+  ]
+}
+

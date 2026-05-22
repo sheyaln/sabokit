@@ -1,0 +1,19 @@
+---
+# Deploy Wobbler service account SSH public key
+# This allows Wobbler to SSH into this server for maintenance tasks
+
+- name: Ensure .ssh directory exists
+  ansible.builtin.file:
+    path: /home/ubuntu/.ssh
+    state: directory
+    mode: '0700'
+    owner: ubuntu
+    group: ubuntu
+
+- name: Add Wobbler public key to authorized_keys
+  ansible.posix.authorized_key:
+    user: ubuntu
+    state: present
+    key: "{{ wobbler_ssh_public_key }}"
+    comment: "wobbler-service@{{ management_domain }}"
+

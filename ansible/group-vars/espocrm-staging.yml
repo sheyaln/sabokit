@@ -1,0 +1,13 @@
+# EspoCRM Configuration (Staging)
+# Uses local PostgreSQL container
+
+# ── Local PostgreSQL credentials ──
+ESPO_DB_NAME: "{{ staging_app_databases.espocrm.dbname }}"
+ESPO_DB_USER: "{{ staging_app_databases.espocrm.username }}"
+ESPO_DB_PASS: "{{ staging_app_databases.espocrm.password }}"
+ESPO_DB_HOST: "{{ local_postgres_host }}"
+ESPO_DB_PORT: "{{ local_postgres_port }}"
+
+# ── EspoCRM Admin Configuration ──
+ESPO_ADMIN_USER: "{{ infra_email }}"
+ESPO_ADMIN_PASSWORD: "staging-admin-password"

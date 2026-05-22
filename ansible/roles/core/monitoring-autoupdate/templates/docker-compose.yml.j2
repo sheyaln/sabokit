@@ -1,0 +1,103 @@
+---
+services:
+  # Watchtower - Automatic Docker container updates
+  watchtower:
+    image: containrrr/watchtower:latest
+    container_name: watchtower
+    restart: unless-stopped
+    environment:
+      # Scheduling - Run every day at 3 AM
+      - WATCHTOWER_SCHEDULE=0 0 3 * * *
+      - WATCHTOWER_CLEANUP=true
+      - WATCHTOWER_INCLUDE_RESTARTING=true
+      - WATCHTOWER_INCLUDE_STOPPED=false
+      - WATCHTOWER_ROLLING_RESTART=true
+      - WATCHTOWER_TIMEOUT=180s
+      - WATCHTOWER_LABEL_ENABLE=true
+      - WATCHTOWER_DEBUG=false
+      - WATCHTOWER_NOTIFICATIONS=shoutrrr
+      - WATCHTOWER_NOTIFICATION_URL={{ watchtower_notification_url }}
+      - WATCHTOWER_NOTIFICATION_TEMPLATE={{ watchtower_notification_template | default('') }}
+      - TZ={{ timezone | default('America/New_York') }}
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ./config:/config:ro
+    security_opt:
+      - no-new-privileges:true
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+          cpus: '0.25'
+        reservations:
+          memory: 64M
+          cpus: '0.1'
+    networks:
+      - monitoring
+    labels:
+      - "com.centurylinklabs.watchtower.enable=false"
+
+  # Autoheal - Automatic container health check and restart
+  # Only monitors containers with label autoheal=true
+  autoheal:
+    image: willfarrell/autoheal:latest
+    container_name: autoheal
+    restart: unless-stopped
+    environment:
+      - AUTOHEAL_CONTAINER_LABEL=autoheal
+      - AUTOHEAL_INTERVAL={{ autoheal_interval | default('30') }}
+      - AUTOHEAL_START_PERIOD={{ autoheal_start_period | default('120') }}
+      - AUTOHEAL_DEFAULT_STOP_TIMEOUT={{ autoheal_stop_timeout | default('10') }}
+      - DOCKER_SOCK=/var/run/docker.sock
+      - CURL_TIMEOUT={{ autoheal_curl_timeout | default('30') }}
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    security_opt:
+      - no-new-privileges:true
+    deploy:
+      resources:
+        limits:
+          memory: 128M
+          cpus: '0.1'
+        reservations:
+          memory: 32M
+          cpus: '0.05'
+    networks:
+      - monitoring
+    labels:
+      - "com.centurylinklabs.watchtower.enable=true"
+
+  # Health Monitor - Monitoring dashboard for container health
+  health-monitor:
+    image: alpine:latest
+    container_name: health-monitor
+    restart: unless-stopped
+    environment:
+      - CHECK_INTERVAL={{ health_check_interval | default('60') }}
+      - ALERT_EMAIL={{ health_alert_email | default('') }}
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ./config:/scripts:ro
+    security_opt:
+      - no-new-privileges:true
+    deploy:
+      resources:
+        limits:
+          memory: 128M
+          cpus: '0.1'
+        reservations:
+          memory: 32M
+          cpus: '0.05'
+    networks:
+      - monitoring
+    command: /bin/sh -c "apk add --no-cache docker-cli && while true; do docker ps --format 'table {{ '{{' }}.Names{{ '}}' }}\t{{ '{{' }}.Status{{ '}}' }}'; sleep ${CHECK_INTERVAL:-60}; done"
+    labels:
+      - "com.centurylinklabs.watchtower.enable=true"
+
+volumes:
+  watchtower_data:
+
+networks:
+  monitoring:
+    driver: bridge
+

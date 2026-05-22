@@ -1,0 +1,56 @@
+# OpenSearch Security Configuration for Wazuh
+# This file configures authentication backends including SAML SSO
+---
+_meta:
+  type: "config"
+  config_version: 2
+
+config:
+  dynamic:
+    http:
+      anonymous_auth_enabled: false
+      xff:
+        enabled: false
+        internalProxies: '192\.168\.0\.10|192\.168\.0\.11'
+    authc:
+      # Internal authentication (basic auth) - used for service accounts
+      basic_internal_auth_domain:
+        description: "Authenticate via HTTP Basic against internal users database"
+        http_enabled: true
+        transport_enabled: true
+        order: 0
+        http_authenticator:
+          type: "basic"
+          challenge: false
+        authentication_backend:
+          type: "intern"
+
+{% if wazuh_sso_enabled | default(true) %}
+      # SAML authentication domain for SSO
+      saml_auth_domain:
+        http_enabled: true
+        transport_enabled: false
+        order: 1
+        http_authenticator:
+          type: saml
+          challenge: true
+          config:
+            idp:
+              metadata_url: "{{ wazuh_saml_idp_metadata_url }}"
+              entity_id: "{{ wazuh_saml_idp_entity_id }}"
+            sp:
+              entity_id: "{{ wazuh_saml_sp_entity_id }}"
+            kibana_url: "https://wazuh.{{ wazuh_domain }}"
+            roles_key: "{{ wazuh_saml_roles_key }}"
+            exchange_key: "{{ wazuh_saml_exchange_key }}"
+        authentication_backend:
+          type: noop
+{% endif %}
+
+    authz:
+      roles_from_myldap:
+        description: "Authorize via LDAP or SAML roles"
+        http_enabled: false
+        transport_enabled: false
+        authorization_backend:
+          type: noop

@@ -1,0 +1,209 @@
+services:
+  # OIDC Adapter - Handles SSO authentication with Authentik
+  oidc-adapter:
+    build:
+      context: /opt/jitsi/oidc-adapter
+      dockerfile: Dockerfile
+    image: jitsi-oidc-adapter:local
+    container_name: jitsi-oidc-adapter
+    restart: unless-stopped
+    environment:
+      # OIDC Provider (Authentik)
+      OIDC_CLIENT_ID: ${JITSI_OIDC_CLIENT_ID}
+      OIDC_CLIENT_SECRET: ${JITSI_OIDC_CLIENT_SECRET}
+      OIDC_DISCOVERY_URL: https://{{ gateway_domain }}/application/o/jitsi/.well-known/openid-configuration
+      OIDC_SCOPE: "openid email profile"
+      # Jitsi configuration
+      JITSI_BASE_URL: https://meet.{{ default_domain | default(tools_domain) }}
+      JWT_APP_ID: jitsi
+      JWT_APP_SECRET: ${JITSI_JWT_APP_SECRET}
+      JWT_SUBJECT: meet.{{ default_domain | default(tools_domain) }}
+      LOG_LEVEL: INFO
+    volumes:
+      - /opt/jitsi/oidc-adapter/flask_session:/app/flask_session
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.services.jitsi-oidc.loadbalancer.server.port=8000"
+      - "traefik.http.routers.jitsi-oidc.rule=Host(`meet.{{ default_domain | default(tools_domain) }}`) && PathPrefix(`/oidc`)"
+      - "traefik.http.routers.jitsi-oidc.entrypoints=websecure"
+      - "traefik.http.routers.jitsi-oidc.tls.certresolver=le"
+      - "traefik.http.routers.jitsi-oidc.service=jitsi-oidc"
+      - "traefik.http.routers.jitsi-oidc.priority=100"
+      - "traefik.docker.network=traefik"
+    networks:
+      - traefik
+      - meet.jitsi
+
+  # Jitsi Web Frontend
+  web:
+    image: jitsi/web:stable-9823
+    container_name: jitsi-web
+    restart: unless-stopped
+    volumes:
+      - /opt/jitsi/web:/config:Z
+      - /opt/jitsi/web/crontabs:/var/spool/cron/crontabs:Z
+      - /opt/jitsi/transcripts:/usr/share/jitsi-meet/transcripts:Z
+    environment:
+      TZ: {{ defaults_timezone | default('America/New_York') }}
+      PUBLIC_URL: https://meet.{{ default_domain | default(tools_domain) }}
+      XMPP_DOMAIN: meet.jitsi
+      XMPP_MUC_DOMAIN: muc.meet.jitsi
+      XMPP_INTERNAL_MUC_DOMAIN: internal-muc.meet.jitsi
+      XMPP_AUTH_DOMAIN: auth.meet.jitsi
+      XMPP_RECORDER_DOMAIN: recorder.meet.jitsi
+      XMPP_GUEST_DOMAIN: guest.meet.jitsi
+      XMPP_BOSH_URL_BASE: http://prosody:5280
+      JICOFO_AUTH_USER: focus
+      # Enable token/JWT authentication
+      ENABLE_AUTH: 1
+      AUTH_TYPE: jwt
+      JWT_APP_ID: jitsi
+      JWT_APP_SECRET: ${JITSI_JWT_APP_SECRET}
+      JWT_ACCEPTED_ISSUERS: jitsi
+      JWT_ACCEPTED_AUDIENCES: jitsi
+      # OIDC adapter integration - redirect to adapter for token
+      TOKEN_AUTH_URL: https://meet.{{ default_domain | default(tools_domain) }}/oidc/auth?room={room}
+      # Enable moderator features
+      ENABLE_LOBBY: 1
+      ENABLE_BREAKOUT_ROOMS: 1
+      ENABLE_AV_MODERATION: 1
+      ENABLE_PREJOIN_PAGE: 1
+      # Disable some features for cleaner UI
+      ENABLE_WELCOME_PAGE: 1
+      ENABLE_CLOSE_PAGE: 1
+      # Guests configuration (guests wait for host)
+      ENABLE_GUESTS: 1
+    labels:
+      - "traefik.enable=true"
+      # Main web UI
+      - "traefik.http.services.jitsi.loadbalancer.server.port=80"
+      - "traefik.http.routers.jitsi.rule=Host(`meet.{{ default_domain | default(tools_domain) }}`)"
+      - "traefik.http.routers.jitsi.entrypoints=websecure"
+      - "traefik.http.routers.jitsi.tls.certresolver=le"
+      - "traefik.http.routers.jitsi.service=jitsi"
+      - "traefik.docker.network=traefik"
+      - "com.centurylinklabs.watchtower.enable=true"
+      - "com.centurylinklabs.watchtower.scope=production"
+    networks:
+      - traefik
+      - meet.jitsi
+    depends_on:
+      - prosody
+
+  # Prosody XMPP Server
+  prosody:
+    image: jitsi/prosody:stable-9823
+    container_name: jitsi-prosody
+    restart: unless-stopped
+    expose:
+      - "5222"
+      - "5269"
+      - "5347"
+      - "5280"
+    volumes:
+      - /opt/jitsi/prosody/config:/config:Z
+      - /opt/jitsi/prosody/prosody-plugins-custom:/prosody-plugins-custom:Z
+    environment:
+      TZ: {{ defaults_timezone | default('America/New_York') }}
+      PUBLIC_URL: https://meet.{{ default_domain | default(tools_domain) }}
+      XMPP_DOMAIN: meet.jitsi
+      XMPP_MUC_DOMAIN: muc.meet.jitsi
+      XMPP_INTERNAL_MUC_DOMAIN: internal-muc.meet.jitsi
+      XMPP_AUTH_DOMAIN: auth.meet.jitsi
+      XMPP_RECORDER_DOMAIN: recorder.meet.jitsi
+      XMPP_GUEST_DOMAIN: guest.meet.jitsi
+      XMPP_MODULES: "persistent_lobby"
+      XMPP_MUC_MODULES: "muc_wait_for_host"
+      XMPP_INTERNAL_MUC_MODULES: ""
+      # Enable token/JWT authentication
+      ENABLE_AUTH: 1
+      AUTH_TYPE: jwt
+      JWT_APP_ID: jitsi
+      JWT_APP_SECRET: ${JITSI_JWT_APP_SECRET}
+      JWT_ACCEPTED_ISSUERS: jitsi
+      JWT_ACCEPTED_AUDIENCES: jitsi
+      JWT_ASAP_KEYSERVER: ""
+      JWT_ALLOW_EMPTY: 0
+      JWT_TOKEN_AUTH_MODULE: token_verification
+      # XMPP users
+      JICOFO_AUTH_USER: focus
+      JICOFO_AUTH_PASSWORD: ${JITSI_JICOFO_AUTH_PASSWORD}
+      JVB_AUTH_USER: jvb
+      JVB_AUTH_PASSWORD: ${JITSI_JVB_AUTH_PASSWORD}
+      JIBRI_XMPP_USER: jibri
+      JIBRI_XMPP_PASSWORD: ${JITSI_JIBRI_XMPP_PASSWORD}
+      JIBRI_RECORDER_USER: recorder
+      JIBRI_RECORDER_PASSWORD: ${JITSI_JIBRI_RECORDER_PASSWORD}
+      # Enable lobby
+      ENABLE_LOBBY: 1
+      # Enable guests
+      ENABLE_GUESTS: 1
+      ENABLE_XMPP_WEBSOCKET: 1
+    networks:
+      - meet.jitsi
+
+  # Jicofo (Jitsi Conference Focus)
+  jicofo:
+    image: jitsi/jicofo:stable-9823
+    container_name: jitsi-jicofo
+    restart: unless-stopped
+    volumes:
+      - /opt/jitsi/jicofo:/config:Z
+    environment:
+      TZ: {{ defaults_timezone | default('America/New_York') }}
+      XMPP_DOMAIN: meet.jitsi
+      XMPP_MUC_DOMAIN: muc.meet.jitsi
+      XMPP_INTERNAL_MUC_DOMAIN: internal-muc.meet.jitsi
+      XMPP_AUTH_DOMAIN: auth.meet.jitsi
+      XMPP_SERVER: prosody
+      JICOFO_AUTH_USER: focus
+      JICOFO_AUTH_PASSWORD: ${JITSI_JICOFO_AUTH_PASSWORD}
+      # Enable token/JWT authentication (but not for jicofo itself)
+      ENABLE_AUTH: 1
+      JICOFO_ENABLE_AUTH: 0
+      AUTH_TYPE: jwt
+      # Shard settings
+      SENTRY_DSN: ""
+      ENABLE_AUTO_OWNER: 1
+      ENABLE_CODEC_VP8: 1
+      ENABLE_CODEC_VP9: 1
+      ENABLE_CODEC_H264: 1
+      ENABLE_CODEC_OPUS_RED: 1
+    networks:
+      - meet.jitsi
+    depends_on:
+      - prosody
+
+  # JVB (Jitsi Videobridge)
+  jvb:
+    image: jitsi/jvb:stable-9823
+    container_name: jitsi-jvb
+    restart: unless-stopped
+    ports:
+      - "10000:10000/udp"
+    volumes:
+      - /opt/jitsi/jvb:/config:Z
+    environment:
+      TZ: {{ defaults_timezone | default('America/New_York') }}
+      PUBLIC_URL: https://meet.{{ default_domain | default(tools_domain) }}
+      XMPP_DOMAIN: meet.jitsi
+      XMPP_MUC_DOMAIN: muc.meet.jitsi
+      XMPP_INTERNAL_MUC_DOMAIN: internal-muc.meet.jitsi
+      XMPP_AUTH_DOMAIN: auth.meet.jitsi
+      XMPP_SERVER: prosody
+      JVB_AUTH_USER: jvb
+      JVB_AUTH_PASSWORD: ${JITSI_JVB_AUTH_PASSWORD}
+      JVB_PORT: 10000
+      JVB_STUN_SERVERS: meet-jit-si-turnrelay.jitsi.net:443
+      COLIBRI_REST_ENABLED: "true"
+      SENTRY_DSN: ""
+    networks:
+      - meet.jitsi
+    depends_on:
+      - prosody
+
+networks:
+  traefik:
+    external: true
+  meet.jitsi:
+    driver: bridge

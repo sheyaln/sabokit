@@ -1,0 +1,161 @@
+services:
+  outline-redis:
+    image: redis:7-alpine
+    container_name: outline-redis
+    restart: always
+    
+    volumes:
+      - redis-data:/data
+      
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+      
+    networks:
+      - outline_network
+      
+    security_opt:
+      - no-new-privileges:true
+      
+    # SECURITY FIX: Add resource limits
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+          cpus: '0.25'
+        reservations:
+          memory: 64M
+          cpus: '0.1'
+
+    labels:
+      - "com.centurylinklabs.watchtower.enable=true"
+      - "com.centurylinklabs.watchtower.scope=production"
+
+  outline:
+    image: docker.getoutline.com/outlinewiki/outline:latest
+    container_name: outline
+    restart: always
+
+    depends_on:
+      - outline-redis
+
+    volumes:
+      - storage-data:/var/lib/outline/data
+
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.services.outline.loadbalancer.server.port=3000"
+      
+      - "traefik.http.routers.outline.rule=Host(`wiki.{{ default_domain | default(tools_domain) }}`)"
+      - "traefik.http.routers.outline.entrypoints=websecure"
+      - "traefik.http.routers.outline.tls.certresolver=le"
+      - "traefik.http.routers.outline.service=outline"
+      
+      # Buffering middleware for large file uploads (prevents ERR_STREAM_PREMATURE_CLOSE)
+      - "traefik.http.middlewares.outline-buffering.buffering.maxRequestBodyBytes=52428800"
+      - "traefik.http.middlewares.outline-buffering.buffering.memRequestBodyBytes=10485760"
+      - "traefik.http.middlewares.outline-buffering.buffering.maxResponseBodyBytes=52428800"
+      - "traefik.http.middlewares.outline-buffering.buffering.memResponseBodyBytes=10485760"
+      - "traefik.http.middlewares.outline-buffering.buffering.retryExpression=IsNetworkError() && Attempts() < 2"
+      - "traefik.http.routers.outline.middlewares=outline-buffering"
+      
+      - "traefik.docker.network=traefik"
+      - "com.centurylinklabs.watchtower.enable=true"
+      - "com.centurylinklabs.watchtower.scope=production"
+    environment:
+      REDIS_URL: redis://outline-redis:6379
+      # Database connection using separate variables to avoid URL encoding issues
+      DATABASE_URL: postgres://${PG_USER}:${PG_PASS}@${PG_HOST}:${PG_PORT}/${PG_DB}
+      PGSSLMODE: disable
+
+      # ── Outline core settings ──
+      NODE_ENV: production
+      URL: ${OUTLINE_URL}
+      FILE_STORAGE: ${FILE_STORAGE}
+      LOG_LEVEL: verbose
+
+      # ── Authentik OIDC Authentication ──
+      OIDC_CLIENT_ID: ${OIDC_CLIENT_ID}
+      OIDC_CLIENT_SECRET: ${OIDC_CLIENT_SECRET}
+      OIDC_AUTH_URI: ${OIDC_AUTH_URI}
+      OIDC_TOKEN_URI: ${OIDC_TOKEN_URI}
+      OIDC_USERINFO_URI: ${OIDC_USERINFO_URI}
+      OIDC_USERNAME_CLAIM: ${OIDC_USERNAME_CLAIM}
+      OIDC_DISPLAY_NAME: ${OIDC_DISPLAY_NAME}
+      OIDC_SCOPES: ${OIDC_SCOPES}
+      # OIDC_LOGOUT_URI: ${OIDC_LOGOUT_URI}
+
+      # ── Google OAuth ──
+      # GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID}
+      # GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET}
+      # GOOGLE_CALLBACK_URL: https://wiki.{{ default_domain | default(tools_domain) }}/auth/google.callback
+
+      # ── Application secrets ──
+      SECRET_KEY: ${SECRET_KEY}
+      UTILS_SECRET: ${UTILS_SECRET}
+
+      # ── Email configuration ──
+      SMTP_FROM_EMAIL: ${SMTP_FROM_EMAIL}
+      SMTP_HOST: ${SMTP_HOST}
+      SMTP_USERNAME: ${SMTP_USERNAME}
+      SMTP_PASSWORD: ${SMTP_PASSWORD}
+      SMTP_PORT: ${SMTP_PORT}
+      SMTP_SECURE: ${SMTP_SECURE}
+
+      # ── S3 Storage Configuration ──
+      AWS_REGION: ${AWS_REGION}
+      AWS_S3_FORCE_PATH_STYLE: ${AWS_S3_FORCE_PATH_STYLE}
+      AWS_S3_UPLOAD_BUCKET_NAME: ${AWS_S3_UPLOAD_BUCKET_NAME}
+      AWS_S3_UPLOAD_BUCKET_URL: ${AWS_S3_UPLOAD_BUCKET_URL}
+      FILE_STORAGE_UPLOAD_MAX_SIZE: ${FILE_STORAGE_UPLOAD_MAX_SIZE}
+      AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID}
+      AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY}
+      AWS_S3_ACL: ${AWS_S3_ACL}
+
+      # ── Slack Bot Configuration ──
+      #SLACK_CLIENT_ID: ${SLACK_CLIENT_ID}
+      #SLACK_CLIENT_SECRET: ${SLACK_CLIENT_SECRET}
+      #SLACK_SIGNING_SECRET: ${SLACK_SIGNING_SECRET}
+      #SLACK_BOT_TOKEN: ${SLACK_BOT_TOKEN}
+      
+    networks:
+      - traefik
+      - outline_network
+{% if db_type == 'local' %}
+      - {{ local_postgres_network }}
+{% endif %}
+    security_opt:
+      - no-new-privileges:true
+    # SECURITY FIX: Add resource limits
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+          cpus: '0.5'
+        reservations:
+          memory: 512M
+          cpus: '0.25'
+
+    healthcheck:
+      # Outline image doesn't ship with curl/wget; use Node to verify port is listening.
+      test: ["CMD-SHELL", "node -e \"require('net').connect(3000,'127.0.0.1').on('connect',()=>process.exit(0)).on('error',()=>process.exit(1));\""]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+
+volumes:
+  redis-data:
+  storage-data:
+
+networks:
+  traefik:
+    external: true
+  outline_network:
+    driver: bridge
+{% if db_type == 'local' %}
+  {{ local_postgres_network }}:
+    external: true
+{% endif %}

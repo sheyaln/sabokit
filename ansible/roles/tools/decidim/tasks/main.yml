@@ -1,0 +1,88 @@
+---
+- name: Ensure Decidim directory
+  ansible.builtin.file:
+    path: /opt/decidim
+    state: directory
+    mode: '0755'
+    owner: ubuntu
+    group: ubuntu
+
+- name: Deploy Decidim docker-compose file
+  ansible.builtin.template:
+    src: docker-compose.yml.j2
+    dest: /opt/decidim/docker-compose.yml
+    mode: '0644'
+    owner: ubuntu
+    group: ubuntu
+
+- name: Render Decidim environment file
+  ansible.builtin.template:
+    src: env.j2
+    dest: /opt/decidim/.env
+    mode: '0600'
+    owner: ubuntu
+    group: ubuntu
+
+- name: Check for existing Decidim stack
+  community.docker.docker_container_info:
+    name: decidim_app
+  register: decidim_app_container
+  ignore_errors: true
+
+- name: Shut down existing Decidim stack
+  community.docker.docker_compose_v2:
+    project_src: /opt/decidim
+    state: absent
+  when: decidim_app_container.exists | default(false)
+
+- name: Clean up Decidim orphan containers
+  community.docker.docker_compose_v2:
+    project_src: /opt/decidim
+    state: absent
+    remove_orphans: true
+  when: decidim_app_container.exists | default(false)
+
+- name: Remove initialization marker if force init is requested
+  ansible.builtin.command:
+    cmd: docker volume rm decidim_init-marker
+  ignore_errors: true
+  when: decidim_force_db_init | default(false)
+
+- name: Run Decidim database initialization
+  community.docker.docker_compose_v2:
+    project_src: /opt/decidim
+    services:
+      - db-init
+    state: present
+  register: decidim_init_result
+
+- name: Wait for database initialization to complete
+  ansible.builtin.pause:
+    seconds: 5
+  when: decidim_init_result.changed
+
+- name: Ensure Decidim containers are running
+  community.docker.docker_compose_v2:
+    project_src: /opt/decidim
+    state: present
+
+- name: Wait for Decidim app to be healthy
+  community.docker.docker_container_info:
+    name: decidim-app-1
+  register: decidim_container
+  until: decidim_container.container.State.Health.Status == 'healthy'
+  retries: 30
+  delay: 10
+  ignore_errors: true
+
+# Run migrations again if db-init failed (e.g., network timing issues)
+- name: Verify database schema and run pending migrations
+  ansible.builtin.command:
+    cmd: docker exec decidim-app-1 bundle exec rails db:migrate
+  register: migration_result
+  changed_when: "'Migrating' in migration_result.stdout"
+  failed_when: false
+
+- name: Display migration status
+  ansible.builtin.debug:
+    msg: "{{ 'Migrations applied successfully' if migration_result.rc == 0 else 'Migration check completed (may need manual review)' }}"

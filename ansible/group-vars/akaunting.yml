@@ -1,0 +1,35 @@
+# Akaunting Application Configuration
+APP_URL: "https://akaunting.{{ tools_domain }}"
+LOCALE: en-US
+
+# Database Configuration
+DB_HOST: akaunting-db
+DB_DATABASE: akaunting
+DB_USERNAME: akaunting
+DB_PASSWORD: aK9xP4tQ7mR8nL2wV5bC
+DB_PREFIX: asc_
+
+# MySQL Root Password
+MYSQL_ROOT_PASSWORD: 4a2b9c8d7e6f5a4b3c2d1e0f9a8b7c6d5e4f3a2b1c0d9e8f7a6b5c4d3e2f1a0b
+
+# Initial Setup Configuration
+COMPANY_NAME: "{{ org_name }}"
+COMPANY_EMAIL: "{{ admin_email }}"
+ADMIN_EMAIL: "{{ admin_email }}"
+ADMIN_PASSWORD: AdM1n!P@ssw0rd2024
+
+# Mail Configuration
+MAIL_HOST: "{{ (lookup('scaleway.scaleway.scaleway_secret', 'smtp-config') | b64decode | from_json).smtp_host }}"
+MAIL_PORT: "{{ (lookup('scaleway.scaleway.scaleway_secret', 'smtp-config') | b64decode | from_json).smtp_port }}"
+MAIL_USERNAME: "{{ (lookup('scaleway.scaleway.scaleway_secret', 'smtp-config') | b64decode | from_json).smtp_username }}"
+MAIL_PASSWORD: "{{ (lookup('scaleway.scaleway.scaleway_secret', 'smtp-config') | b64decode | from_json).smtp_password }}"
+MAIL_ENCRYPTION: ssl
+MAIL_FROM_ADDRESS: "noreply@{{ tools_domain }}"
+MAIL_FROM_NAME: "{{ org_name }} Akaunting"
+
+# Setup Mode (set to true for initial setup)
+AKAUNTING_SETUP: true
+
+
+
+

@@ -1,0 +1,21 @@
+# Custom Decidim Modules
+# This file contains additional gems to append to the base Decidim Gemfile
+
+# LDAP Authentication
+gem 'decidim-ldap', git: 'https://github.com/DiputacioBarcelona/decidim-diba', branch: 'master', glob: 'decidim-ldap/*.gemspec'
+
+# Generic OAuth2 Provider Support
+gem 'omniauth-oauth2-generic', '~> 0.2.8'
+
+# Privacy Module - Enhanced privacy features
+gem 'decidim-module-privacy', git: 'https://github.com/mainio/decidim-module-privacy'
+
+# Navbar Links - Custom navigation links
+gem 'decidim-module-navbar_links', git: 'https://github.com/OpenSourcePolitics/decidim-module-navbar_links'
+
+# Decidim Awesome - Enhanced features and improvements
+gem 'decidim-awesome', '~> 0.11.2'
+
+# Access Requests - User access request management
+gem 'decidim-module-access_requests', git: 'https://github.com/mainio/decidim-module-access_requests'
+

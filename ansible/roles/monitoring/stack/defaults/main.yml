@@ -1,0 +1,44 @@
+---
+# Monitoring Stack Defaults
+
+# Prometheus configuration
+prometheus_retention: "15d"
+prometheus_scrape_interval: "15s"
+
+# Loki configuration
+loki_retention: "168h"
+loki_ingestion_rate_mb: 10
+loki_ingestion_burst_size_mb: 20
+
+# Grafana configuration
+grafana_port: 3000
+grafana_plugins:
+  - grafana-clock-panel
+  - alexanderzobnin-zabbix-app
+
+# Zabbix configuration
+zabbix_server_port: 10051
+zabbix_browser_pollers: 2
+
+# Zabbix API token for configuration management
+# This token should be created manually in Zabbix:
+# 1. Go to Users > API tokens
+# 2. Create token for Admin user with no expiry
+# 3. Store in Scaleway Secret Manager as 'zabbix-api-token'
+_zabbix_api_token_raw: "{{ lookup('scaleway.scaleway.scaleway_secret', 'zabbix-api-token', errors='ignore') | default('', true) }}"
+zabbix_api_token: "{{ _zabbix_api_token_raw | b64decode if _zabbix_api_token_raw else '' }}"
+
+# JSON failure alerting configuration
+zabbix_json_failure_delay: "5m"  # Time before alerting on JSON failures
+zabbix_json_failure_threshold: 3  # Number of failures to escalate to major alert
+
+# Network configuration
+monitoring_network: "monitoring"
+traefik_network: "traefik"
+
+# Directory paths
+monitoring_base_dir: "/opt/monitoring"
+prometheus_dir: "{{ monitoring_base_dir }}/prometheus"
+loki_dir: "{{ monitoring_base_dir }}/loki"
+grafana_dir: "{{ monitoring_base_dir }}/grafana"
+zabbix_dir: "{{ monitoring_base_dir }}/zabbix"

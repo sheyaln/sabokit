@@ -1,0 +1,33 @@
+# Proton Mail Bridge Configuration
+# ================================
+# This service provides IMAP/SMTP access to Proton Mail for other services
+# (e.g., n8n, custom apps) via the 'protonmail' Docker network.
+#
+# PORTS (differ by image type):
+#   Custom build:  IMAP 11143, SMTP 11025 (socat forwarded from bridge's 1143/1025)
+#   Prebuilt:      IMAP 143,   SMTP 25
+#
+# FIRST-TIME SETUP:
+#   After deployment, SSH to server and run:
+#     cd /opt/protonmail-bridge && ./protonmail-init.sh
+
+# Image selection:
+#   false = Build custom image from official Proton .deb (recommended)
+#   true  = Use prebuilt shenxn/protonmail-bridge image (fallback)
+protonmail_use_prebuilt: false
+
+# Version for custom build (only used if protonmail_use_prebuilt: false)
+# Find versions at: https://proton.me/download/bridge/
+protonmail_bridge_version: "3.13.0-1"
+
+# Tag for prebuilt image (only used if protonmail_use_prebuilt: true)
+# Options: latest, deb, build
+protonmail_prebuilt_tag: "latest"
+
+# Scaleway private network IP (for cross-server access)
+# To enable, uncomment the 'ports' section in docker-compose.yml.j2
+# scaleway_private_ip: "10.70.96.1"
+
+
+
+

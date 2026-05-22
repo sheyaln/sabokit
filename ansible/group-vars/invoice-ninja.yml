@@ -1,0 +1,34 @@
+# ── InvoiceNinja Configuration ────────
+
+# ── Application Configuration ────────
+INVOICE_NINJA_APP_NAME: "{{ org_name }} Invoicing"
+INVOICE_NINJA_APP_URL: "https://invoices.{{ default_domain }}"
+INVOICE_NINJA_REQUIRE_HTTPS: "true"
+INVOICE_NINJA_DOMAIN: "invoices.{{ default_domain }}"
+
+# ── Secret Configuration ────────
+INVOICE_NINJA_APP_KEY: "{{ lookup('scaleway.scaleway.scaleway_secret', 'invoice-ninja-app-key') | b64decode }}"
+INVOICE_NINJA_DB_PASSWORD: "{{ lookup('scaleway.scaleway.scaleway_secret', 'invoice-ninja-db-password') | b64decode }}"
+INVOICE_NINJA_MYSQL_ROOT_PASSWORD: "{{ lookup('scaleway.scaleway.scaleway_secret', 'invoice-ninja-mysql-root-password') | b64decode }}"
+INVOICE_NINJA_REDIS_PASSWORD: "{{ lookup('scaleway.scaleway.scaleway_secret', 'invoice-ninja-redis-password') | b64decode }}"
+
+# ── Database Configuration ────────
+INVOICE_NINJA_DB_DATABASE: "invoiceninja"
+INVOICE_NINJA_DB_USERNAME: "invoiceninja"
+
+# ── Mail Configuration ────────
+INVOICE_NINJA_MAIL_MAILER: "smtp"
+INVOICE_NINJA_MAIL_HOST: "{{ smtp_host }}"
+INVOICE_NINJA_MAIL_PORT: "{{ smtp_port }}"
+INVOICE_NINJA_MAIL_USERNAME: "{{ smtp_username }}"
+INVOICE_NINJA_MAIL_PASSWORD: "{{ smtp_password }}"
+INVOICE_NINJA_MAIL_ENCRYPTION: "ssl"
+INVOICE_NINJA_MAIL_FROM_ADDRESS: "invoices@{{ default_domain }}"
+INVOICE_NINJA_MAIL_FROM_NAME: "{{ INVOICE_NINJA_APP_NAME }}"
+
+# ── Trusted Proxies Configuration ────────
+INVOICE_NINJA_TRUSTED_PROXIES: "*" #TODO: This is a security risk, we should only trust Traefik running on the same host
+
+
+
+

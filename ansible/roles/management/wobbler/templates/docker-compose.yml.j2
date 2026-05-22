@@ -1,0 +1,52 @@
+x-logging: &default-logging
+  driver: "json-file"
+  options:
+    max-size: "20m"
+    max-file: "10"
+    compress: "true"
+
+services:
+  wobbler:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: wobbler
+    restart: unless-stopped
+    expose:
+      - {{ wobbler_port }}
+    volumes:
+      - ./conf:/app/conf
+      - ./.ssh:/ssh-keys:ro
+      - /var/run/docker.sock:/var/run/docker.sock
+    environment:
+      - SCW_ACCESS_KEY={{ wobbler_scw_access_key }}
+      - SCW_SECRET_KEY={{ wobbler_scw_secret_key }}
+      - SCW_PROJECT_ID={{ wobbler_scw_project_id }}
+      - SCW_ZONE={{ wobbler_scw_zone | default('fr-par-1') }}
+    networks:
+      - traefik
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.services.wobbler.loadbalancer.server.port={{ wobbler_port }}"
+      - "traefik.http.routers.wobbler.rule=Host(`wobbler.{{ default_domain | default(management_domain) }}`)"
+      - "traefik.http.routers.wobbler.entrypoints=websecure"
+      - "traefik.http.routers.wobbler.tls.certresolver=le"
+      - "traefik.http.routers.wobbler.service=wobbler"
+      - "traefik.docker.network=traefik"
+      - "com.centurylinklabs.watchtower.enable=true"
+      - "com.centurylinklabs.watchtower.scope=production"
+    security_opt:
+      - no-new-privileges:true
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:{{ wobbler_port }}/ || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    logging: *default-logging
+
+networks:
+  traefik:
+    external: true
+
+

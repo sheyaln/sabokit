@@ -1,0 +1,66 @@
+groups:
+  - name: infrastructure
+    rules:
+      # High CPU usage
+      - alert: HighCpuUsage
+        expr: 100 - (avg by(server) (rate(node_cpu_seconds_total{mode="idle"}[5m])) * 100) > 80
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High CPU usage on {{ '{{' }} $labels.server {{ '}}' }}"
+          description: "CPU usage is above 80% for more than 5 minutes on {{ '{{' }} $labels.server {{ '}}' }}"
+
+      # High memory usage
+      - alert: HighMemoryUsage
+        expr: (1 - (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes)) * 100 > 85
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High memory usage on {{ '{{' }} $labels.server {{ '}}' }}"
+          description: "Memory usage is above 85% for more than 5 minutes"
+
+      # Low disk space
+      - alert: LowDiskSpace
+        expr: (node_filesystem_avail_bytes{fstype=~"ext4|xfs"} / node_filesystem_size_bytes{fstype=~"ext4|xfs"}) * 100 < 15
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Low disk space on {{ '{{' }} $labels.server {{ '}}' }}"
+          description: "Disk space is below 15% on {{ '{{' }} $labels.mountpoint {{ '}}' }}"
+
+      # Container down
+      - alert: ContainerDown
+        expr: absent(container_last_seen{name!=""})
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Container {{ '{{' }} $labels.name {{ '}}' }} is down"
+          description: "Container has not been seen for more than 5 minutes"
+
+  - name: traefik
+    rules:
+      # High error rate
+      - alert: TraefikHighErrorRate
+        expr: sum(rate(traefik_service_requests_total{code=~"5.."}[5m])) by (traefik_instance, service) / sum(rate(traefik_service_requests_total[5m])) by (traefik_instance, service) > 0.05
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High error rate on {{ '{{' }} $labels.traefik_instance {{ '}}' }}"
+          description: "More than 5% of requests are returning 5xx errors"
+
+  - name: authentik
+    rules:
+      # Authentik server down
+      - alert: AuthentikDown
+        expr: up{job="authentik-app"} == 0
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Authentik server is down"
+          description: "Authentik metrics endpoint is not responding"

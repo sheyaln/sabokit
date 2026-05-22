@@ -1,0 +1,14 @@
+# Jitsi Meet Credentials
+
+# JWT Secret
+JITSI_JWT_APP_SECRET: "{{ lookup('scaleway.scaleway.scaleway_secret', 'jitsi-jwt-app-secret') | b64decode }}"
+
+# XMPP Authentication Passwords
+JITSI_JICOFO_AUTH_PASSWORD: "{{ lookup('scaleway.scaleway.scaleway_secret', 'jitsi-jicofo-auth-password') | b64decode }}"
+JITSI_JVB_AUTH_PASSWORD: "{{ lookup('scaleway.scaleway.scaleway_secret', 'jitsi-jvb-auth-password') | b64decode }}"
+JITSI_JIBRI_XMPP_PASSWORD: "{{ lookup('scaleway.scaleway.scaleway_secret', 'jitsi-jibri-xmpp-password') | b64decode }}"
+JITSI_JIBRI_RECORDER_PASSWORD: "{{ lookup('scaleway.scaleway.scaleway_secret', 'jitsi-jibri-recorder-password') | b64decode }}"
+
+# Authentik OIDC Configuration
+JITSI_OIDC_CLIENT_ID: "{{ (lookup('scaleway.scaleway.scaleway_secret', 'authentik-app-jitsi') | b64decode | from_json).client_id }}"
+JITSI_OIDC_CLIENT_SECRET: "{{ (lookup('scaleway.scaleway.scaleway_secret', 'authentik-app-jitsi') | b64decode | from_json).client_secret }}"

@@ -1,0 +1,139 @@
+
+# Staging Environment Configuration
+
+# This file overrides production settings for the staging environment.
+# Staging uses local PostgreSQL container instead of managed database.
+
+
+# -----------------------------------------------------------------------------
+# Environment Identification
+# -----------------------------------------------------------------------------
+is_staging: true
+environment_name: "staging"
+
+# -----------------------------------------------------------------------------
+# Local PostgreSQL Configuration
+# -----------------------------------------------------------------------------
+# Staging runs PostgreSQL in a Docker container on the same VPS
+# This significantly reduces costs compared to managed PostgreSQL
+
+staging_postgres:
+  container_name: "postgres-staging"
+  image: "postgres:16-alpine"
+  port: 5432
+  
+  # Master credentials for the staging PostgreSQL instance
+  # These should be set via Ansible Vault or environment variables
+  superuser: "postgres"
+  superuser_password: "{{ lookup('env', 'STAGING_POSTGRES_PASSWORD') | default('changeme-in-production', true) }}"
+  
+  # Data persistence
+  data_volume: "/opt/staging/postgres/data"
+  
+  # Resource limits (adjust based on your staging VPS size)
+  memory_limit: "512m"
+  
+  # Network
+  network_name: "staging-network"
+
+# -----------------------------------------------------------------------------
+# Local PostgreSQL Connection Variables
+# -----------------------------------------------------------------------------
+# Convenience variables for playbook overrides
+local_postgres_host: "{{ staging_postgres.container_name }}"
+local_postgres_port: "{{ staging_postgres.port }}"
+
+# -----------------------------------------------------------------------------
+# Per-Application Database Credentials (Staging)
+# -----------------------------------------------------------------------------
+# In staging, we create databases in the local PostgreSQL container
+# Production pulls these from Scaleway Secret Manager
+
+# Template for staging database credentials
+# Each app gets its own database in the shared PostgreSQL container
+staging_db_defaults:
+  host: "{{ staging_postgres.container_name }}"
+  port: "{{ staging_postgres.port }}"
+
+# Override the credential lookup pattern for staging
+# Instead of Scaleway Secret Manager, use local passwords
+staging_app_databases:
+  authentik:
+    dbname: "authentik"
+    username: "authentik"
+    password: "{{ lookup('env', 'STAGING_AUTHENTIK_DB_PASSWORD') | default('authentik-staging-pw', true) }}"
+  
+  outline:
+    dbname: "outline"
+    username: "outline"
+    password: "{{ lookup('env', 'STAGING_OUTLINE_DB_PASSWORD') | default('outline-staging-pw', true) }}"
+  
+  decidim:
+    dbname: "decidim"
+    username: "decidim"
+    password: "{{ lookup('env', 'STAGING_DECIDIM_DB_PASSWORD') | default('decidim-staging-pw', true) }}"
+  
+  nextcloud:
+    dbname: "nextcloud"
+    username: "nextcloud"
+    password: "{{ lookup('env', 'STAGING_NEXTCLOUD_DB_PASSWORD') | default('nextcloud-staging-pw', true) }}"
+  
+  zammad:
+    dbname: "zammad"
+    username: "zammad"
+    password: "{{ lookup('env', 'STAGING_ZAMMAD_DB_PASSWORD') | default('zammad-staging-pw', true) }}"
+  
+  n8n:
+    dbname: "n8n"
+    username: "n8n"
+    password: "{{ lookup('env', 'STAGING_N8N_DB_PASSWORD') | default('n8n-staging-pw', true) }}"
+
+  grafana:
+    dbname: "grafana"
+    username: "grafana"
+    password: "{{ lookup('env', 'STAGING_GRAFANA_DB_PASSWORD') | default('grafana-staging-pw', true) }}"
+
+  zabbix:
+    dbname: "zabbix"
+    username: "zabbix"
+    password: "{{ lookup('env', 'STAGING_ZABBIX_DB_PASSWORD') | default('zabbix-staging-pw', true) }}"
+
+  espocrm:
+    dbname: "espocrm"
+    username: "espocrm"
+    password: "{{ lookup('env', 'STAGING_ESPOCRM_DB_PASSWORD') | default('espocrm-staging-pw', true) }}"
+
+# -----------------------------------------------------------------------------
+# S3 Configuration (Staging)
+# -----------------------------------------------------------------------------
+# Still uses Scaleway S3 (very cheap for small staging data)
+# But with staging-specific bucket prefix
+staging_s3_bucket_prefix: "{{ _project_config.environments.staging.storage.bucket_prefix }}"
+
+# -----------------------------------------------------------------------------
+# Domain Configuration (Staging)
+# -----------------------------------------------------------------------------
+# Staging uses the staging domain - gateway derives automatically
+tools_domain: "{{ _project_config.domains.staging }}"
+
+# -----------------------------------------------------------------------------
+# Resource Scaling (Staging)
+# -----------------------------------------------------------------------------
+# Reduce resource usage for staging to save costs
+staging_resource_limits:
+  # Authentik
+  authentik_server_replicas: 1
+  authentik_worker_replicas: 1
+  
+  # General container limits
+  default_memory_limit: "256m"
+  default_cpu_limit: "0.5"
+
+# -----------------------------------------------------------------------------
+# Feature Flags (Staging)
+# -----------------------------------------------------------------------------
+# Some features may be disabled in staging
+staging_features:
+  backup_enabled: false  # No backups needed for staging
+  ha_enabled: false
+  monitoring_full: false  # Basic monitoring only

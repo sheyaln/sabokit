@@ -1,0 +1,8 @@
+---
+# Default variables for Traefik-Authentik role
+
+# Essential directories
+traefik_dir: "/opt/traefik-authentik"
+
+# Only template what changes between environments
+# Domain and email configuration come from group_vars

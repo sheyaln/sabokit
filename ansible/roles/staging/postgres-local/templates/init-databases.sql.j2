@@ -1,0 +1,37 @@
+-- =============================================================================
+-- Staging PostgreSQL Database Initialization
+-- =============================================================================
+-- This script creates all databases and users needed for staging applications.
+-- It runs automatically when the PostgreSQL container starts for the first time.
+-- =============================================================================
+
+{% for app_name, db_config in staging_app_databases.items() %}
+-- -----------------------------------------------------------------------------
+-- Database: {{ app_name }}
+-- -----------------------------------------------------------------------------
+DO $$
+BEGIN
+    -- Create user if not exists
+    IF NOT EXISTS (SELECT FROM pg_catalog.pg_roles WHERE rolname = '{{ db_config.username }}') THEN
+        CREATE USER {{ db_config.username }} WITH PASSWORD '{{ db_config.password }}';
+    END IF;
+END
+$$;
+
+-- Create database if not exists
+SELECT 'CREATE DATABASE {{ db_config.dbname }} OWNER {{ db_config.username }}'
+WHERE NOT EXISTS (SELECT FROM pg_database WHERE datname = '{{ db_config.dbname }}')\gexec
+
+-- Grant privileges
+GRANT ALL PRIVILEGES ON DATABASE {{ db_config.dbname }} TO {{ db_config.username }};
+
+-- Connect to database and set up schema permissions
+\c {{ db_config.dbname }}
+GRANT ALL ON SCHEMA public TO {{ db_config.username }};
+ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON TABLES TO {{ db_config.username }};
+ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON SEQUENCES TO {{ db_config.username }};
+
+{% endfor %}
+
+-- Return to default database
+\c postgres

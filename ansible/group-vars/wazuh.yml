@@ -1,0 +1,78 @@
+---
+# Wazuh Configuration Variables
+
+# Wazuh Manager Configuration
+# Ensure Wazuh uses the management domain (.cc)
+wazuh_domain: "{{ environment_domains.management }}"
+# Use private IP for agent-to-manager communication (from Terraform via Scaleway Secret Manager)
+# The server-network-config secret must be populated by Terraform before deploying agents
+wazuh_manager_ip: "{{ management_private_ip }}"
+
+# Wazuh Credentials (from Scaleway Secrets)
+wazuh_indexer_password: "{{ lookup('scaleway.scaleway.scaleway_secret', 'wazuh-indexer-password') | b64decode }}"
+wazuh_api_password: "{{ lookup('scaleway.scaleway.scaleway_secret', 'wazuh-api-password') | b64decode }}"
+wazuh_dashboard_password: "{{ lookup('scaleway.scaleway.scaleway_secret', 'wazuh-dashboard-password') | b64decode }}"
+
+# Agent Configuration
+wazuh_agent_groups: "default,linux,docker"
+
+# Disable auditd integration by default - can cause system instability
+# Enable only after testing audit rules in a staging environment
+wazuh_enable_auditd: false
+
+# Email alerts configuration - disabled for this deployment
+admin_email: "{{ infra_email }}"
+
+# Log retention settings
+wazuh_log_retention_days: 30
+wazuh_alert_retention_days: 90
+
+# Performance tuning
+wazuh_indexer_heap_size: "1g"
+wazuh_manager_memory_limit: "2g"
+
+# TLS certificate Subject Alternative Names
+wazuh_certificate_dns_sans:
+  - "wazuh-indexer"
+  - "wazuh-manager"
+  - "wazuh-dashboard"
+  - "wazuh.{{ wazuh_domain }}"
+  - "wazuh-api.{{ wazuh_domain }}"
+  - "localhost"
+
+wazuh_certificate_ip_sans:
+  - "127.0.0.1"
+  - "{{ wazuh_manager_ip }}"
+
+# Security settings
+wazuh_enable_vulnerability_detector: true
+wazuh_enable_security_configuration_assessment: true
+wazuh_enable_file_integrity_monitoring: true
+
+# Custom rules and decoders paths
+wazuh_custom_rules_path: "/var/ossec/etc/rules"
+wazuh_custom_decoders_path: "/var/ossec/etc/decoders"
+
+# SAML SSO Configuration
+# Set to false to disable SAML SSO and use basic auth only
+wazuh_sso_enabled: true
+
+# SAML IdP (Authentik) configuration
+# IdP metadata URL - Authentik's direct API endpoint (no redirect)
+wazuh_saml_idp_metadata_url: "https://gateway.{{ environment_domains.tools }}/api/v3/providers/saml/79/metadata/?download"
+# IdP entity ID - matches the entityID in Authentik's SAML metadata
+wazuh_saml_idp_entity_id: "authentik"
+
+# SAML Service Provider (Wazuh) configuration
+# Must match the saml_audience in terraform/authentik/apps.tf
+wazuh_saml_sp_entity_id: "wazuh-saml"
+
+# SAML assertion attribute containing user roles/groups
+wazuh_saml_roles_key: "http://schemas.xmlsoap.org/claims/Group"
+
+# Exchange key for signing JWT tokens (from Scaleway Secrets)
+wazuh_saml_exchange_key: "{{ lookup('scaleway.scaleway.scaleway_secret', 'wazuh-saml-exchange-key') | b64decode }}"
+
+
+
+

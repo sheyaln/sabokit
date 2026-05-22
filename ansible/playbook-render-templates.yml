@@ -1,0 +1,283 @@
+---
+# Render Templates & Copy Files Playbook
+#
+# Auto-discovers and renders templates / copies static files for deployed services
+# without running full roles. No hardcoded service lists - everything is discovered dynamically.
+#
+# Usage:
+#   ansible-playbook playbook-render-templates.yml -i inventory.ini -e target_host=tools-prod
+#   ansible-playbook playbook-render-templates.yml -i inventory.ini -e target_host=tools-prod -e target_service=outline
+#   ansible-playbook playbook-render-templates.yml -i inventory.ini -e target_host=tools-prod -e restart=true
+#   ansible-playbook playbook-render-templates.yml -i inventory.ini -e target_host=tools-prod -e include_files=true
+#
+# Variables:
+#   target_host: Host group from inventory (required)
+#   target_service: Specific service to render (optional, default: all discovered)
+#   restart: Whether to restart services after rendering (optional, default: false)
+#   dry_run: Show what would be rendered without making changes (optional, default: false)
+#   include_files: Also copy static files from roles' files/ directory (optional, default: false)
+#   files_only: Only copy static files, skip templates (optional, default: false)
+
+- name: Render Templates for Deployed Services
+  hosts: "{{ target_host }}"
+  become: true
+  gather_facts: true
+
+  vars:
+    # Default values
+    restart: false
+    dry_run: false
+    target_service: ""
+    include_files: false
+    files_only: false
+    
+    # Role path prefixes to search (order matters - first match wins)
+    # core must come before authentik so that /opt/traefik maps to core/traefik
+    # (authentik's traefik deploys to /opt/traefik-authentik, a different directory)
+    role_search_paths:
+      - "tools"
+      - "management"
+      - "core"
+      - "authentik"
+      - "monitoring"
+      - "staging"
+    
+    # Template filename to destination path mapping
+    template_dest_overrides:
+      "env.j2": ".env"
+    
+    # Files to exclude from copying (role-specific assets handled separately)
+    file_exclude_patterns:
+      - "custom-assets"
+      - "application-icons"
+
+  pre_tasks:
+    - name: Validate target_host is provided
+      ansible.builtin.fail:
+        msg: "target_host is required. Usage: -e target_host=tools-prod"
+      when: target_host is not defined or target_host == ""
+      delegate_to: localhost
+      run_once: true
+
+    - name: Check Scaleway environment variables
+      ansible.builtin.fail:
+        msg: "Missing Scaleway environment variables. Set SCW_ACCESS_KEY, SCW_SECRET_KEY, SCW_DEFAULT_REGION, SCW_DEFAULT_PROJECT_ID"
+      when: >-
+        lookup('env', 'SCW_ACCESS_KEY') == '' or
+        lookup('env', 'SCW_SECRET_KEY') == '' or
+        lookup('env', 'SCW_DEFAULT_REGION') == '' or
+        lookup('env', 'SCW_DEFAULT_PROJECT_ID') == ''
+      delegate_to: localhost
+      run_once: true
+
+    - name: Load common group-vars
+      ansible.builtin.include_vars:
+        file: "group-vars/all.yml"
+
+  tasks:
+    # =========================================================================
+    # PHASE 1: Discover deployed services (single remote command)
+    # =========================================================================
+    - name: Discover deployed services with docker-compose files
+      ansible.builtin.shell: |
+        for dir in /opt/*/; do
+          [ -f "${dir}docker-compose.yml" ] && basename "$dir"
+        done
+      register: discovered_services_raw
+      changed_when: false
+
+    - name: Parse discovered services
+      ansible.builtin.set_fact:
+        deployed_services: "{{ discovered_services_raw.stdout_lines | default([]) }}"
+
+    - name: Filter to target service if specified
+      ansible.builtin.set_fact:
+        services_to_render: "{{ [target_service] if target_service and target_service in deployed_services else deployed_services }}"
+      when: target_service | default('') != ''
+
+    - name: Use all deployed services if no target specified
+      ansible.builtin.set_fact:
+        services_to_render: "{{ deployed_services }}"
+      when: target_service | default('') == ''
+
+    - name: Display discovered services
+      ansible.builtin.debug:
+        msg: |
+          ============================================
+          HOST: {{ inventory_hostname }}
+          DEPLOYED SERVICES: {{ deployed_services | join(', ') }}
+          SERVICES TO RENDER: {{ services_to_render | join(', ') }}
+          DRY RUN: {{ dry_run }}
+          RESTART AFTER: {{ restart }}
+          ============================================
+
+    - name: Fail if target service not found
+      ansible.builtin.fail:
+        msg: "Service '{{ target_service }}' not found in /opt/. Available: {{ deployed_services | join(', ') }}"
+      when: 
+        - target_service | default('') != ''
+        - target_service not in deployed_services
+
+    - name: Fail if no services found
+      ansible.builtin.fail:
+        msg: "No services with docker-compose.yml found in /opt/"
+      when: services_to_render | length == 0
+
+    # =========================================================================
+    # PHASE 2: Discover role paths (single local command)
+    # =========================================================================
+    - name: Find role paths for all services
+      ansible.builtin.shell: |
+        cd "{{ playbook_dir }}/roles"
+        for service in {{ services_to_render | join(' ') }}; do
+          for prefix in {{ role_search_paths | join(' ') }}; do
+            if [ -d "${prefix}/${service}" ]; then
+              echo "${service}:${prefix}/${service}"
+              break
+            fi
+          done
+        done
+      delegate_to: localhost
+      become: false
+      register: role_paths_raw
+      changed_when: false
+
+    - name: Parse role paths into mapping
+      ansible.builtin.set_fact:
+        service_role_map: "{{ dict(role_paths_raw.stdout_lines | map('split', ':') | list) }}"
+
+    - name: Display role mappings
+      ansible.builtin.debug:
+        msg: "Service role mappings: {{ service_role_map }}"
+
+    - name: Warn about services without roles
+      ansible.builtin.debug:
+        msg: "WARNING: No role found for service '{{ item }}' - skipping"
+      loop: "{{ services_to_render }}"
+      when: item not in service_role_map
+
+    - name: Update services to render (only those with roles)
+      ansible.builtin.set_fact:
+        services_to_render: "{{ services_to_render | select('in', service_role_map.keys()) | list }}"
+
+    # =========================================================================
+    # PHASE 3: Discover templates for all services
+    # =========================================================================
+    - name: Find templates for each service
+      ansible.builtin.find:
+        paths: "{{ playbook_dir }}/roles/{{ service_role_map[item] }}/templates"
+        patterns: "*.j2"
+        file_type: file
+      loop: "{{ services_to_render }}"
+      delegate_to: localhost
+      become: false
+      register: template_discovery
+      when: 
+        - item in service_role_map
+        - not files_only
+
+    - name: Count total templates
+      ansible.builtin.set_fact:
+        _total_templates: "{{ template_discovery.results | default([]) | selectattr('files', 'defined') | map(attribute='files') | map('length') | sum }}"
+      when: not files_only
+
+    - name: Set zero templates when files_only
+      ansible.builtin.set_fact:
+        _total_templates: 0
+      when: files_only
+
+    - name: Display templates to render
+      ansible.builtin.debug:
+        msg: |
+          Templates to render ({{ _total_templates }} total):
+          {% for result in template_discovery.results | default([]) %}
+          {% if result.files is defined and result.files | length > 0 %}
+          {% for f in result.files %}
+          - {{ result.item }}: {{ f.path | basename }}
+          {% endfor %}
+          {% endif %}
+          {% endfor %}
+      when: not files_only
+
+    # =========================================================================
+    # PHASE 3b: Discover static files for all services
+    # =========================================================================
+    - name: Find static files for each service
+      ansible.builtin.find:
+        paths: "{{ playbook_dir }}/roles/{{ service_role_map[item] }}/files"
+        file_type: file
+        recurse: false
+      loop: "{{ services_to_render }}"
+      delegate_to: localhost
+      become: false
+      register: file_discovery
+      when: 
+        - item in service_role_map
+        - include_files or files_only
+
+    - name: Count total files
+      ansible.builtin.set_fact:
+        _total_files: "{{ file_discovery.results | default([]) | selectattr('files', 'defined') | map(attribute='files') | map('length') | sum }}"
+      when: include_files or files_only
+
+    - name: Set zero files when not including files
+      ansible.builtin.set_fact:
+        _total_files: 0
+      when: not include_files and not files_only
+
+    - name: Display files to copy
+      ansible.builtin.debug:
+        msg: |
+          Static files to copy ({{ _total_files }} total):
+          {% for result in file_discovery.results | default([]) %}
+          {% if result.files is defined and result.files | length > 0 %}
+          {% for f in result.files %}
+          - {{ result.item }}: {{ f.path | basename }}
+          {% endfor %}
+          {% endif %}
+          {% endfor %}
+      when: include_files or files_only
+
+    # =========================================================================
+    # PHASE 4: Load service-specific group-vars and render templates / copy files
+    # =========================================================================
+    - name: Process each service
+      ansible.builtin.include_tasks: tasks/render-service-templates.yml
+      loop: "{{ services_to_render | unique }}"
+      loop_control:
+        loop_var: current_service
+      when: not dry_run
+
+    # =========================================================================
+    # PHASE 5: Restart services if requested
+    # =========================================================================
+    - name: Restart services
+      community.docker.docker_compose_v2:
+        project_src: "/opt/{{ item }}"
+        state: present
+        recreate: always
+      loop: "{{ services_to_render }}"
+      when: 
+        - restart | bool
+        - not dry_run
+
+    - name: Wait for services to stabilize
+      ansible.builtin.pause:
+        seconds: 5
+      when: 
+        - restart | bool
+        - not dry_run
+        - services_to_render | length > 0
+
+  post_tasks:
+    - name: Summary
+      ansible.builtin.debug:
+        msg: |
+          ============================================
+          {{ 'PREVIEW' if dry_run else 'COMPLETE' }}
+          HOST: {{ inventory_hostname }}
+          SERVICES PROCESSED: {{ services_to_render | join(', ') }}
+          TEMPLATES {{ 'WOULD BE' if dry_run else '' }} RENDERED: {{ _total_templates }}
+          FILES {{ 'WOULD BE' if dry_run else '' }} COPIED: {{ _total_files }}
+          SERVICES RESTARTED: {{ 'YES' if restart and not dry_run else 'NO' }}
+          ============================================

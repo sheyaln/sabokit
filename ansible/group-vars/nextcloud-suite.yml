@@ -1,0 +1,80 @@
+# Nextcloud Suite (Nextcloud + OnlyOffice Document Server) Configuration
+# Managed PostgreSQL credentials pulled from Scaleway Secret Manager
+
+# ── Nextcloud Database ────────
+nextcloud_db_creds: "{{ lookup('scaleway.scaleway.scaleway_secret', 'postgres-nextcloud-credentials') | b64decode | from_json }}"
+nextcloud_db_name: "{{ nextcloud_db_creds.dbname }}"
+nextcloud_db_user: "{{ nextcloud_db_creds.username }}"
+nextcloud_db_password: "{{ nextcloud_db_creds.password }}"
+
+# ── OnlyOffice Document Server Database ────────
+docs_db_creds: "{{ lookup('scaleway.scaleway.scaleway_secret', 'postgres-onlyoffice-credentials') | b64decode | from_json }}"
+docs_db_name: "{{ docs_db_creds.dbname }}"
+docs_db_user: "{{ docs_db_creds.username }}"
+docs_db_password: "{{ docs_db_creds.password }}"
+
+# ── Shared Database Host ────────
+shared_db_host: "{{ nextcloud_db_creds.host }}"
+shared_db_port: "{{ nextcloud_db_creds.port }}"
+
+# ── Domain Configuration ────────
+nextcloud_domain: "cloud.{{ default_domain }}"
+onlyoffice_domain: "docs.{{ default_domain }}"
+
+# ── Nextcloud Admin Account ────────
+nextcloud_admin_user: "admin"
+nextcloud_admin_password: "{{ lookup('scaleway.scaleway.scaleway_secret', 'nextcloud-admin-password') | b64decode }}"
+
+# ── Application Secrets ────────
+redis_password: "{{ lookup('scaleway.scaleway.scaleway_secret', 'nextcloud-redis-password') | b64decode }}"
+jwt_secret: "{{ lookup('scaleway.scaleway.scaleway_secret', 'onlyoffice-jwt-secret') | b64decode }}"
+jwt_enabled: "true"
+jwt_header: "Authorization"
+jwt_in_body: "false"
+secure_link_secret: "{{ lookup('scaleway.scaleway.scaleway_secret', 'onlyoffice-secure-link-secret') | b64decode }}"
+
+# ── Performance Configuration ────────
+nginx_worker_processes: "auto"
+nginx_worker_connections: "4096"
+
+# ── Nextcloud Talk HPB ────────
+talk_turn_secret: "{{ lookup('scaleway.scaleway.scaleway_secret', 'nextcloud-talk-turn-secret', errors='ignore') | default('', true) | b64decode if lookup('scaleway.scaleway.scaleway_secret', 'nextcloud-talk-turn-secret', errors='ignore') else '' }}"
+talk_signaling_secret: "{{ lookup('scaleway.scaleway.scaleway_secret', 'nextcloud-talk-signaling-secret', errors='ignore') | default('', true) | b64decode if lookup('scaleway.scaleway.scaleway_secret', 'nextcloud-talk-signaling-secret', errors='ignore') else '' }}"
+talk_internal_secret: "{{ lookup('scaleway.scaleway.scaleway_secret', 'nextcloud-talk-internal-secret', errors='ignore') | default('', true) | b64decode if lookup('scaleway.scaleway.scaleway_secret', 'nextcloud-talk-internal-secret', errors='ignore') else '' }}"
+talk_host: "signal.{{ default_domain }}"
+talk_port: "3478"
+
+# ── Authentik OIDC Configuration ────────
+# Note: Create authentik-app-sabo-cloud secret in Scaleway Secret Manager
+oidc_client_id: "{{ (lookup('scaleway.scaleway.scaleway_secret', 'authentik-app-sabo-cloud', errors='ignore') | default('{}', true) | b64decode | from_json).client_id | default('') }}"
+oidc_client_secret: "{{ (lookup('scaleway.scaleway.scaleway_secret', 'authentik-app-sabo-cloud', errors='ignore') | default('{}', true) | b64decode | from_json).client_secret | default('') }}"
+oidc_issuer: "https://{{ gateway_domain }}/application/o/sabo-cloud"
+
+# ── Scaleway S3 Storage ─────────────────────────
+s3_endpoint_host: "s3.fr-par.scw.cloud"
+s3_region: "fr-par"
+s3_bucket: "{{ project_name }}-nextcloud-prod-0"
+s3_access_key: "{{ scaleway_access_key }}"
+s3_secret_key: "{{ scaleway_secret_key }}"
+
+# ── SMTP Configuration ─────────────────────────
+smtp_host: "{{ (lookup('scaleway.scaleway.scaleway_secret', 'smtp-config') | b64decode | from_json).smtp_host }}"
+smtp_port: "{{ (lookup('scaleway.scaleway.scaleway_secret', 'smtp-config') | b64decode | from_json).smtp_port }}"
+smtp_username: "{{ (lookup('scaleway.scaleway.scaleway_secret', 'smtp-config') | b64decode | from_json).smtp_username }}"
+smtp_password: "{{ (lookup('scaleway.scaleway.scaleway_secret', 'smtp-config') | b64decode | from_json).smtp_password }}"
+mail_from_address: "infra"
+mail_domain: "{{ tools_domain }}"
+
+# ── Security Configuration ─────────────────────────
+trusted_proxies: "172.0.0.0/8" # Traefik network range for reverse proxy
+default_phone_region: "US" # ISO 3166-1 country code for phone numbers
+
+# ── n8n Webhook for Form Submissions ────────
+n8n_form_webhook_url: "https://n8n.{{ management_domain }}/webhook/nextcloud-form-submission"
+
+# ── Deployment Configuration ────────
+nextcloud_force_recreate: false # Set to true to force container recreation
+
+
+
+

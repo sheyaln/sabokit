@@ -1,0 +1,43 @@
+<!--
+  Wazuh Agent Configuration Template (Reference Only)
+  
+  NOTE: This file is NOT currently deployed. The official wazuh/wazuh-agent
+  container auto-generates its ossec.conf from environment variables.
+  
+  This template is kept as a reference for future customization if needed.
+  To use custom config, mount this file at /wazuh-config-mount/etc/ossec.conf
+  
+  WARNING: Avoid these patterns that caused server crashes:
+  - syscollector with scan_on_start
+  - syscheck with realtime="yes" on large directories
+  - rootcheck enabled
+  - Aggressive audit rules (-S execve, -S connect)
+-->
+<ossec_config>
+  <client>
+    <server>
+      <address>{{ wazuh_manager_ip }}</address>
+      <port>1514</port>
+      <protocol>tcp</protocol>
+    </server>
+    <notify_time>60</notify_time>
+    <time-reconnect>300</time-reconnect>
+    <auto_restart>yes</auto_restart>
+  </client>
+
+  <logging>
+    <log_format>plain</log_format>
+  </logging>
+
+  <!-- Basic log collection -->
+  <localfile>
+    <log_format>syslog</log_format>
+    <location>/var/log/syslog</location>
+  </localfile>
+
+  <localfile>
+    <log_format>syslog</log_format>
+    <location>/var/log/auth.log</location>
+  </localfile>
+
+</ossec_config>

@@ -1,0 +1,80 @@
+---
+- name: Install unattended-upgrades package
+  apt:
+    name: unattended-upgrades
+    state: present
+    update_cache: true
+  become: true
+
+- name: Install mailutils for email notifications (optional)
+  apt:
+    name: mailutils
+    state: present
+  become: true
+  when: unattended_upgrades_email_enabled | default(false)
+
+- name: Configure unattended-upgrades
+  template:
+    src: 50unattended-upgrades.j2
+    dest: /etc/apt/apt.conf.d/50unattended-upgrades
+    owner: root
+    group: root
+    mode: '0644'
+  become: true
+  notify: Restart unattended-upgrades
+
+- name: Configure automatic upgrades
+  template:
+    src: 20auto-upgrades.j2
+    dest: /etc/apt/apt.conf.d/20auto-upgrades
+    owner: root
+    group: root
+    mode: '0644'
+  become: true
+  notify: Restart unattended-upgrades
+
+- name: Create logrotate configuration for unattended-upgrades
+  copy:
+    content: |
+      /var/log/unattended-upgrades/unattended-upgrades.log {
+        daily
+        missingok
+        rotate 14
+        compress
+        delaycompress
+        notifempty
+        create 0640 root adm
+      }
+      /var/log/unattended-upgrades/unattended-upgrades-dpkg.log {
+        daily
+        missingok
+        rotate 14
+        compress
+        delaycompress
+        notifempty
+        create 0640 root adm
+      }
+    dest: /etc/logrotate.d/unattended-upgrades
+    owner: root
+    group: root
+    mode: '0644'
+  become: true
+
+- name: Enable and start unattended-upgrades service
+  systemd:
+    name: unattended-upgrades
+    enabled: true
+    state: started
+    daemon_reload: true
+  become: true
+
+- name: Check if unattended-upgrades is working
+  command: unattended-upgrades --dry-run
+  register: unattended_upgrades_check
+  become: true
+  changed_when: false
+  failed_when: unattended_upgrades_check.rc != 0
+
+- name: Display unattended-upgrades status
+  debug:
+    msg: "Unattended-upgrades is configured and running. Check logs in /var/log/unattended-upgrades/"

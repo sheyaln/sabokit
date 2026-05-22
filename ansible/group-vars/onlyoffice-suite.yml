@@ -1,0 +1,74 @@
+# OnlyOffice Suite (Document Server + DocSpace) Configuration
+# Managed PostgreSQL credentials pulled from Scaleway Secret Manager
+
+# ── Document Server Database ────────
+docs_db_creds: "{{ lookup('scaleway.scaleway.scaleway_secret', 'postgres-onlyoffice-credentials') | b64decode | from_json }}"
+docs_db_name: "{{ docs_db_creds.dbname }}"
+docs_db_user: "{{ docs_db_creds.username }}"
+docs_db_password: "{{ docs_db_creds.password }}"
+
+# ── DocSpace Database ────────
+docspace_db_creds: "{{ lookup('scaleway.scaleway.scaleway_secret', 'postgres-docspace-credentials') | b64decode | from_json }}"
+docspace_db_name: "{{ docspace_db_creds.dbname }}"
+docspace_db_user: "{{ docspace_db_creds.username }}"
+docspace_db_password: "{{ docspace_db_creds.password }}"
+
+# ── Shared Database Host ────────
+shared_db_host: "{{ docs_db_creds.host }}" # Same Scaleway instance
+shared_db_port: "{{ docs_db_creds.port }}"
+
+# ── Domain Configuration ────────
+docs_domain: "docs.{{ tools_domain }}"
+docspace_domain: "files.{{ tools_domain }}"
+
+# ── Document Server Secrets ────────
+docs_jwt_secret: "{{ lookup('scaleway.scaleway.scaleway_secret', 'onlyoffice-jwt-secret') | b64decode }}"
+docs_jwt_enabled: "true"
+docs_jwt_header: "Authorization"
+docs_jwt_in_body: "false"
+
+# ── DocSpace Secrets ────────
+docspace_jwt_secret: "{{ lookup('scaleway.scaleway.scaleway_secret', 'docspace-jwt-secret') | b64decode }}"
+docspace_machine_key: "{{ lookup('scaleway.scaleway.scaleway_secret', 'docspace-machine-key') | b64decode }}"
+
+# ── Shared Infrastructure Secrets ────────
+redis_password: "{{ lookup('scaleway.scaleway.scaleway_secret', 'onlyoffice-redis-password') | b64decode }}"
+rabbitmq_user: "onlyoffice"
+rabbitmq_password: "{{ lookup('scaleway.scaleway.scaleway_secret', 'onlyoffice-rabbitmq-password') | b64decode }}"
+
+# ── Security Configuration ────────
+secure_link_secret: "{{ lookup('scaleway.scaleway.scaleway_secret', 'onlyoffice-secure-link-secret') | b64decode }}"
+allow_private_ip: "true"
+allow_meta_ip: "false"
+
+# ── Performance Configuration ────────
+nginx_worker_processes: "auto"
+nginx_worker_connections: "4096"
+generate_fonts: "false"
+plugins_enabled: "true"
+wopi_enabled: "false"
+metrics_enabled: "false"
+
+# ── Authentik OIDC for DocSpace ─────────────────────────
+oidc_client_id: "{{ (lookup('scaleway.scaleway.scaleway_secret', 'authentik-app-onlyoffice') | b64decode | from_json).client_id }}"
+oidc_client_secret: "{{ (lookup('scaleway.scaleway.scaleway_secret', 'authentik-app-onlyoffice') | b64decode | from_json).client_secret }}"
+oidc_issuer: "https://{{ gateway_domain }}/application/o/docspace/"
+
+# ── Shared Scaleway S3 Storage ─────────────────────────
+s3_endpoint: "https://s3.fr-par.scw.cloud"
+s3_region: "fr-par"
+s3_bucket: "{{ scaleway_s3_bucket }}"
+s3_access_key: "{{ scaleway_access_key }}"
+s3_secret_key: "{{ scaleway_secret_key }}"
+s3_force_path_style: "false"
+
+# ── SMTP Configuration ─────────────────────────
+smtp_host: "{{ (lookup('scaleway.scaleway.scaleway_secret', 'smtp-config') | b64decode | from_json).smtp_host }}"
+smtp_port: "{{ (lookup('scaleway.scaleway.scaleway_secret', 'smtp-config') | b64decode | from_json).smtp_port }}"
+smtp_username: "{{ (lookup('scaleway.scaleway.scaleway_secret', 'smtp-config') | b64decode | from_json).smtp_username }}"
+smtp_password: "{{ (lookup('scaleway.scaleway.scaleway_secret', 'smtp-config') | b64decode | from_json).smtp_password }}"
+mail_from: "OnlyOffice Suite <office@{{ tools_domain }}>"
+
+
+
+

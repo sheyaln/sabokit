@@ -1,0 +1,20 @@
+# ── LimeSurvey Database ─────────────────────────
+LIMESURVEY_DB_PASSWORD: "{{ lookup('scaleway.scaleway.scaleway_secret', 'limesurvey-db-password') | b64decode }}"
+
+# ── LimeSurvey Admin ─────────────────────────
+LIMESURVEY_ADMIN_USER: "{{ lookup('scaleway.scaleway.scaleway_secret', 'limesurvey-admin-user') | b64decode }}"
+LIMESURVEY_ADMIN_PASSWORD: "{{ lookup('scaleway.scaleway.scaleway_secret', 'limesurvey-admin-password') | b64decode }}"
+LIMESURVEY_ADMIN_NAME: "{{ org_name }} Admin"
+LIMESURVEY_ADMIN_EMAIL: "surveys@{{ tools_domain }}"
+
+# ── SMTP Configuration ─────────────────────────
+LIMESURVEY_SMTP_HOST: "{{ smtp_host }}"
+LIMESURVEY_SMTP_PORT: "{{ smtp_port }}"
+LIMESURVEY_SMTP_USERNAME: "{{ smtp_username }}"
+LIMESURVEY_SMTP_PASSWORD: "{{ smtp_password }}"
+LIMESURVEY_SMTP_FROM: "{{ org_name }} Surveys <surveys@{{ tools_domain }}>"
+LIMESURVEY_SMTP_USE_TLS: "false"
+
+
+
+

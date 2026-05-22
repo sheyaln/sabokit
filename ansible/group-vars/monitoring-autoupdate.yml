@@ -1,0 +1,28 @@
+---
+# Watchtower Configuration
+watchtower_schedule: "0 0 3 * * *"  # Run at 3 AM daily
+watchtower_cleanup: true
+watchtower_rolling_restart: true
+watchtower_timeout: 180
+
+# Autoheal Configuration
+autoheal_interval: 30  # Check every 30 seconds
+autoheal_start_period: 0  # Start monitoring immediately
+autoheal_stop_timeout: 10
+autoheal_curl_timeout: 30
+
+# Health Monitoring
+health_check_interval: 60
+health_alert_email: ""
+
+# Timezone
+timezone: "UTC"
+
+# Notification Configuration (optional)
+# Uncomment and configure for notifications
+# watchtower_notification_url: "smtp://username:password@smtp.example.com:587/?from=watchtower@example.com&to=admin@example.com"
+# Or use Discord: "discord://token@webhookid"
+# Or use Slack: "slack://token@channel"
+watchtower_notification_url: ""
+watchtower_notification_template: ""
+

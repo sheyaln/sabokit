@@ -1,0 +1,19 @@
+---
+# Monitoring Exporters Defaults
+
+# Exporter ports
+node_exporter_port: 9100
+cadvisor_port: 8080
+alloy_port: 12345
+zabbix_agent_port: 10050
+
+# Alloy configuration
+alloy_log_level: warn
+
+# Network configuration
+monitoring_network: "monitoring"
+
+# Directory paths
+exporters_base_dir: "/opt/monitoring-exporters"
+alloy_config_dir: "{{ exporters_base_dir }}/alloy"
+textfile_collector_dir: "/var/lib/node_exporter/textfile_collector"

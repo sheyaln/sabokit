@@ -1,0 +1,41 @@
+
+# Outline Secret Mappings
+
+# Maps local secret filenames to Scaleway Secret Manager paths.
+#
+# Format:
+#   local_filename: scaleway-secret-name[/json-key]
+#
+# If the secret is a JSON key_value type, you can extract a specific key
+# by appending /key-name after the secret name.
+#
+# These secrets will be written to /run/secrets/<local_filename> in the
+# container at startup time.
+
+
+secrets:
+  # Database credentials (from managed PostgreSQL)
+  db_password: postgres-outline-credentials/password
+  db_user: postgres-outline-credentials/username
+  db_host: postgres-outline-credentials/host
+  db_name: postgres-outline-credentials/database
+
+  # Application secrets
+  secret_key: outline-secret-key
+  utils_secret: outline-utils-secret
+
+  # OIDC/OAuth (from Authentik)
+  oidc_client_id: outline-oidc-credentials/client_id
+  oidc_client_secret: outline-oidc-credentials/client_secret
+
+  # S3 storage (Scaleway Object Storage)
+  s3_access_key: outline-s3-credentials/access_key
+  s3_secret_key: outline-s3-credentials/secret_key
+
+  # SMTP (shared across applications)
+  smtp_password: smtp-config/smtp_password
+  smtp_username: smtp-config/smtp_username
+
+  # Optional: Slack integration
+  # slack_client_secret: outline-slack-credentials/client_secret
+  # slack_signing_secret: outline-slack-credentials/signing_secret

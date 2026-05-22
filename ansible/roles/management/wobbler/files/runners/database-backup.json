@@ -1,0 +1,67 @@
+{
+  "name": "Database Backup Manager",
+  "script_path": "/app/conf/scripts/database-backup.py",
+  "description": "Creates backups for Scaleway managed databases with automatic retention",
+  "allowed_users": ["@admins"],
+  "scheduling": {
+    "enabled": true
+  },
+  "access": {
+    "shared_access": {
+      "type": "ALL_USERS"
+    }
+  },
+  "parameters": [
+    {
+      "name": "Action",
+      "param": "--action",
+      "type": "list",
+      "default": "backup",
+      "description": "Action to perform",
+      "values": ["backup", "list", "cleanup"]
+    },
+    {
+      "name": "Instance",
+      "param": "--instance",
+      "description": "Target a specific database instance (leave empty for all)",
+      "required": false
+    },
+    {
+      "name": "Databases",
+      "param": "--database",
+      "description": "Target specific databases (comma-separated). Leave empty for all.",
+      "required": false
+    },
+    {
+      "name": "Retention Days",
+      "param": "--retention-days",
+      "type": "int",
+      "default": "7",
+      "min": "1",
+      "max": "90",
+      "description": "Days before backup expires"
+    },
+    {
+      "name": "Retention Count",
+      "param": "--retention-count",
+      "type": "int",
+      "default": "3",
+      "min": "1",
+      "max": "30",
+      "description": "Max backups to keep per database (for cleanup)"
+    },
+    {
+      "name": "Include System DBs",
+      "param": "--include-system",
+      "no_value": true,
+      "description": "Include system databases (rdb, postgres)"
+    },
+    {
+      "name": "Dry Run",
+      "param": "--dry-run",
+      "no_value": true,
+      "description": "Preview changes without executing"
+    }
+  ]
+}
+

@@ -1,0 +1,53 @@
+---
+- name: Ensure monitoring-autoupdate directory exists
+  file:
+    path: /opt/monitoring-autoupdate
+    state: directory
+    mode: '0755'
+    owner: ubuntu
+    group: ubuntu
+
+- name: Create config directory
+  file:
+    path: /opt/monitoring-autoupdate/config
+    state: directory
+    mode: '0755'
+    owner: ubuntu
+    group: ubuntu
+
+- name: Deploy docker-compose file
+  template:
+    src: docker-compose.yml.j2
+    dest: /opt/monitoring-autoupdate/docker-compose.yml
+    owner: ubuntu
+    group: ubuntu
+    mode: '0644'
+  notify: restart monitoring-autoupdate
+
+- name: Deploy environment file
+  template:
+    src: env.j2
+    dest: /opt/monitoring-autoupdate/.env
+    owner: ubuntu
+    group: ubuntu
+    mode: '0600'
+  notify: restart monitoring-autoupdate
+
+- name: Deploy Watchtower notification script
+  template:
+    src: notify.sh.j2
+    dest: /opt/monitoring-autoupdate/config/notify.sh
+    owner: ubuntu
+    group: ubuntu
+    mode: '0755'
+
+- name: Start monitoring-autoupdate services
+  community.docker.docker_compose_v2:
+    project_src: /opt/monitoring-autoupdate
+    state: present
+  register: autoupdate_result
+
+- name: Display deployment status
+  debug:
+    msg: "Monitoring Autoupdate services deployed: {{ autoupdate_result.actions }}"
+

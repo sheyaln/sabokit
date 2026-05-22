@@ -1,0 +1,52 @@
+# ── Managed PostgreSQL credentials (Scaleway Secret Manager) ──
+outline_db_creds: "{{ lookup('scaleway.scaleway.scaleway_secret', 'postgres-outline-credentials') | b64decode | from_json }}"
+
+PG_DB: "{{ outline_db_creds.dbname }}"
+PG_USER: "{{ outline_db_creds.username }}"
+PG_PASS: "{{ outline_db_creds.password }}"
+PG_HOST: "{{ outline_db_creds.host }}"
+PG_PORT: "{{ outline_db_creds.port }}"
+
+# ── Outline application secrets ────────
+OUTLINE_SECRET_KEY: "{{ lookup('scaleway.scaleway.scaleway_secret', 'outline-secret-key') | b64decode }}"
+OUTLINE_UTILS_SECRET: "{{ lookup('scaleway.scaleway.scaleway_secret', 'outline-utils-secret-key') | b64decode }}"
+OUTLINE_URL: "https://wiki.{{ tools_domain }}"
+
+# ── Google OAuth ─────────────────────────
+GOOGLE_CLIENT_ID: "{{ (lookup('scaleway.scaleway.scaleway_secret', 'social-google-oauth-credentials') | b64decode | from_json).client_id }}"
+GOOGLE_CLIENT_SECRET: "{{ (lookup('scaleway.scaleway.scaleway_secret', 'social-google-oauth-credentials') | b64decode | from_json).client_secret }}"
+
+# ── Slack ─────────────────────────
+SLACK_CLIENT_ID: "{{ lookup('scaleway.scaleway.scaleway_secret', 'outline-slack-client-id') | b64decode }}"
+SLACK_CLIENT_SECRET: "{{ lookup('scaleway.scaleway.scaleway_secret', 'outline-slack-client-secret') | b64decode }}"
+SLACK_SIGNING_SECRET: "{{ lookup('scaleway.scaleway.scaleway_secret', 'outline-slack-signing-secret') | b64decode }}"
+SLACK_BOT_TOKEN: "{{ lookup('scaleway.scaleway.scaleway_secret', 'outline-slack-bot-token') | b64decode }}"
+
+# ── Authentik ─────────────────────────
+OIDC_CLIENT_ID: "{{ (lookup('scaleway.scaleway.scaleway_secret', 'authentik-app-outline') | b64decode | from_json).client_id }}"
+OIDC_CLIENT_SECRET: "{{ (lookup('scaleway.scaleway.scaleway_secret', 'authentik-app-outline') | b64decode | from_json).client_secret }}"
+OIDC_AUTH_URI: "https://{{ gateway_domain }}/application/o/authorize/"
+OIDC_TOKEN_URI: "https://{{ gateway_domain }}/application/o/token/"
+OIDC_USERINFO_URI: "https://{{ gateway_domain }}/application/o/userinfo/"
+OIDC_LOGOUT_URI: "https://{{ gateway_domain }}/application/o/outline/end-session/"
+OIDC_DISPLAY_NAME: "Authentik"
+OIDC_USERNAME_CLAIM: sub
+OIDC_SCOPES: "openid profile email"
+
+# ── Scaleway S3 Storage ─────────────────────────
+SCALEWAY_APPDATA_BUCKET_NAME: "{{ scaleway_s3_bucket }}"
+SCALEWAY_BUCKET_URL: "https://s3.fr-par.scw.cloud"
+SCALEWAY_ACCESS_KEY: "{{ scaleway_access_key }}"
+SCALEWAY_SECRET_KEY: "{{ scaleway_secret_key }}"
+
+# ── SMTP ─────────────────────────
+SMTP_FROM_EMAIL: "{{ org_name }} Wiki <wiki@{{ tools_domain }}>"
+SMTP_HOST: "{{ (lookup('scaleway.scaleway.scaleway_secret', 'smtp-config') | b64decode | from_json).smtp_host }}"
+SMTP_USERNAME: "{{ (lookup('scaleway.scaleway.scaleway_secret', 'smtp-config') | b64decode | from_json).smtp_username }}"
+SMTP_PASSWORD: "{{ (lookup('scaleway.scaleway.scaleway_secret', 'smtp-config') | b64decode | from_json).smtp_password }}"
+SMTP_PORT: "{{ (lookup('scaleway.scaleway.scaleway_secret', 'smtp-config') | b64decode | from_json).smtp_port }}"
+SMTP_SECURE: "true"
+
+
+
+

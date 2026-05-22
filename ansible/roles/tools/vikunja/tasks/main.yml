@@ -1,0 +1,56 @@
+---
+- name: Ensure Vikunja directory
+  ansible.builtin.file:
+    path: /opt/vikunja
+    state: directory
+    mode: '0755'
+    owner: ubuntu
+    group: ubuntu
+
+- name: Ensure Vikunja files directory
+  ansible.builtin.file:
+    path: /opt/vikunja/files
+    state: directory
+    mode: '0755'
+    owner: ubuntu
+    group: ubuntu
+
+- name: Generate docker-compose file
+  ansible.builtin.template:
+    src: docker-compose.yml.j2
+    dest: /opt/vikunja/docker-compose.yml
+    mode: '0644'
+    owner: ubuntu
+    group: ubuntu
+
+- name: Render environment file
+  ansible.builtin.template:
+    src: env.j2
+    dest: /opt/vikunja/.env
+    mode: '0600'
+    owner: ubuntu
+    group: ubuntu
+
+- name: Check for existing Vikunja container
+  community.docker.docker_container_info:
+    name: vikunja
+  register: vikunja_container
+  ignore_errors: true
+
+- name: Shut down existing Vikunja container
+  community.docker.docker_compose_v2:
+    project_src: /opt/vikunja
+    state: absent
+  when: vikunja_container.exists | default(false)
+
+- name: Clean up orphan containers
+  community.docker.docker_compose_v2:
+    project_src: /opt/vikunja
+    state: absent
+    remove_orphans: true
+  when: vikunja_container.exists | default(false)
+
+- name: Ensure Vikunja containers are running
+  community.docker.docker_compose_v2:
+    project_src: /opt/vikunja
+    state: present

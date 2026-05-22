@@ -1,0 +1,99 @@
+{
+  "modno": 1,
+  "version": 5,
+  "instance": "{{ org_slug }}-management",
+  "auth": {
+    "disabled": true
+  },
+  "repos": [
+    {
+      "id": "scaleway-s3",
+      "uri": "s3:{{ backrest_s3_endpoint | regex_replace('^https://', '') }}/{{ backrest_s3_bucket }}",
+      "password": "{{ backrest_restic_password }}",
+      "env": [
+        "AWS_ACCESS_KEY_ID={{ backrest_s3_access_key }}",
+        "AWS_SECRET_ACCESS_KEY={{ backrest_s3_secret_key }}"
+      ],
+      "flags": ["--verbose"],
+      "autoUnlock": true,
+      "autoInitialize": true,
+      "prunePolicy": {
+        "schedule": { "maxFrequencyDays": 7 }
+      },
+      "checkPolicy": {
+        "schedule": { "maxFrequencyDays": 30 },
+        "readDataSubsetPercent": 5
+      }
+    }
+  ],
+  "plans": [
+    {
+      "id": "management-volumes",
+      "repo": "scaleway-s3",
+      "paths": ["/backup-sources/docker-volumes"],
+      "excludes": ["**/backrest/**"],
+      "schedule": { "cron": "0 3 * * *" },
+      "retention": {
+        "policyTimeBucketed": {
+          "daily": 7, "weekly": 4, "monthly": 6, "keepLastN": 3
+        }
+      }
+    },
+    {
+      "id": "management-apps",
+      "repo": "scaleway-s3",
+      "paths": ["/backup-sources/opt"],
+      "excludes": ["**/backrest/**"],
+      "schedule": { "cron": "0 3 * * *" },
+      "retention": {
+        "policyTimeBucketed": {
+          "daily": 7, "weekly": 4, "monthly": 6, "keepLastN": 3
+        }
+      }
+    },
+    {
+      "id": "tools-prod-volumes",
+      "repo": "scaleway-s3",
+      "paths": ["/backup-sources/tools-prod/docker-volumes"],
+      "schedule": { "cron": "0 4 * * *" },
+      "retention": {
+        "policyTimeBucketed": {
+          "daily": 7, "weekly": 4, "monthly": 6, "keepLastN": 3
+        }
+      }
+    },
+    {
+      "id": "tools-prod-apps",
+      "repo": "scaleway-s3",
+      "paths": ["/backup-sources/tools-prod/opt"],
+      "schedule": { "cron": "0 4 * * *" },
+      "retention": {
+        "policyTimeBucketed": {
+          "daily": 7, "weekly": 4, "monthly": 6, "keepLastN": 3
+        }
+      }
+    },
+    {
+      "id": "authentik-prod-volumes",
+      "repo": "scaleway-s3",
+      "paths": ["/backup-sources/authentik-prod/docker-volumes"],
+      "schedule": { "cron": "0 5 * * *" },
+      "retention": {
+        "policyTimeBucketed": {
+          "daily": 7, "weekly": 4, "monthly": 6, "keepLastN": 3
+        }
+      }
+    },
+    {
+      "id": "authentik-prod-apps",
+      "repo": "scaleway-s3",
+      "paths": ["/backup-sources/authentik-prod/opt"],
+      "schedule": { "cron": "0 5 * * *" },
+      "retention": {
+        "policyTimeBucketed": {
+          "daily": 7, "weekly": 4, "monthly": 6, "keepLastN": 3
+        }
+      }
+    }
+  ]
+}

@@ -1,0 +1,41 @@
+---
+# Default values for the Wazuh management deployment.
+wazuh_version: "4.14.2"
+wazuh_certs_generator_version: "0.0.4"
+wazuh_cert_tool_version: "4.14"
+wazuh_bcrypt_cost: 12
+
+# Certificate subject defaults
+wazuh_certificate_subject:
+  country: "US"
+  state: "California"
+  locality: "Los Angeles"
+  organization: "Wazuh"
+
+# Certificate SANs for all components. Extend these lists in inventory if needed.
+wazuh_certificate_dns_sans:
+  - "wazuh-indexer"
+  - "wazuh-manager"
+  - "wazuh-dashboard"
+  - "localhost"
+
+# Components that receive TLS certificates
+wazuh_certificate_components:
+  - "wazuh-indexer"
+  - "wazuh-manager"
+  - "wazuh-dashboard"
+
+# Local service IPs used by Wazuh containers (bridge network defaults)
+wazuh_certificate_ip_sans:
+  - "127.0.0.1"
+
+# CA and component validity period in days
+wazuh_ca_validity_days: 3650
+wazuh_certificate_validity_days: 3650
+wazuh_regenerate_certs: false
+
+# OpenSearch heap size defaults (can be overridden per environment)
+wazuh_indexer_heap_size: "1g"
+
+# Docker compose project path
+wazuh_compose_path: "/opt/wazuh"

@@ -1,0 +1,187 @@
+---
+# ============================================
+# SYSTEM MAINTENANCE & SECURITY
+# ============================================
+
+- name: Configure Management host - System Updates
+  hosts: management
+  tags: 
+    - core
+    - system-updates
+  become: true
+  vars_files:
+    - group-vars/all.yml
+    - group-vars/core.yml
+    - group-vars/unattended-upgrades.yml
+  roles:
+    - core/unattended-upgrades
+
+- name: Configure Management host - Log Management
+  hosts: management
+  tags:
+    - core
+    - log-management
+  become: true
+  vars_files:
+    - group-vars/all.yml
+    - group-vars/core.yml
+  roles:
+    - core/log-management
+
+- name: Configure Management host - Security & Firewall
+  hosts: management
+  tags: 
+    - core
+    - security
+  become: true
+  vars_files:
+    - group-vars/all.yml
+    - group-vars/core.yml
+    - group-vars/management-ufw.yml
+    - group-vars/wazuh.yml
+  roles:
+    - core/fail2ban
+    - core/ufw
+
+# ============================================
+# INFRASTRUCTURE SERVICES
+# ============================================
+
+- name: Configure Management host - Docker Runtime
+  hosts: management
+  tags: 
+    - core
+    - docker
+  become: true
+  vars_files:
+    - group-vars/all.yml
+    - group-vars/core.yml
+  roles:
+    - core/docker
+
+- name: Configure Management host - Traefik
+  hosts: management
+  tags: traefik
+  become: true
+  vars_files:
+    - group-vars/all.yml
+    - group-vars/traefik.yml
+  roles:
+    - core/traefik
+
+# ============================================
+# MONITORING STACK
+# ============================================
+
+- name: Deploy Monitoring Stack (Grafana, Loki, Prometheus)
+  hosts: management
+  tags: 
+    - monitoring
+    - monitoring-stack
+  become: true
+  vars_files:
+    - group-vars/all.yml
+    - group-vars/monitoring.yml
+  roles:
+    - monitoring/stack
+
+- name: Deploy Monitoring Exporters on Management host
+  hosts: management
+  tags:
+    - monitoring
+    - monitoring-exporters
+  become: true
+  vars_files:
+    - group-vars/all.yml
+    - group-vars/monitoring.yml
+  roles:
+    - monitoring/exporters
+
+- name: Configure Management host - Container Auto-Update & Auto-Heal
+  hosts: management
+  tags: 
+    - monitoring
+    - autoupdate
+    - autoheal
+  become: true
+  vars_files:
+    - group-vars/all.yml
+    - group-vars/monitoring-autoupdate.yml
+  roles:
+    - core/monitoring-autoupdate
+
+- name: Deploy Wazuh SIEM
+  hosts: management
+  tags: wazuh
+  become: true
+  vars_files:
+    - group-vars/all.yml
+    - group-vars/wazuh.yml
+  roles:
+    - management/wazuh
+
+- name: Deploy Wazuh Agent on Management host
+  hosts: management
+  tags: wazuh-agent
+  become: true
+  vars_files:
+    - group-vars/all.yml
+    - group-vars/wazuh.yml
+  roles:
+    - core/wazuh-agent
+
+# ============================================
+# EMAIL INFRASTRUCTURE
+# ============================================
+
+- name: Deploy Proton Mail Bridge
+  hosts: management
+  tags: protonmail-bridge
+  become: true
+  vars_files:
+    - group-vars/all.yml
+    - group-vars/protonmail-bridge.yml
+  roles:
+    - management/protonmail-bridge
+
+# ============================================
+# AUTOMATION PLATFORM
+# ============================================
+
+- name: Deploy n8n Automation Platform
+  hosts: management
+  tags: n8n
+  become: true
+  vars_files:
+    - group-vars/all.yml
+    - group-vars/n8n.yml
+  roles:
+    - management/n8n
+
+# ============================================
+# BACKUP MANAGEMENT
+# ============================================
+
+- name: Deploy Backrest backup manager
+  hosts: management
+  tags: backrest
+  become: true
+  vars_files:
+    - group-vars/all.yml
+    - group-vars/backrest.yml
+  roles:
+    - management/backrest
+
+# ============================================
+# WOBBLER
+# ============================================
+
+- name: Deploy Wobbler
+  hosts: management
+  tags: wobbler
+  become: true
+  vars_files:
+    - group-vars/all.yml
+    - group-vars/wobbler.yml
+  roles:
+    - management/wobbler

@@ -1,0 +1,36 @@
+# NextCloud Admin Configuration
+NEXTCLOUD_ADMIN_USER: admin
+NEXTCLOUD_ADMIN_PASSWORD: "{{ lookup('scaleway.scaleway.scaleway_secret', 'nextcloud-admin-password') | b64decode }}"
+
+# Database Configuration
+MYSQL_ROOT_PASSWORD: "{{ lookup('scaleway.scaleway.scaleway_secret', 'nextcloud-mysql-root-password') | b64decode }}"
+MYSQL_PASSWORD: "{{ lookup('scaleway.scaleway.scaleway_secret', 'nextcloud-mysql-password') | b64decode }}"
+MYSQL_DATABASE: "{{ lookup('scaleway.scaleway.scaleway_secret', 'nextcloud-mysql-database') | b64decode }}"
+MYSQL_USER: "{{ lookup('scaleway.scaleway.scaleway_secret', 'nextcloud-mysql-user') | b64decode }}"
+MYSQL_HOST: "{{ lookup('scaleway.scaleway.scaleway_secret', 'nextcloud-mysql-host') | b64decode }}"
+
+# Redis Configuration
+REDIS_PASSWORD: "{{ lookup('scaleway.scaleway.scaleway_secret', 'nextcloud-redis-password') | b64decode }}"
+
+# NextCloud Domain Configuration
+NEXTCLOUD_DOMAIN: "cloud.{{ tools_domain }}"
+NEXTCLOUD_TRUSTED_DOMAINS: "cloud.{{ tools_domain }}"
+
+# Trusted Proxies Configuration (Traefik network)
+TRUSTED_PROXIES: 172.0.0.0/8
+
+# Email Configuration
+MAIL_FROM_ADDRESS: noreply
+MAIL_DOMAIN: "{{ tools_domain }}"
+SMTP_HOST: "{{ smtp_host }}"
+SMTP_PORT: "{{ smtp_port }}"
+SMTP_SECURE: "true"
+SMTP_NAME: "{{ smtp_username }}"
+SMTP_PASSWORD: "{{ smtp_password }}"
+
+# Phone Region Configuration
+DEFAULT_PHONE_REGION: US
+
+
+
+

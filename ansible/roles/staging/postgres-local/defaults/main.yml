@@ -1,0 +1,25 @@
+
+# Local PostgreSQL Container - Default Variables
+
+# These defaults can be overridden in group_vars/staging.yml
+
+postgres_local_container_name: "postgres-staging"
+postgres_local_image: "postgres:16-alpine"
+postgres_local_port: 5432
+
+# Master credentials
+postgres_local_superuser: "postgres"
+postgres_local_superuser_password: "{{ lookup('env', 'STAGING_POSTGRES_PASSWORD') | default('changeme', true) }}"
+
+# Data persistence
+postgres_local_data_dir: "/opt/staging/postgres/data"
+postgres_local_init_dir: "/opt/staging/postgres/init"
+
+# Resource limits
+postgres_local_memory_limit: "512m"
+
+# Network
+postgres_local_network: "staging-network"
+
+# Databases to create (populated from staging.yml)
+postgres_local_databases: []
