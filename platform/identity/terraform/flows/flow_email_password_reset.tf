@@ -50,13 +50,14 @@ resource "authentik_policy_expression" "password_reset_skip_if_restored" {
 # Email stage with custom branding but following blueprint structure
 resource "authentik_stage_email" "password_reset" {
   name                = "password-reset-email"
-  use_global_settings = false # We want to use custom SMTP settings
+  use_global_settings = !var.smtp_enabled
 
-  # Custom SMTP Configuration (maintaining your branding)
-  host         = var.smtp_host
-  port         = var.smtp_port
-  username     = var.smtp_username
-  password     = var.smtp_password
+  # SMTP fields are null when smtp_enabled = false: use_global_settings = true
+  # makes Authentik ignore them at runtime, and the stage no-ops cleanly.
+  host         = var.smtp_enabled ? var.smtp_host : null
+  port         = var.smtp_enabled ? var.smtp_port : null
+  username     = var.smtp_enabled ? var.smtp_username : null
+  password     = var.smtp_enabled ? var.smtp_password : null
   use_tls      = false
   use_ssl      = true
   timeout      = 10

@@ -38,3 +38,12 @@ apps = {
   #   deployment_host_key = "apps"
   # }
 }
+
+# SMTP is OPTIONAL. Empty (the default) means the identity flows still
+# apply but every email step no-ops at runtime — useful for first cold-start.
+# To enable outbound email later: create a Scaleway secret with a JSON
+# payload like {"smtp_host": "...", "smtp_port": 587, "smtp_username":
+# "...", "smtp_password": "..."}, then uncomment and set the name below
+# and re-apply. No resource re-create needed.
+#
+# smtp_secret_name = "smtp-config"

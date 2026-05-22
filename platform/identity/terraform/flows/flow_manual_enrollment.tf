@@ -99,11 +99,11 @@ resource "authentik_stage_user_write" "manual_enrollment_user_write" {
 # Email Verification Stage
 resource "authentik_stage_email" "manual_enrollment_email_verification" {
   name                     = "manual-enrollment-email-verification"
-  use_global_settings      = false
-  host                     = var.smtp_host
-  port                     = var.smtp_port
-  username                 = var.smtp_username
-  password                 = var.smtp_password
+  use_global_settings      = !var.smtp_enabled
+  host                     = var.smtp_enabled ? var.smtp_host : null
+  port                     = var.smtp_enabled ? var.smtp_port : null
+  username                 = var.smtp_enabled ? var.smtp_username : null
+  password                 = var.smtp_enabled ? var.smtp_password : null
   use_tls                  = false
   use_ssl                  = true
   timeout                  = 30

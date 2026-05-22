@@ -24,7 +24,8 @@ module "stack" {
   compute_hosts          = var.compute_hosts
   private_network_subnet = var.private_network_subnet
 
-  apps = var.apps
+  apps             = var.apps
+  smtp_secret_name = var.smtp_secret_name
 }
 
 # Surface stack outputs so `terraform output` / `terraform output -json` works

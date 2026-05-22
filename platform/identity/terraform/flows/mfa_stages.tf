@@ -19,19 +19,25 @@ resource "authentik_stage_authenticator_webauthn" "shared_webauthn_cross_platfor
 }
 
 ## Email Configuration Stage
+#
+# Same SMTP-optional pattern as the authentik_stage_email resources: when
+# smtp_enabled = false we flip to use_global_settings = true and null out
+# the SMTP fields. The Email OTP authenticator stage still exists and is
+# referenced from mfa_validate_strict.configuration_stages below, so MFA
+# enrollment via TOTP/WebAuthn continues to work even when SMTP is off.
 resource "authentik_stage_authenticator_email" "shared_email" {
   name          = "One-Time Passcode via Email"
   friendly_name = "One-Time Passcode via Email"
-  host          = var.smtp_host
-  port          = var.smtp_port
-  username      = var.smtp_username
-  password      = var.smtp_password
+  host          = var.smtp_enabled ? var.smtp_host : null
+  port          = var.smtp_enabled ? var.smtp_port : null
+  username      = var.smtp_enabled ? var.smtp_username : null
+  password      = var.smtp_enabled ? var.smtp_password : null
 
   configure_flow = authentik_flow.email_authenticator_enrollment.uuid
 
   use_ssl             = true
   use_tls             = false
-  use_global_settings = false
+  use_global_settings = !var.smtp_enabled
   timeout             = 30
   token_expiry        = "minutes=15"
   from_address        = local.gateway_email

@@ -2,13 +2,12 @@
 # Used for sending MFA device reset confirmation emails
 resource "authentik_stage_email" "mfa_reset" {
   name                = "email-stage-mfa-reset"
-  use_global_settings = false
+  use_global_settings = !var.smtp_enabled
 
-  # SMTP Configuration
-  host         = var.smtp_host
-  port         = var.smtp_port
-  username     = var.smtp_username
-  password     = var.smtp_password
+  host         = var.smtp_enabled ? var.smtp_host : null
+  port         = var.smtp_enabled ? var.smtp_port : null
+  username     = var.smtp_enabled ? var.smtp_username : null
+  password     = var.smtp_enabled ? var.smtp_password : null
   use_tls      = false
   use_ssl      = true
   timeout      = 30

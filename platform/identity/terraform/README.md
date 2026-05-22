@@ -77,8 +77,21 @@ the canonical names apps look up — keep them stable across forks.
 ## Integration with `base/scaleway`
 
 `base/scaleway/` outputs `domains.gateway_domain` and `domains.base_domain`;
-wire them through to this module. SMTP credentials are read from a Scaleway
-secret in the consumer's project, by default named `smtp-config`.
+wire them through to this module.
+
+## SMTP (optional)
+
+`smtp_secret_name` defaults to `""` — SMTP is **off by default**. The
+identity bundle still creates every email stage (password reset, MFA reset,
+invitation send/verify, manual enrollment verify, Email OTP authenticator)
+but flips them to `use_global_settings = true` with null SMTP fields. Plan
+and apply succeed without any Scaleway secret existing; any user-facing
+email step at runtime no-ops cleanly until SMTP is wired.
+
+To turn SMTP on, create a Scaleway secret in the consumer's project with the
+JSON shape `{smtp_host, smtp_port, smtp_username, smtp_password}`, then set
+`smtp_secret_name = "<that-secret>"` and re-apply. The stages flip to
+`use_global_settings = false` and start sending.
 
 ## Outpost binding
 

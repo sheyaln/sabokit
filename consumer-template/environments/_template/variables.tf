@@ -92,3 +92,8 @@ variable "apps" {
   type    = any
   default = {}
 }
+
+variable "smtp_secret_name" {
+  type    = string
+  default = ""
+}

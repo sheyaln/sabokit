@@ -71,13 +71,12 @@ resource "authentik_stage_user_write" "invitation_user_write" {
 # Email Verification Stage
 resource "authentik_stage_email" "invitation_email_verification" {
   name                = "invitation-email-verification"
-  use_global_settings = false
+  use_global_settings = !var.smtp_enabled
 
-  # SMTP Configuration
-  host         = var.smtp_host
-  port         = var.smtp_port
-  username     = var.smtp_username
-  password     = var.smtp_password
+  host         = var.smtp_enabled ? var.smtp_host : null
+  port         = var.smtp_enabled ? var.smtp_port : null
+  username     = var.smtp_enabled ? var.smtp_username : null
+  password     = var.smtp_enabled ? var.smtp_password : null
   use_tls      = false
   use_ssl      = true
   timeout      = 30
@@ -292,13 +291,12 @@ resource "authentik_policy_binding" "invitation_set_username_binding" {
 # This stage is used to SEND invitation emails (separate from the flow above)
 resource "authentik_stage_email" "send_user_invitation" {
   name                = "email-stage-send-invitation"
-  use_global_settings = false
+  use_global_settings = !var.smtp_enabled
 
-  # SMTP Configuration
-  host         = var.smtp_host
-  port         = var.smtp_port
-  username     = var.smtp_username
-  password     = var.smtp_password
+  host         = var.smtp_enabled ? var.smtp_host : null
+  port         = var.smtp_enabled ? var.smtp_port : null
+  username     = var.smtp_enabled ? var.smtp_username : null
+  password     = var.smtp_enabled ? var.smtp_password : null
   use_tls      = false
   use_ssl      = true
   timeout      = 30

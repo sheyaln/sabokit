@@ -10,6 +10,10 @@ module "flows" {
   member_group_id = authentik_group.member.id
 
   # SMTP for email-bearing flows (password reset, MFA reset, invitations).
+  # When smtp_enabled is false the stages are still created but flip to
+  # use_global_settings = true with null host/port — the flow plans cleanly
+  # and the consumer can add SMTP later without recreating it.
+  smtp_enabled  = local.smtp_enabled
   smtp_host     = local.smtp_config.smtp_host
   smtp_port     = local.smtp_config.smtp_port
   smtp_username = local.smtp_config.smtp_username

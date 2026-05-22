@@ -91,3 +91,9 @@ variable "apps" {
   type        = any
   default     = {}
 }
+
+variable "smtp_secret_name" {
+  description = "Name of a Scaleway secret holding SMTP config {smtp_host, smtp_port, smtp_username, smtp_password}. Empty (default) disables outbound email — the identity flows still apply but every email step no-ops at runtime. Set to your secret name to turn email on; no re-create needed."
+  type        = string
+  default     = ""
+}

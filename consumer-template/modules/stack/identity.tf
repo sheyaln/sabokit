@@ -8,6 +8,11 @@ module "identity" {
   org_slug    = var.org_slug
   infra_email = var.infra_email
 
+  # SMTP is off by default (empty secret name). Set smtp_secret_name in your
+  # terraform.tfvars once you've created a {smtp_host, smtp_port, smtp_username,
+  # smtp_password} secret in Scaleway Secret Manager.
+  smtp_secret_name = var.smtp_secret_name
+
   # Forward-auth providers from any enabled apps/* bundles register here.
   # compact() drops nulls from disabled apps.
   extra_forward_auth_provider_ids = compact([

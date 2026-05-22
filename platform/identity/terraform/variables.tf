@@ -124,9 +124,9 @@ variable "enable_apple_social_login" {
 # ── SMTP ────────────────────────────────────────────────────────────────────
 
 variable "smtp_secret_name" {
-  description = "Name of the Scaleway secret containing SMTP config {smtp_host, smtp_port, smtp_username, smtp_password}."
+  description = "Name of a Scaleway secret holding SMTP config {smtp_host, smtp_port, smtp_username, smtp_password}. Empty string disables SMTP: the email stages are still created (so the flows plan and apply) but switch to use_global_settings = true with null host/port, and any user-facing email step will no-op until the consumer creates a secret and re-applies with smtp_secret_name set."
   type        = string
-  default     = "smtp-config"
+  default     = ""
 }
 
 # ── Forward-auth outpost binding ────────────────────────────────────────────

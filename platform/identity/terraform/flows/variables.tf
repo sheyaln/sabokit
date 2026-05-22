@@ -18,28 +18,43 @@ variable "member_group_id" {
 }
 
 # SMTP CONFIGURATION VARIABLES (for email stages)
+#
+# When smtp_enabled is false the host/port/username/password values are
+# ignored: each authentik_stage_email switches to use_global_settings = true
+# and sets the SMTP fields to null. The stages still exist (so flow bindings
+# resolve) but any email step at runtime is a no-op until the consumer wires
+# real SMTP credentials and re-applies.
+
+variable "smtp_enabled" {
+  description = "Whether SMTP is configured. False switches email stages to use_global_settings = true with null SMTP fields."
+  type        = bool
+  default     = false
+}
 
 variable "smtp_host" {
-  description = "SMTP host for email configuration"
+  description = "SMTP host for email configuration. Ignored when smtp_enabled is false."
   type        = string
-  default     = "smtp.tem.scaleway.com"
+  default     = ""
 }
 
 variable "smtp_port" {
-  description = "SMTP port for email configuration"
+  description = "SMTP port for email configuration. Ignored when smtp_enabled is false."
   type        = number
+  default     = 587
 }
 
 variable "smtp_username" {
-  description = "SMTP username for email configuration"
+  description = "SMTP username for email configuration. Ignored when smtp_enabled is false."
   type        = string
   sensitive   = true
+  default     = ""
 }
 
 variable "smtp_password" {
-  description = "SMTP password for email configuration"
+  description = "SMTP password for email configuration. Ignored when smtp_enabled is false."
   type        = string
   sensitive   = true
+  default     = ""
 }
 
 # ORGANIZATION CONFIGURATION VARIABLES
