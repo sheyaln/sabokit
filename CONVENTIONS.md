@@ -54,7 +54,7 @@ If you are adding a new module under `modules/`, a new app bundle under `apps/`,
 
 ### Lifecycle
 - `prevent_destroy = true` only when destruction would be catastrophic and recovery is non-trivial (production databases, the embedded Authentik outpost).
-- `ignore_changes` is for fields managed out-of-band (e.g. signing keys that the provider rotates, image tags that CI bumps). Comment WHY when used.
+- `ignore_changes` is for curbing transient changes and for fields managed out-of-band (e.g. signing keys that the provider rotates, image tags that CI bumps). Comment WHY when used.
 
 ---
 
