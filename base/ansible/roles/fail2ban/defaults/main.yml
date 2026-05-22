@@ -1,0 +1,4 @@
+---
+# This role installs Fail2ban with distribution defaults. App-specific filters
+# and jails are dropped in by other roles (e.g. the traefik role ships its own
+# jail configs into /etc/fail2ban/jail.d/).

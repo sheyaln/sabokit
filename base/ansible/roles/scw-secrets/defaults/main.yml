@@ -1,0 +1,50 @@
+---
+# -----------------------------------------------------------------------------
+# Scaleway CLI
+# -----------------------------------------------------------------------------
+scw_cli_version: "latest"                # exact version string or "latest"
+scw_cli_install_dir: "/usr/local/bin"
+
+# -----------------------------------------------------------------------------
+# Service account
+# -----------------------------------------------------------------------------
+scw_secrets_user: "scw-secrets"
+scw_secrets_group: "scw-secrets"
+scw_secrets_uid: 990
+scw_secrets_gid: 990
+
+# -----------------------------------------------------------------------------
+# Directory layout
+# -----------------------------------------------------------------------------
+scw_secrets_base_dir:     "/opt/scw-secrets"
+scw_secrets_config_dir:   "{{ scw_secrets_base_dir }}/config"
+scw_secrets_bin_dir:      "{{ scw_secrets_base_dir }}/bin"
+scw_secrets_mappings_dir: "{{ scw_secrets_base_dir }}/mappings"
+
+# -----------------------------------------------------------------------------
+# Scaleway API credentials and scope
+# -----------------------------------------------------------------------------
+# The API key should be scoped to SecretManager *read-only* permissions in IAM.
+# Defaults pull from env vars or from variables a consumer may already have
+# defined (`scaleway_access_key`, `scaleway_secret_key`). Override as needed.
+scw_secrets_access_key: "{{ lookup('env', 'SCW_SECRETS_ACCESS_KEY') | default(scaleway_access_key | default(''), true) }}"
+scw_secrets_secret_key: "{{ lookup('env', 'SCW_SECRETS_SECRET_KEY') | default(scaleway_secret_key | default(''), true) }}"
+
+scw_secrets_organization_id: "{{ lookup('env', 'SCW_DEFAULT_ORGANIZATION_ID') | default('', true) }}"
+scw_secrets_project_id:      "{{ lookup('env', 'SCW_DEFAULT_PROJECT_ID')      | default('', true) }}"
+
+# Default Secret Manager region.
+scw_secrets_region: "{{ scaleway_region | default('fr-par') }}"
+
+# -----------------------------------------------------------------------------
+# Security
+# -----------------------------------------------------------------------------
+scw_config_file_mode: "0600"             # CLI config (holds API key)
+scw_scripts_mode:     "0750"             # fetch-secrets / entrypoint wrappers
+scw_secrets_allow_docker_group: true     # let `docker` group invoke fetch-secrets via sudo
+
+# -----------------------------------------------------------------------------
+# Logging
+# -----------------------------------------------------------------------------
+scw_secrets_log_level: "info"            # debug | info | warn | error
+scw_secrets_log_file: "/var/log/scw-secrets/fetch.log"  # set to "" to disable

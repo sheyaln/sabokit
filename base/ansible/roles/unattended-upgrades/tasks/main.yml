@@ -1,0 +1,145 @@
+---
+- name: Install unattended-upgrades package
+  ansible.builtin.apt:
+    name: unattended-upgrades
+    state: present
+    update_cache: true
+  become: true
+
+- name: Install mailutils for email notifications
+  ansible.builtin.apt:
+    name: mailutils
+    state: present
+  become: true
+  when: unattended_upgrades_email_enabled | bool
+
+# Postfix host/domain hints. Skipped unless the consumer explicitly sets a
+# domain — otherwise we'd be writing made-up FQDNs into /etc/postfix/main.cf.
+- name: Configure postfix myhostname
+  ansible.builtin.lineinfile:
+    path: /etc/postfix/main.cf
+    regexp: '^myhostname\s*='
+    line: "myhostname = {{ ansible_facts['hostname'] }}.{{ unattended_upgrades_postfix_domain }}"
+    backup: true
+  become: true
+  when:
+    - unattended_upgrades_email_enabled | bool
+    - unattended_upgrades_postfix_domain | length > 0
+  notify: Restart postfix
+
+- name: Configure postfix mydomain
+  ansible.builtin.lineinfile:
+    path: /etc/postfix/main.cf
+    regexp: '^mydomain\s*='
+    line: "mydomain = {{ unattended_upgrades_postfix_domain }}"
+    insertafter: '^myhostname'
+    backup: true
+  become: true
+  when:
+    - unattended_upgrades_email_enabled | bool
+    - unattended_upgrades_postfix_domain | length > 0
+  notify: Restart postfix
+
+- name: Configure unattended-upgrades
+  ansible.builtin.template:
+    src: 50unattended-upgrades.j2
+    dest: /etc/apt/apt.conf.d/50unattended-upgrades
+    owner: root
+    group: root
+    mode: '0644'
+  become: true
+  notify: Restart unattended-upgrades
+
+- name: Configure automatic upgrades schedule
+  ansible.builtin.template:
+    src: 20auto-upgrades.j2
+    dest: /etc/apt/apt.conf.d/20auto-upgrades
+    owner: root
+    group: root
+    mode: '0644'
+  become: true
+  notify: Restart unattended-upgrades
+
+- name: Install logrotate policy for unattended-upgrades
+  ansible.builtin.copy:
+    content: |
+      /var/log/unattended-upgrades/unattended-upgrades.log {
+        daily
+        missingok
+        rotate 14
+        compress
+        delaycompress
+        notifempty
+        create 0640 root adm
+      }
+      /var/log/unattended-upgrades/unattended-upgrades-dpkg.log {
+        daily
+        missingok
+        rotate 14
+        compress
+        delaycompress
+        notifempty
+        create 0640 root adm
+      }
+    dest: /etc/logrotate.d/unattended-upgrades
+    owner: root
+    group: root
+    mode: '0644'
+  become: true
+
+- name: Ensure unattended-upgrades service is enabled and started
+  ansible.builtin.systemd:
+    name: unattended-upgrades
+    enabled: true
+    state: started
+    daemon_reload: true
+  become: true
+
+- name: Dry-run unattended-upgrades to verify config
+  ansible.builtin.command: unattended-upgrades --dry-run
+  register: unattended_upgrades_check
+  become: true
+  changed_when: false
+  failed_when: unattended_upgrades_check.rc != 0
+
+# Optional webhook hook. Useful for sending a POST to n8n / Slack / etc.
+- name: Deploy webhook notification script
+  ansible.builtin.template:
+    src: notify-upgrade.sh.j2
+    dest: /usr/local/bin/notify-upgrade.sh
+    owner: root
+    group: root
+    mode: '0755'
+  become: true
+  when: unattended_upgrades_webhook_enabled | bool
+
+- name: Create systemd drop-in directory for apt-daily-upgrade
+  ansible.builtin.file:
+    path: /etc/systemd/system/apt-daily-upgrade.service.d
+    state: directory
+    owner: root
+    group: root
+    mode: '0755'
+  become: true
+  when: unattended_upgrades_webhook_enabled | bool
+
+- name: Deploy systemd drop-in to fire webhook after upgrades
+  ansible.builtin.template:
+    src: apt-daily-upgrade-notify.conf.j2
+    dest: /etc/systemd/system/apt-daily-upgrade.service.d/notify-webhook.conf
+    owner: root
+    group: root
+    mode: '0644'
+  become: true
+  notify: Reload systemd
+  when: unattended_upgrades_webhook_enabled | bool
+
+- name: Remove webhook artifacts when disabled
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: absent
+  become: true
+  loop:
+    - /usr/local/bin/notify-upgrade.sh
+    - /etc/systemd/system/apt-daily-upgrade.service.d/notify-webhook.conf
+  when: not (unattended_upgrades_webhook_enabled | bool)

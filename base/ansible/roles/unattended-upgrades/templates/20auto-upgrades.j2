@@ -1,0 +1,7 @@
+// {{ ansible_managed }}
+APT::Periodic::Update-Package-Lists "{{ 1 if unattended_upgrades_update_package_lists else 0 }}";
+APT::Periodic::Unattended-Upgrade "1";
+APT::Periodic::AutocleanInterval "7";
+APT::Periodic::Remove-Unused-Kernel-Packages "{{ 1 if unattended_upgrades_remove_unused_kernel_packages else 0 }}";
+APT::Periodic::Remove-Unused-Dependencies "{{ 1 if unattended_upgrades_remove_unused_dependencies else 0 }}";
+APT::Periodic::Verbose "2";

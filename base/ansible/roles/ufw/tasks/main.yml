@@ -1,0 +1,85 @@
+---
+- name: Install UFW
+  ansible.builtin.package:
+    name: ufw
+    state: present
+  become: true
+
+- name: Reset UFW to defaults
+  community.general.ufw:
+    state: reset
+  become: true
+  when: ufw_reset_on_apply | bool
+
+- name: Set UFW default policies
+  community.general.ufw:
+    direction: "{{ item.direction }}"
+    policy: "{{ item.policy }}"
+  loop:
+    - {direction: 'incoming', policy: "{{ ufw_default_incoming }}"}
+    - {direction: 'outgoing', policy: "{{ ufw_default_outgoing }}"}
+    - {direction: 'routed', policy: "{{ ufw_default_routed }}"}
+  become: true
+
+- name: Allow SSH access
+  community.general.ufw:
+    rule: allow
+    port: "{{ ssh_port | string }}"
+    proto: tcp
+    comment: "SSH access"
+  become: true
+
+- name: Allow HTTP traffic
+  community.general.ufw:
+    rule: allow
+    port: '80'
+    proto: tcp
+    comment: "HTTP (Traefik)"
+  become: true
+  when: ufw_allow_http | bool
+
+- name: Allow HTTPS traffic
+  community.general.ufw:
+    rule: allow
+    port: '443'
+    proto: tcp
+    comment: "HTTPS (Traefik)"
+  become: true
+  when: ufw_allow_https | bool
+
+# Consumer-provided rules. Each entry is a dict passed straight to
+# community.general.ufw — see that module's docs for the full schema.
+# Common keys: rule, port, proto, from_ip, to_ip, interface, direction, comment.
+- name: Apply extra firewall rules
+  community.general.ufw:
+    rule: "{{ item.rule }}"
+    port: "{{ item.port | default(omit) }}"
+    proto: "{{ item.proto | default(omit) }}"
+    from_ip: "{{ item.from_ip | default(omit) }}"
+    to_ip: "{{ item.to_ip | default(omit) }}"
+    interface: "{{ item.interface | default(omit) }}"
+    direction: "{{ item.direction | default(omit) }}"
+    comment: "{{ item.comment | default(omit) }}"
+  loop: "{{ ufw_extra_rules }}"
+  become: true
+
+- name: Configure UFW logging
+  community.general.ufw:
+    logging: "{{ ufw_logging_level }}"
+  become: true
+
+- name: Enable UFW
+  community.general.ufw:
+    state: enabled
+  become: true
+
+- name: Check UFW status
+  ansible.builtin.command: ufw status verbose
+  register: ufw_status
+  become: true
+  changed_when: false
+
+- name: Display UFW status
+  ansible.builtin.debug:
+    var: ufw_status.stdout_lines
+  when: ufw_status.stdout_lines is defined

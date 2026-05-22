@@ -1,0 +1,120 @@
+# {{ ansible_managed }}
+# Rendered by the traefik role.
+
+x-logging: &default-logging
+  driver: "json-file"
+  options:
+    max-size: "50m"
+    max-file: "5"
+    compress: "true"
+
+services:
+  # Docker socket proxy. Limits what Traefik can do via the Docker API:
+  # read-only container/network/service/task/volume enumeration, no exec,
+  # no container management. Bound to 127.0.0.1 only.
+  docker-socket-proxy:
+    image: {{ traefik_socket_proxy_image }}
+    container_name: {{ traefik_socket_proxy_container_name }}
+    restart: unless-stopped
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      # Patched HAProxy template rewrites legacy /v1.24 API paths to /v1.41.
+      # Traefik v3.x's docker client requests /v1.24, but Docker engine >= 25
+      # rejects API < 1.40. Without this rewrite the docker provider returns
+      # zero containers and every host 404s.
+      - ./socket-proxy/haproxy.cfg.template:/usr/local/etc/haproxy/haproxy.cfg.template:ro
+    environment:
+      - CONTAINERS=1
+      - NETWORKS=1
+      - SERVICES=1
+      - TASKS=1
+      - VOLUMES=1
+    ports:
+      - "127.0.0.1:{{ traefik_socket_proxy_host_port }}:2375"
+    networks:
+      - {{ traefik_docker_network }}
+    security_opt:
+      - no-new-privileges:true
+    logging: *default-logging
+
+  traefik:
+    image: {{ traefik_image }}
+    container_name: {{ traefik_container_name }}
+    restart: always
+    command:
+      - --providers.docker=true
+      - --providers.docker.endpoint=tcp://docker-socket-proxy:2375
+      - --providers.docker.exposedbydefault=false
+      - --entrypoints.web.address=:80
+      - --entrypoints.web.http.redirections.entrypoint.to=websecure
+      - --entrypoints.web.http.redirections.entrypoint.scheme=https
+      - --entrypoints.websecure.address=:443
+      - --entrypoints.websecure.transport.respondingTimeouts.readTimeout=300s
+      - --entrypoints.websecure.transport.respondingTimeouts.writeTimeout=300s
+      - --entrypoints.websecure.transport.respondingTimeouts.idleTimeout=180s
+{% if traefik_trust_forwarded_headers %}
+      - --entrypoints.websecure.forwardedHeaders.insecure=true
+{% endif %}
+{% if traefik_default_tls_options %}
+      - --entrypoints.websecure.http.tls.options={{ traefik_default_tls_options }}
+{% endif %}
+      - --certificatesresolvers.le.acme.httpchallenge=true
+      - --certificatesresolvers.le.acme.httpchallenge.entrypoint=web
+      - --certificatesresolvers.le.acme.email=${TRAEFIK_ACME_EMAIL}
+      - --certificatesresolvers.le.acme.storage=/letsencrypt/acme.json
+      - --ping=true
+      - --log.level=INFO
+      - --accesslog=true
+      - --accesslog.filepath=/var/log/traefik/access.log
+      - --accesslog.format=json
+      - --accesslog.bufferingsize=100
+      - --accesslog.fields.defaultmode=keep
+      - --accesslog.fields.headers.defaultmode=drop
+      - --global.sendanonymoususage=false
+      - --serversTransport.insecureSkipVerify=false
+      - --serversTransport.rootCAs=/etc/ssl/certs/ca-certificates.crt
+      - --serversTransport.maxIdleConnsPerHost=50
+      - --serversTransport.forwardingTimeouts.dialTimeout=30s
+      - --serversTransport.forwardingTimeouts.responseHeaderTimeout=60s
+      - --metrics.prometheus=true
+      - --metrics.prometheus.buckets=0.1,0.3,1.2,5.0
+      - --metrics.prometheus.addEntryPointsLabels=true
+      - --metrics.prometheus.addServicesLabels=true
+      - --metrics.prometheus.entryPoint=metrics
+      - --entrypoints.metrics.address=:{{ traefik_metrics_port }}
+      - --providers.file.filename=/etc/traefik/dynamic.yml
+      - --providers.file.watch=true
+    ports:
+      - "80:80"
+      - "443:443"
+      - "${TRAEFIK_METRICS_BIND:-0.0.0.0}:{{ traefik_metrics_port }}:{{ traefik_metrics_port }}"
+    volumes:
+      - ./data:/letsencrypt
+      - ./logs:/var/log/traefik
+      - /etc/ssl/certs:/etc/ssl/certs:ro
+      - ./dynamic.yml:/etc/traefik/dynamic.yml:ro
+    security_opt:
+      - no-new-privileges:true
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: '0.5'
+        reservations:
+          memory: 128M
+          cpus: '0.25'
+    depends_on:
+      - docker-socket-proxy
+    networks:
+      - {{ traefik_docker_network }}
+    healthcheck:
+      test: ["CMD", "traefik", "healthcheck", "--ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    logging: *default-logging
+
+networks:
+  {{ traefik_docker_network }}:
+    external: true

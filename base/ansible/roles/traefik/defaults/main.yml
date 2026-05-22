@@ -1,0 +1,80 @@
+---
+# -----------------------------------------------------------------------------
+# Required (no sensible default — set per consumer or per host)
+# -----------------------------------------------------------------------------
+
+# Contact email registered with Let's Encrypt. REQUIRED. The role asserts on
+# this. Used for cert-expiry notifications and account recovery.
+# traefik_acme_email: "ops@example.org"
+
+# Authentik forward-auth endpoint Traefik should call to gate protected apps.
+# When set, apps can attach the `authentik-auth@file` middleware to their
+# router and have requests transparently authenticated.
+#
+# Two valid shapes:
+#   - On the Authentik host itself: "http://authentik-server:9000/outpost.goauthentik.io/auth/traefik"
+#   - On any other host:            "https://auth.example.org/outpost.goauthentik.io/auth/traefik"
+#
+# Leave EMPTY to disable forward-auth wiring (the middleware still renders
+# pointing at "" — apps that don't reference it are unaffected, but apps that
+# do will fail closed). For a real deployment this MUST be set on every host
+# that runs apps gated by Authentik.
+traefik_authentik_outpost_url: ""
+
+# -----------------------------------------------------------------------------
+# Install location / naming
+# -----------------------------------------------------------------------------
+traefik_dir: /opt/traefik
+traefik_owner: ubuntu                       # user that owns the compose project
+traefik_docker_network: traefik             # external docker network apps join to be routed
+traefik_container_name: traefik
+traefik_socket_proxy_container_name: docker-socket-proxy
+traefik_socket_proxy_host_port: 2375        # bound to 127.0.0.1 only
+traefik_metrics_port: 9101                  # prometheus metrics endpoint
+
+# -----------------------------------------------------------------------------
+# Image pins
+# -----------------------------------------------------------------------------
+traefik_image: "traefik:v3.1"
+traefik_socket_proxy_image: "tecnativa/docker-socket-proxy:latest"
+
+# -----------------------------------------------------------------------------
+# TLS / forwarded headers
+# -----------------------------------------------------------------------------
+# Trust X-Forwarded-* on the websecure entrypoint. Enable ONLY on the host
+# that runs Authentik when other Traefik instances forward auth checks to it,
+# so Authentik sees the original request URL rather than the inner hop.
+traefik_trust_forwarded_headers: false
+
+# Default TLS option applied to the websecure entrypoint. Empty = each router
+# picks its own option (`websocket`, `modern`, `intermediate`) via labels.
+traefik_default_tls_options: ""
+
+# -----------------------------------------------------------------------------
+# CSP allow-list extensions
+# -----------------------------------------------------------------------------
+# Append domains to the corresponding Content-Security-Policy directives in
+# the `security-headers` middleware. Used for hosts that integrate third-party
+# auth flows (Apple Sign-In, Google, etc.) where the default `'self'`-only
+# policy is too strict.
+traefik_csp_extra_script_src: []
+traefik_csp_extra_font_src: []
+traefik_csp_extra_connect_src: []
+
+# -----------------------------------------------------------------------------
+# External hostname redirects
+# -----------------------------------------------------------------------------
+# Optional list of host -> URL redirects rendered into dynamic.yml. Useful for
+# vanity redirects (`old.example.org` -> `new.example.org/foo`). Each entry:
+#   - name:   unique slug; router/middleware names are derived from this
+#     host:   incoming hostname (DNS must point at this host)
+#     target: absolute URL the client is 301'd to
+traefik_external_redirects: []
+
+# -----------------------------------------------------------------------------
+# Optional bind address for the metrics endpoint
+# -----------------------------------------------------------------------------
+# If set, the prometheus metrics port is published on this IP only (typically
+# the host's private network IP, so it's reachable from a monitoring server
+# but not the public internet). Empty = bind to all interfaces.
+traefik_metrics_bind_address: ""

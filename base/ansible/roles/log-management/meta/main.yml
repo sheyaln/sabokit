@@ -1,0 +1,14 @@
+---
+galaxy_info:
+  role_name: log_management
+  author: sabokit
+  description: Apply journald disk-usage limits and a baseline logrotate configuration.
+  license: MIT
+  min_ansible_version: "2.14"
+  platforms:
+    - name: Ubuntu
+      versions: [jammy, noble]
+    - name: Debian
+      versions: [bookworm]
+
+dependencies: []

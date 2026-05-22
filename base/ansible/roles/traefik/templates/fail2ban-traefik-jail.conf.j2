@@ -1,0 +1,38 @@
+# {{ ansible_managed }}
+# Fail2ban jail configuration for Traefik. Drop this file alongside the
+# matching filters in /etc/fail2ban/filter.d/.
+
+[DEFAULT]
+bantime = 10m
+findtime = 10m
+banaction = iptables-multiport
+
+[traefik-auth]
+enabled = true
+port = http,https
+filter = traefik-auth
+logpath = {{ traefik_dir }}/logs/access.log
+maxretry = 3
+bantime = 1h
+findtime = 10m
+action = iptables-multiport[name=traefik-auth, port="http,https", protocol=tcp]
+
+[traefik-ratelimit]
+enabled = true
+port = http,https
+filter = traefik-ratelimit
+logpath = {{ traefik_dir }}/logs/access.log
+maxretry = 5
+bantime = 30m
+findtime = 5m
+action = iptables-multiport[name=traefik-ratelimit, port="http,https", protocol=tcp]
+
+[traefik-botsearch]
+enabled = true
+port = http,https
+filter = traefik-botsearch
+logpath = {{ traefik_dir }}/logs/access.log
+maxretry = 10
+bantime = 24h
+findtime = 1h
+action = iptables-multiport[name=traefik-botsearch, port="http,https", protocol=tcp]

@@ -1,0 +1,49 @@
+---
+# Email notifications. Disabled by default — a fresh VM rarely has a usable
+# MTA, and silent mail failures are worse than no mail. Opt in explicitly.
+unattended_upgrades_email_enabled: false
+unattended_upgrades_mail_to: ""                   # REQUIRED when email_enabled
+unattended_upgrades_mail_from: "unattended-upgrades@localhost"
+unattended_upgrades_mail_report: "on-change"      # "always" | "only-on-error" | "on-change"
+
+# Optional: domain used to set postfix myhostname/mydomain when email is on.
+# Leave empty to skip postfix tweaks (recommended unless you operate your own MTA).
+unattended_upgrades_postfix_domain: ""
+
+# Automatic reboot after kernel/glibc upgrades that require it.
+unattended_upgrades_automatic_reboot: false
+unattended_upgrades_automatic_reboot_time: "02:00"
+unattended_upgrades_automatic_reboot_with_users: false
+
+# Optional webhook fired after every successful upgrade run. Useful for piping
+# to n8n / Slack / Discord / etc. Off by default.
+unattended_upgrades_webhook_enabled: false
+unattended_upgrades_webhook_url: ""               # REQUIRED when webhook_enabled
+
+# Which apt origins to auto-upgrade from. Defaults: Ubuntu security + updates.
+# Debian users typically swap to:
+#   - "origin=Debian,codename=${distro_codename},label=Debian-Security"
+unattended_upgrades_origins:
+  - "origin=Ubuntu,archive=${distro_codename}-security,label=Ubuntu"
+  - "origin=Ubuntu,archive=${distro_codename}-updates,label=Ubuntu"
+
+# Packages to never auto-upgrade (Python regex patterns).
+unattended_upgrades_package_blacklist: []
+
+# Cleanup behavior.
+unattended_upgrades_remove_unused_dependencies: false
+unattended_upgrades_remove_unused_kernel_packages: false
+unattended_upgrades_remove_new_unused_dependencies: true
+unattended_upgrades_keep_debs_after_install: false
+
+# Bandwidth cap in KB/s; 0 = unlimited.
+unattended_upgrades_download_limit: 0
+
+# Other knobs (rarely changed).
+unattended_upgrades_update_package_lists: true
+unattended_upgrades_auto_fix_interrupted_dpkg: true
+unattended_upgrades_minimal_steps: true
+unattended_upgrades_install_on_shutdown: false
+
+unattended_upgrades_syslog_enable: false
+unattended_upgrades_syslog_facility: "daemon"

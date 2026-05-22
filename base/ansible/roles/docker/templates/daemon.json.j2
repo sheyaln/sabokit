@@ -1,0 +1,11 @@
+{
+  "log-driver": "{{ docker_log_driver }}",
+  "log-opts": {
+    "max-size": "{{ docker_log_max_size }}",
+    "max-file": "{{ docker_log_max_file }}"
+  },
+{% if docker_dns_servers is defined and docker_dns_servers | length > 0 %}
+  "dns": {{ docker_dns_servers | to_json }},
+{% endif %}
+  "min-api-version": "1.24"
+}

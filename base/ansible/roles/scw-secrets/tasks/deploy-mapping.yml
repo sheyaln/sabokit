@@ -1,0 +1,46 @@
+---
+# deploy-mapping
+#
+# Drop a per-app secret mapping file into {{ scw_secrets_mappings_dir }}.
+# Called by app roles via include_role+tasks_from to register the secrets
+# they need fetched at container start.
+#
+# Required vars (set by the caller):
+#   scw_secrets_app_name   - app slug (e.g. "outline")
+#   scw_secrets_mapping    - dict: { local_filename: scaleway-secret-name[/json-key] }
+#
+# Example caller:
+#   - name: Register Outline secrets
+#     ansible.builtin.include_role:
+#       name: scw-secrets
+#       tasks_from: deploy-mapping
+#     vars:
+#       scw_secrets_app_name: outline
+#       scw_secrets_mapping:
+#         db_password: postgres-outline/password
+#         secret_key:  outline-secret-key
+
+- name: Validate required variables
+  ansible.builtin.assert:
+    that:
+      - scw_secrets_app_name is defined
+      - scw_secrets_app_name | length > 0
+      - scw_secrets_mapping is defined
+      - scw_secrets_mapping | length > 0
+    fail_msg: "scw_secrets_app_name and scw_secrets_mapping must be defined"
+
+- name: Ensure mappings directory exists
+  ansible.builtin.file:
+    path: "{{ scw_secrets_mappings_dir }}"
+    state: directory
+    owner: "{{ scw_secrets_user }}"
+    group: "{{ scw_secrets_group }}"
+    mode: "0750"
+
+- name: Render secret mapping for {{ scw_secrets_app_name }}
+  ansible.builtin.template:
+    src: mapping.yml.j2
+    dest: "{{ scw_secrets_mappings_dir }}/{{ scw_secrets_app_name }}.yml"
+    owner: "{{ scw_secrets_user }}"
+    group: "{{ scw_secrets_group }}"
+    mode: "0640"

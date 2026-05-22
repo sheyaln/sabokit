@@ -1,0 +1,175 @@
+---
+- name: Assert required variables are set
+  ansible.builtin.assert:
+    that:
+      - traefik_acme_email is defined
+      - traefik_acme_email | length > 0
+    fail_msg: >-
+      traefik_acme_email is REQUIRED. Let's Encrypt needs a valid contact email.
+
+- name: Ensure Traefik network exists
+  community.docker.docker_network:
+    name: "{{ traefik_docker_network }}"
+    state: present
+
+- name: Ensure Traefik directory
+  ansible.builtin.file:
+    path: "{{ traefik_dir }}"
+    state: directory
+    mode: '0755'
+    owner: "{{ traefik_owner }}"
+    group: "{{ traefik_owner }}"
+
+- name: Ensure Traefik data directory (ACME certificates)
+  ansible.builtin.file:
+    path: "{{ traefik_dir }}/data"
+    state: directory
+    mode: '0700'
+    owner: "{{ traefik_owner }}"
+    group: "{{ traefik_owner }}"
+
+- name: Ensure acme.json exists with correct ownership
+  ansible.builtin.file:
+    path: "{{ traefik_dir }}/data/acme.json"
+    state: touch
+    owner: "{{ traefik_owner }}"
+    group: "{{ traefik_owner }}"
+    mode: '0600'
+    modification_time: preserve
+    access_time: preserve
+
+- name: Ensure Traefik logs directory
+  ansible.builtin.file:
+    path: "{{ traefik_dir }}/logs"
+    state: directory
+    mode: '0755'
+    owner: "{{ traefik_owner }}"
+    group: "{{ traefik_owner }}"
+
+- name: Ensure docker-socket-proxy override directory
+  ansible.builtin.file:
+    path: "{{ traefik_dir }}/socket-proxy"
+    state: directory
+    mode: '0755'
+    owner: "{{ traefik_owner }}"
+    group: "{{ traefik_owner }}"
+
+- name: Deploy custom HAProxy template for docker-socket-proxy
+  ansible.builtin.copy:
+    src: socket-proxy-haproxy.cfg.template
+    dest: "{{ traefik_dir }}/socket-proxy/haproxy.cfg.template"
+    mode: '0644'
+    owner: "{{ traefik_owner }}"
+    group: "{{ traefik_owner }}"
+
+- name: Render docker-compose file
+  ansible.builtin.template:
+    src: docker-compose.yml.j2
+    dest: "{{ traefik_dir }}/docker-compose.yml"
+    mode: '0644'
+    owner: "{{ traefik_owner }}"
+    group: "{{ traefik_owner }}"
+
+- name: Render dynamic configuration file
+  ansible.builtin.template:
+    src: dynamic.yml.j2
+    dest: "{{ traefik_dir }}/dynamic.yml"
+    mode: '0644'
+    owner: "{{ traefik_owner }}"
+    group: "{{ traefik_owner }}"
+
+- name: Deploy Traefik log rotation configuration
+  ansible.builtin.template:
+    src: logrotate-traefik.conf.j2
+    dest: "/etc/logrotate.d/{{ traefik_container_name }}"
+    mode: '0644'
+
+# Fail2ban integration: drop in filters and a jail config. Tasks are no-ops
+# on hosts where fail2ban isn't installed.
+- name: Check if Fail2ban is installed
+  ansible.builtin.stat:
+    path: /etc/fail2ban/filter.d
+  register: fail2ban_dir
+
+- name: Copy Fail2ban filter for Traefik authentication
+  ansible.builtin.copy:
+    src: fail2ban-traefik-auth.conf
+    dest: /etc/fail2ban/filter.d/traefik-auth.conf
+    mode: '0644'
+  when: fail2ban_dir.stat.exists | default(false)
+  notify: Restart fail2ban
+
+- name: Copy Fail2ban filter for Traefik rate limiting
+  ansible.builtin.copy:
+    src: fail2ban-traefik-ratelimit.conf
+    dest: /etc/fail2ban/filter.d/traefik-ratelimit.conf
+    mode: '0644'
+  when: fail2ban_dir.stat.exists | default(false)
+  notify: Restart fail2ban
+
+- name: Copy Fail2ban filter for Traefik bot search
+  ansible.builtin.copy:
+    src: fail2ban-traefik-botsearch.conf
+    dest: /etc/fail2ban/filter.d/traefik-botsearch.conf
+    mode: '0644'
+  when: fail2ban_dir.stat.exists | default(false)
+  notify: Restart fail2ban
+
+- name: Copy Fail2ban jail configuration for Traefik
+  ansible.builtin.template:
+    src: fail2ban-traefik-jail.conf.j2
+    dest: /etc/fail2ban/jail.d/traefik.conf
+    mode: '0644'
+  when: fail2ban_dir.stat.exists | default(false)
+  notify: Restart fail2ban
+
+- name: Render environment file
+  ansible.builtin.template:
+    src: env.j2
+    dest: "{{ traefik_dir }}/.env"
+    mode: '0600'
+    owner: "{{ traefik_owner }}"
+    group: "{{ traefik_owner }}"
+
+- name: Check for existing Traefik container
+  community.docker.docker_container_info:
+    name: "{{ traefik_container_name }}"
+  register: traefik_container
+  ignore_errors: true
+
+- name: Shut down existing Traefik containers
+  community.docker.docker_compose_v2:
+    project_src: "{{ traefik_dir }}"
+    state: absent
+  when: traefik_container.exists | default(false)
+
+- name: Clean up orphan containers
+  community.docker.docker_compose_v2:
+    project_src: "{{ traefik_dir }}"
+    state: absent
+    remove_orphans: true
+
+- name: Deploy Traefik using Docker Compose
+  community.docker.docker_compose_v2:
+    project_src: "{{ traefik_dir }}"
+    state: present
+
+- name: Wait for Traefik to be ready on port 80
+  ansible.builtin.wait_for:
+    port: 80
+    host: "{{ ansible_facts['default_ipv4']['address'] }}"
+    timeout: 60
+  failed_when: false
+
+- name: Wait for Docker Socket Proxy to be ready
+  ansible.builtin.wait_for:
+    port: "{{ traefik_socket_proxy_host_port }}"
+    host: 127.0.0.1
+    timeout: 60
+  failed_when: false
+
+- name: Re-assert acme.json strict permissions (Traefik requires 0600)
+  ansible.builtin.command:
+    cmd: "docker exec {{ traefik_container_name }} chmod 600 /letsencrypt/acme.json"
+  changed_when: false
+  failed_when: false

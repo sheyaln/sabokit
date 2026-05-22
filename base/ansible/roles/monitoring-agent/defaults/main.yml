@@ -1,0 +1,67 @@
+---
+# -----------------------------------------------------------------------------
+# Required
+# -----------------------------------------------------------------------------
+
+# Label applied to every metric and log emitted from this host. Typical values:
+# "tools-prod", "management", "auth-prod". Must be unique per host inside a
+# given environment so dashboards can break out per-host series.
+monitoring_host_label: ""               # REQUIRED
+
+# Logical environment this host belongs to. Surfaces as the `environment` label
+# on logs/metrics. Common values: "production", "staging", "dev".
+monitoring_environment: "production"
+
+# -----------------------------------------------------------------------------
+# Recommended (required if you actually want logs/metrics centralised)
+# -----------------------------------------------------------------------------
+
+# URL the Alloy shipper pushes logs to. Example:
+#   "https://loki.example.org/loki/api/v1/push"
+# Leave empty to disable log shipping (metrics still work).
+monitoring_loki_push_url: ""
+
+# Optional: URL Alloy pushes metrics to (remote_write). Most consumers scrape
+# the exporters directly with Prometheus and leave this empty.
+monitoring_prometheus_remote_write_url: ""
+
+# -----------------------------------------------------------------------------
+# Scraper firewall allow-list
+# -----------------------------------------------------------------------------
+# List of CIDRs allowed to scrape the exporter ports. The role drops UFW
+# allow rules for each (cidr, port) pair. Empty = no UFW rules added.
+# Example: ["10.0.0.5/32"]
+monitoring_scraper_cidrs: []
+
+# -----------------------------------------------------------------------------
+# Ports / install paths
+# -----------------------------------------------------------------------------
+node_exporter_port: 9100
+cadvisor_port: 8080
+alloy_port: 12345
+monitoring_agent_exporter_ports:
+  - "{{ node_exporter_port }}"
+  - "{{ cadvisor_port }}"
+
+monitoring_agent_dir: "/opt/monitoring-agent"
+monitoring_agent_alloy_config_dir: "{{ monitoring_agent_dir }}/alloy"
+monitoring_agent_textfile_collector_dir: "/var/lib/node_exporter/textfile_collector"
+monitoring_agent_owner: ubuntu
+monitoring_agent_network: monitoring
+
+# -----------------------------------------------------------------------------
+# Image pins
+# -----------------------------------------------------------------------------
+monitoring_agent_node_exporter_image: "prom/node-exporter:latest"
+monitoring_agent_cadvisor_image:      "gcr.io/cadvisor/cadvisor:latest"
+monitoring_agent_alloy_image:         "grafana/alloy:latest"
+
+# -----------------------------------------------------------------------------
+# Toggles
+# -----------------------------------------------------------------------------
+# Alloy ships container logs + system logs to Loki. Disable to skip the Alloy
+# service entirely (you keep node-exporter + cAdvisor).
+monitoring_agent_enable_alloy: true
+
+# Alloy log level: error | warn | info | debug.
+monitoring_agent_alloy_log_level: warn

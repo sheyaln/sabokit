@@ -1,0 +1,15 @@
+---
+# Journald disk and retention limits.
+journald_system_max_use: "500M"
+journald_system_keep_free: "1G"
+journald_system_max_file_size: "50M"
+journald_runtime_max_use: "100M"
+journald_max_retention_sec: "2weeks"
+journald_compress: true
+
+# Whether to ensure the logrotate.timer systemd unit is active.
+logrotate_ensure_timer_enabled: true
+
+# Run `journalctl --vacuum-size` once after applying new limits, so existing
+# oversized journals are trimmed immediately rather than at next rotation.
+log_management_vacuum_on_apply: true

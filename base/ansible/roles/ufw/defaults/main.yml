@@ -1,0 +1,32 @@
+---
+# Default policies: deny inbound and routed traffic, allow outbound.
+ufw_default_incoming: "deny"
+ufw_default_outgoing: "allow"
+ufw_default_routed: "deny"
+
+# SSH port. Keep this open or you will lock yourself out.
+ssh_port: 22
+
+# Web traffic (Traefik). Disable per-host if a server runs no web frontend.
+ufw_allow_http: true
+ufw_allow_https: true
+
+# Whether to `ufw reset` before re-applying. Off by default: idempotent reruns
+# should not flush whatever the operator added by hand. Set true for a clean
+# bootstrap pass.
+ufw_reset_on_apply: false
+
+# UFW kernel logging level: off | low | medium | high | full.
+ufw_logging_level: "low"
+
+# Consumer-supplied rules. Each item is a dict; see
+# community.general.ufw module documentation for the full schema.
+#
+# Example:
+#   ufw_extra_rules:
+#     - rule: allow
+#       port: "9100"
+#       proto: tcp
+#       from_ip: "10.0.0.0/16"
+#       comment: "node_exporter from private network"
+ufw_extra_rules: []

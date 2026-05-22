@@ -1,0 +1,13 @@
+---
+# Container log driver and rotation.
+docker_log_driver: "json-file"
+docker_log_max_size: "100m"
+docker_log_max_file: "3"
+
+# Non-root user added to the `docker` group. Set to "" to skip.
+# Most cloud images ship with a default sudo user (ubuntu, debian, admin).
+docker_user: "ubuntu"
+
+# Optional list of DNS servers Docker passes to containers. Leave undefined to
+# inherit the host's resolver. Example: ["1.1.1.1", "9.9.9.9"]
+# docker_dns_servers: []

@@ -1,0 +1,137 @@
+// {{ ansible_managed }}
+// Grafana Alloy configuration: collect docker container logs + system logs
+// and ship them to a central Loki.
+
+{% if monitoring_loki_push_url | length > 0 %}
+loki.write "central_loki" {
+  endpoint {
+    url = env("LOKI_PUSH_URL")
+  }
+}
+{% endif %}
+
+discovery.docker "containers" {
+  host             = "unix:///var/run/docker.sock"
+  refresh_interval = "30s"
+}
+
+discovery.relabel "docker_containers" {
+  targets = discovery.docker.containers.targets
+
+  rule {
+    source_labels = ["__meta_docker_container_log_path"]
+    target_label  = "__path__"
+  }
+
+  rule {
+    source_labels = ["__meta_docker_container_name"]
+    regex         = "/(.*)"
+    target_label  = "container_name"
+  }
+
+  rule {
+    source_labels = ["__meta_docker_container_label_com_docker_compose_service"]
+    target_label  = "service_name"
+  }
+
+  rule {
+    source_labels = ["__meta_docker_container_label_com_docker_compose_project"]
+    target_label  = "project_name"
+  }
+
+  rule {
+    target_label = "host"
+    replacement  = "{{ monitoring_host_label }}"
+  }
+
+  rule {
+    target_label = "environment"
+    replacement  = "{{ monitoring_environment }}"
+  }
+
+  rule {
+    target_label = "log_type"
+    replacement  = "application"
+  }
+}
+
+loki.source.docker "containers" {
+  host       = "unix:///var/run/docker.sock"
+  targets    = discovery.relabel.docker_containers.output
+{% if monitoring_loki_push_url | length > 0 %}
+  forward_to = [loki.process.docker_logs.receiver]
+{% else %}
+  forward_to = []
+{% endif %}
+}
+
+{% if monitoring_loki_push_url | length > 0 %}
+loki.process "docker_logs" {
+  forward_to = [loki.write.central_loki.receiver]
+
+  // Drop successful Traefik access logs (2xx/3xx) to keep Loki cardinality
+  // and storage in check. Errors and 4xx/5xx still ship.
+  stage.match {
+    selector = "{service_name=\"traefik\"}"
+
+    stage.json {
+      expressions = {
+        status = "status",
+      }
+    }
+
+    stage.match {
+      selector = "{service_name=\"traefik\"} |~ \"status.*[23][0-9][0-9]\""
+      action   = "drop"
+      drop_counter_reason = "traefik_success_logs"
+    }
+  }
+
+  // Drop high-cardinality labels.
+  stage.label_drop {
+    values = ["container_id", "image_id", "stream", "compose_config_sha"]
+  }
+}
+{% endif %}
+
+local.file_match "system_logs" {
+  path_targets = [
+    {
+      __path__    = "/var/log/syslog",
+      log_type    = "system",
+      host        = "{{ monitoring_host_label }}",
+      environment = "{{ monitoring_environment }}",
+    },
+    {
+      __path__    = "/var/log/auth.log",
+      log_type    = "auth",
+      host        = "{{ monitoring_host_label }}",
+      environment = "{{ monitoring_environment }}",
+    },
+  ]
+}
+
+loki.source.file "system_logs" {
+  targets    = local.file_match.system_logs.targets
+{% if monitoring_loki_push_url | length > 0 %}
+  forward_to = [loki.process.system_logs.receiver]
+{% else %}
+  forward_to = []
+{% endif %}
+}
+
+{% if monitoring_loki_push_url | length > 0 %}
+loki.process "system_logs" {
+  forward_to = [loki.write.central_loki.receiver]
+
+  stage.regex {
+    expression = "^(?P<ts>\\w{3}\\s+\\d{1,2}\\s+\\d{2}:\\d{2}:\\d{2})\\s+(?P<host_field>\\S+)\\s+(?P<service>[^:\\[]+)"
+  }
+
+  stage.labels {
+    values = {
+      service = "",
+    }
+  }
+}
+{% endif %}

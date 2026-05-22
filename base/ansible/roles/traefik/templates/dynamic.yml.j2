@@ -1,0 +1,125 @@
+# {{ ansible_managed }}
+# Traefik dynamic configuration: file-provider middlewares, serversTransports,
+# TLS options, and any consumer-defined external hostname redirects.
+#
+# Apps SHOULD reference middlewares via the `@file` provider, e.g.:
+#   traefik.http.routers.myapp.middlewares=security-headers@file,authentik-auth@file
+
+http:
+  middlewares:
+    # Baseline security headers (HSTS, X-Frame-Options, CSP, etc.).
+    security-headers:
+      headers:
+        frameDeny: true
+        sslRedirect: true
+        browserXssFilter: true
+        contentTypeNosniff: true
+        forceSTSHeader: true
+        stsIncludeSubdomains: true
+        stsPreload: true
+        stsSeconds: 31536000
+        customRequestHeaders:
+          X-Forwarded-Proto: https
+          X-Forwarded-Port: "443"
+        customResponseHeaders:
+          X-Robots-Tag: "noindex,nofollow,nosnippet,noarchive"
+          X-Content-Type-Options: nosniff
+          Referrer-Policy: same-origin
+          Permissions-Policy: "camera=(), microphone=(), geolocation=(), payment=()"
+          Content-Security-Policy: >-
+            default-src 'self';
+            script-src 'self' 'unsafe-inline'{% for d in traefik_csp_extra_script_src %} {{ d }}{% endfor %};
+            style-src 'self' 'unsafe-inline';
+            img-src 'self' data: https:;
+            font-src 'self' data:{% for d in traefik_csp_extra_font_src %} {{ d }}{% endfor %};
+            connect-src 'self'{% for d in traefik_csp_extra_connect_src %} {{ d }}{% endfor %};
+            frame-ancestors 'none'
+
+    # Generic rate limit. Apps that need a stricter limit should define their own.
+    rate-limit:
+      rateLimit:
+        average: 100
+        period: 1m
+        burst: 50
+
+{% if traefik_authentik_outpost_url | length > 0 %}
+    # Authentik forwardAuth. Apps attach this middleware to put routes behind
+    # SSO. The Authentik outpost decides allow/deny and writes the user identity
+    # into the X-authentik-* headers listed below.
+    authentik-auth:
+      forwardAuth:
+        address: "{{ traefik_authentik_outpost_url }}"
+        trustForwardHeader: true
+        authResponseHeaders:
+          - X-authentik-username
+          - X-authentik-groups
+          - X-authentik-entitlements
+          - X-authentik-email
+          - X-authentik-name
+          - X-authentik-uid
+          - X-authentik-jwt
+          - X-authentik-meta-jwks
+          - X-authentik-meta-outpost
+          - X-authentik-meta-provider
+          - X-authentik-meta-app
+          - X-authentik-meta-version
+{% endif %}
+{% for r in traefik_external_redirects %}
+
+    {{ r.name }}-redirect:
+      redirectRegex:
+        regex: ".*"
+        replacement: "{{ r.target }}"
+        permanent: true
+{% endfor %}
+
+  serversTransports:
+    # Bounded timeouts for the forwardAuth call so a slow/unhealthy Authentik
+    # backend fails closed instead of hanging the user's request indefinitely.
+    authentik-transport:
+      forwardingTimeouts:
+        dialTimeout: "5s"
+        responseHeaderTimeout: "10s"
+        idleConnTimeout: "30s"
+{% if traefik_external_redirects | length > 0 %}
+
+  routers:
+{% for r in traefik_external_redirects %}
+    {{ r.name }}-redirect:
+      rule: "Host(`{{ r.host }}`)"
+      entryPoints:
+        - websecure
+      tls:
+        certResolver: le
+      middlewares:
+        - {{ r.name }}-redirect
+      service: noop
+{% endfor %}
+
+  services:
+    noop:
+      loadBalancer:
+        servers:
+          - url: "http://localhost"
+{% endif %}
+
+tls:
+  options:
+    # WebSocket TLS option — forces HTTP/1.1 by excluding h2 from ALPN.
+    # HTTP/2 strips the `Connection: Upgrade` header and breaks WebSocket
+    # handshakes; routes that proxy WS upgrades should use this option.
+    websocket:
+      alpnProtocols:
+        - http/1.1
+    modern:
+      minVersion: "VersionTLS13"
+      cipherSuites: []
+    intermediate:
+      minVersion: "VersionTLS12"
+      cipherSuites:
+        - TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256
+        - TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256
+        - TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384
+        - TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384
+        - TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305
+        - TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305

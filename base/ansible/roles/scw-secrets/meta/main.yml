@@ -1,0 +1,14 @@
+---
+galaxy_info:
+  role_name: scw_secrets
+  author: sabokit
+  description: Install Scaleway CLI and helpers so containers fetch secrets from Scaleway Secret Manager into tmpfs at start-up.
+  license: MIT
+  min_ansible_version: "2.14"
+  platforms:
+    - name: Ubuntu
+      versions: [jammy, noble]
+    - name: Debian
+      versions: [bookworm]
+
+dependencies: []

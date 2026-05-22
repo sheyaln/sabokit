@@ -1,0 +1,8 @@
+[Journal]
+# Managed by Ansible - log-management role
+SystemMaxUse={{ journald_system_max_use }}
+SystemKeepFree={{ journald_system_keep_free }}
+SystemMaxFileSize={{ journald_system_max_file_size }}
+RuntimeMaxUse={{ journald_runtime_max_use }}
+Compress={{ 'yes' if journald_compress else 'no' }}
+MaxRetentionSec={{ journald_max_retention_sec }}

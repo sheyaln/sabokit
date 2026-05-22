@@ -1,0 +1,43 @@
+// {{ ansible_managed }}
+Unattended-Upgrade::Origins-Pattern {
+{% for origin in unattended_upgrades_origins %}
+    "{{ origin }}";
+{% endfor %}
+};
+
+Unattended-Upgrade::Package-Blacklist {
+{% for package in unattended_upgrades_package_blacklist %}
+    "{{ package }}";
+{% endfor %}
+};
+
+Unattended-Upgrade::AutoFixInterruptedDpkg "{{ unattended_upgrades_auto_fix_interrupted_dpkg | default('true') | lower }}";
+Unattended-Upgrade::MinimalSteps "{{ unattended_upgrades_minimal_steps | lower }}";
+Unattended-Upgrade::InstallOnShutdown "{{ unattended_upgrades_install_on_shutdown | lower }}";
+
+{% if unattended_upgrades_email_enabled and unattended_upgrades_mail_to | length > 0 %}
+Unattended-Upgrade::Mail "{{ unattended_upgrades_mail_to }}";
+Unattended-Upgrade::MailReport "{{ unattended_upgrades_mail_report }}";
+Unattended-Upgrade::Sender "{{ unattended_upgrades_mail_from }}";
+{% endif %}
+
+Unattended-Upgrade::Remove-Unused-Dependencies "{{ unattended_upgrades_remove_unused_dependencies | lower }}";
+Unattended-Upgrade::Remove-Unused-Kernel-Packages "{{ unattended_upgrades_remove_unused_kernel_packages | lower }}";
+Unattended-Upgrade::Remove-New-Unused-Dependencies "{{ unattended_upgrades_remove_new_unused_dependencies | lower }}";
+
+Unattended-Upgrade::Automatic-Reboot "{{ unattended_upgrades_automatic_reboot | lower }}";
+{% if unattended_upgrades_automatic_reboot %}
+Unattended-Upgrade::Automatic-Reboot-WithUsers "{{ unattended_upgrades_automatic_reboot_with_users | lower }}";
+Unattended-Upgrade::Automatic-Reboot-Time "{{ unattended_upgrades_automatic_reboot_time }}";
+{% endif %}
+
+{% if unattended_upgrades_download_limit > 0 %}
+Acquire::http::Dl-Limit "{{ unattended_upgrades_download_limit }}";
+{% endif %}
+
+Unattended-Upgrade::SyslogEnable "{{ unattended_upgrades_syslog_enable | lower }}";
+{% if unattended_upgrades_syslog_enable %}
+Unattended-Upgrade::SyslogFacility "{{ unattended_upgrades_syslog_facility }}";
+{% endif %}
+
+Unattended-Upgrade::Keep-Debs-After-Install "{{ unattended_upgrades_keep_debs_after_install | lower }}";

@@ -1,0 +1,109 @@
+# {{ ansible_managed }}
+services:
+  node-exporter:
+    image: {{ monitoring_agent_node_exporter_image }}
+    container_name: node-exporter
+    restart: unless-stopped
+    command:
+      - --path.procfs=/host/proc
+      - --path.rootfs=/rootfs
+      - --path.sysfs=/host/sys
+      - --collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)
+      - --collector.processes
+      - --collector.textfile.directory=/host/textfile_collector
+      - --web.max-requests=40
+      - --log.level=warn
+    ports:
+      - "{{ node_exporter_port }}:9100"
+    volumes:
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:/rootfs:ro
+      - {{ monitoring_agent_textfile_collector_dir }}:/host/textfile_collector:ro
+    networks:
+      - {{ monitoring_agent_network }}
+    read_only: true
+    security_opt:
+      - no-new-privileges:true
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:9100/metrics"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  cadvisor:
+    image: {{ monitoring_agent_cadvisor_image }}
+    container_name: cadvisor
+    restart: unless-stopped
+    command:
+      - --housekeeping_interval=30s
+      - --docker_only=true
+      - --disable_metrics=tcp,udp,percpu,sched,process,referenced_memory,resctrl,hugetlb
+      - --enable_metrics=cpu,memory,network,diskIO,disk,oom_event
+      - --store_container_labels=true
+      - --whitelisted_container_labels=com.docker.compose.service,com.docker.compose.project
+      - --max_housekeeping_interval=35s
+      - --allow_dynamic_housekeeping=true
+    ports:
+      - "{{ cadvisor_port }}:8080"
+    privileged: true
+    security_opt:
+      - apparmor:unconfined
+    volumes:
+      - /:/rootfs:ro
+      - /var/run:/var/run:ro
+      - /sys:/sys:ro
+      - /dev/disk/:/dev/disk:ro
+      - /var/lib/docker/:/var/lib/docker:ro
+    devices:
+      - /dev/kmsg
+    networks:
+      - {{ monitoring_agent_network }}
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8080/healthz"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+{% if monitoring_agent_enable_alloy %}
+  alloy:
+    image: {{ monitoring_agent_alloy_image }}
+    container_name: alloy
+    restart: unless-stopped
+    command:
+      - run
+      - /etc/alloy/config.alloy
+      - --storage.path=/var/lib/alloy/data
+      - --server.http.listen-addr=0.0.0.0:{{ alloy_port }}
+    env_file:
+      - .env
+    ports:
+      - "127.0.0.1:{{ alloy_port }}:{{ alloy_port }}"
+    volumes:
+      - /var/log:/var/log:ro
+      - /var/lib/docker/containers:/var/lib/docker/containers:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - {{ monitoring_agent_alloy_config_dir }}/config.alloy:/etc/alloy/config.alloy:ro
+      - alloy-data:/var/lib/alloy/data
+    tmpfs:
+      - /tmp
+    networks:
+      - {{ monitoring_agent_network }}
+    user: "0:0"
+    security_opt:
+      - no-new-privileges:true
+    healthcheck:
+      test: ["CMD-SHELL", "bash -c 'echo > /dev/tcp/127.0.0.1/{{ alloy_port }}'"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+{% endif %}
+
+networks:
+  {{ monitoring_agent_network }}:
+    external: true
+
+{% if monitoring_agent_enable_alloy %}
+volumes:
+  alloy-data:
+{% endif %}

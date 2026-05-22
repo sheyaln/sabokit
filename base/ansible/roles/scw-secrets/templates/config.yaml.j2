@@ -1,0 +1,12 @@
+# {{ ansible_managed }}
+# Scaleway CLI config used exclusively by the scw-secrets service account
+# to read secrets from Scaleway Secret Manager. The API key SHOULD be scoped
+# to SecretManagerReadOnly in IAM.
+
+access_key: {{ scw_secrets_access_key }}
+secret_key: {{ scw_secrets_secret_key }}
+default_organization_id: {{ scw_secrets_organization_id }}
+default_project_id: {{ scw_secrets_project_id }}
+default_region: {{ scw_secrets_region }}
+
+send_telemetry: false

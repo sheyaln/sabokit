@@ -1,0 +1,14 @@
+---
+galaxy_info:
+  role_name: docker
+  author: sabokit
+  description: Install Docker Engine and Compose plugin with sane log rotation defaults.
+  license: MIT
+  min_ansible_version: "2.14"
+  platforms:
+    - name: Ubuntu
+      versions: [jammy, noble]
+    - name: Debian
+      versions: [bookworm]
+
+dependencies: []

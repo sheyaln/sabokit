@@ -1,0 +1,158 @@
+---
+- name: Ensure logrotate is installed
+  ansible.builtin.apt:
+    name: logrotate
+    state: present
+    update_cache: true
+  become: true
+
+- name: Ensure logrotate timer is enabled and started
+  ansible.builtin.systemd:
+    name: logrotate.timer
+    enabled: true
+    state: started
+  become: true
+  when: logrotate_ensure_timer_enabled | default(true)
+
+- name: Ensure journald.conf.d directory exists
+  ansible.builtin.file:
+    path: /etc/systemd/journald.conf.d
+    state: directory
+    owner: root
+    group: root
+    mode: '0755'
+  become: true
+
+- name: Configure journald limits
+  ansible.builtin.template:
+    src: journald-limits.conf.j2
+    dest: /etc/systemd/journald.conf.d/limits.conf
+    owner: root
+    group: root
+    mode: '0644'
+  become: true
+  notify: Restart systemd-journald
+
+- name: Vacuum journal logs to enforce new limits
+  ansible.builtin.command:
+    cmd: journalctl --vacuum-size={{ journald_system_max_use }}
+  become: true
+  register: journal_vacuum
+  changed_when: "'Vacuuming done, freed' in journal_vacuum.stdout and 'freed 0B' not in journal_vacuum.stdout"
+  when: log_management_vacuum_on_apply | default(true)
+
+- name: Configure system-wide logrotate defaults
+  ansible.builtin.copy:
+    content: |
+      # Managed by Ansible - log-management role
+      # Default logrotate configuration
+
+      weekly
+      rotate 4
+      create
+      dateext
+      compress
+      delaycompress
+      missingok
+      notifempty
+
+      include /etc/logrotate.d
+    dest: /etc/logrotate.conf
+    owner: root
+    group: root
+    mode: '0644'
+  become: true
+
+- name: Configure apt log rotation
+  ansible.builtin.copy:
+    content: |
+      /var/log/apt/term.log {
+        rotate 12
+        monthly
+        compress
+        missingok
+        notifempty
+      }
+
+      /var/log/apt/history.log {
+        rotate 12
+        monthly
+        compress
+        missingok
+        notifempty
+      }
+    dest: /etc/logrotate.d/apt
+    owner: root
+    group: root
+    mode: '0644'
+  become: true
+
+- name: Configure dpkg log rotation
+  ansible.builtin.copy:
+    content: |
+      /var/log/dpkg.log {
+        monthly
+        rotate 12
+        compress
+        delaycompress
+        missingok
+        notifempty
+        create 644 root root
+      }
+
+      /var/log/alternatives.log {
+        monthly
+        rotate 12
+        compress
+        delaycompress
+        missingok
+        notifempty
+        create 644 root root
+      }
+    dest: /etc/logrotate.d/dpkg
+    owner: root
+    group: root
+    mode: '0644'
+  become: true
+
+- name: Configure auth/syslog rotation
+  ansible.builtin.copy:
+    content: |
+      /var/log/syslog
+      /var/log/mail.info
+      /var/log/mail.warn
+      /var/log/mail.err
+      /var/log/mail.log
+      /var/log/daemon.log
+      /var/log/kern.log
+      /var/log/auth.log
+      /var/log/user.log
+      /var/log/lpr.log
+      /var/log/cron.log
+      /var/log/debug
+      /var/log/messages
+      {
+        rotate 4
+        weekly
+        missingok
+        notifempty
+        compress
+        delaycompress
+        sharedscripts
+        postrotate
+          /usr/lib/rsyslog/rsyslog-rotate
+        endscript
+      }
+    dest: /etc/logrotate.d/rsyslog
+    owner: root
+    group: root
+    mode: '0644'
+  become: true
+
+- name: Verify logrotate configuration
+  ansible.builtin.command:
+    cmd: logrotate --debug /etc/logrotate.conf
+  become: true
+  register: logrotate_check
+  changed_when: false
+  failed_when: false

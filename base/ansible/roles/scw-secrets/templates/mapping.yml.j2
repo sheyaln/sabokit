@@ -1,0 +1,10 @@
+# {{ ansible_managed }}
+# Secret mapping for: {{ scw_secrets_app_name }}
+# Generated on: {{ ansible_facts['date_time']['iso8601'] }}
+#
+# DO NOT EDIT MANUALLY — managed by ansible (scw-secrets deploy-mapping).
+
+secrets:
+{% for local_name, scw_path in scw_secrets_mapping.items() %}
+  {{ local_name }}: {{ scw_path }}
+{% endfor %}

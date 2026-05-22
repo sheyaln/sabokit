@@ -1,0 +1,21 @@
+---
+galaxy_info:
+  role_name: monitoring_agent
+  author: sabokit
+  description: >-
+    Per-host monitoring agents: node-exporter, cAdvisor, and Grafana Alloy
+    (logs to Loki). Generic to any Prometheus/Loki backend.
+  license: MIT
+  min_ansible_version: "2.14"
+  platforms:
+    - name: Ubuntu
+      versions: [jammy, noble]
+    - name: Debian
+      versions: [bookworm]
+
+dependencies:
+  - role: docker
+
+collections:
+  - community.docker
+  - community.general

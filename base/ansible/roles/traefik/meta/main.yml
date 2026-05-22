@@ -1,0 +1,21 @@
+---
+galaxy_info:
+  role_name: traefik
+  author: sabokit
+  description: >-
+    Deploy Traefik v3 as a reverse proxy with ACME (Let's Encrypt),
+    Prometheus metrics, sane TLS options, Authentik forward-auth, and
+    optional Fail2ban filters.
+  license: MIT
+  min_ansible_version: "2.14"
+  platforms:
+    - name: Ubuntu
+      versions: [jammy, noble]
+    - name: Debian
+      versions: [bookworm]
+
+dependencies:
+  - role: docker
+
+collections:
+  - community.docker

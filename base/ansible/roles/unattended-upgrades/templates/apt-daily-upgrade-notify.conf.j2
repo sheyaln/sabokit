@@ -1,0 +1,5 @@
+# {{ ansible_managed }}
+# Fire the webhook notification after unattended-upgrades completes.
+
+[Service]
+ExecStartPost=/usr/local/bin/notify-upgrade.sh

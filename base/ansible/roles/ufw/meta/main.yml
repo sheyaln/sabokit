@@ -1,0 +1,17 @@
+---
+galaxy_info:
+  role_name: ufw
+  author: sabokit
+  description: Install UFW with a deny-by-default policy and consumer-extensible rules.
+  license: MIT
+  min_ansible_version: "2.14"
+  platforms:
+    - name: Ubuntu
+      versions: [jammy, noble]
+    - name: Debian
+      versions: [bookworm]
+
+dependencies: []
+
+collections:
+  - community.general

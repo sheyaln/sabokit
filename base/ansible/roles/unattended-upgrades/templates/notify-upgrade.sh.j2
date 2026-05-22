@@ -1,0 +1,58 @@
+#!/bin/bash
+# {{ ansible_managed }}
+# Sends a webhook notification after unattended-upgrades runs.
+# Usage: notify-upgrade.sh [--test]
+
+set -euo pipefail
+
+WEBHOOK_URL="{{ unattended_upgrades_webhook_url }}"
+HOSTNAME="$(hostname)"
+LOG_FILE="/var/log/unattended-upgrades/unattended-upgrades.log"
+TEST_MODE="${1:-}"
+
+[ -z "$WEBHOOK_URL" ] && exit 0
+
+if [ "$TEST_MODE" = "--test" ]; then
+  echo "Sending test notification to $WEBHOOK_URL..."
+  curl -sf -X POST "$WEBHOOK_URL" \
+    -H "Content-Type: application/json" \
+    -d "{
+      \"event\": \"unattended-upgrade\",
+      \"hostname\": \"$HOSTNAME\",
+      \"packages\": \"test-package-1, test-package-2\",
+      \"package_count\": 2,
+      \"reboot_required\": true,
+      \"reboot_packages\": \"linux-image-test\",
+      \"timestamp\": \"$(date -Iseconds)\"
+    }" && echo "Test notification sent successfully" || echo "Failed to send test notification"
+  exit 0
+fi
+
+UPGRADES=$(grep -E "^Packages that were upgraded:" "$LOG_FILE" 2>/dev/null | tail -1 | sed 's/Packages that were upgraded://' | xargs || echo "")
+
+if [ -n "$UPGRADES" ]; then
+  UPGRADE_COUNT=$(echo "$UPGRADES" | tr ',' '\n' | grep -c . || echo 0)
+else
+  UPGRADE_COUNT=0
+fi
+
+REBOOT_REQUIRED="false"
+REBOOT_PKGS=""
+if [ -f /var/run/reboot-required ]; then
+  REBOOT_REQUIRED="true"
+  REBOOT_PKGS=$(cat /var/run/reboot-required.pkgs 2>/dev/null | tr '\n' ', ' | sed 's/,$//' || echo "")
+fi
+
+if [ "$UPGRADE_COUNT" -gt 0 ] || [ "$REBOOT_REQUIRED" = "true" ]; then
+  curl -sf -X POST "$WEBHOOK_URL" \
+    -H "Content-Type: application/json" \
+    -d "{
+      \"event\": \"unattended-upgrade\",
+      \"hostname\": \"$HOSTNAME\",
+      \"packages\": \"$UPGRADES\",
+      \"package_count\": $UPGRADE_COUNT,
+      \"reboot_required\": $REBOOT_REQUIRED,
+      \"reboot_packages\": \"$REBOOT_PKGS\",
+      \"timestamp\": \"$(date -Iseconds)\"
+    }" || true
+fi
