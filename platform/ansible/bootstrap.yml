@@ -47,7 +47,8 @@
     - role: authentik-server
       vars:
         authentik_hostname: "{{ gateway_domain }}"
-        authentik_legacy_hostname: "{{ authentik_legacy_hostname | default('') }}"
+        # `authentik_legacy_hostname` consumed directly from playbook extra-vars
+        # (cannot self-reference). Defaults to empty in role defaults.
         authentik_postgres_secret_id: "{{ identity_bootstrap.postgres_secret_id }}"
         authentik_admin_secret_id: "{{ identity_bootstrap.admin_secret_id }}"
         authentik_server_secret_id: "{{ identity_bootstrap.server_secret_id }}"
