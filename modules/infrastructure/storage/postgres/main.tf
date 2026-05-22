@@ -86,13 +86,15 @@ resource "scaleway_secret" "admin_credentials" {
 
 resource "scaleway_secret_version" "admin_credentials" {
   secret_id = scaleway_secret.admin_credentials.id
+  # Schema is enforced because type=database_credentials. The dbname is the
+  # default 'postgres' database; admin connects there to manage other DBs.
   data = jsonencode({
-    engine      = var.database_engine
-    username    = var.psql_default_user
-    password    = random_password.db_passwords[var.psql_default_user].result
-    host        = scaleway_rdb_instance.this.private_network[0].ip
-    port        = tostring(scaleway_rdb_instance.this.private_network[0].port)
-    endpoint_id = scaleway_rdb_instance.this.private_network[0].endpoint_id
+    engine   = var.database_engine
+    dbname   = "postgres"
+    username = var.psql_default_user
+    password = random_password.db_passwords[var.psql_default_user].result
+    host     = scaleway_rdb_instance.this.private_network[0].ip
+    port     = tostring(scaleway_rdb_instance.this.private_network[0].port)
   })
   description = "Admin credentials for ${var.instance_name}."
 }
