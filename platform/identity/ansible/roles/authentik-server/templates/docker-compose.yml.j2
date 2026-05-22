@@ -1,0 +1,86 @@
+---
+# {{ ansible_managed }}
+# Authentik server + worker. TLS termination, routing, and forward-auth all
+# handled by the Traefik instance from platform/base/ansible/roles/traefik.
+
+services:
+  server:
+    image: "${AUTHENTIK_IMAGE}:${AUTHENTIK_TAG}"
+    container_name: authentik-server
+    restart: unless-stopped
+    command: server
+    env_file:
+      - .env
+    volumes:
+      - ./data:/data
+      - ./custom-templates:/templates
+    ports:
+      - "127.0.0.1:{{ authentik_health_local_port }}:9000"
+      - "${PRIVATE_IP}:9300:9300"
+    healthcheck:
+      test: ["CMD-SHELL", "ak healthcheck"]
+      start_period: 90s
+      interval: 30s
+      retries: 10
+      timeout: 10s
+    networks:
+      - authentik-internal
+      - {{ authentik_traefik_docker_network }}
+    security_opt:
+      - no-new-privileges:true
+    deploy:
+      resources:
+        limits:
+          memory: "{{ authentik_server_memory_limit }}"
+          cpus: "{{ authentik_server_cpu_limit }}"
+        reservations:
+          memory: "{{ authentik_server_memory_reservation }}"
+          cpus: "{{ authentik_server_cpu_reservation }}"
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network={{ authentik_traefik_docker_network }}"
+      - "traefik.http.services.authentik.loadbalancer.server.port=9000"
+      - "traefik.http.services.authentik.loadbalancer.healthcheck.path={{ authentik_health_path }}"
+      - "traefik.http.services.authentik.loadbalancer.healthcheck.interval=30s"
+      - "traefik.http.routers.authentik-main.rule=Host(`${AUTHENTIK_DOMAIN}`){% if authentik_legacy_hostname | length > 0 %} || Host(`${AUTHENTIK_LEGACY_DOMAIN}`){% endif %}"
+      - "traefik.http.routers.authentik-main.entrypoints=websecure"
+      - "traefik.http.routers.authentik-main.tls=true"
+      - "traefik.http.routers.authentik-main.tls.certresolver={{ authentik_traefik_cert_resolver }}"
+      - "traefik.http.routers.authentik-main.service=authentik"
+      - "traefik.http.routers.authentik-main.priority=10"
+
+  worker:
+    image: "${AUTHENTIK_IMAGE}:${AUTHENTIK_TAG}"
+    restart: unless-stopped
+    command: worker
+    env_file:
+      - .env
+    user: root
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./data:/data
+      - ./certs:/certs
+      - ./custom-templates:/templates
+    depends_on:
+      server:
+        condition: service_healthy
+    networks:
+      - authentik-internal
+    security_opt:
+      - no-new-privileges:true
+    deploy:
+      replicas: 1
+      resources:
+        limits:
+          memory: "{{ authentik_worker_memory_limit }}"
+          cpus: "{{ authentik_worker_cpu_limit }}"
+        reservations:
+          memory: "{{ authentik_worker_memory_reservation }}"
+          cpus: "{{ authentik_worker_cpu_reservation }}"
+
+networks:
+  authentik-internal:
+    name: authentik-internal
+  {{ authentik_traefik_docker_network }}:
+    name: {{ authentik_traefik_docker_network }}
+    external: true

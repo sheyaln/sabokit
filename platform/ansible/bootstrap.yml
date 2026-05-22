@@ -35,3 +35,21 @@
         monitoring_host_label: "{{ inventory_hostname }}"
         monitoring_environment: "{{ environment | default('prod') }}"
         monitoring_loki_push_url: "{{ monitoring_loki_push_url | default('') }}"
+
+# Identity-host install: runs Authentik server on hosts in the [identity]
+# inventory group. For single-VM setups (e.g. staging), the same host can be
+# in both [apps] and [identity] groups — Ansible runs each play independently.
+- name: Install Authentik server on identity hosts
+  hosts: identity
+  become: true
+  tags: [bootstrap, authentik-server]
+  roles:
+    - role: authentik-server
+      vars:
+        authentik_hostname: "{{ gateway_domain }}"
+        authentik_legacy_hostname: "{{ authentik_legacy_hostname | default('') }}"
+        authentik_postgres_secret_id: "{{ identity_bootstrap.postgres_secret_id }}"
+        authentik_admin_secret_id: "{{ identity_bootstrap.admin_secret_id }}"
+        authentik_server_secret_id: "{{ identity_bootstrap.server_secret_id }}"
+        authentik_media_s3_secret_id: "{{ identity_bootstrap.media_s3_secret_id | default('') }}"
+        authentik_smtp_secret_id: "{{ identity_bootstrap.smtp_secret_id | default('') }}"

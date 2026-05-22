@@ -1,0 +1,5 @@
+---
+# Prereqs (docker, traefik network) are checked at the top of tasks/main.yml
+# rather than declared as deps so this role can run cleanly on a host that
+# was bootstrapped earlier in the same play.
+dependencies: []

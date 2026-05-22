@@ -1,0 +1,62 @@
+---
+# Install + run a self-hosted Authentik server (server + worker + migration
+# pods) as a docker-compose stack on the target host. Traefik (from
+# platform/base/ansible/roles/traefik) handles TLS termination and routing.
+
+# ── Where it lives on disk ──────────────────────────────────────────────────
+authentik_dir: "/opt/authentik"
+
+# ── Image / version ─────────────────────────────────────────────────────────
+authentik_image: "ghcr.io/goauthentik/server"
+authentik_version: "2025.12.1"
+
+# ── Domain (REQUIRED — must be the full hostname Authentik is served at) ────
+# Pass via -e or group vars. Example: "auth.example.org"
+authentik_hostname: ""
+
+# Optional legacy hostname accepted by Traefik (e.g. migration period). Empty
+# disables the legacy router. Example: "gateway.example.org"
+authentik_legacy_hostname: ""
+
+# ── Postgres (REQUIRED — comes from base.scaleway.postgres_endpoint + a
+#    per-app database created via the postgres_database module) ─────────────
+authentik_postgres_secret_id: ""    # Scaleway secret ID with {host,port,dbname,username,password}
+
+# ── Bootstrap admin user (REQUIRED) ─────────────────────────────────────────
+# These are used to create the very first admin user on Authentik's first
+# boot. After bootstrap, deploy.sh fetches an API token and stores it for
+# the Terraform authentik provider to use.
+authentik_admin_secret_id: ""       # Scaleway secret ID with {username,email,password,api_token (after bootstrap)}
+
+# ── Server-side application secret (REQUIRED) ───────────────────────────────
+authentik_server_secret_id: ""      # Scaleway secret ID with {secret_key} (32+ random bytes)
+
+# ── Optional: S3-compatible media storage ──────────────────────────────────
+authentik_media_s3_secret_id: ""    # Scaleway secret ID with {access_key,secret_key,bucket_name,region,endpoint,custom_domain}
+
+# ── Optional: SMTP (for Authentik to send email) ────────────────────────────
+authentik_smtp_secret_id: ""        # Scaleway secret ID with {host,port,username,password,use_tls,use_ssl,from}
+
+# ── Traefik wiring ──────────────────────────────────────────────────────────
+authentik_traefik_docker_network: "traefik"
+authentik_traefik_cert_resolver: "le"
+
+# ── Health / probe ──────────────────────────────────────────────────────────
+authentik_health_path: "/api/v3/root/config/"
+authentik_health_retries: 30
+authentik_health_delay: 10
+authentik_health_local_port: 9000
+
+# ── Resource limits ─────────────────────────────────────────────────────────
+authentik_server_memory_limit: "1G"
+authentik_server_memory_reservation: "512M"
+authentik_server_cpu_limit: "1.0"
+authentik_server_cpu_reservation: "0.5"
+authentik_worker_memory_limit: "1G"
+authentik_worker_memory_reservation: "256M"
+authentik_worker_cpu_limit: "1.0"
+authentik_worker_cpu_reservation: "0.25"
+
+# ── Private-network metrics binding ─────────────────────────────────────────
+# Set to the host's private IP if you want metrics bound to it. Empty = 0.0.0.0.
+authentik_metrics_bind_ip: ""

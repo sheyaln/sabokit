@@ -1,0 +1,113 @@
+---
+# Install + run Authentik (server, worker) on the target host.
+#
+# Prereqs (NOT installed by this role — see platform/ansible/bootstrap.yml):
+#   - Docker engine + compose plugin
+#   - Traefik on an external network named per authentik_traefik_docker_network
+#   - scaleway.scaleway collection on the Ansible controller (for secret lookups)
+#
+# Required vars (all REQUIRED, asserted below):
+#   authentik_hostname
+#   authentik_postgres_secret_id
+#   authentik_admin_secret_id
+#   authentik_server_secret_id
+
+- name: Assert required Authentik variables
+  ansible.builtin.assert:
+    that:
+      - authentik_hostname | length > 0
+      - authentik_postgres_secret_id | length > 0
+      - authentik_admin_secret_id | length > 0
+      - authentik_server_secret_id | length > 0
+    fail_msg: "authentik_hostname, authentik_postgres_secret_id, authentik_admin_secret_id, authentik_server_secret_id are required."
+
+- name: Assert Docker is installed and running
+  ansible.builtin.command: docker info
+  register: authentik_docker_check
+  changed_when: false
+  failed_when: authentik_docker_check.rc != 0
+
+- name: Assert Traefik external network exists
+  community.docker.docker_network_info:
+    name: "{{ authentik_traefik_docker_network }}"
+  register: authentik_traefik_net
+  failed_when: not authentik_traefik_net.exists
+
+- name: Fetch Postgres credentials from Scaleway Secret Manager
+  ansible.builtin.set_fact:
+    authentik_postgres: "{{ lookup('scaleway.scaleway.scaleway_secret', authentik_postgres_secret_id) | b64decode | from_json }}"
+  no_log: true
+
+- name: Fetch Authentik admin bootstrap credentials
+  ansible.builtin.set_fact:
+    authentik_admin: "{{ lookup('scaleway.scaleway.scaleway_secret', authentik_admin_secret_id) | b64decode | from_json }}"
+  no_log: true
+
+- name: Fetch Authentik server secret_key
+  ansible.builtin.set_fact:
+    authentik_server: "{{ lookup('scaleway.scaleway.scaleway_secret', authentik_server_secret_id) | b64decode | from_json }}"
+  no_log: true
+
+- name: Fetch optional Authentik media S3 credentials
+  ansible.builtin.set_fact:
+    authentik_media_s3: "{{ lookup('scaleway.scaleway.scaleway_secret', authentik_media_s3_secret_id) | b64decode | from_json }}"
+  no_log: true
+  when: authentik_media_s3_secret_id | length > 0
+
+- name: Fetch optional Authentik SMTP config
+  ansible.builtin.set_fact:
+    authentik_smtp: "{{ lookup('scaleway.scaleway.scaleway_secret', authentik_smtp_secret_id) | b64decode | from_json }}"
+  no_log: true
+  when: authentik_smtp_secret_id | length > 0
+
+- name: Ensure Authentik internal Docker network exists
+  community.docker.docker_network:
+    name: authentik-internal
+    state: present
+
+- name: Ensure Authentik directory tree
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    mode: "0755"
+  loop:
+    - "{{ authentik_dir }}"
+    - "{{ authentik_dir }}/data"
+    - "{{ authentik_dir }}/data/media"
+    - "{{ authentik_dir }}/custom-templates"
+    - "{{ authentik_dir }}/certs"
+
+- name: Render Authentik docker-compose.yml
+  ansible.builtin.template:
+    src: docker-compose.yml.j2
+    dest: "{{ authentik_dir }}/docker-compose.yml"
+    mode: "0644"
+  register: authentik_compose_file
+  notify: Restart authentik
+
+- name: Render Authentik environment file
+  ansible.builtin.template:
+    src: env.j2
+    dest: "{{ authentik_dir }}/.env"
+    mode: "0600"
+  register: authentik_env_file
+  notify: Restart authentik
+  no_log: true
+
+- name: Ensure Authentik stack is running
+  community.docker.docker_compose_v2:
+    project_src: "{{ authentik_dir }}"
+    state: present
+    pull: "{{ 'always' if (authentik_compose_file.changed or authentik_env_file.changed) else 'missing' }}"
+  register: authentik_compose
+
+- name: Wait for Authentik to become healthy
+  ansible.builtin.uri:
+    url: "http://127.0.0.1:{{ authentik_health_local_port }}{{ authentik_health_path }}"
+    method: GET
+    status_code: 200
+  register: authentik_health
+  until: authentik_health.status == 200
+  retries: "{{ authentik_health_retries }}"
+  delay: "{{ authentik_health_delay }}"
+  changed_when: false
