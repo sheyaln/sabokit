@@ -43,6 +43,14 @@ output "postgres_admin_credentials_secret_id" {
   value = module.stack.postgres_admin_credentials_secret_id
 }
 
+output "identity_bootstrap" {
+  value = module.stack.identity_bootstrap
+}
+
+output "authentik_admin_secret_id" {
+  value = module.stack.authentik_admin_secret_id
+}
+
 output "enabled_apps" {
   value = module.stack.enabled_apps
 }

@@ -9,7 +9,10 @@
 # Required vars (all REQUIRED, asserted below):
 #   authentik_hostname
 #   authentik_postgres_secret_id
-#   authentik_admin_secret_id
+#   authentik_admin_secret_id     # JSON: {username, email, password, api_token}
+#                                 # api_token is consumed via AUTHENTIK_BOOTSTRAP_TOKEN
+#                                 # so Authentik creates the API Token on first boot.
+#                                 # See platform/identity/bootstrap/.
 #   authentik_server_secret_id
 
 - name: Assert required Authentik variables

@@ -16,6 +16,16 @@ output "postgres_admin_credentials_secret_id" {
   value       = module.base.scaleway.postgres_admin_credentials_secret_id
 }
 
+output "identity_bootstrap" {
+  description = "Map of Scaleway secret IDs the Ansible bootstrap.yml feeds to the authentik-server role. Passed verbatim as -e identity_bootstrap=$(terraform output -json identity_bootstrap)."
+  value       = module.identity_bootstrap.identity_bootstrap
+}
+
+output "authentik_admin_secret_id" {
+  description = "Scaleway secret holding the Authentik bootstrap admin credentials JSON {username, email, password, api_token}. deploy.sh fetches api_token from here for TF_VAR_authentik_admin_token."
+  value       = module.identity_bootstrap.admin_secret_id
+}
+
 output "enabled_apps" {
   description = "Map of enabled app name -> bundle outputs. Consumed by Ansible via `terraform output -json enabled_apps`."
   value = {

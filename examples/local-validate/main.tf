@@ -53,6 +53,18 @@ module "base" {
   }
 }
 
+module "identity_bootstrap" {
+  source = "../../platform/identity/bootstrap"
+
+  org_slug    = "fctest"
+  environment = "dev"
+  infra_email = "ops@example.org"
+
+  postgres_instance_id = module.base.scaleway.postgres_instance_id
+  postgres_endpoint    = module.base.scaleway.postgres_endpoint
+  postgres_engine      = module.base.scaleway.postgres_engine
+}
+
 module "authentik" {
   source = "../../platform/identity/terraform"
 

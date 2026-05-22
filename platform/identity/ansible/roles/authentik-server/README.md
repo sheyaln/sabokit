@@ -14,7 +14,7 @@ Installs and runs a self-hosted Authentik (server + worker) as a docker-compose 
 |----------|--------|
 | `authentik_hostname` | Full hostname Authentik is served at (`auth.example.org`). |
 | `authentik_postgres_secret_id` | Scaleway secret ID. Payload: `{host, port, dbname, username, password}`. |
-| `authentik_admin_secret_id` | Scaleway secret ID. Payload: `{username, email, password}`. Bootstrap admin created on first run. |
+| `authentik_admin_secret_id` | Scaleway secret ID. Payload: `{username, email, password, api_token}`. The bootstrap admin user is created from password+email on first boot, and the api_token field becomes the AUTHENTIK_BOOTSTRAP_TOKEN — Authentik creates a Token row with that key, which is what the Terraform `authentik` provider then authenticates with. See `platform/identity/bootstrap/`. |
 | `authentik_server_secret_id` | Scaleway secret ID. Payload: `{secret_key}` (32+ random bytes). |
 
 ## Optional variables
@@ -43,12 +43,11 @@ Installs and runs a self-hosted Authentik (server + worker) as a docker-compose 
 
 ## Bootstrap admin token
 
-This role creates the bootstrap admin user but does NOT fetch an API token. The orchestrator (`deploy.sh`) is responsible for the post-install step:
+The role wires `AUTHENTIK_BOOTSTRAP_TOKEN` from the `api_token` field of the admin secret. Authentik's first-boot migration creates a Token row whose `key` equals that env var's value — so by the time the role's "wait for healthy" loop exits, the token already exists and matches what was stored in Terraform state.
 
-1. Use `AUTHENTIK_BOOTSTRAP_TOKEN` env var (set in the .env if supplied via secret) — Authentik writes it into the database on first boot.
-2. Or use the `/api/v3/core/users/me/` endpoint with the bootstrap admin password to mint a token, then store it in a Scaleway secret for the Terraform `authentik` provider.
+`deploy.sh` reads the same `api_token` field from the admin secret and exports it as `TF_VAR_authentik_admin_token` before the second-phase `terraform apply` that drives the `authentik` provider. The provider authenticates with the same value Authentik just minted — no out-of-band mint, no `ak shell`, no `POST /api/v3/core/tokens/`.
 
-`deploy.sh` automates option 1 by including `api_token` in the `authentik_admin_secret_id` payload — Authentik picks it up on first boot via `AUTHENTIK_BOOTSTRAP_TOKEN`.
+Re-applies are a no-op: Terraform pins the token via `lifecycle.ignore_changes = [data]` on the admin secret version, and Authentik treats the env var as a no-op once a Token with that key exists.
 
 ## When NOT to use
 
