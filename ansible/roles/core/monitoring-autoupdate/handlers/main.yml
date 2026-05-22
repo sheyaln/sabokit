@@ -1,6 +1,0 @@
----
-- name: restart monitoring-autoupdate
-  community.docker.docker_compose_v2:
-    project_src: /opt/monitoring-autoupdate
-    state: restarted
-
