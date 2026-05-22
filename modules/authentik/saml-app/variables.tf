@@ -1,103 +1,92 @@
 variable "application_name" {
-  description = "Display name for the application"
+  description = "Display name shown in the Authentik user portal."
   type        = string
-}
-
-variable "gateway_domain" {
-  description = "Gateway domain for signing certificates (e.g., gateway.example.org)"
-  type        = string
-  default     = "gateway.example.org"
-}
-
-variable "org_name" {
-  description = "Organization name for signing certificates"
-  type        = string
-  default     = "Federated Commons"
 }
 
 variable "application_slug" {
-  description = "URL-friendly slug for the application"
+  description = "URL-safe slug. Also used to name the per-app Authentik group and Scaleway secret."
   type        = string
 }
 
 variable "category_group" {
-  description = "Category group for the application"
+  description = "Category shown in the user portal grid. Free text."
   type        = string
-  default     = "Member Tools"
+  default     = "Tools"
 }
 
 variable "launch_url" {
-  description = "Launch URL for the application"
+  description = "Optional launch URL shown in the user portal."
   type        = string
   default     = null
 }
 
 variable "icon_url" {
-  description = "Icon URL for the application (relative to Authentik media, e.g., 'nextcloud.png')"
+  description = "Optional icon path (relative to Authentik media) or full URL."
   type        = string
   default     = null
 }
 
 variable "description" {
-  description = "Description for the application"
+  description = "Optional one-line app description shown in the user portal."
   type        = string
   default     = null
 }
 
-variable "access_level" {
-  description = "Access level: admin, delegate, treasurer, or member"
-  type        = string
+variable "authorized_group_ids" {
+  description = "Authentik group IDs allowed to access this application. The module creates one policy binding per group."
+  type        = list(string)
+
   validation {
-    condition     = contains(["admin", "delegate", "treasurer", "member"], var.access_level)
-    error_message = "Access level must be one of: admin, delegate, treasurer, member."
+    condition     = length(var.authorized_group_ids) > 0
+    error_message = "At least one authorized group ID must be provided."
   }
 }
 
-variable "group_ids" {
-  description = "Map of group IDs for access control"
-  type = object({
-    admin           = string
-    union_delegate  = string
-    union_treasurer = string
-    union_member    = string
-  })
-}
-
-# Authentication Flow Configuration
 variable "authentication_flow_uuid" {
-  description = "Custom authentication flow slug"
+  description = "Authentication flow UUID."
   type        = string
 }
 
 variable "authorization_flow_uuid" {
-  description = "Custom authorization flow UUID"
+  description = "Authorization flow UUID."
   type        = string
 }
 
 variable "invalidation_flow_uuid" {
-  description = "Custom invalidation flow slug"
+  description = "Invalidation flow UUID."
   type        = string
 }
 
 variable "generate_rsa_signing_key" {
-  description = "Whether to generate an RSA signing key for SAML assertions"
+  description = "If true, generate a dedicated RSA signing key for SAML assertions. Otherwise use the Authentik default self-signed certificate."
   type        = bool
   default     = false
 }
 
-# SAML Provider Configuration
+variable "signing_key_subject" {
+  description = "Subject for the RSA signing certificate when generate_rsa_signing_key is true."
+  type = object({
+    common_name  = string
+    organization = string
+  })
+  default = {
+    common_name  = "authentik.example.org"
+    organization = "Federated Commons"
+  }
+}
+
 variable "saml_assertion_consumer_service_url" {
-  description = "SAML Assertion Consumer Service (ACS) URL for the service provider"
+  description = "SAML Assertion Consumer Service (ACS) URL on the service provider side. Pass a full URL; the module never assembles subdomains."
   type        = string
 }
 
 variable "saml_audience" {
-  description = "SAML audience/entity ID for the service provider"
+  description = "SAML audience / entity ID expected by the service provider."
   type        = string
 }
 
 variable "saml_service_provider_binding" {
-  description = "SAML service provider binding (redirect or post)"
+  description = "SAML service provider binding. 'redirect' or 'post'."
   type        = string
   default     = "redirect"
 
@@ -108,43 +97,43 @@ variable "saml_service_provider_binding" {
 }
 
 variable "saml_name_id_mapping" {
-  description = "Property mapping for SAML NameID field. Uses default if not specified."
+  description = "Property mapping ID for the SAML NameID. Defaults to Authentik's default if null. Ignored when saml_name_id_use_email = true."
   type        = string
   default     = null
 }
 
 variable "saml_name_id_use_email" {
-  description = "Use email address as the SAML NameID instead of the default (user UUID/sub)"
+  description = "If true, use the email property mapping as the SAML NameID."
   type        = bool
   default     = false
 }
 
 variable "saml_digest_algorithm" {
-  description = "SAML digest algorithm for signatures"
+  description = "SAML digest algorithm."
   type        = string
   default     = "http://www.w3.org/2001/04/xmlenc#sha256"
 }
 
 variable "saml_signature_algorithm" {
-  description = "SAML signature algorithm for assertions"
+  description = "SAML signature algorithm."
   type        = string
   default     = "http://www.w3.org/2001/04/xmldsig-more#rsa-sha256"
 }
 
 variable "saml_sign_assertion" {
-  description = "Whether to sign SAML assertions"
+  description = "Whether to sign SAML assertions."
   type        = bool
   default     = true
 }
 
 variable "saml_default_relay_state" {
-  description = "Default relay state for SAML SSO"
+  description = "Optional default relay state passed to the SP."
   type        = string
   default     = null
 }
 
 variable "include_groups_attribute" {
-  description = "Whether to include the groups SAML attribute mapping in assertions"
+  description = "Whether to include the SAML groups attribute mapping in assertions."
   type        = bool
   default     = true
 }

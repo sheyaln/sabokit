@@ -1,57 +1,48 @@
 variable "application_name" {
-  description = "Display name for the bookmark application"
+  description = "Display name shown in the Authentik user portal."
   type        = string
 }
 
 variable "application_slug" {
-  description = "URL-friendly slug for the bookmark application"
+  description = "URL-safe slug."
   type        = string
 }
 
 variable "category_group" {
-  description = "Category group for the application"
+  description = "Category shown in the user portal grid. Free text."
   type        = string
-  default     = "Member Resources"
+  default     = "Resources"
 }
 
 variable "launch_url" {
-  description = "Launch URL for the bookmark application (required for bookmarks)"
+  description = "URL the bookmark opens (required for bookmarks). Pass a full URL."
   type        = string
 }
 
 variable "icon_url" {
-  description = "Icon URL for the application"
+  description = "Optional icon path or full URL."
   type        = string
   default     = null
 }
 
 variable "description" {
-  description = "Description for the application"
+  description = "Optional one-line bookmark description."
   type        = string
   default     = null
 }
 
-variable "access_level" {
-  description = "Access level: admin, delegate, treasurer, or member"
-  type        = string
+variable "authorized_group_ids" {
+  description = "Authentik group IDs allowed to see this bookmark. The module creates one policy binding per group."
+  type        = list(string)
+
   validation {
-    condition     = contains(["admin", "delegate", "treasurer", "member"], var.access_level)
-    error_message = "Access level must be one of: admin, delegate, treasurer, member."
+    condition     = length(var.authorized_group_ids) > 0
+    error_message = "At least one authorized group ID must be provided."
   }
 }
 
-variable "group_ids" {
-  description = "Map of group IDs for access control"
-  type = object({
-    admin           = string
-    union_delegate  = string
-    union_treasurer = string
-    union_member    = string
-  })
-}
-
 variable "open_in_new_tab" {
-  description = "Whether to open the bookmark in a new tab"
+  description = "Whether the bookmark opens in a new browser tab."
   type        = bool
   default     = true
 }

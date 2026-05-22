@@ -1,21 +1,12 @@
-# REUSABLE SAML APP MODULE FOR AUTHENTIK
+# Reusable SAML application module for Authentik.
 #
-# This module creates:
-# 1. An Authentik Application with SAML provider
-# 2. SAML property mappings for assertions (email, name, groups)
-# 3. Group bindings for hierarchical access control
-# 4. SAML configuration stored in Scaleway Secret Manager
-
-locals {
-  target_groups = var.access_level == "admin" ? [var.group_ids.admin] : (
-    var.access_level == "delegate" ? [var.group_ids.admin, var.group_ids.union_delegate] : (
-      var.access_level == "treasurer" ? [var.group_ids.admin, var.group_ids.union_delegate, var.group_ids.union_treasurer] :
-      [var.group_ids.admin, var.group_ids.union_delegate, var.group_ids.union_treasurer, var.group_ids.union_member]
-    )
-  )
-}
-
-# ── SAML Property Mappings ───────────────────────────────────────────────────
+# Creates:
+#   - Standard SAML property mappings (email, given/family name, display name, UPN; optionally groups)
+#   - A SAML provider
+#   - An application backed by the provider
+#   - A per-application Authentik group
+#   - One policy binding per group in var.authorized_group_ids
+#   - SAML configuration stored in Scaleway Secret Manager (secrets.tf)
 
 resource "authentik_property_mapping_provider_saml" "email" {
   name          = "${var.application_slug}-saml-email"
@@ -71,8 +62,6 @@ locals {
   ))
 }
 
-# ── SAML Provider ────────────────────────────────────────────────────────────
-
 resource "authentik_provider_saml" "provider" {
   name                = "${var.application_name} SAML Provider"
   authorization_flow  = var.authorization_flow_uuid
@@ -102,8 +91,6 @@ resource "authentik_provider_saml" "provider" {
   }
 }
 
-# ── Application + Group Bindings ─────────────────────────────────────────────
-
 resource "authentik_group" "application" {
   name         = "app-${var.application_slug}"
   is_superuser = false
@@ -128,35 +115,16 @@ resource "authentik_application" "application" {
   policy_engine_mode = "any"
 }
 
-resource "authentik_policy_binding" "admin_group" {
-  target = authentik_application.application.uuid
-  group  = var.group_ids.admin
-  order  = 0
-}
-
 resource "authentik_policy_binding" "application_group" {
   target = authentik_application.application.uuid
   group  = authentik_group.application.id
   order  = 0
 }
 
-resource "authentik_policy_binding" "delegate_group" {
-  count  = contains(["delegate", "member"], var.access_level) ? 1 : 0
-  target = authentik_application.application.uuid
-  group  = var.group_ids.union_delegate
-  order  = 0
-}
+resource "authentik_policy_binding" "authorized" {
+  for_each = toset(var.authorized_group_ids)
 
-resource "authentik_policy_binding" "treasurer_group" {
-  count  = contains(["treasurer", "delegate", "member"], var.access_level) ? 1 : 0
   target = authentik_application.application.uuid
-  group  = var.group_ids.union_treasurer
-  order  = 0
-}
-
-resource "authentik_policy_binding" "member_group" {
-  count  = var.access_level == "member" ? 1 : 0
-  target = authentik_application.application.uuid
-  group  = var.group_ids.union_member
-  order  = 0
+  group  = each.value
+  order  = 10
 }

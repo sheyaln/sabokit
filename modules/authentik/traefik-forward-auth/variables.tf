@@ -1,100 +1,87 @@
 variable "application_name" {
-  description = "Display name for the application"
+  description = "Display name shown in the Authentik user portal."
   type        = string
 }
 
 variable "application_slug" {
-  description = "URL-friendly slug for the application"
+  description = "URL-safe slug. Also used to name the per-app Authentik group."
   type        = string
 }
 
 variable "external_host" {
-  description = "The external URL of the application being protected (e.g., https://app.example.org)"
+  description = "External URL of the application being protected (e.g., 'https://app.example.org'). Pass a full URL; the module never assembles subdomains."
   type        = string
 }
 
 variable "category_group" {
-  description = "Category group for the application in Authentik UI"
+  description = "Category shown in the user portal grid. Free text."
   type        = string
-  default     = "Member Tools"
+  default     = "Tools"
 }
 
 variable "launch_url" {
-  description = "Launch URL for the application (defaults to external_host if not specified)"
+  description = "Launch URL for the application. Defaults to external_host."
   type        = string
   default     = null
 }
 
 variable "icon_url" {
-  description = "Icon URL for the application"
+  description = "Optional icon path or full URL."
   type        = string
   default     = null
 }
 
 variable "description" {
-  description = "Description for the application"
+  description = "Optional one-line app description."
   type        = string
   default     = null
 }
 
-variable "access_level" {
-  description = "Access level: admin, delegate, treasurer, or member"
-  type        = string
+variable "authorized_group_ids" {
+  description = "Authentik group IDs allowed to access this application. The module creates one policy binding per group."
+  type        = list(string)
+
   validation {
-    condition     = contains(["admin", "delegate", "treasurer", "member"], var.access_level)
-    error_message = "Access level must be one of: admin, delegate, treasurer, member."
+    condition     = length(var.authorized_group_ids) > 0
+    error_message = "At least one authorized group ID must be provided."
   }
 }
 
-variable "group_ids" {
-  description = "Map of group IDs for access control"
-  type = object({
-    admin           = string
-    union_delegate  = string
-    union_treasurer = string
-    union_member    = string
-  })
-}
-
-# Flow Configuration
 variable "authentication_flow_uuid" {
-  description = "UUID of the authentication flow"
+  description = "Authentication flow UUID."
   type        = string
 }
 
 variable "authorization_flow_uuid" {
-  description = "UUID of the authorization flow"
+  description = "Authorization flow UUID."
   type        = string
 }
 
 variable "invalidation_flow_uuid" {
-  description = "UUID of the invalidation flow"
+  description = "Invalidation flow UUID."
   type        = string
 }
 
-# Token and Cookie Settings
 variable "access_token_validity" {
-  description = "Access token validity duration (e.g., 'minutes=10', 'hours=1')"
+  description = "Access token validity (Authentik duration syntax)."
   type        = string
   default     = "hours=24"
 }
 
 variable "cookie_domain" {
-  description = "Cookie domain for forward auth sessions (e.g., 'example.org' for *.example.org)"
+  description = "Cookie domain for forward auth sessions (e.g., 'example.org' to share session across *.example.org)."
   type        = string
   default     = null
 }
 
-# Path Skipping (for webhooks, health checks, etc.)
 variable "skip_path_regex" {
-  description = "Regex pattern for paths to skip authentication (e.g., '^/health$|^/api/webhooks')"
+  description = "Regex pattern for paths that bypass authentication (e.g., '^/health$|^/api/webhooks')."
   type        = string
   default     = ""
 }
 
-# Basic Auth (rarely needed)
 variable "basic_auth_enabled" {
-  description = "Enable basic auth header passthrough (for API access)"
+  description = "If true, pass through HTTP Basic Auth headers (for API access alongside browser-based forward auth)."
   type        = bool
   default     = false
 }

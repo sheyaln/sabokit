@@ -1,33 +1,21 @@
 variable "application_name" {
-  description = "Display name for the application"
+  description = "Display name shown in the Authentik user portal."
   type        = string
-}
-
-variable "gateway_domain" {
-  description = "Gateway domain for signing certificates (e.g., gateway.example.org)"
-  type        = string
-  default     = "gateway.example.org"
-}
-
-variable "org_name" {
-  description = "Organization name for signing certificates"
-  type        = string
-  default     = "Federated Commons"
 }
 
 variable "application_slug" {
-  description = "URL-friendly slug for the application"
+  description = "URL-safe slug. Also used to name the per-app Authentik group and Scaleway secret."
   type        = string
 }
 
 variable "category_group" {
-  description = "Category group for the application"
+  description = "Category shown in the user portal grid. Free text."
   type        = string
-  default     = "Member Tools"
+  default     = "Tools"
 }
 
 variable "redirect_uris" {
-  description = "Valid redirect URIs for the OIDC provider"
+  description = "Allowed redirect URIs for the OIDC provider. Pass full URLs; the module never assembles subdomains."
   type = list(object({
     matching_mode = optional(string, "strict")
     url           = string
@@ -40,45 +28,35 @@ variable "redirect_uris" {
 }
 
 variable "launch_url" {
-  description = "Launch URL for the application"
+  description = "Optional launch URL shown in the user portal. Defaults to Authentik's first-redirect-uri behaviour."
   type        = string
   default     = null
 }
 
 variable "icon_url" {
-  description = "Icon URL for the application (relative to Authentik media, e.g., 'nextcloud.png')"
+  description = "Optional icon path (relative to Authentik media, e.g. 'outline-icon.png') or full URL."
   type        = string
   default     = null
 }
 
 variable "description" {
-  description = "Description for the application"
+  description = "Optional one-line app description shown in the user portal."
   type        = string
   default     = null
 }
 
-variable "access_level" {
-  description = "Access level: admin, delegate, treasurer, or member"
-  type        = string
+variable "authorized_group_ids" {
+  description = "Authentik group IDs allowed to access this application. The module creates one policy binding per group."
+  type        = list(string)
+
   validation {
-    condition     = contains(["admin", "delegate", "treasurer", "member"], var.access_level)
-    error_message = "Access level must be one of: admin, delegate, treasurer, member."
+    condition     = length(var.authorized_group_ids) > 0
+    error_message = "At least one authorized group ID must be provided. To restrict the application to administrators only, pass [base.authentik.groups[\"admin\"]]."
   }
 }
 
-variable "group_ids" {
-  description = "Map of group IDs for access control"
-  type = object({
-    admin           = string
-    union_delegate  = string
-    union_treasurer = string
-    union_member    = string
-  })
-}
-
-# OIDC Provider Configuration
 variable "oidc_scopes" {
-  description = "List of OIDC scopes to include in the provider"
+  description = "OIDC scopes the provider will expose. Defaults cover the common set; pass a different list to opt out of any."
   type        = list(string)
   default     = ["openid", "profile", "email", "groups"]
 
@@ -86,56 +64,66 @@ variable "oidc_scopes" {
     condition = alltrue([
       for scope in var.oidc_scopes : contains([
         "openid", "profile", "email", "entitlements", "offline_access", "groups",
-        "goauthentik.io/api", "user", "read:user", "user:email", "read:org",
-        "vikunja_scope"
+        "goauthentik.io/api", "user", "read:user", "user:email", "read:org"
       ], scope)
     ])
-    error_message = "OIDC scopes must be valid authentik scopes. Valid scopes are: openid, profile, email, entitlements, offline_access, groups, goauthentik.io/api, user, read:user, user:email, read:org, vikunja_scope."
+    error_message = "OIDC scope must be one of: openid, profile, email, entitlements, offline_access, groups, goauthentik.io/api, user, read:user, user:email, read:org. Custom scopes are injected via additional_property_mapping_ids."
   }
 }
 
-variable "vikunja_team_name" {
-  description = "Team name for Vikunja OIDC team assignment"
-  type        = string
-  default     = null
+variable "additional_property_mapping_ids" {
+  description = "IDs of property mappings the consumer wants attached to the provider in addition to the built-in scope mappings. Use this to inject app-specific custom scopes."
+  type        = list(string)
+  default     = []
 }
 
 variable "access_token_validity" {
-  description = "Access token validity duration (e.g., 'minutes=10', 'hours=1')"
+  description = "Access token validity (Authentik duration syntax, e.g. 'minutes=10', 'hours=1')."
   type        = string
   default     = "minutes=10"
 }
 
 variable "refresh_token_validity" {
-  description = "Refresh token validity duration (e.g., 'days=30', 'hours=24')"
+  description = "Refresh token validity (Authentik duration syntax)."
   type        = string
   default     = "days=30"
 }
 
 variable "sub_mode" {
-  description = "Subject mode for the application"
+  description = "OIDC sub claim mode. 'user_email', 'user_id', 'user_uuid', or 'hashed_user_id'."
   type        = string
   default     = "user_email"
 }
 
-# Authentication Flow Configuration
 variable "authentication_flow_uuid" {
-  description = "Custom authentication flow slug"
+  description = "Authentication flow UUID. From base.authentik.flows.authentication_flow."
   type        = string
 }
 
 variable "authorization_flow_uuid" {
-  description = "Custom authorization flow UUID"
+  description = "Authorization flow UUID. From base.authentik.flows.authorization_flow."
   type        = string
 }
 
 variable "invalidation_flow_uuid" {
-  description = "Custom invalidation flow slug"
+  description = "Invalidation flow UUID. From base.authentik.flows.invalidation_flow."
   type        = string
 }
 
 variable "generate_rsa_signing_key" {
-  description = "Whether to generate an RSA signing key for the application"
+  description = "If true, generate a dedicated RSA signing key for this app. Otherwise use the Authentik default self-signed certificate."
   type        = bool
   default     = false
+}
+
+variable "signing_key_subject" {
+  description = "Subject for the RSA signing certificate when generate_rsa_signing_key is true. Object with common_name and organization."
+  type = object({
+    common_name  = string
+    organization = string
+  })
+  default = {
+    common_name  = "authentik.example.org"
+    organization = "Federated Commons"
+  }
 }
