@@ -3,12 +3,14 @@
 # Credentials can also come from TF_VAR_* env vars (preferred in CI):
 #   export TF_VAR_scaleway_access_key=...
 #   export TF_VAR_scaleway_secret_key=...
-#   export TF_VAR_authentik_admin_token=...
+#
+# Do NOT set authentik_admin_token here. deploy.sh fetches it from the
+# bootstrap admin secret created by phase 1 and re-exports it as
+# TF_VAR_authentik_admin_token before the rest of the apply.
 
-scaleway_access_key   = "SCWXXXXXXXXXXXXXXXXX"
-scaleway_secret_key   = "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
-scaleway_project_id   = "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
-authentik_admin_token = "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+scaleway_access_key = "SCWXXXXXXXXXXXXXXXXX"
+scaleway_secret_key = "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+scaleway_project_id = "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
 
 org_slug    = "acme"
 org_name    = "Acme Cooperative"

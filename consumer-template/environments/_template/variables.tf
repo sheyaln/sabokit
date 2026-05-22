@@ -25,8 +25,10 @@ variable "scaleway_zone" {
 }
 
 variable "authentik_admin_token" {
-  type      = string
-  sensitive = true
+  description = "Authentik admin API token. Empty during the first-phase apply (when Authentik doesn't exist yet); deploy.sh fetches it from the bootstrap admin secret and re-exports as TF_VAR_authentik_admin_token before the second phase. Setting it manually in terraform.tfvars is not recommended."
+  type        = string
+  sensitive   = true
+  default     = ""
 }
 
 variable "org_slug" {

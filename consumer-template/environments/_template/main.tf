@@ -51,6 +51,10 @@ output "authentik_admin_secret_id" {
   value = module.stack.authentik_admin_secret_id
 }
 
+output "infra_email" {
+  value = module.stack.infra_email
+}
+
 output "enabled_apps" {
   value = module.stack.enabled_apps
 }

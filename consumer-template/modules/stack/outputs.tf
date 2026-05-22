@@ -26,6 +26,11 @@ output "authentik_admin_secret_id" {
   value       = module.identity_bootstrap.admin_secret_id
 }
 
+output "infra_email" {
+  description = "Operations contact email. Surfaced so deploy.sh can pass it through to Ansible's traefik role for the Let's Encrypt ACME registration email."
+  value       = var.infra_email
+}
+
 output "enabled_apps" {
   description = "Map of enabled app name -> bundle outputs. Consumed by Ansible via `terraform output -json enabled_apps`."
   value = {
