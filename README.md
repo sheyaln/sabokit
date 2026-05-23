@@ -38,7 +38,7 @@ Each step has a verifiable checkpoint. See [`consumer-template/environments/_tem
 Optional but recommended: import the sabokit base image once per Scaleway project and `up.sh` skips ~7 minutes of apt installs:
 
 ```bash
-./consumer-template/scripts/import-base-image.sh v2.0.0
+./consumer-template/scripts/import-base-image.sh v2.1.0
 # → prints IMAGE_ID; paste into terraform.tfvars under compute_hosts.<name>.image
 ```
 
@@ -102,7 +102,7 @@ Every module is consumed by Git ref, pinned to a tag. **Never** consume `master`
 
 ```hcl
 module "private_network" {
-  source = "git::https://github.com/sheyaln/sabokit.git//modules/infrastructure/network?ref=v2.0.0"
+  source = "git::https://github.com/sheyaln/sabokit.git//modules/infrastructure/network?ref=v2.1.0"
 
   name   = "prod-internal"
   region = "fr-par"
@@ -113,7 +113,7 @@ Most consumers won't call low-level modules directly — they'll call `module.st
 
 ### Bumping a version
 
-`consumer-template/scripts/bump-version.sh v2.0.0` rewrites every `?ref=` pin under `modules/stack/` AND moves the `sabokit` git submodule to the same tag in one pass. Leaves the working tree dirty — you commit.
+`consumer-template/scripts/bump-version.sh v2.1.0` rewrites every `?ref=` pin under `modules/stack/` AND moves the `sabokit` git submodule to the same tag in one pass. Leaves the working tree dirty — you commit.
 
 ---
 

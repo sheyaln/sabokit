@@ -135,7 +135,7 @@ One-line purpose.
 
 ```hcl
 module "<name>" {
-  source = "git::https://github.com/sheyaln/sabokit.git//<path>?ref=v2.0.0"
+  source = "git::https://github.com/sheyaln/sabokit.git//<path>?ref=v2.1.0"
 
   required_input = "value"
 }

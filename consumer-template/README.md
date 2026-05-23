@@ -78,7 +78,7 @@ See `environments/_template/README.md` for the per-step checkpoints and re-deplo
 ## Bumping sabokit
 
 ```bash
-./scripts/bump-version.sh v2.0.0
+./scripts/bump-version.sh v2.1.0
 for env in environments/*/; do
   [[ -d "$env" && "$env" != */"_template"/ ]] || continue
   (cd "$env" && terraform init -upgrade && terraform plan)

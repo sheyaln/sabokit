@@ -306,7 +306,7 @@ The consumer's `apps.tf` reads `var.apps` and passes per-app config to each modu
 
 ```hcl
 module "outline" {
-  source   = "git::https://github.com/sheyaln/sabokit.git//platform/apps/outline/terraform?ref=v2.0.0"
+  source   = "git::https://github.com/sheyaln/sabokit.git//platform/apps/outline/terraform?ref=v2.1.0"
   enabled  = try(var.apps.outline.enabled, false)
   hostname = try(var.apps.outline.hostname, "")
   base     = module.base
@@ -381,7 +381,7 @@ locals {
 
 ```hcl
 module "prometheus" {
-  source         = "git::...//apps/prometheus/terraform?ref=v2.0.0"
+  source         = "git::...//apps/prometheus/terraform?ref=v2.1.0"
   enabled        = try(var.apps.prometheus.enabled, false)
   hostname       = try(var.apps.prometheus.hostname, "")
   base           = module.base
@@ -439,7 +439,7 @@ In the consumer:
 
 ```hcl
 module "n8n" {
-  source                            = "git::...//apps/n8n/terraform?ref=v2.0.0"
+  source                            = "git::...//apps/n8n/terraform?ref=v2.1.0"
   enabled                           = try(var.apps.n8n.enabled, false)
   hostname                          = try(var.apps.n8n.hostname, "")
   base                              = module.base
@@ -470,7 +470,7 @@ In the consumer:
 
 ```hcl
 module "base" {
-  source = "git::...//base?ref=v2.0.0"
+  source = "git::...//base?ref=v2.1.0"
   # ...
   extra_forward_auth_provider_ids = compact([
     module.backrest_mgmt.authentik_provider_id,
@@ -505,7 +505,7 @@ module "base" {
 Tags drive everything. Consumers pin module sources to a tag:
 
 ```hcl
-source = "git::https://github.com/sheyaln/sabokit.git//platform/apps/outline/terraform?ref=v2.0.0"
+source = "git::https://github.com/sheyaln/sabokit.git//platform/apps/outline/terraform?ref=v2.1.0"
 ```
 
 Tag scheme: `v<major>.<minor>.<patch>` at the repo root. **One tag covers the whole monorepo** — every module under `base/`, `apps/`, and `modules/` is versioned together. This trades fine-grained independence for "the whole platform moves as one", which is the right trade-off for a blueprint.
@@ -537,7 +537,7 @@ apps = {
 
 ```hcl
 module "outline" {
-  source   = "git::https://github.com/sheyaln/sabokit.git//platform/apps/outline/terraform?ref=v2.0.0"
+  source   = "git::https://github.com/sheyaln/sabokit.git//platform/apps/outline/terraform?ref=v2.1.0"
   enabled  = try(var.apps.outline.enabled, false)
   hostname = try(var.apps.outline.hostname, "")
   base     = module.base
