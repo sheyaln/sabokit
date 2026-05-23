@@ -1,0 +1,74 @@
+---
+# Managed by sabokit apps/espocrm/ansible/role.
+# Do not edit by hand — regenerated on every ansible-playbook run.
+
+services:
+  espocrm:
+    image: "{{ espocrm_image }}:{{ espocrm_image_tag }}"
+    container_name: espocrm
+    restart: always
+    env_file:
+      - .env
+    volumes:
+      - espocrm-data:/var/www/html
+    networks:
+      - "{{ espocrm_traefik_docker_network }}"
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network={{ espocrm_traefik_docker_network }}"
+      - "traefik.http.services.espocrm.loadbalancer.server.port=80"
+      - "traefik.http.routers.espocrm.rule=Host(`{{ espocrm_hostname }}`)"
+      - "traefik.http.routers.espocrm.entrypoints=websecure"
+      - "traefik.http.routers.espocrm.tls.certresolver=le"
+      - "traefik.http.routers.espocrm.service=espocrm"
+    security_opt:
+      - no-new-privileges:true
+    deploy:
+      resources:
+        limits:
+          memory: "{{ espocrm_memory_limit }}"
+          cpus: "{{ espocrm_cpu_limit }}"
+        reservations:
+          memory: "{{ espocrm_memory_reservation }}"
+          cpus: "{{ espocrm_cpu_reservation }}"
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost/ >/dev/null || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+
+  # EspoCRM runs scheduled jobs (cron-equivalent) in a separate container that
+  # shares the application volume. Without it, reminders, notifications, and
+  # webhook delivery stall.
+  espocrm-daemon:
+    image: "{{ espocrm_image }}:{{ espocrm_image_tag }}"
+    container_name: espocrm-daemon
+    restart: always
+    entrypoint: docker-daemon.sh
+    environment:
+      - TZ={{ espocrm_timezone }}
+    volumes:
+      - espocrm-data:/var/www/html
+    networks:
+      - "{{ espocrm_traefik_docker_network }}"
+    depends_on:
+      espocrm:
+        condition: service_healthy
+    security_opt:
+      - no-new-privileges:true
+    deploy:
+      resources:
+        limits:
+          memory: "{{ espocrm_daemon_memory_limit }}"
+          cpus: "{{ espocrm_daemon_cpu_limit }}"
+        reservations:
+          memory: "{{ espocrm_daemon_memory_reservation }}"
+          cpus: "{{ espocrm_daemon_cpu_reservation }}"
+
+volumes:
+  espocrm-data:
+
+networks:
+  "{{ espocrm_traefik_docker_network }}":
+    external: true

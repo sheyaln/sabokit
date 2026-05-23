@@ -1,0 +1,9 @@
+---
+# Deploy EspoCRM. Vars supplied by the consumer's site.yml (or directly on the
+# command line). All required vars are documented in the platform/apps/espocrm/ README.
+
+- name: Deploy EspoCRM
+  hosts: "{{ espocrm_host_group | default('apps') }}"
+  become: true
+  roles:
+    - role: espocrm

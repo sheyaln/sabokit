@@ -1,0 +1,48 @@
+---
+# Set by the consumer via the values that come out of platform/apps/espocrm/terraform's ansible.vars output.
+
+espocrm_hostname: ""                          # Required. The full hostname (e.g. "crm.example.org").
+espocrm_image: "espocrm/espocrm"
+espocrm_image_tag: "latest"
+
+espocrm_install_dir: "/opt/espocrm"
+
+espocrm_timezone: "UTC"
+
+# B2C ("Business to Consumer") mode hides the company/account concepts. Set
+# from terraform via apps.yml; this default matches the constituent-management
+# stance most sabokit deployments take.
+espocrm_b2c_mode: true
+
+# Scaleway secret IDs (set by Terraform; passed in via ansible.vars).
+espocrm_app_secret_id: ""                     # OIDC + admin fallback + SMTP from-address.
+espocrm_db_credentials_secret_id: ""          # {dbname, username, password, host, port}.
+
+# OIDC plumbing. Defaults match the standard Authentik wiring; flip per-org
+# when integrating against a different provider or claim convention.
+espocrm_oidc_username_claim: "email"
+espocrm_oidc_group_claim: "groups"
+espocrm_oidc_team_id_prefix: "sso-"
+espocrm_oidc_group_role_mapping: {}           # { authentik_group_name: EspoCRM Role Name }
+
+# Optional custom-entity bootstrap. Off by default — only enable when using
+# EspoCRM as a member/dues tracker (vs. a generic sales CRM).
+espocrm_enable_member_entity_bootstrap: false
+
+# Optional webhooks installed against the Member entity. List of dicts with
+# id, name, event, entity (defaults to "Member"), type, field, url.
+espocrm_member_entity_webhooks: []
+
+# Docker networks the EspoCRM container joins.
+espocrm_traefik_docker_network: "traefik"
+
+# Resource limits. Espo runs as a single PHP container plus a cron daemon.
+espocrm_memory_limit: "512M"
+espocrm_memory_reservation: "256M"
+espocrm_cpu_limit: "0.5"
+espocrm_cpu_reservation: "0.25"
+
+espocrm_daemon_memory_limit: "256M"
+espocrm_daemon_memory_reservation: "128M"
+espocrm_daemon_cpu_limit: "0.25"
+espocrm_daemon_cpu_reservation: "0.1"

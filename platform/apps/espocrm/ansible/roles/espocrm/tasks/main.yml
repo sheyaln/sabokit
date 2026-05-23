@@ -1,0 +1,185 @@
+---
+# Deploy EspoCRM as a docker-compose stack. Secrets are pulled from Scaleway
+# Secret Manager at deploy time and rendered into /opt/espocrm/.env (mode 0600).
+#
+# Post-deploy, the role copies a small set of PHP scripts into the running
+# container and execs them to bootstrap OIDC, optional custom entities, and
+# optional webhooks. EspoCRM exposes no REST API for those config keys before
+# you've signed in once, so file-drop + `docker exec` is the path of least
+# friction.
+#
+# Required vars:
+#   espocrm_hostname                  - full hostname
+#   espocrm_app_secret_id             - Scaleway secret ID for the app's secret bag
+#   espocrm_db_credentials_secret_id  - Scaleway secret ID for DB credentials
+#
+# Prereqs (NOT installed by this role — see platform/ansible/bootstrap.yml):
+#   - Docker engine + compose plugin
+#   - Traefik on an external network named per espocrm_traefik_docker_network
+#   - scaleway.scaleway Ansible collection on the controller (for the lookup)
+
+- name: Validate required EspoCRM variables
+  ansible.builtin.assert:
+    that:
+      - espocrm_hostname | length > 0
+      - espocrm_app_secret_id | length > 0
+      - espocrm_db_credentials_secret_id | length > 0
+    fail_msg: "espocrm_hostname, espocrm_app_secret_id and espocrm_db_credentials_secret_id are required."
+
+- name: Assert Docker is installed and running
+  ansible.builtin.command: docker info
+  register: espocrm_docker_check
+  changed_when: false
+  failed_when: espocrm_docker_check.rc != 0
+
+- name: Assert Traefik external network exists
+  community.docker.docker_network_info:
+    name: "{{ espocrm_traefik_docker_network }}"
+  register: espocrm_traefik_net
+  failed_when: not espocrm_traefik_net.exists
+
+- name: Ensure EspoCRM directory exists
+  ansible.builtin.file:
+    path: "{{ espocrm_install_dir }}"
+    state: directory
+    mode: "0750"
+    owner: root
+    group: root
+
+- name: Normalize Scaleway secret IDs (strip leading region/ prefix)
+  ansible.builtin.set_fact:
+    _espocrm_app_secret_uuid: "{{ espocrm_app_secret_id | regex_replace('^[^/]+/', '') }}"
+    _espocrm_db_credentials_secret_uuid: "{{ espocrm_db_credentials_secret_id | regex_replace('^[^/]+/', '') }}"
+
+- name: Look up EspoCRM app secrets from Scaleway
+  ansible.builtin.set_fact:
+    espocrm_app_secrets: "{{ lookup('scaleway.scaleway.scaleway_secret', _espocrm_app_secret_uuid) | b64decode | from_json }}"
+  no_log: true
+
+- name: Look up EspoCRM DB credentials from Scaleway
+  ansible.builtin.set_fact:
+    espocrm_db_credentials: "{{ lookup('scaleway.scaleway.scaleway_secret', _espocrm_db_credentials_secret_uuid) | b64decode | from_json }}"
+  no_log: true
+
+- name: Render docker-compose.yml
+  ansible.builtin.template:
+    src: docker-compose.yml.j2
+    dest: "{{ espocrm_install_dir }}/docker-compose.yml"
+    mode: "0644"
+    owner: root
+    group: root
+  notify: Restart espocrm
+
+- name: Render EspoCRM environment file
+  ansible.builtin.template:
+    src: env.j2
+    dest: "{{ espocrm_install_dir }}/.env"
+    mode: "0600"
+    owner: root
+    group: root
+  notify: Restart espocrm
+  no_log: true
+
+- name: Ensure EspoCRM stack is running
+  community.docker.docker_compose_v2:
+    project_src: "{{ espocrm_install_dir }}"
+    state: present
+    pull: always
+    remove_orphans: true
+
+# EspoCRM creates its config.php on first boot. We poll the container until it
+# reports healthy before running any of the PHP bootstrap scripts; running
+# them earlier results in a "config file not found" error.
+- name: Wait for EspoCRM container to be healthy
+  community.docker.docker_container_info:
+    name: espocrm
+  register: espocrm_health
+  until: espocrm_health.container.State.Health.Status | default('') == 'healthy'
+  retries: 30
+  delay: 10
+
+# ── OIDC bootstrap ──────────────────────────────────────────────────────────
+
+- name: Render OIDC bootstrap script
+  ansible.builtin.template:
+    src: configure-oidc.php.j2
+    dest: "{{ espocrm_install_dir }}/configure-oidc.php"
+    mode: "0640"
+    owner: root
+    group: root
+  no_log: true
+
+- name: Copy OIDC bootstrap into container
+  ansible.builtin.command:
+    cmd: "docker cp {{ espocrm_install_dir }}/configure-oidc.php espocrm:/tmp/configure-oidc.php"
+  changed_when: true
+
+- name: Apply OIDC configuration inside container
+  ansible.builtin.command:
+    cmd: docker exec espocrm php /tmp/configure-oidc.php
+  register: espocrm_oidc_apply
+  changed_when: "'updated' in espocrm_oidc_apply.stdout or 'configured' in espocrm_oidc_apply.stdout"
+
+# ── Optional: custom Member / DuesPayment entity bootstrap ──────────────────
+
+- name: Render member-entity bootstrap script
+  ansible.builtin.template:
+    src: configure-member-entity.php.j2
+    dest: "{{ espocrm_install_dir }}/configure-member-entity.php"
+    mode: "0640"
+    owner: root
+    group: root
+  when: espocrm_enable_member_entity_bootstrap | bool
+
+- name: Copy member-entity bootstrap into container
+  ansible.builtin.command:
+    cmd: "docker cp {{ espocrm_install_dir }}/configure-member-entity.php espocrm:/tmp/configure-member-entity.php"
+  when: espocrm_enable_member_entity_bootstrap | bool
+  changed_when: true
+
+- name: Apply member-entity configuration inside container
+  ansible.builtin.command:
+    cmd: docker exec espocrm php /tmp/configure-member-entity.php
+  when: espocrm_enable_member_entity_bootstrap | bool
+  register: espocrm_member_apply
+  changed_when: "'Configured' in espocrm_member_apply.stdout or 'Created' in espocrm_member_apply.stdout"
+
+# ── Optional: webhook upserts ───────────────────────────────────────────────
+
+- name: Render webhook bootstrap script
+  ansible.builtin.template:
+    src: configure-webhooks.php.j2
+    dest: "{{ espocrm_install_dir }}/configure-webhooks.php"
+    mode: "0640"
+    owner: root
+    group: root
+  when: espocrm_member_entity_webhooks | length > 0
+
+- name: Copy webhook bootstrap into container
+  ansible.builtin.command:
+    cmd: "docker cp {{ espocrm_install_dir }}/configure-webhooks.php espocrm:/tmp/configure-webhooks.php"
+  when: espocrm_member_entity_webhooks | length > 0
+  changed_when: true
+
+- name: Apply webhook configuration inside container
+  ansible.builtin.command:
+    cmd: docker exec espocrm php /tmp/configure-webhooks.php
+  when: espocrm_member_entity_webhooks | length > 0
+  register: espocrm_webhooks_apply
+  changed_when: "'Created' in espocrm_webhooks_apply.stdout or 'Updated' in espocrm_webhooks_apply.stdout"
+
+# ── Clear cache and rebuild metadata ────────────────────────────────────────
+# Required after any of the PHP bootstrap scripts touch config.php or
+# custom/* — EspoCRM caches both aggressively.
+
+- name: Clear EspoCRM cache and rebuild
+  ansible.builtin.command:
+    cmd: "docker exec espocrm php {{ item }}"
+  loop:
+    - "command.php clear-cache"
+    - "command.php rebuild"
+  changed_when: false
+  when: >
+    espocrm_oidc_apply is changed
+    or (espocrm_member_apply is defined and espocrm_member_apply is changed)
+    or (espocrm_webhooks_apply is defined and espocrm_webhooks_apply is changed)

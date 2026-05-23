@@ -1,0 +1,50 @@
+# Admin password for the local fallback account. Locked in after first apply —
+# regenerating would diverge from the in-database password without any
+# automated reconciliation, so operators rotate it manually if needed.
+resource "random_password" "admin" {
+  count   = var.enabled ? 1 : 0
+  length  = 32
+  special = true
+
+  lifecycle {
+    ignore_changes = all
+  }
+}
+
+resource "scaleway_secret" "app" {
+  count = var.enabled ? 1 : 0
+
+  name        = "${local.slug}-app-secrets"
+  description = "EspoCRM application secrets (admin fallback password, OIDC bag, SMTP from-address)."
+  tags        = ["automated", local.slug]
+  type        = "key_value"
+}
+
+resource "scaleway_secret_version" "app" {
+  count = var.enabled ? 1 : 0
+
+  secret_id = scaleway_secret.app[0].id
+  data = jsonencode({
+    SITE_URL       = local.app_url
+    ADMIN_USERNAME = var.admin_username
+    ADMIN_PASSWORD = random_password.admin[0].result
+
+    OIDC_CLIENT_ID              = module.authentik[0].client_id
+    OIDC_CLIENT_SECRET          = module.authentik[0].client_secret
+    OIDC_AUTHORIZATION_ENDPOINT = "https://${var.base.authentik.gateway_domain}/application/o/authorize/"
+    OIDC_TOKEN_ENDPOINT         = "https://${var.base.authentik.gateway_domain}/application/o/token/"
+    OIDC_USERINFO_ENDPOINT      = "https://${var.base.authentik.gateway_domain}/application/o/userinfo/"
+    OIDC_JWKS_ENDPOINT          = "https://${var.base.authentik.gateway_domain}/application/o/${local.slug}/jwks/"
+    OIDC_REDIRECT_URI           = local.oidc_callback_url
+    OIDC_LOGOUT_URL             = local.oidc_logout_url
+
+    SMTP_FROM_EMAIL = var.smtp_from_email
+  })
+
+  # Admin password is locked via ignore_changes upstream; OIDC client_secret
+  # rotates on Authentik's side without warning. Skip the version replace to
+  # avoid thrash — operators force a rotation by tainting this resource.
+  lifecycle {
+    ignore_changes = [data]
+  }
+}
