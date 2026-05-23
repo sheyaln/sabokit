@@ -1,0 +1,209 @@
+---
+# Managed by sabokit apps/decidim/ansible/role.
+# Do not edit by hand — regenerated on every ansible-playbook run.
+
+services:
+  decidim-redis:
+    image: redis:7-alpine
+    container_name: decidim-redis
+    restart: always
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+    networks:
+      - decidim_network
+    security_opt:
+      - no-new-privileges:true
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+          cpus: '0.25'
+        reservations:
+          memory: 64M
+          cpus: '0.1'
+
+  # One-shot bootstrapper. Idempotent via the init-marker volume: the first
+  # successful run writes /init/db_initialized; subsequent runs short-circuit.
+  # On failure (e.g. transient DB connectivity), the next play retries.
+  db-init:
+    image: "{{ decidim_image }}:{{ decidim_image_tag }}"
+    container_name: decidim-db-init
+    restart: "no"
+    env_file:
+      - .env
+    depends_on:
+      decidim-redis:
+        condition: service_healthy
+    volumes:
+      - uploads-data:/code/public/uploads
+      - logs-data:/code/log
+      - init-marker:/init
+    networks:
+      - decidim_network
+    security_opt:
+      - no-new-privileges:true
+    entrypoint: ["/bin/bash", "-c"]
+    command:
+      - |
+        set -eu
+        if [ ! -f /init/db_initialized ]; then
+          echo "First boot — creating + migrating + seeding database..."
+          bundle exec rails db:create || echo "Database already exists"
+          bundle exec rails db:migrate
+          bundle exec rails db:seed
+          touch /init/db_initialized
+          echo "Database initialization complete."
+        else
+          echo "Marker present — skipping db init."
+        fi
+
+        if [ -n "${DECIDIM_SYSTEM_EMAIL:-}" ] && [ -n "${DECIDIM_SYSTEM_PASSWORD:-}" ]; then
+          bundle exec rails runner "
+            if Decidim::System::Admin.exists?(email: ENV['DECIDIM_SYSTEM_EMAIL'])
+              puts 'System admin already exists.'
+            else
+              Decidim::System::Admin.create!(
+                email: ENV['DECIDIM_SYSTEM_EMAIL'],
+                password: ENV['DECIDIM_SYSTEM_PASSWORD'],
+                password_confirmation: ENV['DECIDIM_SYSTEM_PASSWORD']
+              )
+              puts 'System admin created.'
+            end
+          "
+        fi
+
+        if [ -n "${DECIDIM_ORG_NAME:-}" ] && [ -n "${DECIDIM_HOST:-}" ]; then
+          bundle exec rails runner "
+            host = ENV['DECIDIM_HOST'].sub(/^https?:\/\//, '')
+            if Decidim::Organization.exists?(host: host)
+              puts \"Organization for host '#{host}' already exists.\"
+            else
+              org = Decidim::Organization.create!(
+                name: ENV['DECIDIM_ORG_NAME'],
+                host: host,
+                default_locale: ENV.fetch('DECIDIM_DEFAULT_LOCALE', 'en'),
+                available_locales: ENV.fetch('DECIDIM_AVAILABLE_LOCALES', 'en').split(','),
+                reference_prefix: ENV.fetch('DECIDIM_ORG_REFERENCE_PREFIX', 'DEC'),
+                users_registration_mode: 'enabled',
+                available_authorizations: []
+              )
+              puts \"Organization '#{org.name}' created.\"
+
+              admin_email    = ENV['DECIDIM_ORG_ADMIN_EMAIL']
+              admin_password = ENV['DECIDIM_ORG_ADMIN_PASSWORD']
+              if admin_email && admin_password && !admin_email.empty?
+                admin = Decidim::User.new(
+                  email: admin_email,
+                  name: \"#{ENV['DECIDIM_ORG_NAME']} Admin\",
+                  nickname: 'admin',
+                  organization: org,
+                  admin: true,
+                  password: admin_password,
+                  password_confirmation: admin_password,
+                  tos_agreement: true,
+                  accepted_tos_version: org.tos_version
+                )
+                admin.skip_confirmation!
+                admin.save!
+                puts \"Organization admin '#{admin.email}' created.\"
+              end
+            end
+          "
+        fi
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+          cpus: '0.5'
+
+  app:
+    image: "{{ decidim_image }}:{{ decidim_image_tag }}"
+    container_name: decidim-app
+    restart: always
+    command: bundle exec rails server -p 3000 -b 0.0.0.0
+    env_file:
+      - .env
+    depends_on:
+      db-init:
+        condition: service_completed_successfully
+      decidim-redis:
+        condition: service_healthy
+    volumes:
+      - uploads-data:/code/public/uploads
+      - logs-data:/code/log
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network={{ decidim_traefik_docker_network }}"
+      - "traefik.http.services.decidim.loadbalancer.server.port=3000"
+      - "traefik.http.routers.decidim.rule=Host(`{{ decidim_hostname }}`)"
+      - "traefik.http.routers.decidim.entrypoints=websecure"
+      - "traefik.http.routers.decidim.tls.certresolver=le"
+      - "traefik.http.routers.decidim.service=decidim"
+      # Large-upload buffering — keep aligned with decidim_max_upload_size_bytes.
+      - "traefik.http.middlewares.decidim-buffering.buffering.maxRequestBodyBytes={{ decidim_max_upload_size_bytes }}"
+      - "traefik.http.middlewares.decidim-buffering.buffering.maxResponseBodyBytes={{ decidim_max_upload_size_bytes }}"
+      - "traefik.http.routers.decidim.middlewares=decidim-buffering@docker"
+    networks:
+      - "{{ decidim_traefik_docker_network }}"
+      - decidim_network
+    security_opt:
+      - no-new-privileges:true
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://127.0.0.1:3000/ >/dev/null 2>&1 || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+    deploy:
+      resources:
+        limits:
+          memory: "{{ decidim_app_memory_limit }}"
+          cpus: "{{ decidim_app_cpu_limit }}"
+        reservations:
+          memory: "{{ decidim_app_memory_reservation }}"
+          cpus: "{{ decidim_app_cpu_reservation }}"
+
+  sidekiq:
+    image: "{{ decidim_image }}:{{ decidim_image_tag }}"
+    container_name: decidim-sidekiq
+    restart: always
+    command: bundle exec sidekiq -c {{ decidim_sidekiq_concurrency }}
+    env_file:
+      - .env
+    depends_on:
+      db-init:
+        condition: service_completed_successfully
+      decidim-redis:
+        condition: service_healthy
+    volumes:
+      - uploads-data:/code/public/uploads
+      - logs-data:/code/log
+    networks:
+      - decidim_network
+    security_opt:
+      - no-new-privileges:true
+    deploy:
+      resources:
+        limits:
+          memory: "{{ decidim_sidekiq_memory_limit }}"
+          cpus: "{{ decidim_sidekiq_cpu_limit }}"
+        reservations:
+          memory: "{{ decidim_sidekiq_memory_reservation }}"
+          cpus: "{{ decidim_sidekiq_cpu_reservation }}"
+
+volumes:
+  uploads-data:
+  logs-data:
+  redis-data:
+  init-marker:
+
+networks:
+  decidim_network:
+    driver: bridge
+  "{{ decidim_traefik_docker_network }}":
+    external: true
