@@ -1,0 +1,48 @@
+---
+# Set by the consumer via the values that come out of platform/apps/n8n/terraform's ansible.vars output.
+
+n8n_hostname: ""                              # Required. The full hostname (e.g. "flows.example.org").
+n8n_image: "docker.n8n.io/n8nio/n8n"
+n8n_image_tag: "latest"
+
+# When true, the role renders a Dockerfile and asks docker compose to build
+# a local image that adds python3 + pip on top of the upstream n8n image.
+# Default false: pull the upstream image and bind-mount hooks.js — simpler.
+n8n_build_from_source: false
+
+n8n_install_dir: "/opt/n8n"
+
+n8n_timezone: "UTC"
+
+# Public REST API: high-value attack surface because workflows hold credentials
+# for every connected service. Default off.
+n8n_public_api_disabled: true
+
+# Built-in n8n Prometheus exporter at /metrics. Off by default — metrics
+# include workflow names and can leak operational info. Flip to true on the
+# role side and add a scrape config in monitoring.tf to surface them.
+n8n_metrics_enabled: false
+
+# External task runner allowlists (mirrored into n8n-task-runners.json).
+# Upstream defaults block everything — even `import json` — for the python
+# runner. These are the merged allowlists the runners JSON template reads.
+n8n_python_stdlib_allow: "json,re,math,datetime,time,base64,hashlib,collections,itertools,functools,urllib,urllib.parse,uuid,string,decimal"
+n8n_python_external_allow: ""
+
+# Webhook router rate-limit (Traefik middleware). Webhooks bypass OIDC.
+n8n_webhook_rate_limit_avg: 100
+n8n_webhook_rate_limit_burst: 50
+n8n_webhook_rate_limit_per: "1m"
+
+# Scaleway secret IDs (set by Terraform; passed in via ansible.vars).
+n8n_app_secret_id: ""                         # Single Scaleway secret with encryption key, runners auth token, OIDC bag.
+n8n_db_credentials_secret_id: ""              # Scaleway secret with {dbname, username, password, host, port}.
+
+# Docker networks the n8n container joins.
+n8n_traefik_docker_network: "traefik"
+
+# Resource limits.
+n8n_memory_limit: "1G"
+n8n_memory_reservation: "256M"
+n8n_cpu_limit: "1.0"
+n8n_cpu_reservation: "0.25"
