@@ -1,0 +1,43 @@
+---
+# Managed by sabokit apps/notifuse/ansible/role.
+# Do not edit by hand — regenerated on every ansible-playbook run.
+
+services:
+  notifuse:
+    image: "{{ notifuse_image }}:{{ notifuse_image_tag }}"
+    container_name: notifuse
+    restart: unless-stopped
+    volumes:
+      - "{{ notifuse_data_dir }}:/app/data"
+    env_file:
+      - .env
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network={{ notifuse_traefik_docker_network }}"
+      - "traefik.http.services.notifuse.loadbalancer.server.port=8080"
+      - "traefik.http.routers.notifuse.rule=Host(`{{ notifuse_hostname }}`)"
+      - "traefik.http.routers.notifuse.entrypoints=websecure"
+      - "traefik.http.routers.notifuse.tls.certresolver=le"
+      - "traefik.http.routers.notifuse.service=notifuse"
+    networks:
+      - "{{ notifuse_traefik_docker_network }}"
+    security_opt:
+      - no-new-privileges:true
+    deploy:
+      resources:
+        limits:
+          memory: "{{ notifuse_memory_limit }}"
+          cpus: "{{ notifuse_cpu_limit }}"
+        reservations:
+          memory: "{{ notifuse_memory_reservation }}"
+          cpus: "{{ notifuse_cpu_reservation }}"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:8080/health >/dev/null 2>&1 || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+
+networks:
+  "{{ notifuse_traefik_docker_network }}":
+    external: true

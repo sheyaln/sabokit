@@ -1,0 +1,89 @@
+---
+# Deploy Notifuse as a docker-compose stack. Secrets are pulled from Scaleway
+# Secret Manager at deploy time and rendered into /opt/notifuse/.env (mode 0600).
+#
+# Required vars:
+#   notifuse_hostname
+#   notifuse_app_secret_id
+#   notifuse_db_credentials_secret_id
+
+- name: Validate required Notifuse variables
+  ansible.builtin.assert:
+    that:
+      - notifuse_hostname | length > 0
+      - notifuse_app_secret_id | length > 0
+      - notifuse_db_credentials_secret_id | length > 0
+    fail_msg: "notifuse_hostname, notifuse_app_secret_id and notifuse_db_credentials_secret_id are required."
+
+- name: Assert Docker is installed and running
+  ansible.builtin.command: docker info
+  register: notifuse_docker_check
+  changed_when: false
+  failed_when: notifuse_docker_check.rc != 0
+
+- name: Assert Traefik external network exists
+  community.docker.docker_network_info:
+    name: "{{ notifuse_traefik_docker_network }}"
+  register: notifuse_traefik_net
+  failed_when: not notifuse_traefik_net.exists
+
+- name: Ensure Notifuse directory tree
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    mode: "0750"
+    owner: root
+    group: root
+  loop:
+    - "{{ notifuse_install_dir }}"
+    - "{{ notifuse_data_dir }}"
+
+- name: Normalize Scaleway secret IDs
+  ansible.builtin.set_fact:
+    _notifuse_app_secret_uuid: "{{ notifuse_app_secret_id | regex_replace('^[^/]+/', '') }}"
+    _notifuse_db_credentials_secret_uuid: "{{ notifuse_db_credentials_secret_id | regex_replace('^[^/]+/', '') }}"
+
+- name: Look up Notifuse app secrets from Scaleway
+  ansible.builtin.set_fact:
+    notifuse_app_secrets: "{{ lookup('scaleway.scaleway.scaleway_secret', _notifuse_app_secret_uuid) | b64decode | from_json }}"
+  no_log: true
+
+- name: Look up Notifuse DB credentials from Scaleway
+  ansible.builtin.set_fact:
+    notifuse_db_credentials: "{{ lookup('scaleway.scaleway.scaleway_secret', _notifuse_db_credentials_secret_uuid) | b64decode | from_json }}"
+  no_log: true
+
+- name: Default Notifuse SMTP config to empty when smtp_secret_name is unset
+  ansible.builtin.set_fact:
+    notifuse_smtp_config: {}
+  when: notifuse_smtp_secret_name | default('') | length == 0
+
+- name: Look up SMTP config from Scaleway
+  ansible.builtin.set_fact:
+    notifuse_smtp_config: "{{ lookup('scaleway.scaleway.scaleway_secret', notifuse_smtp_secret_name, errors='ignore') | default('e30=', true) | b64decode | from_json }}"
+  when: notifuse_smtp_secret_name | default('') | length > 0
+  no_log: true
+
+- name: Render docker-compose.yml
+  ansible.builtin.template:
+    src: docker-compose.yml.j2
+    dest: "{{ notifuse_install_dir }}/docker-compose.yml"
+    mode: "0644"
+    owner: root
+    group: root
+  notify: Restart notifuse
+
+- name: Render Notifuse environment file
+  ansible.builtin.template:
+    src: env.j2
+    dest: "{{ notifuse_install_dir }}/.env"
+    mode: "0600"
+    owner: root
+    group: root
+  notify: Restart notifuse
+  no_log: true
+
+- name: Ensure Notifuse stack is running
+  community.docker.docker_compose_v2:
+    project_src: "{{ notifuse_install_dir }}"
+    state: present

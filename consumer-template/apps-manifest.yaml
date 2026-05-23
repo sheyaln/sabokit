@@ -315,3 +315,87 @@ apps:
           default: Tools
           description: Section the app appears under in the Authentik portal.
           ui: advanced
+
+  # ── Notifuse ────────────────────────────────────────────────────────────
+  # Transactional + marketing email. OIDC via Authentik. Stateful: SECRET_KEY
+  # is immutable after first apply (encrypts every workspace secret).
+  # Defaults to admin-only access. See platform/apps/notifuse/.
+  - id: notifuse
+    display_name: Notifuse
+    category: productivity
+    description_short: Transactional + marketing email with SSO
+    description: |
+      Self-hosted alternative to SendGrid / Mailjet. Manages campaigns,
+      transactional templates, deliverability, and workspace-level secrets.
+      Federated SSO via Authentik with magic-link fallback.
+    icon: icons/notifuse.svg
+    upstream_url: https://notifuse.com/
+
+    tfvars:
+      key: notifuse
+      schema:
+        enabled:
+          type: bool
+          default: true
+          description: Whether Notifuse is deployed in this environment.
+          ui: hidden
+
+        hostname:
+          type: string
+          required: true
+          description: Public hostname Notifuse is served at.
+          example: email.example.org
+          subdomain_default: email
+          ui: text
+          validation:
+            pattern: ^[a-z0-9.-]+\.[a-z]{2,}$
+
+        root_admin_email:
+          type: string
+          required: true
+          description: Email for the initial root admin. Used both as ROOT_EMAIL identity and ROOT_ADMIN_EMAIL bootstrap login. Password is auto-generated and stored in the app-secrets bag.
+          example: ops@example.org
+          ui: text
+
+        smtp_from_email:
+          type: string
+          default: ''
+          description: From-address for outbound mail. Empty disables SMTP (Notifuse won't be able to send).
+          example: notify@example.org
+          ui: text
+
+        oidc_auto_provision:
+          type: bool
+          default: true
+          description: Auto-create a Notifuse user on first OIDC login.
+          ui: advanced
+
+        oidc_allow_magic_code:
+          type: bool
+          default: true
+          description: Allow magic-link login fallback alongside OIDC. Recommended on so admins can recover if OIDC breaks.
+          ui: advanced
+
+        deployment_host_key:
+          type: string
+          default: apps
+          description: Which host (key in compute_hosts) Notifuse runs on.
+          ui: advanced
+
+        access_level:
+          type: string
+          default: admin
+          description: Authentik group key granting baseline access. Default admin-only (Notifuse is an operator tool).
+          ui: advanced
+
+        monitoring_enabled:
+          type: bool
+          default: true
+          description: Wire Notifuse log paths into the monitoring stack.
+          ui: advanced
+
+        category_group:
+          type: string
+          default: Productivity
+          description: Section the app appears under in the Authentik portal.
+          ui: advanced

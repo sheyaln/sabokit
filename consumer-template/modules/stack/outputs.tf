@@ -57,5 +57,11 @@ output "enabled_apps" {
       ansible_group = module.bentopdf.ansible.host_group
       monitoring    = module.bentopdf.monitoring
     } : null
+    notifuse = module.notifuse.enabled ? {
+      url           = module.notifuse.app_url
+      ansible_vars  = module.notifuse.ansible.vars
+      ansible_group = module.notifuse.ansible.host_group
+      monitoring    = module.notifuse.monitoring
+    } : null
   }
 }

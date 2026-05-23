@@ -1,0 +1,19 @@
+---
+notifuse_hostname: ""
+notifuse_image: "notifuse/notifuse"
+notifuse_image_tag: "latest"
+
+notifuse_install_dir: "/opt/notifuse"
+notifuse_data_dir: "/opt/notifuse/data"
+notifuse_traefik_docker_network: "traefik"
+
+notifuse_timezone: "UTC"
+
+notifuse_app_secret_id: ""
+notifuse_db_credentials_secret_id: ""
+notifuse_smtp_secret_name: ""
+
+notifuse_memory_limit: "1G"
+notifuse_memory_reservation: "256M"
+notifuse_cpu_limit: "1.0"
+notifuse_cpu_reservation: "0.25"

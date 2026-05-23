@@ -85,6 +85,16 @@ apps = {
   #   hostname = "pdf.example.org"
   # }
 
+  # Notifuse: transactional + marketing email. OIDC via Authentik; defaults
+  # to admin-only access. SECRET_KEY and root admin password are immutable
+  # after first apply — see platform/apps/notifuse/README.md.
+  # notifuse = {
+  #   enabled          = true
+  #   hostname         = "email.example.org"
+  #   root_admin_email = "ops@example.org"
+  #   smtp_from_email  = "notify@example.org"
+  # }
+
   # nextcloud = {
   #   enabled             = true
   #   hostname            = "cloud.example.org"

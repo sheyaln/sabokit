@@ -132,3 +132,13 @@ module "bentopdf" {
   hostname = "pdf.example.org"
   base     = local.base
 }
+
+module "notifuse" {
+  source = "../../platform/apps/notifuse/terraform"
+
+  enabled          = true
+  hostname         = "email.example.org"
+  root_admin_email = "ops@example.org"
+  smtp_from_email  = "notify@example.org"
+  base             = local.base
+}
