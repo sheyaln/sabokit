@@ -10,7 +10,7 @@ variable "instance_type" {
 }
 
 variable "image" {
-  description = "Base image"
+  description = "Base image. Either a Scaleway marketplace label (default \"ubuntu_jammy\") or a Scaleway image UUID — most commonly an imported fc-base-<version> custom image (see packer/ + consumer-template/scripts/import-base-image.sh)."
   type        = string
   default     = "ubuntu_jammy"
 }

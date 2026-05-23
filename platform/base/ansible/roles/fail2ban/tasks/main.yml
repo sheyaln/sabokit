@@ -1,9 +1,19 @@
 ---
+# Skip the apt install when fail2ban is already present (pre-baked fc-base
+# image). Service management still runs unconditionally.
+- name: Check for existing fail2ban binary
+  ansible.builtin.command: fail2ban-server --version
+  register: fail2ban_present_check
+  changed_when: false
+  failed_when: false
+  check_mode: false
+
 - name: Install Fail2ban
   ansible.builtin.apt:
     name: fail2ban
     state: present
     update_cache: true
+  when: fail2ban_present_check.rc != 0
 
 - name: Ensure Fail2ban service is enabled and running
   ansible.builtin.systemd:

@@ -4,6 +4,8 @@ Provisions one Scaleway instance with a dedicated public IP, root volume, and pr
 
 `user_data` is for first-boot cloud-init bootstrapping only — re-creating the instance re-runs it, editing in place does not. Use the `additional_volume_ids` escape hatch to attach pre-existing volumes (e.g. block-storage data disks managed elsewhere).
 
+The `image` input defaults to `ubuntu_jammy` (Scaleway marketplace label, Ubuntu 22.04 LTS). Pass a Scaleway image UUID instead to boot from a custom image — most commonly the `fc-base-<version>` image produced by `packer/` and imported via `consumer-template/scripts/import-base-image.sh`. The pre-baked image cuts Ansible bootstrap time by roughly 5×; the `ubuntu_jammy` path still works, just slower.
+
 ## Usage
 
 ```hcl
@@ -24,7 +26,7 @@ module "tools" {
 |------|------|---------|-------------|
 | `instance_name` | `string` | — | Name of the instance. |
 | `instance_type` | `string` | `"DEV1-S"` | Instance type. |
-| `image` | `string` | `"ubuntu_jammy"` | Base image. |
+| `image` | `string` | `"ubuntu_jammy"` | Base image. Marketplace label (e.g. `ubuntu_jammy`) or a Scaleway image UUID. See note above on `fc-base-<version>` custom images. |
 | `disk_size` | `number` | `30` | Root volume size in GB. |
 | `disk_type` | `string` | `"l_ssd"` | Root volume type. Must be `l_ssd` or `sbs_volume`. |
 | `private_network_id` | `string` | — | Private network ID. |
