@@ -1,0 +1,79 @@
+---
+# Managed by sabokit apps/steward/ansible/role.
+# Do not edit by hand — regenerated on every ansible-playbook run.
+
+services:
+  web:
+    image: "{{ steward_image_repository }}:{{ steward_image_tag }}"
+    container_name: steward-web
+    restart: always
+    env_file:
+      - .env
+    command: ["gunicorn", "config.wsgi:application", "--bind=0.0.0.0:8000", "--workers={{ steward_gunicorn_workers }}", "--access-logfile=-"]
+    volumes:
+      - steward-static:/srv/staticfiles
+      - steward-media:/srv/media
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network={{ steward_traefik_docker_network }}"
+      - "traefik.http.services.steward.loadbalancer.server.port=8000"
+      - "traefik.http.routers.steward.rule=Host(`{{ steward_hostname }}`)"
+      - "traefik.http.routers.steward.entrypoints=websecure"
+      - "traefik.http.routers.steward.tls.certresolver=le"
+      - "traefik.http.routers.steward.service=steward"
+    networks:
+      - "{{ steward_traefik_docker_network }}"
+      - steward_network
+    security_opt:
+      - no-new-privileges:true
+    deploy:
+      resources:
+        limits:
+          memory: "{{ steward_memory_limit }}"
+          cpus: "{{ steward_cpu_limit }}"
+        reservations:
+          memory: "{{ steward_memory_reservation }}"
+          cpus: "{{ steward_cpu_reservation }}"
+    healthcheck:
+      test: ["CMD-SHELL", "python -c \"import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:8000/healthz').status==200 else 1)\""]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+
+  qcluster:
+    image: "{{ steward_image_repository }}:{{ steward_image_tag }}"
+    container_name: steward-qcluster
+    restart: always
+    env_file:
+      - .env
+    environment:
+      STEWARD_RUN_MIGRATIONS: "0"
+      STEWARD_COLLECTSTATIC: "0"
+    command: ["python", "manage.py", "qcluster"]
+    volumes:
+      - steward-media:/srv/media
+    networks:
+      - steward_network
+    security_opt:
+      - no-new-privileges:true
+    deploy:
+      resources:
+        limits:
+          memory: "256M"
+          cpus: "0.25"
+        reservations:
+          memory: "64M"
+          cpus: "0.05"
+    depends_on:
+      - web
+
+volumes:
+  steward-static:
+  steward-media:
+
+networks:
+  steward_network:
+    driver: bridge
+  "{{ steward_traefik_docker_network }}":
+    external: true

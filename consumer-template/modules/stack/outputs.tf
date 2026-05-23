@@ -40,5 +40,10 @@ output "enabled_apps" {
       ansible_group = module.outline.ansible.host_group
       monitoring    = module.outline.monitoring
     } : null
+    steward = module.steward.enabled ? {
+      url           = module.steward.app_url
+      ansible_vars  = module.steward.ansible.vars
+      ansible_group = module.steward.ansible.host_group
+    } : null
   }
 }

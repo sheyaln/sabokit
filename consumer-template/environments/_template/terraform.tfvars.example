@@ -51,6 +51,20 @@ apps = {
     # deployment_host_key = "tools"
   }
 
+  # Steward: simplified Authentik admin UI for non-technical org admins.
+  # Members of the `admin_group_name` group in Authentik can sign in.
+  # steward = {
+  #   enabled  = true
+  #   hostname = "members.example.org"
+  #
+  #   # Optional: pin the image. Defaults to ghcr.io/dciww/steward:latest.
+  #   # image_tag = "v1.0.0"
+  #
+  #   # Optional: enable an enrollment flow so new members get an invite.
+  #   # Leave empty until you've created/imported an enrollment flow in Authentik.
+  #   # invite_flow_slug = "default-source-enrollment"
+  # }
+
   # nextcloud = {
   #   enabled             = true
   #   hostname            = "cloud.example.org"

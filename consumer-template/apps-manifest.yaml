@@ -94,3 +94,75 @@ apps:
           default: Knowledge
           description: Section the app appears under in the Authentik portal.
           ui: advanced
+
+  # ── Steward ─────────────────────────────────────────────────────────────
+  # Simplified Authentik admin UI for non-technical org admins. Members of
+  # `admin_group_name` (matched against the OIDC `groups` claim) can sign in
+  # and manage users + groups without touching Authentik directly. See
+  # platform/apps/steward/terraform/variables.tf.
+  - id: steward
+    display_name: Steward
+    category: administration
+    description_short: Simplified Authentik admin UI for non-technical org admins
+    description: |
+      Steward is a focused web UI on top of Authentik's API: invite members,
+      manage groups, reset passwords — without the full Authentik admin surface.
+      Designed for orgs whose ops team doesn't include Authentik specialists.
+    icon: icons/steward.svg
+    upstream_url: https://github.com/sheyaln/steward
+
+    tfvars:
+      key: steward
+      schema:
+        enabled:
+          type: bool
+          default: true
+          description: Whether Steward is deployed in this environment.
+          ui: hidden
+
+        hostname:
+          type: string
+          required: true
+          description: Public hostname Steward is served at.
+          example: members.example.org
+          subdomain_default: members
+          ui: text
+          validation:
+            pattern: ^[a-z0-9.-]+\.[a-z]{2,}$
+
+        admin_group_name:
+          type: string
+          default: steward-admins
+          description: Name of the Authentik group whose members can sign in to Steward.
+          ui: advanced
+
+        invite_flow_slug:
+          type: string
+          default: ''
+          description: Slug of an Authentik enrollment flow Steward attaches to invitations. Empty disables invitations.
+          example: default-source-enrollment
+          ui: advanced
+
+        deployment_host_key:
+          type: string
+          default: apps
+          description: Which host (key in compute_hosts) Steward runs on.
+          ui: advanced
+
+        access_level:
+          type: string
+          default: admin
+          description: Authentik group key granting baseline access (admin by default — Steward is itself an admin surface).
+          ui: advanced
+
+        monitoring_enabled:
+          type: bool
+          default: true
+          description: Wire Steward metrics + dashboards into the monitoring stack.
+          ui: advanced
+
+        category_group:
+          type: string
+          default: Administration
+          description: Section the app appears under in the Authentik portal.
+          ui: advanced

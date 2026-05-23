@@ -1,0 +1,85 @@
+---
+# Deploy Steward as a docker-compose stack. Secrets are pulled from Scaleway
+# Secret Manager at deploy time and rendered into /opt/steward/.env (mode 0600).
+#
+# Required vars:
+#   steward_hostname                  - full hostname
+#   steward_app_secret_id             - Scaleway secret ID for the app's secret bag
+#   steward_db_credentials_secret_id  - Scaleway secret ID for DB credentials
+#
+# Prereqs (NOT installed by this role — see platform/ansible/bootstrap.yml):
+#   - Docker engine + compose plugin
+#   - Traefik on an external network named per steward_traefik_docker_network
+#   - scaleway.scaleway Ansible collection on the controller (for the lookup)
+
+- name: Validate required Steward variables
+  ansible.builtin.assert:
+    that:
+      - steward_hostname | length > 0
+      - steward_app_secret_id | length > 0
+      - steward_db_credentials_secret_id | length > 0
+    fail_msg: "steward_hostname, steward_app_secret_id and steward_db_credentials_secret_id are required."
+
+- name: Assert Docker is installed and running
+  ansible.builtin.command: docker info
+  register: steward_docker_check
+  changed_when: false
+  failed_when: steward_docker_check.rc != 0
+  # If this fails, run platform/ansible/bootstrap.yml first.
+
+- name: Assert Traefik external network exists
+  community.docker.docker_network_info:
+    name: "{{ steward_traefik_docker_network }}"
+  register: steward_traefik_net
+  failed_when: not steward_traefik_net.exists
+  # If this fails, the traefik role from platform/ansible/bootstrap.yml hasn't run.
+
+- name: Ensure Steward directory exists
+  ansible.builtin.file:
+    path: "{{ steward_install_dir }}"
+    state: directory
+    mode: "0750"
+    owner: root
+    group: root
+
+- name: Normalize Scaleway secret IDs (strip leading region/ prefix)
+  ansible.builtin.set_fact:
+    _steward_app_secret_uuid: "{{ steward_app_secret_id | regex_replace('^[^/]+/', '') }}"
+    _steward_db_credentials_secret_uuid: "{{ steward_db_credentials_secret_id | regex_replace('^[^/]+/', '') }}"
+
+- name: Look up Steward app secrets from Scaleway
+  ansible.builtin.set_fact:
+    steward_app_secrets: "{{ lookup('scaleway.scaleway.scaleway_secret', _steward_app_secret_uuid) | b64decode | from_json }}"
+  no_log: true
+
+- name: Look up Steward DB credentials from Scaleway
+  ansible.builtin.set_fact:
+    steward_db_credentials: "{{ lookup('scaleway.scaleway.scaleway_secret', _steward_db_credentials_secret_uuid) | b64decode | from_json }}"
+  no_log: true
+
+- name: Render docker-compose.yml
+  ansible.builtin.template:
+    src: docker-compose.yml.j2
+    dest: "{{ steward_install_dir }}/docker-compose.yml"
+    mode: "0644"
+    owner: root
+    group: root
+  notify: Restart steward
+
+- name: Render Steward environment file
+  ansible.builtin.template:
+    src: env.j2
+    dest: "{{ steward_install_dir }}/.env"
+    mode: "0600"
+    owner: root
+    group: root
+  notify: Restart steward
+  no_log: true
+
+- name: Ensure Steward stack is running
+  community.docker.docker_compose_v2:
+    project_src: "{{ steward_install_dir }}"
+    state: present
+    # Pull on every run so the deploy picks up new image tags without a
+    # separate ansible step. Idempotent: docker compose no-ops if up-to-date.
+    pull: always

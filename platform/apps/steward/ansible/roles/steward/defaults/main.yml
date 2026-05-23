@@ -1,0 +1,26 @@
+---
+# Set by the consumer via the values that come out of
+# platform/apps/steward/terraform's ansible.vars output.
+
+steward_hostname: ""                          # Required. The full hostname (e.g. "members.example.org").
+steward_image_repository: "ghcr.io/dciww/steward"
+steward_image_tag: "latest"
+
+steward_install_dir: "/opt/steward"
+
+# Scaleway secret IDs (set by Terraform; passed in via ansible.vars).
+steward_app_secret_id: ""                     # Single Scaleway secret holding all OIDC + Authentik API + Django secret values.
+steward_db_credentials_secret_id: ""          # Scaleway secret with {dbname, username, password, host, port}.
+
+# Docker network the Steward container joins.
+steward_traefik_docker_network: "traefik"
+
+# Resource limits (overridable from terraform via ansible.vars).
+steward_memory_limit: "512M"
+steward_memory_reservation: "128M"
+steward_cpu_limit: "0.5"
+steward_cpu_reservation: "0.1"
+
+# Worker counts.
+steward_gunicorn_workers: 3
+steward_qcluster_workers: 2
