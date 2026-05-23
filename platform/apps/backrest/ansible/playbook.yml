@@ -1,0 +1,6 @@
+---
+- name: Deploy Backrest
+  hosts: "{{ backrest_host_group | default('apps') }}"
+  become: true
+  roles:
+    - role: backrest

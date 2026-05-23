@@ -1,0 +1,56 @@
+---
+# Managed by sabokit apps/backrest/ansible/role.
+# Do not edit by hand — regenerated on every ansible-playbook run.
+
+x-logging: &default-logging
+  driver: "json-file"
+  options:
+    max-size: "10m"
+    max-file: "3"
+
+services:
+  backrest:
+    image: "{{ backrest_image }}:{{ backrest_image_tag }}"
+    container_name: "backrest-{{ backrest_instance_name }}"
+    hostname: "backrest-{{ backrest_instance_name }}"
+    restart: unless-stopped
+    volumes:
+      - ./data:/data
+      - ./config:/config
+      - ./cache:/cache
+{% for key, host_path in backrest_backup_sources.items() %}
+      - "{{ host_path }}:/backup-sources/{{ key }}:ro"
+{% endfor %}
+    env_file: .env
+    networks:
+      - "{{ backrest_traefik_docker_network }}"
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network={{ backrest_traefik_docker_network }}"
+      - "traefik.http.services.backrest-{{ backrest_instance_name }}.loadbalancer.server.port=9898"
+      - "traefik.http.routers.backrest-{{ backrest_instance_name }}.rule=Host(`{{ backrest_hostname }}`)"
+      - "traefik.http.routers.backrest-{{ backrest_instance_name }}.entrypoints=websecure"
+      - "traefik.http.routers.backrest-{{ backrest_instance_name }}.tls.certresolver=le"
+      - "traefik.http.routers.backrest-{{ backrest_instance_name }}.service=backrest-{{ backrest_instance_name }}"
+      - "traefik.http.routers.backrest-{{ backrest_instance_name }}.middlewares={{ backrest_authentik_middleware }}"
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:9898/metrics"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+    security_opt:
+      - no-new-privileges:true
+    deploy:
+      resources:
+        limits:
+          memory: "{{ backrest_memory_limit }}"
+          cpus: "{{ backrest_cpu_limit }}"
+        reservations:
+          memory: "{{ backrest_memory_reservation }}"
+          cpus: "{{ backrest_cpu_reservation }}"
+    logging: *default-logging
+
+networks:
+  "{{ backrest_traefik_docker_network }}":
+    external: true

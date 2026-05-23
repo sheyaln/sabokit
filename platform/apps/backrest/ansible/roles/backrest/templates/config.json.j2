@@ -1,0 +1,45 @@
+{
+  "modno": 1,
+  "version": 5,
+  "instance": "{{ backrest_instance_name }}",
+  "auth": {
+    "disabled": true
+  },
+  "repos": [
+    {
+      "id": "primary",
+      "uri": "{{ backrest_app_secrets.RESTIC_REPO_URI }}",
+      "password": "{{ backrest_app_secrets.RESTIC_PASSWORD }}",
+      "env": [
+        "AWS_ACCESS_KEY_ID={{ backrest_app_secrets.AWS_ACCESS_KEY_ID }}",
+        "AWS_SECRET_ACCESS_KEY={{ backrest_app_secrets.AWS_SECRET_ACCESS_KEY }}"
+      ],
+      "flags": ["--verbose"],
+      "autoUnlock": true,
+      "autoInitialize": true,
+      "prunePolicy": {
+        "schedule": { "maxFrequencyDays": {{ backrest_restic_prune_max_frequency_days }} }
+      },
+      "checkPolicy": {
+        "schedule": { "maxFrequencyDays": {{ backrest_restic_check_max_frequency_days }} },
+        "readDataSubsetPercent": {{ backrest_restic_check_read_data_subset_pct }}
+      }
+    }
+  ],
+  "plans": [
+{% for plan in backrest_backup_plans %}
+    {
+      "id": "{{ plan.id }}",
+      "repo": "primary",
+      "paths": {{ plan.paths | to_json }},
+{% if plan.excludes is defined and plan.excludes | length > 0 %}
+      "excludes": {{ plan.excludes | to_json }},
+{% endif %}
+      "schedule": {"cron": "{{ plan.schedule.cron }}"},
+      "retention": {
+        "policyTimeBucketed": {{ plan.retention | dict2items | rejectattr('value', 'none') | items2dict | to_json }}
+      }
+    }{{ '' if loop.last else ',' }}
+{% endfor %}
+  ]
+}
