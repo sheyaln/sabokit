@@ -1,0 +1,117 @@
+---
+# Deploy Jitsi Meet as a docker-compose stack (web + prosody + jicofo + jvb +
+# an OIDC adapter built from source). Secrets are pulled from Scaleway Secret
+# Manager at deploy time and rendered into /opt/jitsi/.env (mode 0600).
+#
+# Required vars:
+#   jitsi_hostname           - full hostname
+#   jitsi_authentik_gateway  - Authentik gateway hostname (drives OIDC discovery URL)
+#   jitsi_app_secret_id      - Scaleway secret ID for the app's secret bag
+#
+# Prereqs (NOT installed by this role — see platform/ansible/bootstrap.yml):
+#   - Docker engine + compose plugin
+#   - Traefik on an external network named per jitsi_traefik_docker_network
+#   - UFW (the JVB UDP port is opened by this role; without UFW the task is a no-op)
+#   - scaleway.scaleway Ansible collection on the controller (for the lookup)
+
+- name: Validate required Jitsi variables
+  ansible.builtin.assert:
+    that:
+      - jitsi_hostname | length > 0
+      - jitsi_authentik_gateway | length > 0
+      - jitsi_app_secret_id | length > 0
+    fail_msg: "jitsi_hostname, jitsi_authentik_gateway and jitsi_app_secret_id are required."
+
+- name: Assert Docker is installed and running
+  ansible.builtin.command: docker info
+  register: jitsi_docker_check
+  changed_when: false
+  failed_when: jitsi_docker_check.rc != 0
+  # If this fails, run platform/ansible/bootstrap.yml first.
+
+- name: Assert Traefik external network exists
+  community.docker.docker_network_info:
+    name: "{{ jitsi_traefik_docker_network }}"
+  register: jitsi_traefik_net
+  failed_when: not jitsi_traefik_net.exists
+  # If this fails, the traefik role from platform/ansible/bootstrap.yml hasn't run.
+
+- name: Allow JVB UDP port through host firewall
+  community.general.ufw:
+    rule: allow
+    port: "{{ jitsi_jvb_udp_port }}"
+    proto: udp
+    comment: "Jitsi Videobridge WebRTC media"
+  # UFW alone isn't enough — Scaleway's security group must also permit the
+  # port. See the bundle README for the SG snippet.
+
+- name: Ensure Jitsi directory tree
+  ansible.builtin.file:
+    path: "{{ jitsi_install_dir }}/{{ item }}"
+    state: directory
+    mode: "0750"
+    owner: root
+    group: root
+  loop:
+    - ""
+    - web
+    - web/crontabs
+    - prosody/config
+    - prosody/prosody-plugins-custom
+    - jicofo
+    - jvb
+    - transcripts
+
+- name: Normalize Scaleway secret ID (strip leading region/ prefix)
+  ansible.builtin.set_fact:
+    _jitsi_app_secret_uuid: "{{ jitsi_app_secret_id | regex_replace('^[^/]+/', '') }}"
+
+- name: Look up Jitsi app secrets from Scaleway
+  ansible.builtin.set_fact:
+    jitsi_app_secrets: "{{ lookup('scaleway.scaleway.scaleway_secret', _jitsi_app_secret_uuid) | b64decode | from_json }}"
+  no_log: true
+
+- name: Clone Jitsi OIDC adapter from source
+  ansible.builtin.git:
+    repo: "{{ jitsi_oidc_adapter_repo }}"
+    dest: "{{ jitsi_install_dir }}/oidc-adapter"
+    version: "{{ jitsi_oidc_adapter_version }}"
+    force: true
+  # Built on the host because no upstream image exists. The compose file
+  # references the local context, so the next `up -d` rebuilds when this
+  # checkout moves.
+
+- name: Ensure OIDC adapter session directory exists
+  ansible.builtin.file:
+    path: "{{ jitsi_install_dir }}/oidc-adapter/flask_session"
+    state: directory
+    mode: "0750"
+    owner: root
+    group: root
+
+- name: Render docker-compose.yml
+  ansible.builtin.template:
+    src: docker-compose.yml.j2
+    dest: "{{ jitsi_install_dir }}/docker-compose.yml"
+    mode: "0644"
+    owner: root
+    group: root
+  notify: Restart jitsi
+
+- name: Render Jitsi environment file
+  ansible.builtin.template:
+    src: env.j2
+    dest: "{{ jitsi_install_dir }}/.env"
+    mode: "0600"
+    owner: root
+    group: root
+  notify: Restart jitsi
+  no_log: true
+
+- name: Ensure Jitsi stack is running
+  community.docker.docker_compose_v2:
+    project_src: "{{ jitsi_install_dir }}"
+    state: present
+    build: always
+  # build: always so the adapter image rebuilds when the cloned checkout
+  # advances. Other services pull pre-built jitsi/* images.

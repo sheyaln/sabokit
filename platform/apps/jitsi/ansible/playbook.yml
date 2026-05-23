@@ -1,0 +1,9 @@
+---
+# Deploy Jitsi Meet. Vars supplied by the consumer's site.yml (or directly on
+# the command line). All required vars are documented in platform/apps/jitsi/README.md.
+
+- name: Deploy Jitsi
+  hosts: "{{ jitsi_host_group | default('apps') }}"
+  become: true
+  roles:
+    - role: jitsi

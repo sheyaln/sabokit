@@ -1,0 +1,38 @@
+---
+# Set by the consumer via the values that come out of platform/apps/jitsi/terraform's ansible.vars output.
+
+jitsi_hostname: ""                            # Required. The full hostname (e.g. "meet.example.org").
+jitsi_image_tag: "stable-9823"
+
+jitsi_install_dir: "/opt/jitsi"
+
+jitsi_timezone: "UTC"
+
+# Networking — JVB media port (UDP).
+# Must also be opened in the deployment host's Scaleway security group; the
+# role opens the host firewall (UFW) here but cannot reach into Scaleway SG
+# config. See the bundle README.
+jitsi_jvb_udp_port: 10000
+jitsi_jvb_stun_servers: "meet-jit-si-turnrelay.jitsi.net:443"
+
+# Feature toggles passed through to the jitsi/web container.
+jitsi_enable_lobby: true
+jitsi_enable_breakout_rooms: true
+jitsi_enable_prejoin_page: true
+
+# OIDC adapter — small Flask service that brokers between Jitsi web (which
+# wants a JWT) and Authentik (which speaks OIDC). Built from source on the
+# host because there is no official image; pin oidc_adapter_version to a
+# tag in production.
+jitsi_oidc_adapter_repo: "https://github.com/sabokit/jitsi-oidc-adapter.git"
+jitsi_oidc_adapter_version: "main"
+jitsi_oidc_log_level: "INFO"
+
+# Authentik gateway hostname (e.g. "auth.example.org"). Comes from Terraform.
+jitsi_authentik_gateway: ""
+
+# Scaleway secret ID (set by Terraform; passed in via ansible.vars).
+jitsi_app_secret_id: ""
+
+# Docker networks the Jitsi containers join.
+jitsi_traefik_docker_network: "traefik"
