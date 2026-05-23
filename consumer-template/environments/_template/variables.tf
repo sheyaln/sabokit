@@ -100,3 +100,13 @@ variable "smtp_secret_name" {
   type    = string
   default = ""
 }
+
+variable "manage_gateway_dns" {
+  type    = bool
+  default = true
+}
+
+variable "gateway_compute_host_key" {
+  type    = string
+  default = null
+}

@@ -7,6 +7,10 @@
 
 module "stack" {
   source = "../../modules/stack"
+  providers = {
+    scaleway     = scaleway
+    scaleway.dns = scaleway.dns
+  }
 
   org_slug    = var.org_slug
   org_name    = var.org_name
@@ -26,6 +30,9 @@ module "stack" {
 
   apps             = var.apps
   smtp_secret_name = var.smtp_secret_name
+
+  manage_gateway_dns       = var.manage_gateway_dns
+  gateway_compute_host_key = var.gateway_compute_host_key
 }
 
 # Surface stack outputs so `terraform output` / `terraform output -json` works

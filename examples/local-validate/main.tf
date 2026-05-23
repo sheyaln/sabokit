@@ -28,6 +28,18 @@ provider "scaleway" {
   zone       = "fr-par-1"
 }
 
+# Aliased provider for DNS — same creds as the main provider in this harness.
+# Real consumers override with separate credentials when their DNS zone lives
+# in a different Scaleway project from the deploy project.
+provider "scaleway" {
+  alias      = "dns"
+  access_key = "SCWTEST"
+  secret_key = "00000000-0000-0000-0000-000000000000"
+  project_id = "00000000-0000-0000-0000-000000000000"
+  region     = "fr-par"
+  zone       = "fr-par-1"
+}
+
 provider "authentik" {
   url      = "https://auth.example.org"
   token    = "test-token"
@@ -36,6 +48,10 @@ provider "authentik" {
 
 module "base" {
   source = "../../platform/base/terraform"
+  providers = {
+    scaleway     = scaleway
+    scaleway.dns = scaleway.dns
+  }
 
   scaleway_project_id    = "00000000-0000-0000-0000-000000000000"
   org_slug               = "fctest"

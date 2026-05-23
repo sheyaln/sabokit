@@ -98,3 +98,17 @@ variable "smtp_secret_name" {
   type        = string
   default     = ""
 }
+
+# ── Gateway DNS ─────────────────────────────────────────────────────────────
+
+variable "manage_gateway_dns" {
+  description = "Create the gateway A record in Scaleway DNS during apply (default). Set false when DNS is hosted elsewhere (Cloudflare, Route53) or you want to manage it manually."
+  type        = bool
+  default     = true
+}
+
+variable "gateway_compute_host_key" {
+  description = "Optional explicit key in compute_hosts whose public IP becomes the gateway A record. Null picks the first host with \"identity\" in ansible_groups, then any host with role=\"identity\", then the first host."
+  type        = string
+  default     = null
+}

@@ -104,6 +104,26 @@ variable "compute_hosts" {
   default = {}
 }
 
+# ── Gateway DNS ─────────────────────────────────────────────────────────────
+
+variable "manage_gateway_dns" {
+  description = "Whether to create the gateway A record in Scaleway DNS as part of this module's apply. When true (default), the record points at the identity host's public IP and is provisioned in the same apply as the compute host — DNS is correct by the time Traefik requests an LE cert. Set false if you manage gateway DNS out-of-band (Cloudflare, Route53, manual)."
+  type        = bool
+  default     = true
+}
+
+variable "gateway_compute_host_key" {
+  description = "Optional explicit key in var.compute_hosts whose public IP becomes the gateway DNS record. Null (default) picks the first host with \"identity\" in its ansible_groups, then any host with role = \"identity\", then the first compute host (lexicographic). Multi-host prod usually sets this explicitly."
+  type        = string
+  default     = null
+}
+
+variable "gateway_dns_ttl" {
+  description = "TTL (seconds) on the gateway A record. Low default (60) makes IP changes propagate fast across re-provisions."
+  type        = number
+  default     = 60
+}
+
 # ── Managed PostgreSQL ──────────────────────────────────────────────────────
 
 variable "postgres_enabled" {
