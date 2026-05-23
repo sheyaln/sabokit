@@ -4,9 +4,45 @@
 
 # Federated Commons
 
-A Terraform module library for self-hosting an identity-managed application suite on Scaleway. This is an **upstream blueprint** — you do not run it directly. You consume tagged versions of its modules from your own infrastructure repository.
+A Terraform + Ansible blueprint for self-hosting an identity-managed application suite on Scaleway. You consume tagged versions of its modules from your own infrastructure repository — clone [`consumer-template/`](./consumer-template/), fill in per-env config, run three commands.
 
-Modules cover the two layers that are tedious to get right: provider-side primitives (network, compute, storage, secrets, DNS) and an opinionated Authentik configuration (flows, sources, groups, per-app providers). Application deployment is left to you.
+The blueprint covers the two layers that are tedious to get right: provider-side primitives (network, compute, storage, secrets, DNS) and an opinionated Authentik configuration (flows, sources, groups, per-app providers). One pre-baked Scaleway image per release cuts host-bootstrap time from ~10 minutes to under one.
+
+---
+
+## Quick start
+
+```bash
+# 1. Copy the template into your own repo.
+cp -r sabokit/consumer-template my-infra
+cd my-infra/environments/_template     && mv ../_template ../staging
+cd staging
+cp terraform.tfvars.example terraform.tfvars      && $EDITOR terraform.tfvars
+cp backend.hcl.example      backend.hcl           && $EDITOR backend.hcl
+cp inventory.ini.example    inventory.ini
+
+# 2. Deploy.
+./preflight.sh         # one-time per env: CLI deps, SSH key, DNS zone check
+./up.sh                # provision infra + install Authentik (~10 min cold-start)
+./configure.sh         # configure Authentik (flows, brand, groups) + app TF
+# Then deploy apps:
+ansible-playbook ../../sabokit/platform/ansible/apps.yml \
+  -i inventory.ini -e @.ansible-vars.json \
+  -e env_name=staging -e gateway_domain=$(awk -F= '/^[[:space:]]*gateway_domain/{gsub(/[ "#]/,"",$2); print $2; exit}' terraform.tfvars)
+```
+
+Each step has a verifiable checkpoint. See [`consumer-template/environments/_template/README.md`](./consumer-template/environments/_template/README.md) for details.
+
+### Faster cold-starts with a pre-baked image
+
+Optional but recommended: import the sabokit base image once per Scaleway project and `up.sh` skips ~7 minutes of apt installs:
+
+```bash
+./consumer-template/scripts/import-base-image.sh v1.2.0-rc.5
+# → prints IMAGE_ID; paste into terraform.tfvars under compute_hosts.<name>.image
+```
+
+See [`packer/README.md`](./packer/README.md) for the maintainer-side build flow.
 
 ---
 
@@ -21,19 +57,23 @@ modules/                                # Low-level Terraform primitives. No app
 
 platform/                               # The platform every consumer needs.
 ├── base/                               # Always-on Scaleway primitives.
-│   ├── terraform/                      #   Network, compute, postgres, default SG.
+│   ├── terraform/                      #   Network, compute, postgres, default SG,
+│   │                                   #   gateway DNS record.
 │   └── ansible/roles/                  #   Bootstrap roles: docker, traefik, fail2ban,
-│                                       #   scw-secrets, monitoring-agent, ufw, log-mgmt,
-│                                       #   unattended-upgrades.
-├── identity/                           # Authentik instance (always-on by default;
-│   ├── terraform/                      #   pluggable if you bring your own IdP).
-│   └── ansible/roles/                  #   Reserved.
+│                                       #   scw-secrets, monitoring-agent, ufw,
+│                                       #   log-mgmt, unattended-upgrades.
+│                                       #   Every role no-ops on a fc-base image.
+├── identity/                           # Authentik instance.
+│   ├── bootstrap/                      #   Pre-Authentik TF: admin secret + DB + token.
+│   ├── terraform/                      #   Post-Authentik TF: flows, brand, groups,
+│   │                                   #   outpost (configured via API).
+│   └── ansible/roles/authentik-server/ #   Installs the Authentik docker stack.
 ├── apps/                               # One self-contained bundle per app.
 │   └── outline/{terraform, ansible/roles/outline, monitoring}
 └── ansible/                            # Orchestration only — no role definitions here.
     ├── ansible.cfg                     #   roles_path points at every bundle's ansible/roles.
-    ├── bootstrap.yml                   #   tag: bootstrap. Runs once per fresh host.
-    ├── apps.yml                        #   tag: apps. Per-enabled-app import_playbook.
+    ├── bootstrap.yml                   #   docker, traefik, ..., authentik-server.
+    ├── apps.yml                        #   Per-enabled-app import_playbook.
     └── site.yml                        #   bootstrap + apps.
 
 consumer-template/                      # The starter you cp into your own repo.
@@ -41,13 +81,17 @@ consumer-template/                      # The starter you cp into your own repo.
 ├── environments/_template/             #   Copy to prod/, staging/, etc.
 │   ├── main.tf, providers.tf, variables.tf
 │   ├── terraform.tfvars.example, backend.hcl.example, inventory.ini.example
-│   └── deploy.sh                       #   `terraform apply` then `ansible-playbook`.
-└── scripts/bump-version.sh
+│   ├── preflight.sh                    #   Idempotent env-readiness check.
+│   ├── up.sh                           #   Step 1: provision + install platform.
+│   ├── configure.sh                    #   Step 2: configure Authentik + app TF.
+│   └── _lib.sh                         #   Shared helpers (sourced by both scripts).
+└── scripts/{bump-version.sh, import-base-image.sh}
+
+packer/                                 # Pre-baked Scaleway base image (Ubuntu + docker +
+└── base.pkr.hcl + provisioners/        # ufw + fail2ban + node_exporter + cadvisor + scw CLI).
 
 examples/local-validate/                # In-repo terraform-validate harness for CI.
 ```
-
-A reference consumer lives under [`consumer-template/`](./consumer-template/) — copy it, add `sabokit` as a submodule, fill in per-env config, run `deploy.sh`.
 
 ---
 
@@ -57,36 +101,37 @@ Every module is consumed by Git ref, pinned to a tag. **Never** consume `master`
 
 ```hcl
 module "private_network" {
-  source = "git::https://github.com/sheyaln/sabokit.git//modules/infrastructure/network?ref=v1.0.0"
+  source = "git::https://github.com/sheyaln/sabokit.git//modules/infrastructure/network?ref=v1.2.0-rc.5"
 
   name   = "prod-internal"
   region = "fr-par"
 }
 ```
 
-Most consumers won't call low-level modules directly — they'll call `module.stack` from `consumer-template/modules/stack/` which composes `module.base` + `module.identity` + `module.<app>` per enabled app.
-
-The `?ref=<tag>` is mandatory. See [Versioning](#versioning) below for what each tag promises.
+Most consumers won't call low-level modules directly — they'll call `module.stack` from `consumer-template/modules/stack/` which composes `module.base` + `module.identity_bootstrap` + `module.identity` + `module.<app>` per enabled app.
 
 ### Bumping a version
 
-`consumer-template/scripts/bump-version.sh v1.1.0` rewrites every `?ref=` pin under `modules/stack/` in one pass, then runs `terraform plan` per environment.
+`consumer-template/scripts/bump-version.sh v1.2.0-rc.5` rewrites every `?ref=` pin under `modules/stack/` in one pass. Bump the sabokit git submodule separately: `cd sabokit && git fetch && git checkout v1.2.0-rc.5 && cd .. && git add sabokit && git commit`.
 
 ---
 
 ## What this repo provides, what you provide
 
-The blueprint covers **infrastructure provisioning + identity wiring + app deployment scaffolding**. You bring credentials, hostnames, and the apps' own runtime config.
-
 | Blueprint provides                                          | You provide                                       |
 |-------------------------------------------------------------|---------------------------------------------------|
 | Scaleway network, compute, postgres, storage, DNS, secrets  | Scaleway project + IAM credentials                |
-| Authentik instance (flows, brand, social sources, outpost)  | Authentik admin token + your group taxonomy       |
+| Authentik instance (flows, brand, social sources, outpost)  | Operations contact email + your group taxonomy    |
 | Per-app OIDC/SAML providers + S3 buckets + per-app DBs      | Your hostnames (`wiki.example.org`, etc.)         |
-| Ansible roles to deploy each app via docker-compose         | Your inventory (host IPs from `terraform output`) |
-| `consumer-template/` with per-env deploy script             | Your domains, registered + delegated to Scaleway  |
+| Ansible roles to deploy each app via docker-compose         | Your inventory (host group memberships)           |
+| `consumer-template/` with the 3-step deploy flow            | Your domains, registered + delegated to Scaleway  |
+| Optional pre-baked Scaleway image (~3 min bootstrap)        | Optional: cross-project DNS credentials           |
 
 Substrate assumption: Docker Compose on Scaleway VMs. K8s consumers would fork the `ansible/` side of each app bundle and replace it with manifests.
+
+### Cross-project DNS
+
+When your DNS zone lives in a Scaleway project separate from your infra (common for orgs that centralize domains), override the `scaleway.dns` aliased provider in your `providers.tf` with separate credentials. See `consumer-template/environments/_template/providers.tf` for the pattern.
 
 ---
 
@@ -117,7 +162,7 @@ Per-module documentation lives next to each module's `main.tf`.
 
 ## Project status
 
-`v1.0` candidate. The platform/app contract is validated end-to-end via `examples/local-validate/`. The reference app bundle (Outline) is complete; the other 13 apps replicate the same pattern and are being added in subsequent minor releases. Feedback on the contract is welcome via issues before v1.0.0 tags.
+**v2 release candidate.** The 3-step consumer flow (`preflight.sh` / `up.sh` / `configure.sh`) is end-to-end dogfooded against staging Scaleway projects through the v1.2.0-rc.x cycle. The platform↔app contract is validated by `examples/local-validate/`. The reference app bundle (Outline) is complete; the other 13 apps replicate the same pattern and are being added in subsequent minor releases. Feedback on the contract is welcome via issues before v2.0.0 tags.
 
 ## License
 
