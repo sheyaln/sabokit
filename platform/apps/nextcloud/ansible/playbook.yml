@@ -1,0 +1,9 @@
+---
+# Deploy Nextcloud. Vars supplied by the consumer's site.yml (or directly on
+# the command line). All required vars are documented in platform/apps/nextcloud/README.md.
+
+- name: Deploy Nextcloud
+  hosts: "{{ nextcloud_host_group | default('apps') }}"
+  become: true
+  roles:
+    - role: nextcloud

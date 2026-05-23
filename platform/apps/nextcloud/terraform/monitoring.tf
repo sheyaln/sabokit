@@ -1,0 +1,16 @@
+# Nextcloud exposes /ocs/v2.php/apps/serverinfo/api/v1/info for metrics but
+# it's gated behind admin auth, not a Prometheus-friendly endpoint. Ship log
+# paths only — a serverinfo exporter would belong in apps/prometheus once
+# someone wires it up.
+locals {
+  monitoring_contribution = (var.enabled && var.monitoring_enabled) ? {
+    prometheus_scrape_configs = []
+    grafana_dashboards        = []
+    loki_log_paths = [
+      "/var/log/containers/nextcloud-*.log",
+      "/var/log/containers/nextcloud-redis-*.log",
+      "/var/log/containers/nextcloud-cron-*.log",
+    ]
+    alert_rules = []
+  } : null
+}
