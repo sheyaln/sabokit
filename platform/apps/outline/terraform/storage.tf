@@ -26,16 +26,20 @@ module "attachments_bucket" {
 resource "scaleway_iam_application" "storage" {
   count = var.enabled ? 1 : 0
 
-  name        = "${local.slug}-s3-access"
-  description = "S3 access for Outline attachments bucket"
+  # IAM applications and policies are organization-scoped, not project-scoped:
+  # two consumers (or one consumer's staging + prod) sharing a Scaleway org
+  # would otherwise collide on the bare "outline-s3-access" name. Prefix with
+  # the org+env namespace so each environment owns its own principal.
+  name        = "${var.base.scaleway.secrets_namespace}-${local.slug}-s3-access"
+  description = "S3 access for Outline attachments bucket (${var.base.scaleway.secrets_namespace})"
   tags        = ["automated", local.slug, "storage"]
 }
 
 resource "scaleway_iam_policy" "storage" {
   count = var.enabled ? 1 : 0
 
-  name           = "${local.slug}-s3-policy"
-  description    = "Object Storage access for Outline attachments bucket"
+  name           = "${var.base.scaleway.secrets_namespace}-${local.slug}-s3-policy"
+  description    = "Object Storage access for Outline attachments bucket (${var.base.scaleway.secrets_namespace})"
   application_id = scaleway_iam_application.storage[0].id
 
   rule {

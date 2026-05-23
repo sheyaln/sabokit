@@ -170,6 +170,35 @@ else
   exit 1
 fi
 
+# Authentik's /api/v3/root/config/ returns 200 well before its built-in
+# blueprints finish indexing (default flows, default brand, the RBAC
+# permission table). configure.sh's terraform apply queries those resources
+# as data sources and resource references — if it runs during the indexing
+# window, it fails with "No matching flows found" / "permission not found".
+# Probe a known-blueprint flow slug AND the RBAC permission table; both
+# must return results before we declare up.sh done.
+c_info "Waiting for Authentik blueprints + permission table to finish indexing..."
+ADMIN_SECRET_ID="$(jq -r '.authentik_admin_secret_id.value' .tf-output.json)"
+ADMIN_TOKEN="$(scw secret version access secret-id="${ADMIN_SECRET_ID##*/}" revision=latest -o json \
+                | jq -r '.data' | base64 -d | jq -r '.api_token')"
+blueprints_ok=false
+for attempt in $(seq 1 30); do
+  flows="$(curl -sk -H "Authorization: Bearer $ADMIN_TOKEN" \
+    "https://${GATEWAY_DOMAIN}/api/v3/flows/instances/?slug=default-source-authentication" \
+    | jq -r '.pagination.count // 0')"
+  perms="$(curl -sk -H "Authorization: Bearer $ADMIN_TOKEN" \
+    "https://${GATEWAY_DOMAIN}/api/v3/rbac/permissions/?codename=view_application" \
+    | jq -r '.pagination.count // 0')"
+  if [[ "$flows" -ge 1 && "$perms" -ge 1 ]]; then
+    blueprints_ok=true
+    break
+  fi
+  sleep 5
+done
+$blueprints_ok && c_ok "Blueprints + RBAC indexed" || {
+  c_warn "Blueprints/permissions not yet indexed after 150s — configure.sh may need a retry"
+}
+
 c_phase "up.sh done"
 c_info "Authentik is reachable at https://$GATEWAY_DOMAIN (but unconfigured)."
 c_info "Next: ./configure.sh"

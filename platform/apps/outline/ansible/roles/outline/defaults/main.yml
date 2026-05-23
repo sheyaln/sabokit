@@ -12,8 +12,11 @@ outline_app_secret_id: ""                     # Single Scaleway secret holding a
 outline_db_credentials_secret_id: ""          # Scaleway secret with {dbname, username, password, host, port}.
 
 # SMTP — Outline reads the From: header from terraform-rendered config; the
-# SMTP creds themselves come from a separate Scaleway secret (see name below).
-outline_smtp_secret_name: "smtp-config"
+# SMTP creds themselves come from a separate Scaleway secret. Empty = SMTP
+# off; the role's lookup task short-circuits and Outline runs without email.
+# The platform Terraform sets this from var.smtp_from_email (empty → "",
+# non-empty → "smtp-config") and passes it through apps.yml.
+outline_smtp_secret_name: ""
 
 # Docker networks the Outline container joins.
 outline_traefik_docker_network: "traefik"

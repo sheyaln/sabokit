@@ -15,6 +15,8 @@
     outline_hostname:                  "{{ enabled_apps.outline.url | regex_replace('^https?://', '') }}"
     outline_app_secret_id:             "{{ enabled_apps.outline.ansible_vars.outline_app_secret_id }}"
     outline_db_credentials_secret_id:  "{{ enabled_apps.outline.ansible_vars.outline_db_credentials_secret_id }}"
+    # Empty when var.smtp_from_email isn't set; the role guards on it.
+    outline_smtp_secret_name:          "{{ enabled_apps.outline.ansible_vars.outline_smtp_secret_name | default('') }}"
   when: enabled_apps.outline is defined and enabled_apps.outline is not none
   tags: [apps, outline]
 
