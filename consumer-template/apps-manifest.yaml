@@ -449,3 +449,491 @@ apps:
           default: true
           description: Wire access log paths into the monitoring stack.
           ui: advanced
+
+  # ── Nextcloud ───────────────────────────────────────────────────────────
+  # File sync + collaboration. Multi-container (Nextcloud + Redis), postgres,
+  # S3 as primary storage. Pin image_tag to a major — Nextcloud only supports
+  # one-major-at-a-time upgrades.
+  - id: nextcloud
+    display_name: Nextcloud
+    category: collaboration
+    description_short: File sync + collaboration suite
+    description: |
+      Self-hosted file sync, calendar, contacts, document collaboration.
+      Federated SSO via Authentik. Files stored in S3 (object storage as
+      primary); local volume only holds the PHP install + apps.
+    icon: icons/nextcloud.svg
+    upstream_url: https://nextcloud.com/
+
+    tfvars:
+      key: nextcloud
+      schema:
+        enabled:
+          type: bool
+          default: true
+          description: Whether Nextcloud is deployed.
+          ui: hidden
+
+        hostname:
+          type: string
+          required: true
+          description: Public hostname Nextcloud is served at.
+          example: cloud.example.org
+          subdomain_default: cloud
+          ui: text
+          validation:
+            pattern: ^[a-z0-9.-]+\.[a-z]{2,}$
+
+        smtp_from_email:
+          type: string
+          default: ''
+          description: From-address for transactional email. Empty disables SMTP.
+          example: cloud@example.org
+          ui: advanced
+
+        default_phone_region:
+          type: string
+          default: US
+          description: ISO 3166-1 alpha-2 country code for phone-number defaults.
+          ui: advanced
+
+        admin_username:
+          type: string
+          default: ncadmin
+          description: Bootstrap admin username (OIDC users sign in separately).
+          ui: advanced
+
+        max_upload_size_bytes:
+          type: number
+          default: 2147483648
+          description: Maximum upload size in bytes. Apache body limit set to match.
+          ui: advanced
+
+        deployment_host_key:
+          type: string
+          default: apps
+          description: Which host (key in compute_hosts) Nextcloud runs on.
+          ui: advanced
+
+        access_level:
+          type: string
+          default: member
+          description: Authentik group key granting baseline access.
+          ui: advanced
+
+        monitoring_enabled:
+          type: bool
+          default: true
+          description: Wire Nextcloud log paths into the monitoring stack.
+          ui: advanced
+
+        category_group:
+          type: string
+          default: Knowledge
+          description: Section the app appears under in the Authentik portal.
+          ui: advanced
+
+  # ── Decidim ─────────────────────────────────────────────────────────────
+  # Participatory democracy platform. Multi-container (web + sidekiq),
+  # postgres + S3, OIDC.
+  - id: decidim
+    display_name: Decidim
+    category: civic
+    description_short: Participatory democracy platform
+    description: |
+      Open-source platform for assemblies, proposals, voting, and citizen
+      participation. Rails-based, postgres-backed, OIDC via Authentik.
+    icon: icons/decidim.svg
+    upstream_url: https://decidim.org/
+
+    tfvars:
+      key: decidim
+      schema:
+        enabled:
+          type: bool
+          default: true
+          description: Whether Decidim is deployed.
+          ui: hidden
+
+        hostname:
+          type: string
+          required: true
+          description: Public hostname Decidim is served at.
+          example: voting.example.org
+          subdomain_default: voting
+          ui: text
+          validation:
+            pattern: ^[a-z0-9.-]+\.[a-z]{2,}$
+
+        organization_name:
+          type: string
+          required: true
+          description: Display name of the participatory democracy organization.
+          example: Example Assembly
+          ui: text
+
+        system_admin_email:
+          type: string
+          required: true
+          description: Email of the initial /system superuser. Bootstrap account; password auto-generated.
+          example: ops@example.org
+          ui: text
+
+        smtp_from_email:
+          type: string
+          default: ''
+          description: From-address for transactional email. Empty disables SMTP.
+          example: voting@example.org
+          ui: advanced
+
+        default_locale:
+          type: string
+          default: en
+          description: Two-letter ISO 639-1 locale code (en/es/ca/…).
+          ui: advanced
+
+        sidekiq_concurrency:
+          type: number
+          default: 5
+          description: Sidekiq worker thread count.
+          ui: advanced
+
+        deployment_host_key:
+          type: string
+          default: apps
+          description: Which host (key in compute_hosts) Decidim runs on.
+          ui: advanced
+
+        access_level:
+          type: string
+          default: member
+          description: Authentik group key granting baseline access.
+          ui: advanced
+
+        monitoring_enabled:
+          type: bool
+          default: true
+          description: Wire Decidim log paths into the monitoring stack.
+          ui: advanced
+
+        category_group:
+          type: string
+          default: Knowledge
+          description: Section the app appears under in the Authentik portal.
+          ui: advanced
+
+  # ── Jitsi ───────────────────────────────────────────────────────────────
+  # Self-hosted Jitsi Meet (video conferencing). Multi-container (web +
+  # prosody + jicofo + jvb) + an OIDC adapter brokering Authentik OIDC to
+  # Jitsi JWT. Needs UDP 10000 open in the security group.
+  - id: jitsi
+    display_name: Jitsi Meet
+    category: communication
+    description_short: Self-hosted video conferencing with SSO
+    description: |
+      Browser-based group video calls with screen share, recording (via
+      Jibri — disabled by default), and SSO via Authentik. JVB requires
+      UDP 10000 to be reachable from clients globally.
+    icon: icons/jitsi.svg
+    upstream_url: https://jitsi.org/
+
+    tfvars:
+      key: jitsi
+      schema:
+        enabled:
+          type: bool
+          default: true
+          description: Whether Jitsi is deployed.
+          ui: hidden
+
+        hostname:
+          type: string
+          required: true
+          description: Public hostname Jitsi is served at.
+          example: meet.example.org
+          subdomain_default: meet
+          ui: text
+          validation:
+            pattern: ^[a-z0-9.-]+\.[a-z]{2,}$
+
+        timezone:
+          type: string
+          default: UTC
+          description: IANA timezone passed to every Jitsi container.
+          ui: advanced
+
+        enable_lobby:
+          type: bool
+          default: true
+          description: Hosts admit guests one-by-one when on. Off matches Jitsi's classic open-room behaviour.
+          ui: advanced
+
+        enable_breakout_rooms:
+          type: bool
+          default: true
+          description: Whether breakout rooms are available in the web UI.
+          ui: advanced
+
+        enable_prejoin_page:
+          type: bool
+          default: true
+          description: Whether participants see the audio/video preview before joining.
+          ui: advanced
+
+        jvb_udp_port:
+          type: number
+          default: 10000
+          description: UDP port JVB listens on for WebRTC media. MUST be open in the security group. Change only when co-locating multiple JVBs.
+          ui: advanced
+
+        deployment_host_key:
+          type: string
+          default: apps
+          description: Which host (key in compute_hosts) Jitsi runs on.
+          ui: advanced
+
+        access_level:
+          type: string
+          default: member
+          description: Authentik group key granting baseline access (relevant when the OIDC adapter gates room creation).
+          ui: advanced
+
+        monitoring_enabled:
+          type: bool
+          default: true
+          description: Wire Jitsi log paths into the monitoring stack.
+          ui: advanced
+
+        category_group:
+          type: string
+          default: Communication
+          description: Section the app appears under in the Authentik portal.
+          ui: advanced
+
+  # ── EspoCRM ─────────────────────────────────────────────────────────────
+  # PHP CRM with OIDC. Member-entity bootstrap is opt-in (sets up
+  # constituent/dues tracking on top of the generic CRM).
+  - id: espocrm
+    display_name: EspoCRM
+    category: productivity
+    description_short: Open-source CRM with SSO
+    description: |
+      Self-hosted CRM for sales, support, or constituent/membership
+      management. Federated SSO via Authentik. Optional member-entity
+      bootstrap shapes the CRM around dues + chapter tracking.
+    icon: icons/espocrm.svg
+    upstream_url: https://www.espocrm.com/
+
+    tfvars:
+      key: espocrm
+      schema:
+        enabled:
+          type: bool
+          default: true
+          description: Whether EspoCRM is deployed.
+          ui: hidden
+
+        hostname:
+          type: string
+          required: true
+          description: Public hostname EspoCRM is served at.
+          example: crm.example.org
+          subdomain_default: crm
+          ui: text
+          validation:
+            pattern: ^[a-z0-9.-]+\.[a-z]{2,}$
+
+        timezone:
+          type: string
+          default: UTC
+          description: IANA timezone for EspoCRM runtime.
+          ui: advanced
+
+        b2c_mode:
+          type: bool
+          default: true
+          description: Simplifies the UI for orgs that don't track companies/accounts. Off for traditional sales-CRM.
+          ui: advanced
+
+        enable_member_entity_bootstrap:
+          type: bool
+          default: false
+          description: Provisions Member + DuesPayment custom entities + roles + teams. Off keeps EspoCRM as a generic CRM.
+          ui: advanced
+
+        admin_username:
+          type: string
+          default: admin
+          description: Local admin username (OIDC users sign in separately; this is the fallback).
+          ui: advanced
+
+        deployment_host_key:
+          type: string
+          default: apps
+          description: Which host (key in compute_hosts) EspoCRM runs on.
+          ui: advanced
+
+        access_level:
+          type: string
+          default: member
+          description: Authentik group key granting baseline access.
+          ui: advanced
+
+        monitoring_enabled:
+          type: bool
+          default: true
+          description: Wire EspoCRM log paths into the monitoring stack.
+          ui: advanced
+
+        category_group:
+          type: string
+          default: Productivity
+          description: Section the app appears under in the Authentik portal.
+          ui: advanced
+
+  # ── n8n ─────────────────────────────────────────────────────────────────
+  # Workflow automation. OIDC via Authentik; a bundled hooks.js promotes
+  # members of n8n_admin_group_name to n8n's owner role.
+  - id: n8n
+    display_name: n8n
+    category: productivity
+    description_short: Workflow automation with SSO
+    description: |
+      Visual workflow automation — webhooks, schedulers, integrations with
+      hundreds of services. Federated SSO via Authentik; OIDC group claim
+      drives n8n role assignment via a bundled hooks.js.
+    icon: icons/n8n.svg
+    upstream_url: https://n8n.io/
+
+    tfvars:
+      key: n8n
+      schema:
+        enabled:
+          type: bool
+          default: true
+          description: Whether n8n is deployed.
+          ui: hidden
+
+        hostname:
+          type: string
+          required: true
+          description: Public hostname n8n is served at.
+          example: automate.example.org
+          subdomain_default: automate
+          ui: text
+          validation:
+            pattern: ^[a-z0-9.-]+\.[a-z]{2,}$
+
+        timezone:
+          type: string
+          default: UTC
+          description: IANA timezone for cron schedules and recurring workflow next-run calculations.
+          ui: advanced
+
+        n8n_admin_group_name:
+          type: string
+          default: admin
+          description: Authentik group whose members are promoted to n8n's owner role on first OIDC login.
+          ui: advanced
+
+        public_api_disabled:
+          type: bool
+          default: true
+          description: Whether n8n's public REST API is disabled. On by default — n8n's API key auth is a high-value target.
+          ui: advanced
+
+        build_from_source:
+          type: bool
+          default: false
+          description: If true, the Ansible role builds a custom image layering python3+pip on top of the upstream n8n image. Only needed for Execute Command nodes that shell out.
+          ui: advanced
+
+        deployment_host_key:
+          type: string
+          default: apps
+          description: Which host (key in compute_hosts) n8n runs on.
+          ui: advanced
+
+        access_level:
+          type: string
+          default: member
+          description: Authentik group key granting baseline access.
+          ui: advanced
+
+        monitoring_enabled:
+          type: bool
+          default: true
+          description: Wire n8n log paths into the monitoring stack.
+          ui: advanced
+
+        category_group:
+          type: string
+          default: Productivity
+          description: Section the app appears under in the Authentik portal.
+          ui: advanced
+
+  # ── Backrest ────────────────────────────────────────────────────────────
+  # Restic-based backups per host (each host = its own instance + bucket).
+  # Forward-auth via the embedded outpost. Multi-instance: consumers
+  # instantiate one module block per backed-up host. The manifest declares
+  # the bundle once; the wizard prompts for instance_name + backup_plans.
+  - id: backrest
+    display_name: Backrest
+    category: ops
+    description_short: Per-host restic backups with web UI
+    description: |
+      Web UI on top of restic. Each backed-up host gets its own backrest
+      instance with its own S3 bucket and its own restic repo, so a leaked
+      IAM key only touches one host's snapshots. Restic encryption password
+      is immutable after first apply — rotation breaks every snapshot.
+    icon: icons/backrest.svg
+    upstream_url: https://github.com/garethgeorge/backrest
+
+    tfvars:
+      key: backrest_mgmt
+      schema:
+        enabled:
+          type: bool
+          default: true
+          description: Whether this backrest instance is deployed.
+          ui: hidden
+
+        hostname:
+          type: string
+          required: true
+          description: Public hostname this backrest instance is served at.
+          example: backup.mgmt.example.org
+          ui: text
+          validation:
+            pattern: ^[a-z0-9.-]+\.[a-z]{2,}$
+
+        instance_name:
+          type: string
+          required: true
+          description: Per-instance namespace (3-32 chars, lowercase, digits, hyphens). Used in bucket name, IAM principal name, secret name, container name, install dir.
+          example: mgmt
+          ui: text
+
+        deployment_host_key:
+          type: string
+          default: apps
+          description: Which host (key in compute_hosts) this backrest instance runs on. Typically the host you're backing up.
+          ui: advanced
+
+        access_level:
+          type: string
+          default: admin
+          description: Authentik group key granting baseline access. Default admin — Backrest exposes raw paths and a restore UI.
+          ui: advanced
+
+        monitoring_enabled:
+          type: bool
+          default: true
+          description: Wire backrest log paths into the monitoring stack.
+          ui: advanced
+
+        category_group:
+          type: string
+          default: Operations
+          description: Section the app appears under in the Authentik portal.
+          ui: advanced

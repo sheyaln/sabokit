@@ -102,10 +102,76 @@ apps = {
   #   hostname = "privacy.example.org"
   # }
 
+  # Nextcloud: file sync + collaboration. Postgres + S3 (object storage as
+  # primary). Pin image_tag to a major (e.g. 32-apache) — one-major-at-a-time
+  # upgrades only.
   # nextcloud = {
-  #   enabled             = true
-  #   hostname            = "cloud.example.org"
-  #   deployment_host_key = "apps"
+  #   enabled              = true
+  #   hostname             = "cloud.example.org"
+  #   smtp_from_email      = "cloud@example.org"
+  #   default_phone_region = "US"
+  # }
+
+  # Decidim: participatory democracy platform. Multi-container (web +
+  # sidekiq), postgres + S3, OIDC. Requires organization_name +
+  # system_admin_email at minimum.
+  # decidim = {
+  #   enabled            = true
+  #   hostname           = "voting.example.org"
+  #   organization_name  = "Example Assembly"
+  #   system_admin_email = "ops@example.org"
+  #   smtp_from_email    = "voting@example.org"
+  #   image_tag          = "0.28"
+  # }
+
+  # Jitsi: video conferencing. Requires UDP 10000 open in the security
+  # group on top of the host UFW (the Ansible role handles UFW). The OIDC
+  # adapter brokers Authentik OIDC → Jitsi JWT.
+  # jitsi = {
+  #   enabled  = true
+  #   hostname = "meet.example.org"
+  # }
+
+  # EspoCRM: PHP CRM. Member-entity bootstrap is opt-in (sets up
+  # constituent/dues tracking on top of the generic CRM).
+  # espocrm = {
+  #   enabled                        = true
+  #   hostname                       = "crm.example.org"
+  #   timezone                       = "America/New_York"
+  #   enable_member_entity_bootstrap = false
+  # }
+
+  # n8n: workflow automation. Defaults to bind-mount the hooks.js shim;
+  # set build_from_source = true only if you need python3 for Execute
+  # Command nodes.
+  # n8n = {
+  #   enabled  = true
+  #   hostname = "automate.example.org"
+  #   timezone = "America/New_York"
+  # }
+
+  # Backrest: restic-based per-host backups. ONE module instance per host
+  # to back up — add a second backrest_<host> module block in
+  # modules/stack/apps.tf for each. Restic password lifecycle is
+  # ignore_changes; rotating breaks every snapshot.
+  # backrest_mgmt = {
+  #   enabled       = true
+  #   hostname      = "backup.mgmt.example.org"
+  #   instance_name = "mgmt"
+  #   backup_plans = [
+  #     {
+  #       id       = "daily"
+  #       paths    = ["/backup-sources/opt", "/backup-sources/docker-volumes"]
+  #       schedule = { cron = "0 3 * * *" }
+  #       retention = {
+  #         hourly  = 24
+  #         daily   = 7
+  #         weekly  = 4
+  #         monthly = 12
+  #         yearly  = 3
+  #       }
+  #     },
+  #   ]
   # }
 }
 

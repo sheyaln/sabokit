@@ -15,9 +15,12 @@ module "identity" {
 
   # Forward-auth providers from any enabled apps/* bundles register here.
   # compact() drops nulls from disabled apps.
+  #
+  # Jitsi is NOT included even though it exports authentik_provider_id —
+  # it uses its own OIDC adapter, not the embedded outpost. See its README.
   extra_forward_auth_provider_ids = compact([
     module.bentopdf.authentik_provider_id,
-    # module.backrest.authentik_provider_id,   # uncomment when backrest ships
+    module.backrest_mgmt.authentik_provider_id,
   ])
 }
 

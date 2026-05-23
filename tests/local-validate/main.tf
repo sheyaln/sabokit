@@ -150,3 +150,69 @@ module "privacy_policy" {
   hostname = "privacy.example.org"
   base     = local.base
 }
+
+module "nextcloud" {
+  source = "../../platform/apps/nextcloud/terraform"
+
+  enabled  = true
+  hostname = "cloud.example.org"
+  base     = local.base
+}
+
+module "decidim" {
+  source = "../../platform/apps/decidim/terraform"
+
+  enabled            = true
+  hostname           = "voting.example.org"
+  organization_name  = "Example Assembly"
+  system_admin_email = "ops@example.org"
+  base               = local.base
+}
+
+module "jitsi" {
+  source = "../../platform/apps/jitsi/terraform"
+
+  enabled  = true
+  hostname = "meet.example.org"
+  base     = local.base
+}
+
+module "espocrm" {
+  source = "../../platform/apps/espocrm/terraform"
+
+  enabled  = true
+  hostname = "crm.example.org"
+  base     = local.base
+}
+
+module "n8n" {
+  source = "../../platform/apps/n8n/terraform"
+
+  enabled  = true
+  hostname = "automate.example.org"
+  base     = local.base
+}
+
+module "backrest_mgmt" {
+  source = "../../platform/apps/backrest/terraform"
+
+  enabled             = true
+  hostname            = "backup.mgmt.example.org"
+  instance_name       = "mgmt"
+  deployment_host_key = "apps"
+  backup_plans = [
+    {
+      id       = "daily"
+      paths    = ["/backup-sources/opt"]
+      schedule = { cron = "0 3 * * *" }
+      retention = {
+        hourly  = 24
+        daily   = 7
+        weekly  = 4
+        monthly = 12
+        yearly  = 3
+      }
+    },
+  ]
+  base = local.base
+}

@@ -69,5 +69,41 @@ output "enabled_apps" {
       ansible_group = module.privacy_policy.ansible.host_group
       monitoring    = module.privacy_policy.monitoring
     } : null
+    nextcloud = module.nextcloud.enabled ? {
+      url           = module.nextcloud.app_url
+      ansible_vars  = module.nextcloud.ansible.vars
+      ansible_group = module.nextcloud.ansible.host_group
+      monitoring    = module.nextcloud.monitoring
+    } : null
+    decidim = module.decidim.enabled ? {
+      url           = module.decidim.app_url
+      ansible_vars  = module.decidim.ansible.vars
+      ansible_group = module.decidim.ansible.host_group
+      monitoring    = module.decidim.monitoring
+    } : null
+    jitsi = module.jitsi.enabled ? {
+      url           = module.jitsi.app_url
+      ansible_vars  = module.jitsi.ansible.vars
+      ansible_group = module.jitsi.ansible.host_group
+      monitoring    = module.jitsi.monitoring
+    } : null
+    espocrm = module.espocrm.enabled ? {
+      url           = module.espocrm.app_url
+      ansible_vars  = module.espocrm.ansible.vars
+      ansible_group = module.espocrm.ansible.host_group
+      monitoring    = module.espocrm.monitoring
+    } : null
+    n8n = module.n8n.enabled ? {
+      url           = module.n8n.app_url
+      ansible_vars  = module.n8n.ansible.vars
+      ansible_group = module.n8n.ansible.host_group
+      monitoring    = module.n8n.monitoring
+    } : null
+    backrest_mgmt = module.backrest_mgmt.enabled ? {
+      url           = module.backrest_mgmt.app_url
+      ansible_vars  = module.backrest_mgmt.ansible.vars
+      ansible_group = module.backrest_mgmt.ansible.host_group
+      monitoring    = module.backrest_mgmt.monitoring
+    } : null
   }
 }
