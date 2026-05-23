@@ -38,26 +38,39 @@ Packer creates a temporary build instance, runs the provisioners, snapshots it, 
 
 ### Releasing
 
-After a successful build, maintainers export the snapshot to a qcow2 and upload it to the sabokit GitHub Release:
+The `.github/workflows/packer-publish.yml` workflow runs on every `v*` tag push (or via manual dispatch). It builds the image, exports the snapshot to qcow2, and attaches the qcow2 plus a metadata JSON to the matching GitHub Release.
+
+Required repo secrets (one-time setup):
+
+| Secret | What it is |
+| --- | --- |
+| `PACKER_SCW_ACCESS_KEY`     | Scaleway API access key for the build project. |
+| `PACKER_SCW_SECRET_KEY`     | Scaleway API secret key for the build project. |
+| `PACKER_SCW_PROJECT_ID`     | Scaleway project where the build VM, snapshot, and intermediate object live. |
+| `PACKER_SCW_PUBLISH_BUCKET` | Existing Scaleway object-storage bucket the workflow uses as the qcow2 export staging area. |
+
+Release asset URL the consumer import script expects:
+`https://github.com/sheyaln/sabokit/releases/download/<TAG>/fc-base-<TAG>.qcow2`
+
+For ad-hoc rebuilds without tagging, trigger the workflow manually and pass `image_version` (e.g. `2.0.0`). The workflow creates the release if it doesn't already exist.
+
+#### Manual fallback
+
+When the workflow can't run (CI down, secret rotation in progress) the same steps work by hand:
 
 ```bash
-# Replace SNAPSHOT_ID with the snapshot ID printed by packer build.
-scw block snapshot export-to-object-storage \
-  snapshot-id=<SNAPSHOT_ID> \
-  bucket=<your-export-bucket> \
-  key=fc-base-2.0.0.qcow2
+# Build (SCW_* env vars set).
+cd packer && packer init . && packer build -var image_version=2.0.0 .
 
-# Once the export completes (status: success):
-scw object-storage object download \
-  bucket=<your-export-bucket> \
-  key=fc-base-2.0.0.qcow2 \
-  > fc-base-2.0.0.qcow2
+# Resolve snapshot via the image's root_volume.
+IMAGE_ID="<id printed by packer>"
+SNAPSHOT_ID=$(scw instance image get "$IMAGE_ID" -o json | jq -r '.image.root_volume.id')
 
-gh release upload v2.0.0 fc-base-2.0.0.qcow2
+# Export → download → upload.
+scw block snapshot export-to-object-storage snapshot-id="$SNAPSHOT_ID" bucket=<bucket> key=fc-base-2.0.0.qcow2
+scw object-storage object download bucket=<bucket> key=fc-base-2.0.0.qcow2 > fc-base-2.0.0.qcow2
+gh release upload v2.0.0 fc-base-2.0.0.qcow2 --clobber
 ```
-
-The release asset URL pattern the consumer import script expects:
-`https://github.com/sheyaln/sabokit/releases/download/<TAG>/fc-base-<TAG>.qcow2`
 
 ## Consumer import flow
 
