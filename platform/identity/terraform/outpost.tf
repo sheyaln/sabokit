@@ -1,5 +1,15 @@
-# Embedded outpost. Authentik creates it implicitly on first boot; we look it
-# up and manage it so we can bind forward-auth providers from app bundles.
+# Embedded outpost. Authentik creates it implicitly on first boot. We declare
+# a matching resource so we can pin `protocol_providers` from app bundles
+# that need forward-auth (Backrest, BentoPDF, etc.).
+#
+# The first-apply collision (Authentik returns "Outpost with this name
+# already exists.") is resolved by consumer-template/scripts/deploy.sh,
+# which runs `terraform import` on this address BEFORE phase 5's apply,
+# only when the resource isn't already in state. A root-level `import {}`
+# block would be cleaner — but those don't work inside child modules in
+# Terraform 1.5+, and requiring every consumer to add boilerplate in
+# their per-env main.tf breaks the drop-in-module contract. The deploy.sh
+# shim keeps the experience one-shot.
 #
 # Provider IDs come from `var.extra_forward_auth_provider_ids` which the
 # consumer assembles by compact()-ing the authentik_provider_id outputs of
@@ -11,6 +21,12 @@ data "authentik_outpost" "embedded" {
 }
 
 resource "authentik_outpost" "embedded" {
+  # Only manage the outpost when there's actually something to bind. The
+  # Authentik API refuses to PATCH `providers` with an empty list, and a
+  # consumer who hasn't enabled any forward-auth apps doesn't need us
+  # touching the embedded outpost at all.
+  count = length(var.extra_forward_auth_provider_ids) > 0 ? 1 : 0
+
   name = "authentik Embedded Outpost"
   type = "proxy"
 

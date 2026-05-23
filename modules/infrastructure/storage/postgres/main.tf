@@ -43,16 +43,15 @@ resource "scaleway_rdb_instance" "this" {
   }
 }
 
-resource "time_sleep" "wait_for_rdb_ready" {
-  depends_on      = [scaleway_rdb_instance.this]
-  create_duration = "180s"
-}
-
 resource "scaleway_rdb_database" "dbs" {
   for_each    = toset(local.dbs)
   name        = each.value
   instance_id = scaleway_rdb_instance.this.id
-  depends_on  = [time_sleep.wait_for_rdb_ready]
+  # scaleway_rdb_instance returns once Scaleway reports the instance as
+  # "ready" — no separate wait needed. (The previous time_sleep wedged in
+  # one staging run for hours; if a flake reappears, prefer an active poll
+  # via local-exec over a fixed sleep.)
+  depends_on = [scaleway_rdb_instance.this]
 }
 
 resource "random_password" "db_passwords" {

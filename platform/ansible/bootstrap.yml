@@ -34,7 +34,10 @@
       vars:
         monitoring_host_label: "{{ inventory_hostname }}"
         monitoring_environment: "{{ env_name | default('prod') }}"
-        monitoring_loki_push_url: "{{ monitoring_loki_push_url | default('') }}"
+        # monitoring_loki_push_url comes through as an extra-var when set;
+        # role default ("") handles the unset case. A self-referencing line
+        # ({{ monitoring_loki_push_url | default('') }}) tripped Ansible's
+        # template recursion guard, so we let the precedence chain handle it.
 
 # Identity-host install: runs Authentik server on hosts in the [identity]
 # inventory group. For single-VM setups (e.g. staging), the same host can be

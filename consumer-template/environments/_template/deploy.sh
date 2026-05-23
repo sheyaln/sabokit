@@ -92,8 +92,18 @@ tfvar() {
 
 GATEWAY_DOMAIN="$(tfvar gateway_domain || true)"
 SCW_PROJECT_ID="$(tfvar scaleway_project_id || true)"
-[[ -n "$GATEWAY_DOMAIN"  ]] || { echo "ERROR: gateway_domain not set in terraform.tfvars."  >&2; exit 1; }
-[[ -n "$SCW_PROJECT_ID"  ]] || { echo "ERROR: scaleway_project_id not set in terraform.tfvars." >&2; exit 1; }
+INFRA_EMAIL="$(tfvar infra_email || true)"
+[[ -n "$GATEWAY_DOMAIN" ]] || { echo "ERROR: gateway_domain not set in terraform.tfvars."  >&2; exit 1; }
+[[ -n "$SCW_PROJECT_ID" ]] || { echo "ERROR: scaleway_project_id not set in terraform.tfvars." >&2; exit 1; }
+[[ -n "$INFRA_EMAIL"    ]] || { echo "ERROR: infra_email not set in terraform.tfvars."         >&2; exit 1; }
+
+# Force the Scaleway provider to use the project from terraform.tfvars, even
+# when the operator has SCW_DEFAULT_PROJECT_ID exported for their daily shell.
+# The provider silently prefers env vars over explicit provider-block
+# project_id; without this override, multi-project users can accidentally
+# apply staging resources into their prod project.
+export SCW_DEFAULT_PROJECT_ID="$SCW_PROJECT_ID"
+unset SCW_PROFILE
 
 # Always init — cheap when the state directory is warm, recovers from a fresh
 # clone otherwise.
@@ -114,13 +124,33 @@ if ! skip_phase 1; then
 fi
 
 # ─────────────────────────────────────────────────────────────────────────────
-# PHASE 2 — inventory regen, host-key reset, SSH wait
+# PHASE 2 — inventory regen, host-key reset, SSH wait, DNS update
 # ─────────────────────────────────────────────────────────────────────────────
 
 terraform output -json > .tf-output.json
 
 if ! skip_phase 2; then
-  c_phase 2 "Inventory + SSH reachability"
+  c_phase 2 "Inventory + SSH reachability + DNS"
+
+  # Update gateway DNS A record to point at the identity host's public IP.
+  # preflight.sh seeds a placeholder (1.1.1.1) so the zone exists; here we
+  # promote it to the real IP. Without this, Let's Encrypt's HTTP-01
+  # challenge fails and Phase 4 times out waiting for the cert.
+  IDENTITY_IP="$(awk '/^\[identity\]/{flag=1; next} /^\[/{flag=0} flag && NF {for (i=1;i<=NF;i++) if ($i ~ /^ansible_host=/) {sub("ansible_host=","",$i); print $i; exit}}' inventory.ini)"
+  if [[ -z "$IDENTITY_IP" ]]; then
+    IDENTITY_IP="$(jq -r '.compute_hosts.value | to_entries[0].value.public_ip' .tf-output.json)"
+  fi
+  if [[ -n "$IDENTITY_IP" && "$IDENTITY_IP" != "null" ]]; then
+    base_domain="$(tfvar base_domain)"
+    subdomain="${GATEWAY_DOMAIN%."$base_domain"}"
+    if [[ "$subdomain" != "$GATEWAY_DOMAIN" ]]; then
+      dns_creds=(env)
+      [[ -n "${SCW_DNS_ACCESS_KEY:-}" && -n "${SCW_DNS_SECRET_KEY:-}" ]] && \
+        dns_creds=(env "SCW_ACCESS_KEY=$SCW_DNS_ACCESS_KEY" "SCW_SECRET_KEY=$SCW_DNS_SECRET_KEY")
+      "${dns_creds[@]}" scw dns record set "$base_domain" name="$subdomain" type=A values.0="$IDENTITY_IP" ttl=60 >/dev/null
+      c_ok "DNS: $GATEWAY_DOMAIN → $IDENTITY_IP"
+    fi
+  fi
 
   # Rebuild inventory.ini from terraform output. Each host_key becomes a host
   # named "<host_key>-<env>" with public_ip, grouped under its ansible_group.
@@ -195,7 +225,8 @@ if ! skip_phase 3; then
     -e "env_name=$ENV_NAME" \
     -e "gateway_domain=$GATEWAY_DOMAIN" \
     -e "scaleway_project_id=$SCW_PROJECT_ID" \
-    "${ANSIBLE_ARGS[@]}"
+    -e "traefik_acme_email=$INFRA_EMAIL" \
+    ${ANSIBLE_ARGS[@]+"${ANSIBLE_ARGS[@]}"}
   c_ok "Bootstrap complete"
 fi
 
@@ -249,8 +280,32 @@ if ! skip_phase 5; then
   }
   c_ok "Fetched admin API token from Scaleway Secret Manager"
 
-  TF_VAR_authentik_admin_token="$ADMIN_TOKEN" \
-    terraform apply -auto-approve -input=false
+  # Authentik auto-creates the "authentik Embedded Outpost" on first boot.
+  # The identity module's authentik_outpost.embedded resource is conditional
+  # (count = 1 only when forward-auth providers exist); when present, the
+  # first-apply needs to IMPORT the existing outpost so terraform doesn't
+  # try to POST a duplicate. We do that here via CLI because Terraform's
+  # `import` block isn't allowed inside child modules. Idempotent:
+  #   - If the resource is count = 0 (no forward-auth apps): import is a no-op.
+  #   - If the resource is count = 1 and already in state: skipped.
+  #   - If the resource is count = 1 and not in state: imported.
+  OUTPOST_ADDR='module.stack.module.identity.authentik_outpost.embedded[0]'
+  if ! terraform state show "$OUTPOST_ADDR" >/dev/null 2>&1; then
+    OUTPOST_ID="$(curl -sk -H "Authorization: Bearer $ADMIN_TOKEN" \
+      "https://${GATEWAY_DOMAIN}/api/v3/outposts/instances/?name=authentik%20Embedded%20Outpost" \
+      | jq -r '.results[0].pk')"
+    if [[ -n "$OUTPOST_ID" && "$OUTPOST_ID" != "null" ]]; then
+      # Tolerate failure for the count=0 case (resource not in plan).
+      if terraform import -var "authentik_admin_token=$ADMIN_TOKEN" \
+           "$OUTPOST_ADDR" "$OUTPOST_ID" >/dev/null 2>&1; then
+        c_ok "Embedded outpost imported into terraform state"
+      fi
+    fi
+  fi
+
+  # -var beats both TF_VAR_* and any stale value lingering in terraform.tfvars.
+  terraform apply -auto-approve -input=false \
+    -var "authentik_admin_token=$ADMIN_TOKEN"
   c_ok "Full terraform apply complete"
 
   # Refresh .ansible-vars.json — module outputs may have changed.
@@ -275,7 +330,7 @@ if ! skip_phase 6; then
     -e @.ansible-vars.json \
     -e "env_name=$ENV_NAME" \
     -e "gateway_domain=$GATEWAY_DOMAIN" \
-    "${ANSIBLE_ARGS[@]}"
+    ${ANSIBLE_ARGS[@]+"${ANSIBLE_ARGS[@]}"}
   c_ok "Apps deployed"
 fi
 

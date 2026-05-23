@@ -57,7 +57,10 @@ output "authentik" {
       var.enable_apple_social_login ? { apple = authentik_source_oauth.apple[0].uuid } : {},
     )
 
-    outpost_id           = authentik_outpost.embedded.id
+    # The embedded outpost resource is conditional (only created when
+    # forward-auth providers exist). Fall back to the data source UUID
+    # when we're not managing it, so consumers always get a real ID.
+    outpost_id           = length(authentik_outpost.embedded) > 0 ? authentik_outpost.embedded[0].id : data.authentik_outpost.embedded.id
     branding_assets_path = "${path.module}/assets"
   }
 }

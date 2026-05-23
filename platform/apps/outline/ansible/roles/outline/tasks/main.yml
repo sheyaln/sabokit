@@ -57,9 +57,15 @@
     outline_db_credentials: "{{ lookup('scaleway.scaleway.scaleway_secret', _outline_db_credentials_secret_uuid) | b64decode | from_json }}"
   no_log: true
 
-- name: Look up SMTP config from Scaleway (best-effort)
+- name: Default Outline SMTP config to empty when smtp_secret_name is unset
   ansible.builtin.set_fact:
-    outline_smtp_config: "{{ lookup('scaleway.scaleway.scaleway_secret', outline_smtp_secret_name, errors='ignore') | default('{}', true) | b64decode | from_json }}"
+    outline_smtp_config: {}
+  when: outline_smtp_secret_name | default('') | length == 0
+
+- name: Look up SMTP config from Scaleway
+  ansible.builtin.set_fact:
+    outline_smtp_config: "{{ lookup('scaleway.scaleway.scaleway_secret', outline_smtp_secret_name, errors='ignore') | default('e30=', true) | b64decode | from_json }}"
+  when: outline_smtp_secret_name | default('') | length > 0
   no_log: true
 
 - name: Render docker-compose.yml
