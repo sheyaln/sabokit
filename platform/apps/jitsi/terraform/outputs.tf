@@ -25,6 +25,21 @@ output "monitoring" {
   value       = local.monitoring_contribution
 }
 
+# Rules the consumer-template aggregates into base's default security group
+# so JVB's UDP media port is reachable globally without the consumer
+# touching the SG themselves. Empty when disabled.
+output "required_inbound_rules" {
+  description = "Security group rules required for this app to function. Aggregated by the consumer-template into base's default_security_group_extra_inbound_rules."
+  value = var.enabled ? [
+    {
+      protocol   = "UDP"
+      port       = var.jvb_udp_port
+      port_range = "${var.jvb_udp_port}-${var.jvb_udp_port}"
+      ip_range   = "0.0.0.0/0"
+    },
+  ] : []
+}
+
 output "ansible" {
   description = "Ansible deployment metadata. Consumed by the consumer's site.yml."
   value = var.enabled ? {

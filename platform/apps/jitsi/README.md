@@ -14,41 +14,9 @@ Jitsi Meet — self-hosted WebRTC video conferencing. Self-contained bundle:
 
 No database. No object storage. No Jibri (recording) in v1 — see below.
 
-## Two load-bearing things to get right
+JVB's UDP media port (`jvb_udp_port`, default 10000) is added to the deployment host's security group automatically when the bundle is enabled. Disabling closes it. WebRTC media bypasses Traefik entirely — without that port open clients connect to room signaling but never see or hear each other.
 
-### 1. The JVB UDP port (default 10000/UDP) MUST be reachable from the public internet
-
-WebRTC media bypasses Traefik entirely. Clients open a UDP socket from their browser directly to the deployment host's public IP on `jvb_udp_port`. If it's blocked, participants connect to the room signaling layer but never see or hear each other.
-
-The Ansible role opens UFW for you on the deployment host. You must also open the Scaleway security group. Add this to the consumer's `module.base` call:
-
-```hcl
-default_security_group_extra_inbound_rules = [
-  {
-    protocol = "UDP"
-    port     = 10000
-    ip_range = "0.0.0.0/0"
-  },
-]
-```
-
-To verify after deploy: `nc -uvz <deployment-host-ip> 10000` from a remote network (note: a successful UDP probe doesn't always show a clean OK from `nc`; the only reliable test is a real two-participant call from different networks).
-
-### 2. Authentication model: OIDC via an external adapter
-
-Jitsi web speaks JWT, Authentik speaks OIDC. The official `docker-jitsi-meet` JWT mode expects pre-issued tokens — it doesn't run an OIDC flow itself.
-
-This bundle ships an OIDC adapter (a small Flask service) that brokers the two:
-
-1. User opens `https://meet.example.org/<room>` → web redirects to `/oidc/auth?room=<room>`
-2. Adapter redirects to Authentik with `redirect_uri=https://meet.example.org/oidc/redirect`
-3. User signs in at Authentik; Authentik bounces back to `/oidc/redirect?code=...`
-4. Adapter exchanges the code, mints a Jitsi JWT signed with `JWT_APP_SECRET`, redirects to `https://meet.example.org/<room>?jwt=<token>`
-5. Jitsi web and prosody both verify the JWT; user joins the room
-
-The adapter image is **built from source on the host** because no upstream image exists. Configure the git source via `oidc_adapter_image_repo` and pin `oidc_adapter_image_version` to a tag in production. The default fork is permissive — review and replace with your own pin before running this in production.
-
-The bundle does NOT use the embedded Authentik outpost. Do not add `module.jitsi.authentik_provider_id` to `extra_forward_auth_provider_ids`.
+Auth is OIDC via an external adapter (`github.com/sheyaln/jitsi-oidc-adapter` pinned to a tag): clients OIDC-flow through Authentik, the adapter mints a Jitsi JWT, web+prosody verify the JWT. The bundle does NOT use the embedded Authentik outpost — don't add `module.jitsi.authentik_provider_id` to `extra_forward_auth_provider_ids`.
 
 ## Usage
 

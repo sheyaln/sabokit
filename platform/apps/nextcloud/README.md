@@ -13,32 +13,9 @@ What's provisioned:
 - Scaleway-managed secrets bag (admin password, Redis password, OIDC + S3 config, SMTP from-address, OnlyOffice JWT + secure-link, Talk TURN/signaling/internal secrets)
 - Ansible role that deploys five containers (Nextcloud, Redis, cron, OnlyOffice, Talk HPB) as a single docker-compose stack with Traefik routing, then runs an idempotent `occ` script to wire up Redis, OIDC, the OnlyOffice connector, the Talk `spreed` app, trusted_proxies, and Scaleway-S3 integrity flags
 
-## Open these ports on the deployment host BEFORE applying
+Talk HPB's TURN + UDP relay ports get added to the deployment host's security group automatically when the bundle is enabled (via the aggregated `required_inbound_rules` output in `consumer-template/modules/stack/`). Disabling the bundle closes them.
 
-Talk HPB bundles `eturnal` (TURN/STUN) and binds it directly to the host —
-Traefik is NOT in the path for media. Your security group / firewall MUST
-allow inbound:
-
-| Port | Protocol | Purpose |
-|------|----------|---------|
-| `3478` | TCP + UDP | TURN control channel (clients negotiate relays here) |
-| `49152-49252` | UDP | Relay range for actual media (one per concurrent call leg) |
-
-Without these open, calls connect but participants hear silence and see
-frozen video. The defaults above match what the role configures; if you
-change `talk_turn_port` / `talk_relay_port_min` / `talk_relay_port_max`,
-update the security group to match.
-
-The Nextcloud, OnlyOffice, and Talk-signaling HTTPS endpoints all flow
-through Traefik on 443 — nothing extra to open for them.
-
-## Critical lifecycle notes
-
-- **`NEXTCLOUD_ADMIN_PASSWORD` is immutable.** Nextcloud reads it once on first install to seed the admin user. Rotating in Terraform does not rotate the in-DB password. The `random_password.admin` resource has `lifecycle { ignore_changes = all }`. To rotate, change it through the Nextcloud admin UI then taint the resource.
-- **`REDIS_PASSWORD` is also locked** after first apply. Rotating mid-flight orphans existing locks. To rotate, taint the resource and restart the stack (`docker compose down && up`).
-- **OnlyOffice JWT secret and the three Talk HPB secrets are locked** for the same reason — they're shared between two containers that handshake on every request. Rotating mid-flight breaks in-progress edits / drops live calls. Taint + restart + re-run the configure script.
-- **`scaleway_secret_version.app` has `ignore_changes = [data]`** so peripheral fields (e.g. OIDC client_secret rotating underneath) don't churn the secret version forever. To force a re-render, taint it.
-- **Image tag pinning.** Default Nextcloud tag is `32-apache`. Nextcloud only supports one-major-at-a-time upgrades; bumping the tag from `32-apache` to `34-apache` will fail. Step through each major (`32` → `33` → `34`) and let the upgrade complete between bumps. OnlyOffice and the Talk AIO image are safer to track at `latest`.
+Image tag pinning: default is `32-apache`. Nextcloud only supports one-major-at-a-time upgrades — step through each major (`32` → `33` → `34`), don't jump.
 
 ## Usage
 

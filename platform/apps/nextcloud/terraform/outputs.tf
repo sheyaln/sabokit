@@ -25,6 +25,34 @@ output "monitoring" {
   value       = local.monitoring_contribution
 }
 
+# Talk HPB needs TURN (3478 TCP+UDP) + a UDP relay range for media. Returned
+# only when talk_hostname is set (i.e. Talk HPB is actually being deployed) so
+# disabling Talk closes the ports automatically. Aggregated by the consumer-
+# template into base's default security group.
+output "required_inbound_rules" {
+  description = "Security group rules required for this app to function. Aggregated by the consumer-template into base's default_security_group_extra_inbound_rules."
+  value = (var.enabled && var.talk_hostname != "") ? [
+    {
+      protocol   = "TCP"
+      port       = var.talk_turn_port
+      port_range = "${var.talk_turn_port}-${var.talk_turn_port}"
+      ip_range   = "0.0.0.0/0"
+    },
+    {
+      protocol   = "UDP"
+      port       = var.talk_turn_port
+      port_range = "${var.talk_turn_port}-${var.talk_turn_port}"
+      ip_range   = "0.0.0.0/0"
+    },
+    {
+      protocol   = "UDP"
+      port       = null
+      port_range = "${var.talk_relay_port_min}-${var.talk_relay_port_max}"
+      ip_range   = "0.0.0.0/0"
+    },
+  ] : []
+}
+
 output "ansible" {
   description = "Ansible deployment metadata. Consumed by the consumer's site.yml."
   value = var.enabled ? {

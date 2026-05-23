@@ -1,5 +1,5 @@
 module "base" {
-  source = "git::https://github.com/sheyaln/sabokit.git//platform/base/terraform?ref=v1.0.0"
+  source = "git::https://github.com/sheyaln/sabokit.git//platform/base/terraform?ref=v2.3.0"
   providers = {
     scaleway     = scaleway
     scaleway.dns = scaleway.dns
@@ -21,4 +21,12 @@ module "base" {
 
   manage_gateway_dns       = var.manage_gateway_dns
   gateway_compute_host_key = var.gateway_compute_host_key
+
+  # App bundles export their own SG rule requirements as
+  # required_inbound_rules. Aggregate here so enabling an app
+  # automatically opens its ports; disabling closes them.
+  default_security_group_extra_inbound_rules = concat(
+    module.jitsi.required_inbound_rules,
+    module.nextcloud.required_inbound_rules,
+  )
 }
