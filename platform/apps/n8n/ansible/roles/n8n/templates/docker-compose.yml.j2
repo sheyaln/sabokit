@@ -1,0 +1,120 @@
+# {{ ansible_managed }}
+# Managed by sabokit apps/n8n/ansible/role.
+# Do not edit by hand — regenerated on every ansible-playbook run.
+
+x-logging: &default-logging
+  driver: "json-file"
+  options:
+    max-size: "20m"
+    max-file: "10"
+    compress: "true"
+
+services:
+  n8n:
+{% if n8n_build_from_source | bool %}
+    # Locally built image — Dockerfile in this directory adds python3 + pip.
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: "n8n-local:{{ n8n_image_tag }}"
+{% else %}
+    # Upstream image. hooks.js is bind-mounted from the host (see volumes).
+    image: "{{ n8n_image }}:{{ n8n_image_tag }}"
+    pull_policy: missing
+{% endif %}
+    container_name: n8n
+    restart: unless-stopped
+    # n8n is only reachable via Traefik. The container port is exposed to
+    # the Docker network, never bound to a host interface.
+    expose:
+      - 5678
+    env_file:
+      - .env
+    volumes:
+      - n8n_data:/home/node/.n8n
+      # OIDC external-hook file — bind-mounted read-only into n8n's data dir.
+      # n8n's EXTERNAL_HOOK_FILES env var (set in env.j2) points at this path.
+      - ./hooks.js:/home/node/.n8n/hooks.js:ro
+    networks:
+      - "{{ n8n_traefik_docker_network }}"
+      - n8n_internal
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network={{ n8n_traefik_docker_network }}"
+      - "traefik.http.services.n8n.loadbalancer.server.port=5678"
+      # Main router: editor UI + REST API. OIDC is enforced inside n8n via hooks.js.
+      - "traefik.http.routers.n8n.entrypoints=websecure"
+      - "traefik.http.routers.n8n.rule=Host(`{{ n8n_hostname }}`) && !PathPrefix(`/webhook/`) && !PathPrefix(`/webhook-test/`) && !PathPrefix(`/form/`) && !PathPrefix(`/mcp-server`)"
+      - "traefik.http.routers.n8n.tls.certresolver=le"
+      - "traefik.http.routers.n8n.service=n8n"
+      - "traefik.http.routers.n8n.priority=10"
+      # Webhook router: external webhook callbacks. Public — workflows in n8n
+      # are typically the things being called by third parties (Stripe, GitHub,
+      # form submissions). Rate-limited because there's no auth in front.
+      - "traefik.http.routers.n8n-webhooks.entrypoints=websecure"
+      - "traefik.http.routers.n8n-webhooks.rule=Host(`{{ n8n_hostname }}`) && (PathPrefix(`/webhook/`) || PathPrefix(`/webhook-test/`) || PathPrefix(`/form/`) || PathPrefix(`/mcp-server`))"
+      - "traefik.http.routers.n8n-webhooks.middlewares=n8n-webhook-ratelimit@docker"
+      - "traefik.http.routers.n8n-webhooks.tls.certresolver=le"
+      - "traefik.http.routers.n8n-webhooks.service=n8n"
+      - "traefik.http.routers.n8n-webhooks.priority=20"
+      - "traefik.http.middlewares.n8n-webhook-ratelimit.ratelimit.average={{ n8n_webhook_rate_limit_avg }}"
+      - "traefik.http.middlewares.n8n-webhook-ratelimit.ratelimit.burst={{ n8n_webhook_rate_limit_burst }}"
+      - "traefik.http.middlewares.n8n-webhook-ratelimit.ratelimit.period={{ n8n_webhook_rate_limit_per }}"
+    security_opt:
+      - no-new-privileges:true
+    healthcheck:
+      test: ["CMD-SHELL", "wget --spider -q http://localhost:5678/healthz || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    deploy:
+      resources:
+        limits:
+          memory: "{{ n8n_memory_limit }}"
+          cpus: "{{ n8n_cpu_limit }}"
+        reservations:
+          memory: "{{ n8n_memory_reservation }}"
+          cpus: "{{ n8n_cpu_reservation }}"
+    logging: *default-logging
+
+  # External task runner — executes Code-node JavaScript and Python in a
+  # separate process. The upstream n8n image is a hardened image without a
+  # package manager, so we cannot install python into it; the runners image
+  # ships with python preinstalled. The runner version MUST match n8n
+  # exactly (upstream requirement).
+  n8n-runners:
+    image: "n8nio/runners:{{ n8n_image_tag }}"
+    pull_policy: missing
+    container_name: n8n-runners
+    restart: unless-stopped
+    environment:
+      - N8N_RUNNERS_TASK_BROKER_URI=http://n8n:5679
+      - N8N_RUNNERS_AUTH_TOKEN=${N8N_RUNNERS_AUTH_TOKEN}
+      - N8N_RUNNERS_AUTO_SHUTDOWN_TIMEOUT=15
+      - GENERIC_TIMEZONE={{ n8n_timezone }}
+      - N8N_VERSION={{ n8n_image_tag }}
+    volumes:
+      # Override the upstream launcher config so Python workflows can actually
+      # import stdlib modules. See template for the allowlist.
+      - ./n8n-task-runners.json:/etc/n8n-task-runners.json:ro
+    networks:
+      - n8n_internal
+    depends_on:
+      - n8n
+    labels:
+      - "traefik.enable=false"
+    security_opt:
+      - no-new-privileges:true
+    logging: *default-logging
+
+volumes:
+  n8n_data:
+
+networks:
+  "{{ n8n_traefik_docker_network }}":
+    external: true
+  # Project-scoped network so the runner can reach the task broker at
+  # http://n8n:5679. Not exposed externally.
+  n8n_internal:
+    driver: bridge

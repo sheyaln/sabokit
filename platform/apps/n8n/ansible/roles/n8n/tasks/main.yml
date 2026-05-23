@@ -1,0 +1,121 @@
+---
+# Deploy n8n as a docker-compose stack. Secrets are pulled from Scaleway
+# Secret Manager at deploy time and rendered into /opt/n8n/.env (mode 0600).
+#
+# Required vars:
+#   n8n_hostname                  - full hostname
+#   n8n_app_secret_id             - Scaleway secret ID for the app's secret bag
+#   n8n_db_credentials_secret_id  - Scaleway secret ID for DB credentials
+#
+# Prereqs (NOT installed by this role — see platform/ansible/bootstrap.yml):
+#   - Docker engine + compose plugin
+#   - Traefik on an external network named per n8n_traefik_docker_network
+#   - scaleway.scaleway Ansible collection on the controller (for the lookup)
+
+- name: Validate required n8n variables
+  ansible.builtin.assert:
+    that:
+      - n8n_hostname | length > 0
+      - n8n_app_secret_id | length > 0
+      - n8n_db_credentials_secret_id | length > 0
+    fail_msg: "n8n_hostname, n8n_app_secret_id and n8n_db_credentials_secret_id are required."
+
+- name: Assert Docker is installed and running
+  ansible.builtin.command: docker info
+  register: n8n_docker_check
+  changed_when: false
+  failed_when: n8n_docker_check.rc != 0
+  # If this fails, run platform/ansible/bootstrap.yml first.
+
+- name: Assert Traefik external network exists
+  community.docker.docker_network_info:
+    name: "{{ n8n_traefik_docker_network }}"
+  register: n8n_traefik_net
+  failed_when: not n8n_traefik_net.exists
+  # If this fails, the traefik role from platform/ansible/bootstrap.yml hasn't run.
+
+- name: Ensure n8n directory exists
+  ansible.builtin.file:
+    path: "{{ n8n_install_dir }}"
+    state: directory
+    mode: "0750"
+    owner: root
+    group: root
+
+- name: Normalize Scaleway secret IDs (strip leading region/ prefix)
+  ansible.builtin.set_fact:
+    _n8n_app_secret_uuid: "{{ n8n_app_secret_id | regex_replace('^[^/]+/', '') }}"
+    _n8n_db_credentials_secret_uuid: "{{ n8n_db_credentials_secret_id | regex_replace('^[^/]+/', '') }}"
+
+- name: Look up n8n app secrets from Scaleway
+  ansible.builtin.set_fact:
+    n8n_app_secrets: "{{ lookup('scaleway.scaleway.scaleway_secret', _n8n_app_secret_uuid) | b64decode | from_json }}"
+  no_log: true
+
+- name: Look up n8n DB credentials from Scaleway
+  ansible.builtin.set_fact:
+    n8n_db_credentials: "{{ lookup('scaleway.scaleway.scaleway_secret', _n8n_db_credentials_secret_uuid) | b64decode | from_json }}"
+  no_log: true
+
+# hooks.js is the OIDC external-hook file. n8n loads it via EXTERNAL_HOOK_FILES
+# and it wires the entire OIDC dance plus JIT user provisioning. Bind-mounted
+# into the container by docker-compose; copying it to the host keeps the
+# editable-on-host story simple if a consumer ever needs to patch.
+- name: Deploy n8n OIDC hooks.js
+  ansible.builtin.copy:
+    src: hooks.js
+    dest: "{{ n8n_install_dir }}/hooks.js"
+    mode: "0644"
+    owner: root
+    group: root
+  notify: Restart n8n
+
+# Upstream's launcher config is locked down to the point of being unusable
+# (the python runner blocks `import json`). We render our own with a sane
+# stdlib allowlist; mounted into the runners container at /etc/n8n-task-runners.json.
+- name: Render task-runner launcher config
+  ansible.builtin.template:
+    src: n8n-task-runners.json.j2
+    dest: "{{ n8n_install_dir }}/n8n-task-runners.json"
+    mode: "0644"
+    owner: root
+    group: root
+  notify: Restart n8n
+
+# Only rendered when the consumer flips n8n_build_from_source. Layers python3
+# on top of the upstream image so the Execute Command node can shell out to
+# python; the default bind-mount path skips this entirely.
+- name: Render custom Dockerfile (build_from_source path)
+  ansible.builtin.template:
+    src: Dockerfile.j2
+    dest: "{{ n8n_install_dir }}/Dockerfile"
+    mode: "0644"
+    owner: root
+    group: root
+  when: n8n_build_from_source | bool
+  notify: Restart n8n
+
+- name: Render docker-compose.yml
+  ansible.builtin.template:
+    src: docker-compose.yml.j2
+    dest: "{{ n8n_install_dir }}/docker-compose.yml"
+    mode: "0644"
+    owner: root
+    group: root
+  notify: Restart n8n
+
+- name: Render n8n environment file
+  ansible.builtin.template:
+    src: env.j2
+    dest: "{{ n8n_install_dir }}/.env"
+    mode: "0600"
+    owner: root
+    group: root
+  notify: Restart n8n
+  no_log: true
+
+- name: Ensure n8n stack is running
+  community.docker.docker_compose_v2:
+    project_src: "{{ n8n_install_dir }}"
+    state: present
+    build: "{{ 'always' if n8n_build_from_source | bool else 'never' }}"
