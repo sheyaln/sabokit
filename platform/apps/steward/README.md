@@ -1,6 +1,6 @@
 # Steward (member administration UI)
 
-Federated-commons bundle that deploys [Steward](https://github.com/dciww/steward), a
+Federated-commons bundle that deploys [Steward](https://github.com/sheyaln/sabokit-steward), a
 simplified Authentik admin UI for non-technical organization administrators.
 It is the friendly admin surface for membership secretaries, organizers, and
 chapter admins -- the people you don't want clicking around in the raw

@@ -28,7 +28,7 @@ module "steward" {
   extra_authorized_groups = try(var.apps.steward.extra_authorized_groups, {})
   admin_group_name        = try(var.apps.steward.admin_group_name, "steward-admins")
   invite_flow_slug        = try(var.apps.steward.invite_flow_slug, "")
-  image_repository        = try(var.apps.steward.image_repository, "ghcr.io/dciww/steward")
+  image_repository        = try(var.apps.steward.image_repository, "ghcr.io/sheyaln/sabokit-steward")
   image_tag               = try(var.apps.steward.image_tag, "latest")
   monitoring_enabled      = try(var.apps.steward.monitoring_enabled, true)
   deployment_host_key     = try(var.apps.steward.deployment_host_key, "apps")

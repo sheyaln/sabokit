@@ -57,7 +57,7 @@ apps = {
   #   enabled  = true
   #   hostname = "members.example.org"
   #
-  #   # Optional: pin the image. Defaults to ghcr.io/dciww/steward:latest.
+  #   # Optional: pin the image. Defaults to ghcr.io/sheyaln/sabokit-steward:latest.
   #   # image_tag = "v1.0.0"
   #
   #   # Optional: enable an enrollment flow so new members get an invite.

@@ -3,7 +3,7 @@
 # platform/apps/steward/terraform's ansible.vars output.
 
 steward_hostname: ""                          # Required. The full hostname (e.g. "members.example.org").
-steward_image_repository: "ghcr.io/dciww/steward"
+steward_image_repository: "ghcr.io/sheyaln/sabokit-steward"
 steward_image_tag: "latest"
 
 steward_install_dir: "/opt/steward"

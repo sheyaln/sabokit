@@ -58,7 +58,7 @@ variable "deployment_host_key" {
 variable "image_repository" {
   description = "OCI repository of the Steward image (without tag). Defaults to the canonical pre-beta location; consumers can repoint to their own mirror."
   type        = string
-  default     = "ghcr.io/dciww/steward"
+  default     = "ghcr.io/sheyaln/sabokit-steward"
 }
 
 variable "image_tag" {
