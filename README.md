@@ -90,7 +90,7 @@ consumer-template/                      # The starter you cp into your own repo.
 packer/                                 # Pre-baked Scaleway base image (Ubuntu + docker +
 └── base.pkr.hcl + provisioners/        # ufw + fail2ban + node_exporter + cadvisor + scw CLI).
 
-examples/local-validate/                # In-repo terraform-validate harness for CI.
+tests/local-validate/                # In-repo terraform-validate harness for CI.
 ```
 
 ---
@@ -162,7 +162,7 @@ Per-module documentation lives next to each module's `main.tf`.
 
 ## Project status
 
-**v2 release candidate.** The 3-step consumer flow (`preflight.sh` / `up.sh` / `configure.sh`) is end-to-end dogfooded against staging Scaleway projects through the v1.2.0-rc.x cycle. The platform↔app contract is validated by `examples/local-validate/`. The reference app bundle (Outline) is complete; the other 13 apps replicate the same pattern and are being added in subsequent minor releases. Feedback on the contract is welcome via issues before v2.0.0 tags.
+**v2 release candidate.** The 3-step consumer flow (`preflight.sh` / `up.sh` / `configure.sh`) is end-to-end dogfooded against staging Scaleway projects through the v1.2.0-rc.x cycle. The platform↔app contract is validated by `tests/local-validate/`. The reference app bundle (Outline) is complete; the other 13 apps replicate the same pattern and are being added in subsequent minor releases. Feedback on the contract is welcome via issues before v2.0.0 tags.
 
 ## License
 

@@ -3,7 +3,7 @@
 # without needing real Scaleway credentials.
 #
 # Use:
-#   cd examples/local-validate
+#   cd tests/local-validate
 #   terraform init -backend=false
 #   terraform validate
 #
