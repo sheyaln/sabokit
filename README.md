@@ -112,7 +112,7 @@ Most consumers won't call low-level modules directly — they'll call `module.st
 
 ### Bumping a version
 
-`consumer-template/scripts/bump-version.sh v1.2.0-rc.5` rewrites every `?ref=` pin under `modules/stack/` in one pass. Bump the sabokit git submodule separately: `cd sabokit && git fetch && git checkout v1.2.0-rc.5 && cd .. && git add sabokit && git commit`.
+`consumer-template/scripts/bump-version.sh v1.2.0-rc.5` rewrites every `?ref=` pin under `modules/stack/` AND moves the `sabokit` git submodule to the same tag in one pass. Leaves the working tree dirty — you commit.
 
 ---
 
