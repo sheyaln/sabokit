@@ -484,6 +484,26 @@ apps:
           validation:
             pattern: ^[a-z0-9.-]+\.[a-z]{2,}$
 
+        onlyoffice_hostname:
+          type: string
+          required: true
+          description: Public hostname OnlyOffice Document Server is served at. The browser loads the editor from this URL so it must be reachable from clients.
+          example: docs.example.org
+          subdomain_default: docs
+          ui: text
+          validation:
+            pattern: ^[a-z0-9.-]+\.[a-z]{2,}$
+
+        talk_hostname:
+          type: string
+          required: true
+          description: Public hostname Talk HPB signaling is served at over WSS. Same name resolves the eturnal TURN server on UDP/TCP 3478. Security group must allow 3478 + UDP 49152-49252.
+          example: talk.example.org
+          subdomain_default: talk
+          ui: text
+          validation:
+            pattern: ^[a-z0-9.-]+\.[a-z]{2,}$
+
         smtp_from_email:
           type: string
           default: ''

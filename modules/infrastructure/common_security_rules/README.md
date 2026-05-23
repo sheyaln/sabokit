@@ -8,7 +8,7 @@ The module creates no Scaleway resources — it is a pure data transformation. T
 
 ```hcl
 module "tools_rules" {
-  source = "git::https://github.com/sheyaln/sabokit.git//modules/infrastructure/common_security_rules?ref=v2.2.0"
+  source = "git::https://github.com/sheyaln/sabokit.git//modules/infrastructure/common_security_rules?ref=v2.3.0"
 
   enable_https    = true
   enable_http     = true
@@ -17,7 +17,7 @@ module "tools_rules" {
 }
 
 module "tools_sg" {
-  source        = "git::https://github.com/sheyaln/sabokit.git//modules/infrastructure/security_group?ref=v2.2.0"
+  source        = "git::https://github.com/sheyaln/sabokit.git//modules/infrastructure/security_group?ref=v2.3.0"
   name          = "tools-prod-sg"
   inbound_rules = module.tools_rules.inbound_rules
 }

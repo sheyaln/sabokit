@@ -19,7 +19,7 @@ Notifuse — open-source transactional + marketing email manager. Self-contained
 
 ```hcl
 module "notifuse" {
-  source           = "git::https://github.com/sheyaln/sabokit.git//platform/apps/notifuse/terraform?ref=v2.2.0"
+  source           = "git::https://github.com/sheyaln/sabokit.git//platform/apps/notifuse/terraform?ref=v2.3.0"
   enabled          = try(var.apps.notifuse.enabled, false)
   hostname         = try(var.apps.notifuse.hostname, "")
   root_admin_email = try(var.apps.notifuse.root_admin_email, "")

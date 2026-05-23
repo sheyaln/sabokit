@@ -13,7 +13,7 @@ Decidim — Rails-based participatory democracy platform. Self-contained bundle:
 
 ```hcl
 module "decidim" {
-  source             = "git::https://github.com/sheyaln/sabokit.git//platform/apps/decidim/terraform?ref=v2.2.0"
+  source             = "git::https://github.com/sheyaln/sabokit.git//platform/apps/decidim/terraform?ref=v2.3.0"
   enabled            = try(var.apps.decidim.enabled, false)
   hostname           = try(var.apps.decidim.hostname, "")
   base               = module.base

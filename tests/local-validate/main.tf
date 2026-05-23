@@ -154,9 +154,11 @@ module "privacy_policy" {
 module "nextcloud" {
   source = "../../platform/apps/nextcloud/terraform"
 
-  enabled  = true
-  hostname = "cloud.example.org"
-  base     = local.base
+  enabled             = true
+  hostname            = "cloud.example.org"
+  onlyoffice_hostname = "docs.example.org"
+  talk_hostname       = "talk.example.org"
+  base                = local.base
 }
 
 module "decidim" {

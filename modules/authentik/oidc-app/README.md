@@ -10,7 +10,7 @@ Use `additional_property_mapping_ids` to inject app-specific custom scopes witho
 
 ```hcl
 module "outline_oidc" {
-  source = "git::https://github.com/sheyaln/sabokit.git//modules/authentik/oidc-app?ref=v2.2.0"
+  source = "git::https://github.com/sheyaln/sabokit.git//modules/authentik/oidc-app?ref=v2.3.0"
 
   application_name = "Outline"
   application_slug = "outline"

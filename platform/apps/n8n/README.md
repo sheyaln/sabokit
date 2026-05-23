@@ -25,7 +25,7 @@ Flip `build_from_source = true` to render a local `Dockerfile` that layers `pyth
 
 ```hcl
 module "n8n" {
-  source   = "git::https://github.com/sheyaln/sabokit.git//platform/apps/n8n/terraform?ref=v2.2.0"
+  source   = "git::https://github.com/sheyaln/sabokit.git//platform/apps/n8n/terraform?ref=v2.3.0"
   enabled  = try(var.apps.n8n.enabled, false)
   hostname = try(var.apps.n8n.hostname, "")
   base     = module.base

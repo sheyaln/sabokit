@@ -6,7 +6,7 @@ Provisions one database + matching user + generated password + Scaleway secret i
 
 ```hcl
 module "outline_db" {
-  source = "git::https://github.com/sheyaln/sabokit.git//modules/infrastructure/storage/postgres_database?ref=v2.2.0"
+  source = "git::https://github.com/sheyaln/sabokit.git//modules/infrastructure/storage/postgres_database?ref=v2.3.0"
 
   instance_id       = var.base.scaleway.postgres_instance_id
   instance_endpoint = var.base.scaleway.postgres_endpoint

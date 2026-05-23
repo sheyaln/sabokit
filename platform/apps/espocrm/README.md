@@ -16,7 +16,7 @@ EspoCRM keeps everything in postgres + the container's data volume. No S3, no re
 
 ```hcl
 module "espocrm" {
-  source   = "git::https://github.com/sheyaln/sabokit.git//platform/apps/espocrm/terraform?ref=v2.2.0"
+  source   = "git::https://github.com/sheyaln/sabokit.git//platform/apps/espocrm/terraform?ref=v2.3.0"
   enabled  = try(var.apps.espocrm.enabled, false)
   hostname = try(var.apps.espocrm.hostname, "")
   base     = module.base

@@ -12,7 +12,7 @@ No Authentik integration — privacy policies must be reachable without login fo
 
 ```hcl
 module "privacy-policy" {
-  source   = "git::https://github.com/sheyaln/sabokit.git//platform/apps/privacy-policy/terraform?ref=v2.2.0"
+  source   = "git::https://github.com/sheyaln/sabokit.git//platform/apps/privacy-policy/terraform?ref=v2.3.0"
   enabled  = try(var.apps.privacy-policy.enabled, false)
   hostname = try(var.apps.privacy-policy.hostname, "")
   base     = module.base

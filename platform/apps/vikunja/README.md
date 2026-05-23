@@ -15,7 +15,7 @@ No S3 bucket, no redis — Vikunja keeps everything in postgres + the filesystem
 
 ```hcl
 module "vikunja" {
-  source   = "git::https://github.com/sheyaln/sabokit.git//platform/apps/vikunja/terraform?ref=v2.2.0"
+  source   = "git::https://github.com/sheyaln/sabokit.git//platform/apps/vikunja/terraform?ref=v2.3.0"
   enabled  = try(var.apps.vikunja.enabled, false)
   hostname = try(var.apps.vikunja.hostname, "")
   base     = module.base

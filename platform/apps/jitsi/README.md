@@ -54,7 +54,7 @@ The bundle does NOT use the embedded Authentik outpost. Do not add `module.jitsi
 
 ```hcl
 module "jitsi" {
-  source   = "git::https://github.com/sheyaln/sabokit.git//platform/apps/jitsi/terraform?ref=v2.2.0"
+  source   = "git::https://github.com/sheyaln/sabokit.git//platform/apps/jitsi/terraform?ref=v2.3.0"
   enabled  = try(var.apps.jitsi.enabled, false)
   hostname = try(var.apps.jitsi.hostname, "")
   base     = module.base

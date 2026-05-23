@@ -8,7 +8,7 @@ Templated value substitution is supported for a small set of placeholders (`{{ d
 
 ```hcl
 module "secrets" {
-  source = "git::https://github.com/sheyaln/sabokit.git//modules/infrastructure/secrets?ref=v2.2.0"
+  source = "git::https://github.com/sheyaln/sabokit.git//modules/infrastructure/secrets?ref=v2.3.0"
 
   secrets        = yamldecode(file("config/secrets.yml")).secrets
   project_config = yamldecode(file("config/project.yml"))

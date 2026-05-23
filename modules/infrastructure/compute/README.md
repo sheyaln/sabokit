@@ -10,7 +10,7 @@ The `image` input defaults to `ubuntu_jammy` (Scaleway marketplace label, Ubuntu
 
 ```hcl
 module "tools" {
-  source = "git::https://github.com/sheyaln/sabokit.git//modules/infrastructure/compute?ref=v2.2.0"
+  source = "git::https://github.com/sheyaln/sabokit.git//modules/infrastructure/compute?ref=v2.3.0"
 
   instance_name      = "tools-prod"
   instance_type      = "PRO2-S"

@@ -10,7 +10,7 @@ The consumer is responsible for binding the resulting `provider_id` to an Authen
 
 ```hcl
 module "backrest_forward_auth" {
-  source = "git::https://github.com/sheyaln/sabokit.git//modules/authentik/traefik-forward-auth?ref=v2.2.0"
+  source = "git::https://github.com/sheyaln/sabokit.git//modules/authentik/traefik-forward-auth?ref=v2.3.0"
 
   application_name = "Backrest"
   application_slug = "backrest"

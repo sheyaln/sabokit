@@ -44,7 +44,7 @@ through Traefik on 443 — nothing extra to open for them.
 
 ```hcl
 module "nextcloud" {
-  source              = "git::https://github.com/sheyaln/sabokit.git//platform/apps/nextcloud/terraform?ref=v2.2.0"
+  source              = "git::https://github.com/sheyaln/sabokit.git//platform/apps/nextcloud/terraform?ref=v2.3.0"
   enabled             = try(var.apps.nextcloud.enabled, false)
   hostname            = try(var.apps.nextcloud.hostname, "")
   onlyoffice_hostname = try(var.apps.nextcloud.onlyoffice_hostname, "")

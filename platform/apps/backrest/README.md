@@ -18,7 +18,7 @@ Most consumers run **one Backrest instance per host being backed up** — each h
 # Each call provisions a complete, isolated Backrest stack.
 
 module "backrest_mgmt" {
-  source              = "git::https://github.com/sheyaln/sabokit.git//platform/apps/backrest/terraform?ref=v2.2.0"
+  source              = "git::https://github.com/sheyaln/sabokit.git//platform/apps/backrest/terraform?ref=v2.3.0"
   enabled             = try(var.apps.backrest_mgmt.enabled, false)
   hostname            = try(var.apps.backrest_mgmt.hostname, "")
   base                = module.base
@@ -35,7 +35,7 @@ module "backrest_mgmt" {
 }
 
 module "backrest_tools" {
-  source              = "git::https://github.com/sheyaln/sabokit.git//platform/apps/backrest/terraform?ref=v2.2.0"
+  source              = "git::https://github.com/sheyaln/sabokit.git//platform/apps/backrest/terraform?ref=v2.3.0"
   enabled             = try(var.apps.backrest_tools.enabled, false)
   hostname            = try(var.apps.backrest_tools.hostname, "")
   base                = module.base
@@ -58,7 +58,7 @@ module "backrest_tools" {
 }
 
 module "backrest_authentik" {
-  source              = "git::https://github.com/sheyaln/sabokit.git//platform/apps/backrest/terraform?ref=v2.2.0"
+  source              = "git::https://github.com/sheyaln/sabokit.git//platform/apps/backrest/terraform?ref=v2.3.0"
   enabled             = try(var.apps.backrest_authentik.enabled, false)
   hostname            = try(var.apps.backrest_authentik.hostname, "")
   base                = module.base

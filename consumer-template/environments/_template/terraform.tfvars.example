@@ -102,12 +102,16 @@ apps = {
   #   hostname = "privacy.example.org"
   # }
 
-  # Nextcloud: file sync + collaboration. Postgres + S3 (object storage as
-  # primary). Pin image_tag to a major (e.g. 32-apache) — one-major-at-a-time
-  # upgrades only.
+  # Nextcloud: file sync + collaboration + OnlyOffice (document editing) +
+  # Talk HPB (video calls). One stack, three hostnames. Talk HPB requires
+  # UDP/TCP 3478 + UDP 49152-49252 to be open in the security group on top of
+  # the host UFW. Pin image_tag to a major (e.g. 32-apache) — one-major-at-
+  # a-time upgrades only.
   # nextcloud = {
   #   enabled              = true
   #   hostname             = "cloud.example.org"
+  #   onlyoffice_hostname  = "docs.example.org"
+  #   talk_hostname        = "talk.example.org"
   #   smtp_from_email      = "cloud@example.org"
   #   default_phone_region = "US"
   # }

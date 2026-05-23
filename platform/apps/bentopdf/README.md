@@ -31,7 +31,7 @@ Without this, the app deploys cleanly but the outpost ignores it and the Traefik
 
 ```hcl
 module "bentopdf" {
-  source   = "git::https://github.com/sheyaln/sabokit.git//platform/apps/bentopdf/terraform?ref=v2.2.0"
+  source   = "git::https://github.com/sheyaln/sabokit.git//platform/apps/bentopdf/terraform?ref=v2.3.0"
   enabled  = try(var.apps.bentopdf.enabled, false)
   hostname = try(var.apps.bentopdf.hostname, "")
   base     = module.base
