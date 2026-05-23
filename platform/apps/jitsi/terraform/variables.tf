@@ -105,13 +105,13 @@ variable "enable_prejoin_page" {
 variable "oidc_adapter_image_repo" {
   description = "Git URL the host clones to build the Jitsi OIDC adapter image. The adapter sits between Jitsi web and Authentik: it handles the OIDC dance, mints a Jitsi JWT, and redirects the user back into the room. Replace with your own fork if you've forked the adapter."
   type        = string
-  default     = "https://github.com/sabokit/jitsi-oidc-adapter.git"
+  default     = "https://github.com/sheyaln/jitsi-oidc-adapter.git"
 }
 
 variable "oidc_adapter_image_version" {
-  description = "Git ref (tag, branch, or SHA) checked out from oidc_adapter_image_repo before building the local image. Pin to a tag in production."
+  description = "Git ref (tag, branch, or SHA) checked out from oidc_adapter_image_repo before building the local image. Default pinned to a tagged release; bump in lockstep with the adapter repo."
   type        = string
-  default     = "main"
+  default     = "v1.0.0"
 }
 
 variable "oidc_log_level" {
