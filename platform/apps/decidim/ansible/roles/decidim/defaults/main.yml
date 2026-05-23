@@ -1,0 +1,41 @@
+---
+# Set by the consumer via the values that come out of platform/apps/decidim/terraform's ansible.vars output.
+
+decidim_hostname: ""
+decidim_image: "ghcr.io/decidim/decidim"
+decidim_image_tag: "latest"
+
+decidim_install_dir: "/opt/decidim"
+
+# Scaleway secret IDs (set by Terraform; passed in via ansible.vars).
+decidim_app_secret_id: ""
+decidim_db_credentials_secret_id: ""
+
+# SMTP — empty disables SMTP entirely. The role short-circuits the lookup when
+# this is unset and Decidim runs without outbound email.
+decidim_smtp_secret_name: ""
+
+# Docker network Traefik is on.
+decidim_traefik_docker_network: "traefik"
+
+# Sidekiq worker config (matches sidekiq_concurrency from terraform).
+decidim_sidekiq_concurrency: 5
+
+# File upload size — surfaced for the Traefik buffering middleware. Must match
+# what was sent to terraform so the bucket and the proxy agree.
+decidim_max_upload_size_bytes: 26214400
+
+# Force a one-shot db setup + seed rerun on next deploy. Set true to drop the
+# init marker volume and let the db-init step run again.
+decidim_force_db_init: false
+
+# Resource limits.
+decidim_app_memory_limit: "1G"
+decidim_app_memory_reservation: "512M"
+decidim_app_cpu_limit: "0.75"
+decidim_app_cpu_reservation: "0.25"
+
+decidim_sidekiq_memory_limit: "1G"
+decidim_sidekiq_memory_reservation: "256M"
+decidim_sidekiq_cpu_limit: "0.5"
+decidim_sidekiq_cpu_reservation: "0.1"

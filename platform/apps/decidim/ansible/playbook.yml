@@ -1,0 +1,6 @@
+---
+- name: Deploy Decidim
+  hosts: "{{ decidim_host_group | default('apps') }}"
+  become: true
+  roles:
+    - role: decidim

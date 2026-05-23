@@ -1,0 +1,5 @@
+---
+- name: Restart decidim
+  community.docker.docker_compose_v2:
+    project_src: "{{ decidim_install_dir }}"
+    state: restarted

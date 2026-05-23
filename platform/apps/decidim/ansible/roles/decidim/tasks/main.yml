@@ -1,0 +1,122 @@
+---
+# Deploy Decidim as a docker-compose stack (app + sidekiq + redis + a one-shot
+# db-init container that seeds the database on the first apply). Secrets are
+# pulled from Scaleway Secret Manager at deploy time and rendered into
+# /opt/decidim/.env (mode 0600).
+#
+# Required vars:
+#   decidim_hostname                  - full hostname
+#   decidim_app_secret_id             - Scaleway secret ID for the app's secret bag
+#   decidim_db_credentials_secret_id  - Scaleway secret ID for DB credentials
+#
+# Prereqs (NOT installed by this role — see platform/ansible/bootstrap.yml):
+#   - Docker engine + compose plugin
+#   - Traefik on an external network named per decidim_traefik_docker_network
+#   - scaleway.scaleway Ansible collection on the controller (for the lookup)
+
+- name: Validate required Decidim variables
+  ansible.builtin.assert:
+    that:
+      - decidim_hostname | length > 0
+      - decidim_app_secret_id | length > 0
+      - decidim_db_credentials_secret_id | length > 0
+    fail_msg: "decidim_hostname, decidim_app_secret_id and decidim_db_credentials_secret_id are required."
+
+- name: Assert Docker is installed and running
+  ansible.builtin.command: docker info
+  register: decidim_docker_check
+  changed_when: false
+  failed_when: decidim_docker_check.rc != 0
+
+- name: Assert Traefik external network exists
+  community.docker.docker_network_info:
+    name: "{{ decidim_traefik_docker_network }}"
+  register: decidim_traefik_net
+  failed_when: not decidim_traefik_net.exists
+
+- name: Ensure Decidim directory exists
+  ansible.builtin.file:
+    path: "{{ decidim_install_dir }}"
+    state: directory
+    mode: "0750"
+    owner: root
+    group: root
+
+- name: Normalize Scaleway secret IDs (strip leading region/ prefix)
+  ansible.builtin.set_fact:
+    _decidim_app_secret_uuid: "{{ decidim_app_secret_id | regex_replace('^[^/]+/', '') }}"
+    _decidim_db_credentials_secret_uuid: "{{ decidim_db_credentials_secret_id | regex_replace('^[^/]+/', '') }}"
+
+- name: Look up Decidim app secrets from Scaleway
+  ansible.builtin.set_fact:
+    decidim_app_secrets: "{{ lookup('scaleway.scaleway.scaleway_secret', _decidim_app_secret_uuid) | b64decode | from_json }}"
+  no_log: true
+
+- name: Look up Decidim DB credentials from Scaleway
+  ansible.builtin.set_fact:
+    decidim_db_credentials: "{{ lookup('scaleway.scaleway.scaleway_secret', _decidim_db_credentials_secret_uuid) | b64decode | from_json }}"
+  no_log: true
+
+- name: Default Decidim SMTP config to empty when smtp_secret_name is unset
+  ansible.builtin.set_fact:
+    decidim_smtp_config: {}
+  when: decidim_smtp_secret_name | default('') | length == 0
+
+- name: Look up SMTP config from Scaleway
+  ansible.builtin.set_fact:
+    decidim_smtp_config: "{{ lookup('scaleway.scaleway.scaleway_secret', decidim_smtp_secret_name, errors='ignore') | default('e30=', true) | b64decode | from_json }}"
+  when: decidim_smtp_secret_name | default('') | length > 0
+  no_log: true
+
+- name: Render docker-compose.yml
+  ansible.builtin.template:
+    src: docker-compose.yml.j2
+    dest: "{{ decidim_install_dir }}/docker-compose.yml"
+    mode: "0644"
+    owner: root
+    group: root
+  notify: Restart decidim
+
+- name: Render Decidim environment file
+  ansible.builtin.template:
+    src: env.j2
+    dest: "{{ decidim_install_dir }}/.env"
+    mode: "0600"
+    owner: root
+    group: root
+  notify: Restart decidim
+  no_log: true
+
+# Force-init: remove the marker volume so db-init reruns its seed step.
+# Operators set decidim_force_db_init=true via -e on the playbook invocation
+# when they intentionally want a fresh seed (e.g. after wiping the database).
+- name: Drop init marker when force-init requested
+  community.docker.docker_volume:
+    name: decidim_init-marker
+    state: absent
+  when: decidim_force_db_init | bool
+
+# Run the one-shot db-init container. Idempotent: writes /init/db_initialized
+# in the marker volume on first success and short-circuits subsequent runs.
+- name: Run Decidim database initialization (one-shot)
+  community.docker.docker_compose_v2:
+    project_src: "{{ decidim_install_dir }}"
+    services:
+      - db-init
+    state: present
+  register: decidim_init_result
+
+- name: Ensure Decidim stack is running
+  community.docker.docker_compose_v2:
+    project_src: "{{ decidim_install_dir }}"
+    state: present
+
+# Defensive migration run: handles the case where a new image tag added
+# migrations the seeded marker volume doesn't know about. Idempotent — Rails
+# no-ops when there's nothing pending.
+- name: Apply pending Decidim migrations
+  ansible.builtin.command:
+    cmd: docker compose -f {{ decidim_install_dir }}/docker-compose.yml exec -T app bundle exec rails db:migrate
+  register: decidim_migrate
+  changed_when: "'Migrating' in decidim_migrate.stdout"
+  failed_when: false
