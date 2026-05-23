@@ -70,6 +70,19 @@ module "bentopdf" {
   deployment_host_key     = try(var.apps.bentopdf.deployment_host_key, "apps")
 }
 
+# Public — no auth integration. Privacy policies must be reachable without login.
+module "privacy_policy" {
+  source = "git::https://github.com/sheyaln/sabokit.git//platform/apps/privacy_policy/terraform?ref=v2.2.0"
+
+  enabled  = try(var.apps.privacy_policy.enabled, false)
+  hostname = try(var.apps.privacy_policy.hostname, "")
+  base     = local.base
+
+  page_title          = try(var.apps.privacy_policy.page_title, "Privacy Policy")
+  monitoring_enabled  = try(var.apps.privacy_policy.monitoring_enabled, true)
+  deployment_host_key = try(var.apps.privacy_policy.deployment_host_key, "apps")
+}
+
 # Add more apps here as bundles ship. Same shape every time:
 #
 # module "nextcloud" {

@@ -1,0 +1,85 @@
+---
+# Deploy a public-facing privacy_policy page (single nginx container, no auth).
+#
+# Required vars:
+#   privacy_policy_hostname  - full hostname
+#
+# Optional vars:
+#   privacy_policy_html_path  - path on the Ansible controller to the org's
+#                               privacy policy HTML. Leave empty to ship the
+#                               bundled placeholder.
+#   privacy_policy_logo_path  - path on the Ansible controller to the org's
+#                               logo (PNG/SVG). Leave empty to skip the logo.
+#
+# Privacy policies must be publicly reachable for compliance reasons; this
+# role intentionally does NOT wire Authentik forward-auth.
+
+- name: Validate required Privacy Policy variables
+  ansible.builtin.assert:
+    that:
+      - privacy_policy_hostname | length > 0
+    fail_msg: "privacy_policy_hostname is required."
+
+- name: Assert Docker is installed and running
+  ansible.builtin.command: docker info
+  register: privacy_policy_docker_check
+  changed_when: false
+  failed_when: privacy_policy_docker_check.rc != 0
+
+- name: Assert Traefik external network exists
+  community.docker.docker_network_info:
+    name: "{{ privacy_policy_traefik_docker_network }}"
+  register: privacy_policy_traefik_net
+  failed_when: not privacy_policy_traefik_net.exists
+
+- name: Ensure Privacy Policy directory exists
+  ansible.builtin.file:
+    path: "{{ privacy_policy_install_dir }}"
+    state: directory
+    mode: "0755"
+    owner: root
+    group: root
+
+- name: Copy consumer-provided privacy policy HTML
+  ansible.builtin.copy:
+    src: "{{ privacy_policy_html_path }}"
+    dest: "{{ privacy_policy_install_dir }}/index.html"
+    mode: "0644"
+    owner: root
+    group: root
+  when: privacy_policy_html_path | length > 0
+  notify: Restart privacy_policy
+
+- name: Ship placeholder HTML when no consumer file is provided
+  ansible.builtin.template:
+    src: placeholder.html.j2
+    dest: "{{ privacy_policy_install_dir }}/index.html"
+    mode: "0644"
+    owner: root
+    group: root
+  when: privacy_policy_html_path | length == 0
+  notify: Restart privacy_policy
+
+- name: Copy consumer-provided logo
+  ansible.builtin.copy:
+    src: "{{ privacy_policy_logo_path }}"
+    dest: "{{ privacy_policy_install_dir }}/{{ privacy_policy_logo_filename }}"
+    mode: "0644"
+    owner: root
+    group: root
+  when: privacy_policy_logo_path | length > 0
+  notify: Restart privacy_policy
+
+- name: Render docker-compose.yml
+  ansible.builtin.template:
+    src: docker-compose.yml.j2
+    dest: "{{ privacy_policy_install_dir }}/docker-compose.yml"
+    mode: "0644"
+    owner: root
+    group: root
+  notify: Restart privacy_policy
+
+- name: Ensure Privacy Policy stack is running
+  community.docker.docker_compose_v2:
+    project_src: "{{ privacy_policy_install_dir }}"
+    state: present

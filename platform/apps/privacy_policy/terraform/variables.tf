@@ -1,0 +1,44 @@
+# ── Contract inputs (every app bundle has these) ────────────────────────────
+
+variable "enabled" {
+  description = "Master toggle. When false the bundle provisions zero resources."
+  type        = bool
+  default     = false
+}
+
+variable "base" {
+  description = "Outputs from module \"base\". Apps consume { scaleway, compute, domains } from this. authentik is not consumed by this bundle — the privacy policy page is intentionally public."
+  type        = any
+}
+
+variable "hostname" {
+  description = "Full hostname the privacy policy is served at (e.g. \"privacy.example.org\")."
+  type        = string
+  default     = ""
+}
+
+variable "monitoring_enabled" {
+  description = "If true and a monitoring app is enabled, the privacy_policy access log paths wire in."
+  type        = bool
+  default     = true
+}
+
+variable "deployment_host_key" {
+  description = "Key in base.compute.hosts identifying the VM this app deploys to."
+  type        = string
+  default     = "apps"
+}
+
+# ── Privacy-policy-specific inputs ──────────────────────────────────────────
+#
+# The HTML content + logo are NOT generated here — they're org-specific text
+# (legal language, branding) that consumers author. Pass file paths or inline
+# strings on the Ansible side (privacy_policy_html_path /
+# privacy_policy_logo_path role variables). If left at defaults, the bundle
+# ships a generic placeholder page so the deploy doesn't fail empty.
+
+variable "page_title" {
+  description = "<title> shown in the browser tab. Doesn't affect the body HTML."
+  type        = string
+  default     = "Privacy Policy"
+}

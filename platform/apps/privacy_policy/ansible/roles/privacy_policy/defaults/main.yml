@@ -1,0 +1,31 @@
+---
+privacy_policy_hostname: ""                 # Required.
+privacy_policy_page_title: "Privacy Policy"
+
+privacy_policy_install_dir: "/opt/privacy_policy"
+privacy_policy_traefik_docker_network: "traefik"
+
+# Image: any small static-file server works. nginx:alpine is the default
+# because it's tiny and predictable. Override if your org pins a specific
+# nginx tag or runs a hardened image.
+privacy_policy_image: "nginx:alpine"
+
+# Consumer-provided content. Both can be absolute paths to files in your
+# consumer-template tree (or anywhere on the Ansible controller). If left
+# empty, the bundle ships a generic placeholder HTML; the logo simply isn't
+# rendered when unset.
+#
+# Example (in your site.yml or group_vars):
+#   privacy_policy_html_path: "{{ playbook_dir }}/../files/privacy_policy.html"
+#   privacy_policy_logo_path: "{{ playbook_dir }}/../files/org-logo.png"
+privacy_policy_html_path: ""
+privacy_policy_logo_path: ""
+
+# When privacy_policy_logo_path is set, this is the basename the container
+# serves it as. Override if your HTML references a specific filename.
+privacy_policy_logo_filename: "logo.png"
+
+privacy_policy_memory_limit: "128M"
+privacy_policy_memory_reservation: "32M"
+privacy_policy_cpu_limit: "0.25"
+privacy_policy_cpu_reservation: "0.05"

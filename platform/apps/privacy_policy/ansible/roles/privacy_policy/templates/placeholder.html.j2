@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>{{ privacy_policy_page_title }}</title>
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif; max-width: 720px; margin: 4rem auto; padding: 0 1.5rem; color: #222; line-height: 1.55; }
+    img.logo { max-height: 64px; margin-bottom: 1.5rem; }
+    h1 { font-size: 1.8rem; }
+    .placeholder { background: #fffbe6; border-left: 4px solid #f0c419; padding: 1rem 1.25rem; margin: 1.5rem 0; }
+    code { background: #f4f4f4; padding: 0.1rem 0.3rem; border-radius: 3px; }
+  </style>
+</head>
+<body>
+{% if privacy_policy_logo_path | length > 0 %}
+  <img class="logo" src="/{{ privacy_policy_logo_filename }}" alt="Logo" />
+{% endif %}
+  <h1>{{ privacy_policy_page_title }}</h1>
+
+  <div class="placeholder">
+    <strong>Placeholder.</strong> This is the default page shipped by the
+    <code>sabokit</code> privacy_policy bundle. Replace it with your
+    organization's actual privacy policy:
+    <ul>
+      <li>Set <code>privacy_policy_html_path</code> in your Ansible vars to a
+          local <code>.html</code> file.</li>
+      <li>Optionally set <code>privacy_policy_logo_path</code> to your logo
+          (PNG or SVG).</li>
+      <li>Re-run the playbook.</li>
+    </ul>
+  </div>
+
+  <p>The bundle deploys a single nginx container behind Traefik with TLS
+  via Let's Encrypt. No authentication is enforced — privacy policies must
+  be reachable without login.</p>
+</body>
+</html>

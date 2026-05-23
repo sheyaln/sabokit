@@ -1,0 +1,39 @@
+---
+# Managed by sabokit apps/privacy_policy/ansible/role.
+# Do not edit by hand — regenerated on every ansible-playbook run.
+
+services:
+  privacy_policy:
+    image: "{{ privacy_policy_image }}"
+    container_name: privacy_policy
+    restart: unless-stopped
+    volumes:
+      - ./index.html:/usr/share/nginx/html/index.html:ro
+{% if privacy_policy_logo_path | length > 0 %}
+      - ./{{ privacy_policy_logo_filename }}:/usr/share/nginx/html/{{ privacy_policy_logo_filename }}:ro
+{% endif %}
+    networks:
+      - "{{ privacy_policy_traefik_docker_network }}"
+    security_opt:
+      - no-new-privileges:true
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network={{ privacy_policy_traefik_docker_network }}"
+      - "traefik.http.services.privacy_policy.loadbalancer.server.port=80"
+      - "traefik.http.routers.privacy_policy.rule=Host(`{{ privacy_policy_hostname }}`)"
+      - "traefik.http.routers.privacy_policy.entrypoints=websecure"
+      - "traefik.http.routers.privacy_policy.tls.certresolver=le"
+      - "traefik.http.routers.privacy_policy.service=privacy_policy"
+      # No auth middleware — privacy policies are public by definition.
+    deploy:
+      resources:
+        limits:
+          memory: "{{ privacy_policy_memory_limit }}"
+          cpus: "{{ privacy_policy_cpu_limit }}"
+        reservations:
+          memory: "{{ privacy_policy_memory_reservation }}"
+          cpus: "{{ privacy_policy_cpu_reservation }}"
+
+networks:
+  "{{ privacy_policy_traefik_docker_network }}":
+    external: true

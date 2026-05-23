@@ -142,3 +142,11 @@ module "notifuse" {
   smtp_from_email  = "notify@example.org"
   base             = local.base
 }
+
+module "privacy_policy" {
+  source = "../../platform/apps/privacy_policy/terraform"
+
+  enabled  = true
+  hostname = "privacy.example.org"
+  base     = local.base
+}

@@ -95,6 +95,13 @@ apps = {
   #   smtp_from_email  = "notify@example.org"
   # }
 
+  # Privacy policy: public static page (no auth — must be reachable for
+  # compliance). Supply your HTML + logo via the Ansible role vars.
+  # privacy_policy = {
+  #   enabled  = true
+  #   hostname = "privacy.example.org"
+  # }
+
   # nextcloud = {
   #   enabled             = true
   #   hostname            = "cloud.example.org"

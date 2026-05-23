@@ -399,3 +399,53 @@ apps:
           default: Productivity
           description: Section the app appears under in the Authentik portal.
           ui: advanced
+
+  # ── Privacy policy ──────────────────────────────────────────────────────
+  # Public static page. No Authentik integration — privacy policies must be
+  # reachable without login. Consumer provides HTML + logo via the Ansible
+  # role vars; the bundle ships a placeholder otherwise.
+  - id: privacy_policy
+    display_name: Privacy Policy
+    category: compliance
+    description_short: Public static privacy policy page
+    description: |
+      Single nginx container serving your privacy policy at a stable URL.
+      No auth. Consumer authors HTML + (optionally) a logo; the bundle
+      handles TLS, DNS, and deploy.
+
+    tfvars:
+      key: privacy_policy
+      schema:
+        enabled:
+          type: bool
+          default: true
+          description: Whether the page is deployed.
+          ui: hidden
+
+        hostname:
+          type: string
+          required: true
+          description: Public hostname the page is served at.
+          example: privacy.example.org
+          subdomain_default: privacy
+          ui: text
+          validation:
+            pattern: ^[a-z0-9.-]+\.[a-z]{2,}$
+
+        page_title:
+          type: string
+          default: Privacy Policy
+          description: Browser tab title (used only by the placeholder; ignored once you supply your own HTML).
+          ui: advanced
+
+        deployment_host_key:
+          type: string
+          default: apps
+          description: Which host (key in compute_hosts) the page runs on.
+          ui: advanced
+
+        monitoring_enabled:
+          type: bool
+          default: true
+          description: Wire access log paths into the monitoring stack.
+          ui: advanced
