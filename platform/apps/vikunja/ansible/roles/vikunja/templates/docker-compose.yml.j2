@@ -1,0 +1,43 @@
+---
+# Managed by sabokit apps/vikunja/ansible/role.
+# Do not edit by hand — regenerated on every ansible-playbook run.
+
+services:
+  vikunja:
+    image: "{{ vikunja_image }}:{{ vikunja_image_tag }}"
+    container_name: vikunja
+    restart: always
+    volumes:
+      - "{{ vikunja_files_dir }}:/app/vikunja/files"
+    env_file:
+      - .env
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network={{ vikunja_traefik_docker_network }}"
+      - "traefik.http.services.vikunja.loadbalancer.server.port=3456"
+      - "traefik.http.routers.vikunja.rule=Host(`{{ vikunja_hostname }}`)"
+      - "traefik.http.routers.vikunja.entrypoints=websecure"
+      - "traefik.http.routers.vikunja.tls.certresolver=le"
+      - "traefik.http.routers.vikunja.service=vikunja"
+    networks:
+      - "{{ vikunja_traefik_docker_network }}"
+    security_opt:
+      - no-new-privileges:true
+    deploy:
+      resources:
+        limits:
+          memory: "{{ vikunja_memory_limit }}"
+          cpus: "{{ vikunja_cpu_limit }}"
+        reservations:
+          memory: "{{ vikunja_memory_reservation }}"
+          cpus: "{{ vikunja_cpu_reservation }}"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:3456/api/v1/info >/dev/null 2>&1 || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+
+networks:
+  "{{ vikunja_traefik_docker_network }}":
+    external: true

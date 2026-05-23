@@ -45,5 +45,11 @@ output "enabled_apps" {
       ansible_vars  = module.steward.ansible.vars
       ansible_group = module.steward.ansible.host_group
     } : null
+    vikunja = module.vikunja.enabled ? {
+      url           = module.vikunja.app_url
+      ansible_vars  = module.vikunja.ansible.vars
+      ansible_group = module.vikunja.ansible.host_group
+      monitoring    = module.vikunja.monitoring
+    } : null
   }
 }

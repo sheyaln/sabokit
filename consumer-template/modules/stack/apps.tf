@@ -34,6 +34,25 @@ module "steward" {
   deployment_host_key     = try(var.apps.steward.deployment_host_key, "apps")
 }
 
+module "vikunja" {
+  source = "git::https://github.com/sheyaln/sabokit.git//platform/apps/vikunja/terraform?ref=v2.0.0"
+
+  enabled  = try(var.apps.vikunja.enabled, false)
+  hostname = try(var.apps.vikunja.hostname, "")
+  base     = local.base
+
+  # Optional overrides
+  access_level            = try(var.apps.vikunja.access_level, "member")
+  extra_authorized_groups = try(var.apps.vikunja.extra_authorized_groups, {})
+  timezone                = try(var.apps.vikunja.timezone, "UTC")
+  enable_registration     = try(var.apps.vikunja.enable_registration, false)
+  enable_local_auth       = try(var.apps.vikunja.enable_local_auth, false)
+  smtp_from_email         = try(var.apps.vikunja.smtp_from_email, "")
+  oidc_groups_scope_name  = try(var.apps.vikunja.oidc_groups_scope_name, "vikunja_scope")
+  monitoring_enabled      = try(var.apps.vikunja.monitoring_enabled, true)
+  deployment_host_key     = try(var.apps.vikunja.deployment_host_key, "apps")
+}
+
 # Add more apps here as bundles ship. Same shape every time:
 #
 # module "nextcloud" {

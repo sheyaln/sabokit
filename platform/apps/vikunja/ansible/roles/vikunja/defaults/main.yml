@@ -1,0 +1,33 @@
+---
+# Set by the consumer via the values that come out of platform/apps/vikunja/terraform's ansible.vars output.
+
+vikunja_hostname: ""                          # Required. The full hostname (e.g. "tasks.example.org").
+vikunja_image: "vikunja/vikunja"
+vikunja_image_tag: "latest"
+
+vikunja_install_dir: "/opt/vikunja"
+vikunja_files_dir: "/opt/vikunja/files"
+
+vikunja_timezone: "UTC"
+
+# Vikunja's own auth knobs. Defaults: registration off, local password off — OIDC is the only sign-in path.
+vikunja_enable_registration: false
+vikunja_enable_local_auth: false
+
+# Scaleway secret IDs (set by Terraform; passed in via ansible.vars).
+vikunja_app_secret_id: ""                     # Single Scaleway secret with JWT signing key + OIDC bag.
+vikunja_db_credentials_secret_id: ""          # Scaleway secret with {dbname, username, password, host, port}.
+
+# SMTP — Vikunja reads the From: address from the app secret; SMTP host/port/
+# username/password come from a separate Scaleway secret named here. Empty =
+# SMTP off; the role's lookup task short-circuits and Vikunja runs without email.
+vikunja_smtp_secret_name: ""
+
+# Docker networks the Vikunja container joins.
+vikunja_traefik_docker_network: "traefik"
+
+# Resource limits.
+vikunja_memory_limit: "512M"
+vikunja_memory_reservation: "128M"
+vikunja_cpu_limit: "0.5"
+vikunja_cpu_reservation: "0.1"

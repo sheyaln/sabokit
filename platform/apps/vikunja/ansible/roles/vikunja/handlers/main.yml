@@ -1,0 +1,5 @@
+---
+- name: Restart vikunja
+  community.docker.docker_compose_v2:
+    project_src: "{{ vikunja_install_dir }}"
+    state: restarted

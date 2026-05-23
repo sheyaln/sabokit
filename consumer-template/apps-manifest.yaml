@@ -166,3 +166,94 @@ apps:
           default: Administration
           description: Section the app appears under in the Authentik portal.
           ui: advanced
+
+  # ── Vikunja ─────────────────────────────────────────────────────────────
+  # Task and project tracker. Single container, postgres-backed, OIDC-only by
+  # default. Attachments live on the host at /opt/vikunja/files. See
+  # platform/apps/vikunja/terraform/variables.tf.
+  - id: vikunja
+    display_name: Vikunja
+    category: productivity
+    description_short: Task and project tracker with SSO
+    description: |
+      Open-source task and project manager. Lists, kanban, gantt, calendars,
+      teams. Federated SSO via Authentik; team membership auto-assigned from
+      OIDC group claims when the matching custom scope is enabled.
+    icon: icons/vikunja.svg
+    docs_url: https://vikunja.io/docs/
+    upstream_url: https://vikunja.io/
+
+    tfvars:
+      key: vikunja
+      schema:
+        enabled:
+          type: bool
+          default: true
+          description: Whether Vikunja is deployed in this environment.
+          ui: hidden
+
+        hostname:
+          type: string
+          required: true
+          description: Public hostname Vikunja is served at.
+          example: tasks.example.org
+          subdomain_default: tasks
+          ui: text
+          validation:
+            pattern: ^[a-z0-9.-]+\.[a-z]{2,}$
+
+        timezone:
+          type: string
+          default: UTC
+          description: IANA timezone for reminder and recurring-task scheduling.
+          example: America/New_York
+          ui: advanced
+
+        enable_registration:
+          type: bool
+          default: false
+          description: Allow Vikunja's built-in local-account registration. OIDC is the default sign-in path; leave off unless you also enable local auth.
+          ui: advanced
+
+        enable_local_auth:
+          type: bool
+          default: false
+          description: Allow username+password logins in addition to OIDC. Default off.
+          ui: advanced
+
+        smtp_from_email:
+          type: string
+          default: ''
+          description: From-address for outbound mail. Empty disables SMTP.
+          example: tasks@example.org
+          ui: advanced
+
+        oidc_groups_scope_name:
+          type: string
+          default: vikunja_scope
+          description: Authentik custom-scope name carrying the vikunja_groups team-assignment claim.
+          ui: advanced
+
+        deployment_host_key:
+          type: string
+          default: apps
+          description: Which host (key in compute_hosts) Vikunja runs on.
+          ui: advanced
+
+        access_level:
+          type: string
+          default: member
+          description: Authentik group key granting baseline access.
+          ui: advanced
+
+        monitoring_enabled:
+          type: bool
+          default: true
+          description: Wire Vikunja log paths into the monitoring stack.
+          ui: advanced
+
+        category_group:
+          type: string
+          default: Productivity
+          description: Section the app appears under in the Authentik portal.
+          ui: advanced

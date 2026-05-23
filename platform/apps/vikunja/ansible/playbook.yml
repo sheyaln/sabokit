@@ -1,0 +1,9 @@
+---
+# Deploy Vikunja. Vars supplied by the consumer's site.yml (or directly on the
+# command line). All required vars are documented in the platform/apps/vikunja/ README.
+
+- name: Deploy Vikunja
+  hosts: "{{ vikunja_host_group | default('apps') }}"
+  become: true
+  roles:
+    - role: vikunja

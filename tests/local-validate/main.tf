@@ -1,6 +1,7 @@
-# End-to-end terraform validate harness. Wires platform/base/terraform + platform/identity/terraform
-# + apps/outline together with relative paths to catch type mismatches in CI
-# without needing real Scaleway credentials.
+# End-to-end terraform validate harness. Wires platform/base/terraform +
+# platform/identity/terraform + every shipping app bundle together with
+# relative paths to catch type mismatches in CI without needing real Scaleway
+# credentials.
 #
 # Use:
 #   cd tests/local-validate
@@ -105,5 +106,21 @@ module "outline" {
 
   enabled  = true
   hostname = "wiki.example.org"
+  base     = local.base
+}
+
+module "steward" {
+  source = "../../platform/apps/steward/terraform"
+
+  enabled  = true
+  hostname = "members.example.org"
+  base     = local.base
+}
+
+module "vikunja" {
+  source = "../../platform/apps/vikunja/terraform"
+
+  enabled  = true
+  hostname = "tasks.example.org"
   base     = local.base
 }

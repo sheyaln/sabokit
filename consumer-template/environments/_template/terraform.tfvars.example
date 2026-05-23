@@ -65,6 +65,19 @@ apps = {
   #   # invite_flow_slug = "default-source-enrollment"
   # }
 
+  # Vikunja: task and project tracker. OIDC-only by default.
+  # vikunja = {
+  #   enabled  = true
+  #   hostname = "tasks.example.org"
+  #
+  #   # Optional: server timezone (IANA). Default UTC.
+  #   # timezone = "America/New_York"
+  #
+  #   # Optional: turn on email. Requires a Scaleway secret named "smtp-config"
+  #   # carrying {host, port, username, password}; leave empty to disable mail.
+  #   # smtp_from_email = "tasks@example.org"
+  # }
+
   # nextcloud = {
   #   enabled             = true
   #   hostname            = "cloud.example.org"
