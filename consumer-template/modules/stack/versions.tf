@@ -3,8 +3,9 @@ terraform {
 
   required_providers {
     scaleway = {
-      source  = "scaleway/scaleway"
-      version = ">= 2.7.0"
+      source                = "scaleway/scaleway"
+      version               = ">= 2.7.0"
+      configuration_aliases = [scaleway.dns]
     }
     authentik = {
       source  = "goauthentik/authentik"

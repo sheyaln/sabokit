@@ -76,24 +76,11 @@ print("\n".join(out))
 PYEOF
 c_ok "Wrote inventory.ini"
 
-# Promote the gateway DNS placeholder to the identity host's real public IP.
-# preflight.sh seeded a 1.1.1.1 placeholder so the zone exists; without this
-# promotion, Let's Encrypt's HTTP-01 challenge fails and step 4 times out.
-IDENTITY_IP="$(awk '/^\[identity\]/{flag=1; next} /^\[/{flag=0} flag && NF {for (i=1;i<=NF;i++) if ($i ~ /^ansible_host=/) {sub("ansible_host=","",$i); print $i; exit}}' inventory.ini)"
-if [[ -z "$IDENTITY_IP" ]]; then
-  IDENTITY_IP="$(jq -r '.compute_hosts.value | to_entries[0].value.public_ip' .tf-output.json)"
-fi
-if [[ -n "$IDENTITY_IP" && "$IDENTITY_IP" != "null" ]]; then
-  base_domain="$(tfvar base_domain)"
-  subdomain="${GATEWAY_DOMAIN%."$base_domain"}"
-  if [[ "$subdomain" != "$GATEWAY_DOMAIN" ]]; then
-    dns_creds=(env)
-    [[ -n "${SCW_DNS_ACCESS_KEY:-}" && -n "${SCW_DNS_SECRET_KEY:-}" ]] && \
-      dns_creds=(env "SCW_ACCESS_KEY=$SCW_DNS_ACCESS_KEY" "SCW_SECRET_KEY=$SCW_DNS_SECRET_KEY")
-    "${dns_creds[@]}" scw dns record set "$base_domain" name="$subdomain" type=A values.0="$IDENTITY_IP" ttl=60 >/dev/null
-    c_ok "DNS: $GATEWAY_DOMAIN → $IDENTITY_IP"
-  fi
-fi
+# Gateway DNS is now managed by platform/base/terraform via the
+# scaleway_domain_record resource — the A record is created in the same
+# step 1 apply that provisions the identity host, so by the time we hit
+# step 4's LE check the record already points at the right IP. No shell
+# DNS update needed here.
 
 # Clear stale known_hosts entries (host key drift across re-provisions).
 IPS=($(jq -r '.compute_hosts.value | to_entries[] | .value.public_ip' .tf-output.json))

@@ -248,23 +248,15 @@ if ! $zone_ok; then
 fi
 c_ok "Zone $zone exists"
 
-# Look for an A record matching gateway_domain (full name).
+# platform/base/terraform's scaleway_domain_record.gateway will create /
+# manage the A record on apply. Preflight only verifies the SHAPE — that
+# the gateway_domain is a child of base_domain (so the zone we just
+# confirmed actually owns the record terraform is about to write).
 subdomain="${gateway_domain%."$zone"}"
 if [[ "$subdomain" == "$gateway_domain" ]]; then
-  # gateway_domain doesn't end with .<zone>. Two cases: a different zone, or
-  # the same name as the zone (apex). For now warn — almost always wrong.
-  c_warn "gateway_domain ($gateway_domain) doesn't sit under base_domain ($base_domain). Skipping DNS record check; provision it yourself if Let's Encrypt fails later."
+  c_warn "gateway_domain ($gateway_domain) doesn't sit under base_domain ($base_domain). terraform will refuse to manage this record — either set manage_gateway_dns = false in your tfvars and manage it yourself, or fix base_domain."
 else
-  records_json="$("${dns_creds_env[@]}" scw dns record list dns-zone="$zone" -o json 2>/dev/null || echo '[]')"
-  if jq -e --arg name "$subdomain" 'any(.[]?; .type == "A" and .name == $name)' <<<"$records_json" >/dev/null; then
-    c_ok "A record for $gateway_domain exists"
-  else
-    c_warn "No A record for $gateway_domain — creating placeholder pointing to 1.1.1.1"
-    c_info "(up.sh step 2 will overwrite this with the real gateway IP.)"
-    "${dns_creds_env[@]}" scw dns record add "$zone" \
-      name="$subdomain" type=A data=1.1.1.1 ttl=60 >/dev/null
-    c_ok "Placeholder A record created"
-  fi
+  c_ok "Gateway A record will be managed by terraform (subdomain \"$subdomain\" under zone \"$zone\")"
 fi
 
 # ── Done ────────────────────────────────────────────────────────────────────
