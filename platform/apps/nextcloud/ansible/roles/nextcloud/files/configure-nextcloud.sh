@@ -127,6 +127,75 @@ if [[ -n "${OIDC_CLIENT_ID}" && -n "${OIDC_CLIENT_SECRET}" && -n "${OIDC_DISCOVE
     occ config:system:set --type boolean --value true hide_login_form >/dev/null
 fi
 
+# ── OnlyOffice (connector app + document server URL + JWT) ──
+# The documentserver container reads JWT_SECRET natively from its env. The
+# Nextcloud-side onlyoffice app needs the same value to sign edit sessions;
+# we push it in via occ. config:app:set is idempotent.
+ONLYOFFICE_PUBLIC_URL="$(ce ONLYOFFICE_PUBLIC_URL)"
+ONLYOFFICE_INTERNAL_URL="$(ce ONLYOFFICE_INTERNAL_URL)"
+ONLYOFFICE_STORAGE_URL="$(ce ONLYOFFICE_STORAGE_URL)"
+ONLYOFFICE_JWT_SECRET="$(ce JWT_SECRET)"
+
+if [[ -n "${ONLYOFFICE_PUBLIC_URL}" && -n "${ONLYOFFICE_JWT_SECRET}" ]]; then
+    if ! occ app:list 2>/dev/null | grep -q "^  - onlyoffice:"; then
+        occ app:install onlyoffice >/dev/null || true
+        note_change
+    fi
+    occ app:enable onlyoffice >/dev/null
+    occ config:app:set onlyoffice DocumentServerUrl --value="${ONLYOFFICE_PUBLIC_URL}/" >/dev/null
+    occ config:app:set onlyoffice DocumentServerInternalUrl --value="${ONLYOFFICE_INTERNAL_URL}" >/dev/null
+    occ config:app:set onlyoffice StorageUrl --value="${ONLYOFFICE_STORAGE_URL}" >/dev/null
+    occ config:app:set onlyoffice jwt_secret --value="${ONLYOFFICE_JWT_SECRET}" >/dev/null
+    occ config:app:set onlyoffice jwt_header --value="Authorization" >/dev/null
+    # Self-signed/Let's-encrypt issues between containers would otherwise
+    # break the internal callback. The internal URL is HTTP-only and stays
+    # on the docker bridge — no MITM exposure.
+    occ config:app:set onlyoffice verify_peer_off --value="true" >/dev/null
+fi
+
+# ── Talk HPB (spreed app + STUN/TURN/signaling backends) ──
+# Three secrets, three roles:
+#   TALK_TURN_SECRET      — HMAC for time-bound TURN credentials between
+#                           clients and eturnal.
+#   TALK_SIGNALING_SECRET — backend-secret shared between Nextcloud and the
+#                           standalone signaling server; lets Nextcloud
+#                           authenticate room events.
+#   TALK_INTERNAL_SECRET  — Janus ↔ signaling internal auth; never leaves
+#                           the HPB container.
+TALK_HOST="$(ce TALK_HOST)"
+TALK_PORT="$(ce TALK_PORT)"
+TALK_TURN_SECRET="$(ce TALK_TURN_SECRET)"
+TALK_SIGNALING_SECRET="$(ce TALK_SIGNALING_SECRET)"
+
+if [[ -n "${TALK_HOST}" && -n "${TALK_PORT}" ]]; then
+    if ! occ app:list 2>/dev/null | grep -q "^  - spreed:"; then
+        occ app:install spreed >/dev/null || true
+        note_change
+    fi
+    occ app:enable spreed >/dev/null
+
+    # STUN: bare host:port, JSON array of strings.
+    occ config:app:set spreed stun_servers \
+        --value="[\"${TALK_HOST}:${TALK_PORT}\"]" >/dev/null
+
+    # TURN: omit the turn:/turns: scheme — Nextcloud prefixes it based on
+    # the "protocols" field. Wrong shape = silent media failures.
+    occ config:app:set spreed turn_servers \
+        --value="[{\"server\":\"${TALK_HOST}:${TALK_PORT}\",\"secret\":\"${TALK_TURN_SECRET}\",\"protocols\":\"udp,tcp\"}]" >/dev/null
+
+    # External signaling URL is the WSS endpoint Traefik fronts on 443.
+    occ config:app:set spreed signaling_servers \
+        --value="{\"servers\":[{\"server\":\"wss://${TALK_HOST}\",\"verify\":true}],\"secret\":\"${TALK_SIGNALING_SECRET}\"}" >/dev/null
+
+    occ config:app:set spreed signaling_mode --value="external" >/dev/null || true
+
+    # E2E call encryption disabled: the server middleware enforces
+    # min-client-version 99.0.0 when E2E is on, which blanket-rejects every
+    # current Android/iOS Talk build with HTTP 426. Re-enable once mobile
+    # apps catch up.
+    occ config:app:set spreed call_end_to_end_encryption --value="0" >/dev/null
+fi
+
 # ── SMTP ──
 SMTP_HOST="$(ce SMTP_HOST)"
 if [[ -n "${SMTP_HOST}" ]]; then

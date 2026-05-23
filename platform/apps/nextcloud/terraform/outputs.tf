@@ -39,6 +39,22 @@ output "ansible" {
       # SMTP is opt-in: empty smtp_from_email means SMTP is off and the role
       # skips the lookup entirely.
       nextcloud_smtp_secret_name = var.smtp_from_email == "" ? "" : "smtp-config"
+
+      # OnlyOffice + Talk HPB knobs that aren't secret-shaped (image tags,
+      # resource caps, port ranges). Secret-shaped values travel through the
+      # single app-secrets bag above.
+      nextcloud_onlyoffice_hostname     = var.onlyoffice_hostname
+      nextcloud_onlyoffice_image_tag    = var.onlyoffice_image_tag
+      nextcloud_onlyoffice_memory_limit = var.onlyoffice_memory_limit
+      nextcloud_onlyoffice_cpu_limit    = var.onlyoffice_cpu_limit
+
+      nextcloud_talk_hostname       = var.talk_hostname
+      nextcloud_talk_image_tag      = var.talk_image_tag
+      nextcloud_talk_turn_port      = var.talk_turn_port
+      nextcloud_talk_relay_port_min = var.talk_relay_port_min
+      nextcloud_talk_relay_port_max = var.talk_relay_port_max
+      nextcloud_talk_memory_limit   = var.talk_memory_limit
+      nextcloud_talk_cpu_limit      = var.talk_cpu_limit
     }
   } : null
 }

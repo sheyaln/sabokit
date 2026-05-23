@@ -18,9 +18,11 @@
   ansible.builtin.assert:
     that:
       - nextcloud_hostname | length > 0
+      - nextcloud_onlyoffice_hostname | length > 0
+      - nextcloud_talk_hostname | length > 0
       - nextcloud_app_secret_id | length > 0
       - nextcloud_db_credentials_secret_id | length > 0
-    fail_msg: "nextcloud_hostname, nextcloud_app_secret_id and nextcloud_db_credentials_secret_id are required."
+    fail_msg: "nextcloud_hostname, nextcloud_onlyoffice_hostname, nextcloud_talk_hostname, nextcloud_app_secret_id and nextcloud_db_credentials_secret_id are required."
 
 - name: Assert Docker is installed and running
   ansible.builtin.command: docker info
@@ -112,6 +114,35 @@
     status_code: [200]
   register: nextcloud_status
   until: nextcloud_status.status == 200
+  retries: 30
+  delay: 10
+
+# OnlyOffice's first boot generates fonts and self-signed internal certs;
+# can take several minutes on a cold cache. The connector config in the
+# configure script needs the server reachable, so wait here.
+- name: Wait for OnlyOffice Document Server healthcheck
+  ansible.builtin.uri:
+    url: "https://{{ nextcloud_onlyoffice_hostname }}/healthcheck"
+    method: GET
+    validate_certs: false
+    status_code: [200]
+  register: nextcloud_onlyoffice_status
+  until: nextcloud_onlyoffice_status.status == 200
+  retries: 30
+  delay: 10
+
+# Talk HPB's signaling server exposes /api/v1/welcome on port 8081 inside the
+# container; Traefik proxies WSS. A 200 here means signaling is up and TLS
+# negotiated; eturnal coming up cleanly is harder to probe without injecting a
+# STUN client, so we trust the AIO supervisor and the in-container healthcheck.
+- name: Wait for Talk HPB signaling welcome endpoint
+  ansible.builtin.uri:
+    url: "https://{{ nextcloud_talk_hostname }}/api/v1/welcome"
+    method: GET
+    validate_certs: false
+    status_code: [200]
+  register: nextcloud_talk_status
+  until: nextcloud_talk_status.status == 200
   retries: 30
   delay: 10
 
