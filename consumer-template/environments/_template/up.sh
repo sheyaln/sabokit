@@ -83,7 +83,10 @@ c_ok "Wrote inventory.ini"
 # DNS update needed here.
 
 # Clear stale known_hosts entries (host key drift across re-provisions).
-IPS=($(jq -r '.compute_hosts.value | to_entries[] | .value.public_ip' .tf-output.json))
+# read -a is bash 3.2+ compatible; mapfile requires bash 4+ which macOS lacks.
+IFS=$'\n' read -r -d '' -a IPS < <(
+  jq -r '.compute_hosts.value | to_entries[] | .value.public_ip' .tf-output.json && printf '\0'
+)
 for ip in "${IPS[@]}"; do
   ssh-keygen -R "$ip" >/dev/null 2>&1 || true
 done

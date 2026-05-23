@@ -23,6 +23,7 @@ set -euo pipefail
 ENV_DIR="$(cd "$(dirname "${BASH_SOURCE[1]}")" && pwd)"
 ENV_NAME="$(basename "$ENV_DIR")"
 FED_COMMONS_DIR="${FED_COMMONS_DIR:-${ENV_DIR}/../../../sabokit}"
+export ENV_DIR ENV_NAME FED_COMMONS_DIR
 
 if [[ ! -d "$FED_COMMONS_DIR/platform/ansible" ]]; then
   echo "ERROR: sabokit not found at $FED_COMMONS_DIR" >&2

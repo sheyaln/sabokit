@@ -86,12 +86,12 @@ variable "default_security_group_extra_inbound_rules" {
 variable "compute_hosts" {
   description = "Compute hosts to provision, keyed by short host name. All hosts get the default security group unless a host overrides security_group_id."
   type = map(object({
-    instance_type     = string
-    image             = optional(string, "ubuntu_jammy")
-    disk_size         = optional(number, 30)
-    disk_type         = optional(string, "sbs_volume")
-    role              = string
-    ansible_group     = string
+    instance_type = string
+    image         = optional(string, "ubuntu_jammy")
+    disk_size     = optional(number, 30)
+    disk_type     = optional(string, "sbs_volume")
+    role          = string
+    ansible_group = string
     # Extra Ansible groups this host belongs to. Lets a single-VM staging
     # setup put one host in [apps], [identity], and a custom env group at
     # the same time. Primary group = ansible_group; extras append.

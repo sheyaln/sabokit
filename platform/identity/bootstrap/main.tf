@@ -31,7 +31,7 @@
 # no-op on subsequent boots (the Token row already exists).
 
 locals {
-  secret_tags = distinct(concat(["authentik", "identity", var.environment], var.tags))
+  secret_tags        = distinct(concat(["authentik", "identity", var.environment], var.tags))
   secret_name_prefix = "${var.org_slug}-${var.environment}-authentik"
 }
 

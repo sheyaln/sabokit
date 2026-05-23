@@ -21,8 +21,8 @@ resource "scaleway_secret_version" "app" {
 
   secret_id = scaleway_secret.app[0].id
   data = jsonencode({
-    DJANGO_SECRET_KEY     = random_id.django_secret_key[0].b64_url
-    DJANGO_ALLOWED_HOSTS  = var.hostname
+    DJANGO_SECRET_KEY    = random_id.django_secret_key[0].b64_url
+    DJANGO_ALLOWED_HOSTS = var.hostname
 
     APP_URL = local.app_url
 

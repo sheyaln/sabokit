@@ -38,7 +38,7 @@ output "ansible" {
       outline_db_credentials_secret_id = module.database[0].secret_id
       # SMTP is opt-in: empty smtp_from_email means SMTP is off and Outline
       # should skip the lookup entirely. The Ansible role guards on this.
-      outline_smtp_secret_name         = var.smtp_from_email == "" ? "" : "smtp-config"
+      outline_smtp_secret_name = var.smtp_from_email == "" ? "" : "smtp-config"
     }
   } : null
 }
