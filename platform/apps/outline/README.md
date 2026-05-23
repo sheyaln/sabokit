@@ -15,7 +15,7 @@ This is the reference app bundle — the one ARCHITECTURE.md documents as the wo
 
 ```hcl
 module "outline" {
-  source   = "git::https://github.com/sheyaln/sabokit.git//platform/apps/outline/terraform?ref=v2.1.0"
+  source   = "git::https://github.com/sheyaln/sabokit.git//platform/apps/outline/terraform?ref=v2.2.0"
   enabled  = try(var.apps.outline.enabled, false)
   hostname = try(var.apps.outline.hostname, "")
   base     = module.base

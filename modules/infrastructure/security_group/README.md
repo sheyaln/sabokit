@@ -6,7 +6,7 @@ Creates a Scaleway instance security group with a typed `inbound_rules` list. Ru
 
 ```hcl
 module "tools_sg" {
-  source = "git::https://github.com/sheyaln/sabokit.git//modules/infrastructure/security_group?ref=v2.1.0"
+  source = "git::https://github.com/sheyaln/sabokit.git//modules/infrastructure/security_group?ref=v2.2.0"
 
   name          = "tools-prod-sg"
   description   = "Tools host"

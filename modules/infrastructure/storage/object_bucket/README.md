@@ -6,7 +6,7 @@ Creates a Scaleway object-storage bucket with versioning enabled and optional CO
 
 ```hcl
 module "attachments" {
-  source = "git::https://github.com/sheyaln/sabokit.git//modules/infrastructure/storage/object_bucket?ref=v2.1.0"
+  source = "git::https://github.com/sheyaln/sabokit.git//modules/infrastructure/storage/object_bucket?ref=v2.2.0"
 
   name = "outline-attachments-prod"
 

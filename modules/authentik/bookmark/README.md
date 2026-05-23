@@ -10,7 +10,7 @@ The module still creates one `authentik_policy_binding` per entry in `authorized
 
 ```hcl
 module "status_page_bookmark" {
-  source = "git::https://github.com/sheyaln/sabokit.git//modules/authentik/bookmark?ref=v2.1.0"
+  source = "git::https://github.com/sheyaln/sabokit.git//modules/authentik/bookmark?ref=v2.2.0"
 
   application_name = "Status Page"
   application_slug = "status-page"

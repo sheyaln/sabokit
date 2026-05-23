@@ -10,7 +10,7 @@ The module emits the metadata/SSO/SLO URL paths as outputs (relative to the Auth
 
 ```hcl
 module "nextcloud_saml" {
-  source = "git::https://github.com/sheyaln/sabokit.git//modules/authentik/saml-app?ref=v2.1.0"
+  source = "git::https://github.com/sheyaln/sabokit.git//modules/authentik/saml-app?ref=v2.2.0"
 
   application_name = "Nextcloud"
   application_slug = "nextcloud"

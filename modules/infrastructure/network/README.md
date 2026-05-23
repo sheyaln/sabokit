@@ -6,7 +6,7 @@ Creates a Scaleway VPC private network. Pass `vpc_id` to nest it under an existi
 
 ```hcl
 module "private_network" {
-  source = "git::https://github.com/sheyaln/sabokit.git//modules/infrastructure/network?ref=v2.1.0"
+  source = "git::https://github.com/sheyaln/sabokit.git//modules/infrastructure/network?ref=v2.2.0"
 
   name   = "prod-pn"
   subnet = "10.42.0.0/22"
