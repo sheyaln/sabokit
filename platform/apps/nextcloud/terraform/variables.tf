@@ -17,6 +17,18 @@ variable "hostname" {
   default     = ""
 }
 
+variable "onlyoffice_hostname" {
+  description = "Full hostname OnlyOffice Document Server is served at (e.g. \"docs.example.org\"). The browser loads the editor from this URL, so it must be reachable from clients. Required when enabled."
+  type        = string
+  default     = ""
+}
+
+variable "talk_hostname" {
+  description = "Full hostname Talk HPB signaling is served at over WSS (e.g. \"talk.example.org\"). The same DNS name must publicly resolve to the host because clients also reach the eturnal TURN server at this name on UDP/TCP 3478. Required when enabled."
+  type        = string
+  default     = ""
+}
+
 variable "category_group" {
   description = "Authentik portal category."
   type        = string
@@ -89,4 +101,62 @@ variable "smtp_from_email" {
   description = "From: address used by Nextcloud for transactional email (e.g. \"cloud@example.org\"). Empty disables SMTP. SMTP host/port/username/password come from the platform-wide smtp-config secret looked up by the Ansible role."
   type        = string
   default     = ""
+}
+
+# ── OnlyOffice-specific inputs ──────────────────────────────────────────────
+
+variable "onlyoffice_image_tag" {
+  description = "OnlyOffice Document Server Docker image tag. Bumping versions is generally safe; the server stores no editable state outside the postgres bundled in its image."
+  type        = string
+  default     = "latest"
+}
+
+variable "onlyoffice_memory_limit" {
+  description = "Memory ceiling for the OnlyOffice Document Server container. Document conversions are RAM-hungry; below ~1.5G large files OOM mid-edit."
+  type        = string
+  default     = "2G"
+}
+
+variable "onlyoffice_cpu_limit" {
+  description = "CPU ceiling for the OnlyOffice Document Server container."
+  type        = string
+  default     = "2.0"
+}
+
+# ── Talk HPB-specific inputs ────────────────────────────────────────────────
+
+variable "talk_image_tag" {
+  description = "Tag for the ghcr.io/nextcloud-releases/aio-talk image. The AIO image bundles eturnal (TURN/STUN), Janus, and the signaling server; treat it as one moving target."
+  type        = string
+  default     = "latest"
+}
+
+variable "talk_turn_port" {
+  description = "Public TCP/UDP port for the bundled eturnal TURN server. 3478 is the IANA TURN port and what Talk clients try first. Change only when the host already binds 3478."
+  type        = number
+  default     = 3478
+}
+
+variable "talk_relay_port_min" {
+  description = "Lower bound of the UDP port range eturnal allocates for media relay. Together with talk_relay_port_max this defines the host ports that MUST be open in the security group for video to flow."
+  type        = number
+  default     = 49152
+}
+
+variable "talk_relay_port_max" {
+  description = "Upper bound of the UDP relay range. Keep this tight (default 49152-49252 = 101 ports) — every concurrent call needs a handful of ports, not thousands."
+  type        = number
+  default     = 49252
+}
+
+variable "talk_memory_limit" {
+  description = "Memory ceiling for the Talk HPB container. The bundled Janus + signaling are light; eturnal is also light. 1G is comfortable for small org video."
+  type        = string
+  default     = "1G"
+}
+
+variable "talk_cpu_limit" {
+  description = "CPU ceiling for the Talk HPB container. WebRTC media doesn't pass through the HPB once peers are connected; the SFU only touches each packet briefly."
+  type        = string
+  default     = "1.0"
 }

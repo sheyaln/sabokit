@@ -10,6 +10,8 @@ locals {
       "/var/log/containers/nextcloud-*.log",
       "/var/log/containers/nextcloud-redis-*.log",
       "/var/log/containers/nextcloud-cron-*.log",
+      "/var/log/containers/nextcloud-onlyoffice-*.log",
+      "/var/log/containers/nextcloud-talk-*.log",
     ]
     alert_rules = []
   } : null

@@ -104,11 +104,152 @@ services:
     networks:
       - nextcloud_network
 
+  # OnlyOffice Document Server. Postgres + Redis live INSIDE the image
+  # (default packaging); we don't externalize them. The container is reachable
+  # from the Nextcloud container as http://nextcloud-onlyoffice/ for
+  # server-to-server callbacks, and from browsers at
+  # https://{{ nextcloud_onlyoffice_hostname }} via Traefik.
+  nextcloud-onlyoffice:
+    image: "{{ nextcloud_onlyoffice_image }}:{{ nextcloud_onlyoffice_image_tag }}"
+    container_name: nextcloud-onlyoffice
+    restart: always
+    env_file:
+      - .env
+    environment:
+      # JWT_SECRET must match what the Nextcloud onlyoffice connector app is
+      # configured with — both ends sign every edit-session payload.
+      JWT_ENABLED: "true"
+      JWT_HEADER: "Authorization"
+      JWT_IN_BODY: "false"
+      # ALLOW_PRIVATE_IP_ADDRESS=true is required: Nextcloud reaches
+      # documentserver via the internal Docker hostname (RFC1918) and the
+      # image's nginx otherwise refuses callbacks.
+      ALLOW_PRIVATE_IP_ADDRESS: "true"
+      ALLOW_META_IP_ADDRESS: "false"
+      WOPI_ENABLED: "false"
+      METRICS_ENABLED: "false"
+      DS_LOG_LEVEL: "WARN"
+      DS_WELCOME_PAGE: "false"
+      DS_EXAMPLE_ENABLED: "false"
+      GENERATE_FONTS: "true"
+      NGINX_WORKER_PROCESSES: "auto"
+      NGINX_WORKER_CONNECTIONS: "4096"
+      # 100MB document upload to the editor is a soft limit; large files still
+      # flow through Nextcloud and are referenced by URL.
+      NGINX_CLIENT_MAX_BODY_SIZE: "100m"
+      NGINX_PROXY_TIMEOUT: "120s"
+      NGINX_SEND_TIMEOUT: "120s"
+      NGINX_READ_TIMEOUT: "120s"
+      TZ: "{{ nextcloud_timezone }}"
+    volumes:
+      - onlyoffice-data:/var/www/onlyoffice/Data
+      - onlyoffice-logs:/var/log/onlyoffice
+      - onlyoffice-cache:/var/lib/onlyoffice
+      - onlyoffice-fonts:/usr/share/fonts/truetype/custom
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network={{ nextcloud_traefik_docker_network }}"
+      - "traefik.http.services.nextcloud-onlyoffice.loadbalancer.server.port=80"
+      - "traefik.http.routers.nextcloud-onlyoffice.rule=Host(`{{ nextcloud_onlyoffice_hostname }}`)"
+      - "traefik.http.routers.nextcloud-onlyoffice.entrypoints=websecure"
+      - "traefik.http.routers.nextcloud-onlyoffice.tls.certresolver=le"
+      - "traefik.http.routers.nextcloud-onlyoffice.service=nextcloud-onlyoffice"
+      - "traefik.http.routers.nextcloud-onlyoffice.middlewares=nextcloud-onlyoffice-headers"
+      - "traefik.http.middlewares.nextcloud-onlyoffice-headers.headers.customrequestheaders.X-Forwarded-Proto=https"
+      - "traefik.http.middlewares.nextcloud-onlyoffice-headers.headers.customrequestheaders.X-Forwarded-Host={{ nextcloud_onlyoffice_hostname }}"
+    networks:
+      - "{{ nextcloud_traefik_docker_network }}"
+      - nextcloud_network
+    security_opt:
+      - no-new-privileges:true
+    deploy:
+      resources:
+        limits:
+          memory: "{{ nextcloud_onlyoffice_memory_limit }}"
+          cpus: "{{ nextcloud_onlyoffice_cpu_limit }}"
+        reservations:
+          memory: "{{ nextcloud_onlyoffice_memory_reservation }}"
+          cpus: "{{ nextcloud_onlyoffice_cpu_reservation }}"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost/healthcheck"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 120s
+
+  # Talk HPB. The aio-talk image bundles eturnal (TURN/STUN), Janus (SFU),
+  # and the standalone signaling server behind one supervisord. The wrapper
+  # entrypoint patches eturnal at boot: (1) pin the relay address to the
+  # public IP that TALK_HOST resolves to — the in-container interface IP is
+  # RFC1918 and unreachable from clients; (2) clamp the relay port range to
+  # the exact ports we publish below. Both edits are idempotent — they
+  # re-apply on every restart.
+  nextcloud-talk:
+    image: "{{ nextcloud_talk_image }}:{{ nextcloud_talk_image_tag }}"
+    container_name: nextcloud-talk
+    restart: always
+    entrypoint:
+      - /bin/bash
+      - -c
+      - |
+        /start.sh
+        PUBLIC_IP=$$(dig "$${TALK_HOST}" IN A +short +search | grep '^[0-9.]\+$$' | head -n1)
+        if [ -n "$$PUBLIC_IP" ]; then
+          sed -i "s|relay_ipv4_addr:.*|relay_ipv4_addr: \"$$PUBLIC_IP\"|" /conf/eturnal.yml
+        fi
+        sed -i '/secret:/a\  relay_min_port: {{ nextcloud_talk_relay_port_min }}\n  relay_max_port: {{ nextcloud_talk_relay_port_max }}' /conf/eturnal.yml
+        exec /usr/bin/supervisord -c /supervisord.conf
+    environment:
+      NC_DOMAIN: "{{ nextcloud_hostname }}"
+      TALK_HOST: "{{ nextcloud_talk_hostname }}"
+      TALK_PORT: "{{ nextcloud_talk_turn_port }}"
+      TURN_SECRET: "${TALK_TURN_SECRET}"
+      SIGNALING_SECRET: "${TALK_SIGNALING_SECRET}"
+      INTERNAL_SECRET: "${TALK_INTERNAL_SECRET}"
+      TZ: "{{ nextcloud_timezone }}"
+    # TURN control port + UDP relay range bind to the host directly. The
+    # consumer's security group MUST allow these — Traefik is not in the
+    # path. The signaling WSS endpoint (8081 inside the container) is
+    # proxied through Traefik on standard 443.
+    ports:
+      - "{{ nextcloud_talk_turn_port }}:3478/tcp"
+      - "{{ nextcloud_talk_turn_port }}:3478/udp"
+      - "{{ nextcloud_talk_relay_port_min }}-{{ nextcloud_talk_relay_port_max }}:{{ nextcloud_talk_relay_port_min }}-{{ nextcloud_talk_relay_port_max }}/udp"
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network={{ nextcloud_traefik_docker_network }}"
+      - "traefik.http.services.nextcloud-talk.loadbalancer.server.port=8081"
+      - "traefik.http.routers.nextcloud-talk.rule=Host(`{{ nextcloud_talk_hostname }}`)"
+      - "traefik.http.routers.nextcloud-talk.entrypoints=websecure"
+      - "traefik.http.routers.nextcloud-talk.tls.certresolver=le"
+      - "traefik.http.routers.nextcloud-talk.service=nextcloud-talk"
+    networks:
+      - "{{ nextcloud_traefik_docker_network }}"
+      - nextcloud_network
+    deploy:
+      resources:
+        limits:
+          memory: "{{ nextcloud_talk_memory_limit }}"
+          cpus: "{{ nextcloud_talk_cpu_limit }}"
+        reservations:
+          memory: "{{ nextcloud_talk_memory_reservation }}"
+          cpus: "{{ nextcloud_talk_cpu_reservation }}"
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:8081/api/v1/welcome"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+
 volumes:
   redis-data:
   nextcloud-data:
   nextcloud-fontcache:
   nextcloud-wwwcache:
+  onlyoffice-data:
+  onlyoffice-logs:
+  onlyoffice-cache:
+  onlyoffice-fonts:
 
 networks:
   nextcloud_network:

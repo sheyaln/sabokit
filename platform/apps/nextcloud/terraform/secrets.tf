@@ -27,6 +27,71 @@ resource "random_password" "redis" {
   }
 }
 
+# OnlyOffice JWT secret. Signs every edit-session payload Nextcloud hands the
+# document server; the two sides MUST agree on the same value. Rotating
+# in-flight breaks every in-progress edit until both containers re-read it AND
+# the configure script re-runs to push it into the Nextcloud onlyoffice app's
+# config. Lock the value the same way as Redis/admin.
+resource "random_password" "onlyoffice_jwt" {
+  count   = var.enabled ? 1 : 0
+  length  = 48
+  special = false
+
+  lifecycle {
+    ignore_changes = all
+  }
+}
+
+# OnlyOffice secure-link secret. Signs cache-invalidation URLs the document
+# server hands its own nginx; cosmetic for single-instance, but the image
+# refuses to start cleanly without it.
+resource "random_password" "onlyoffice_secure_link" {
+  count   = var.enabled ? 1 : 0
+  length  = 32
+  special = false
+
+  lifecycle {
+    ignore_changes = all
+  }
+}
+
+# Talk HPB shared secrets. Three separate values because the Nextcloud Talk
+# server, the standalone signaling server, and eturnal all do their own
+# HMAC-based handshakes. They are NOT interchangeable; mixing them up causes
+# silent auth failures (calls connect but media never flows). All three are
+# locked post-bootstrap — rotating requires restarting the HPB container AND
+# re-running the configure script so Nextcloud's spreed app picks up the new
+# values.
+resource "random_password" "talk_turn_secret" {
+  count   = var.enabled ? 1 : 0
+  length  = 48
+  special = false
+
+  lifecycle {
+    ignore_changes = all
+  }
+}
+
+resource "random_password" "talk_signaling_secret" {
+  count   = var.enabled ? 1 : 0
+  length  = 48
+  special = false
+
+  lifecycle {
+    ignore_changes = all
+  }
+}
+
+resource "random_password" "talk_internal_secret" {
+  count   = var.enabled ? 1 : 0
+  length  = 48
+  special = false
+
+  lifecycle {
+    ignore_changes = all
+  }
+}
+
 resource "scaleway_secret" "app" {
   count = var.enabled ? 1 : 0
 
@@ -64,6 +129,26 @@ resource "scaleway_secret_version" "app" {
     S3_SECRET_KEY    = scaleway_iam_api_key.storage[0].secret_key
 
     SMTP_FROM_EMAIL = var.smtp_from_email
+
+    # OnlyOffice ↔ Nextcloud trust handshake. ONLYOFFICE_PUBLIC_URL is what
+    # browsers load the editor from; ONLYOFFICE_INTERNAL_URL is the in-stack
+    # name Nextcloud uses for server-to-server callbacks, which avoids
+    # bouncing off the public ingress for every save.
+    ONLYOFFICE_PUBLIC_URL   = local.onlyoffice_url
+    ONLYOFFICE_INTERNAL_URL = "http://nextcloud-onlyoffice/"
+    ONLYOFFICE_STORAGE_URL  = "http://nextcloud-app/"
+    ONLYOFFICE_JWT_SECRET   = random_password.onlyoffice_jwt[0].result
+    ONLYOFFICE_SECURE_LINK  = random_password.onlyoffice_secure_link[0].result
+
+    # Talk HPB. TALK_HOST is the public name clients connect to for both
+    # WSS signaling and (separately) the eturnal TURN server on UDP/TCP 3478.
+    TALK_HOST             = var.talk_hostname
+    TALK_TURN_PORT        = tostring(var.talk_turn_port)
+    TALK_RELAY_PORT_MIN   = tostring(var.talk_relay_port_min)
+    TALK_RELAY_PORT_MAX   = tostring(var.talk_relay_port_max)
+    TALK_TURN_SECRET      = random_password.talk_turn_secret[0].result
+    TALK_SIGNALING_SECRET = random_password.talk_signaling_secret[0].result
+    TALK_INTERNAL_SECRET  = random_password.talk_internal_secret[0].result
   })
 
   lifecycle {
