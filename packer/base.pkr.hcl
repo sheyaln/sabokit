@@ -32,7 +32,7 @@ source "scaleway" "base" {
   snapshot_name       = "${var.image_name_prefix}-${var.image_version}"
   ssh_username        = "root"
   remove_volume       = true
-  image_tags          = [
+  tags                = [
     "sabokit",
     "fc-base",
     "version:${var.image_version}",
