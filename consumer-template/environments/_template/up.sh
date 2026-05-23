@@ -168,15 +168,32 @@ c_info "Waiting for Authentik blueprints + permission table to finish indexing..
 ADMIN_SECRET_ID="$(jq -r '.authentik_admin_secret_id.value' .tf-output.json)"
 ADMIN_TOKEN="$(scw secret version access secret-id="${ADMIN_SECRET_ID##*/}" revision=latest -o json \
                 | jq -r '.data' | base64 -d | jq -r '.api_token')"
+# Every default-* flow slug that platform/identity/terraform/flows/data.tf
+# references via `data "authentik_flow"`. All of them must be indexed before
+# configure.sh's apply runs, otherwise the data source resolution fails with
+# "No matching flows found". Authentik loads blueprints in parallel and
+# different slugs surface at different times — polling just one isn't enough.
+REQUIRED_FLOWS=(
+  default-source-authentication
+  default-source-enrollment
+  default-invalidation-flow
+  default-user-settings-flow
+  default-provider-authorization-implicit-consent
+  default-provider-invalidation-flow
+)
 blueprints_ok=false
 for attempt in $(seq 1 30); do
-  flows="$(curl -sk -H "Authorization: Bearer $ADMIN_TOKEN" \
-    "https://${GATEWAY_DOMAIN}/api/v3/flows/instances/?slug=default-source-authentication" \
-    | jq -r '.pagination.count // 0')"
+  all_present=true
+  for slug in "${REQUIRED_FLOWS[@]}"; do
+    count="$(curl -sk -H "Authorization: Bearer $ADMIN_TOKEN" \
+      "https://${GATEWAY_DOMAIN}/api/v3/flows/instances/?slug=$slug" \
+      | jq -r '.pagination.count // 0')"
+    [[ "$count" -ge 1 ]] || { all_present=false; break; }
+  done
   perms="$(curl -sk -H "Authorization: Bearer $ADMIN_TOKEN" \
     "https://${GATEWAY_DOMAIN}/api/v3/rbac/permissions/?codename=view_application" \
     | jq -r '.pagination.count // 0')"
-  if [[ "$flows" -ge 1 && "$perms" -ge 1 ]]; then
+  if $all_present && [[ "$perms" -ge 1 ]]; then
     blueprints_ok=true
     break
   fi
