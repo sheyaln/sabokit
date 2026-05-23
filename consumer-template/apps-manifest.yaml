@@ -1,0 +1,96 @@
+# Apps Manifest — sabokit v1 contract
+#
+# Producer-curated declaration of every app bundle a consumer can deploy.
+# Consumed by GUI tools (e.g. Sabokit Manager) to render the app-selection
+# step of a deploy wizard without having to read the underlying Terraform.
+#
+# Schema authority: sabokit (producer).
+# Consumer authority: how/when fields render in the UI.
+#
+# ── Versioning ────────────────────────────────────────────────────────────
+# Within a `schema_version`, only additive changes (new optional fields, new
+# apps). Removing or changing the meaning of any existing field requires a
+# `schema_version` bump. Consumers can safely ignore unknown fields forward.
+#
+# ── Boundary ──────────────────────────────────────────────────────────────
+# This file declares per-app inputs ONLY. Blueprint-wide inputs
+# (`base_domain`, `org_slug`, `infra_email`, `scaleway_*`, `compute_hosts`)
+# are NOT here — wizards collect those in an earlier phase.
+#
+# ── Coverage check ────────────────────────────────────────────────────────
+# `scripts/check-manifest-coverage.sh` runs on every PR. It validates that
+# every entry's `tfvars.schema` refers to a real input in the corresponding
+# `platform/apps/<id>/terraform/variables.tf` and that any required input
+# the producer surfaces is one the consumer can actually set.
+
+schema_version: 1
+
+apps:
+  # ── Outline ─────────────────────────────────────────────────────────────
+  # Team wiki. The only shipping bundle today; canonical reference for the
+  # app contract. See platform/apps/outline/terraform/variables.tf.
+  - id: outline
+    display_name: Outline
+    category: collaboration
+    description_short: Team wiki with Markdown + SSO
+    description: |
+      Modern team wiki with Markdown editing, real-time collaboration,
+      and federated SSO via Authentik. Backed by managed Postgres + an
+      S3-compatible bucket for attachments.
+    icon: icons/outline.svg
+    docs_url: https://www.getoutline.com/developers
+    upstream_url: https://github.com/outline/outline
+
+    tfvars:
+      key: outline
+      schema:
+        enabled:
+          type: bool
+          default: true
+          description: Whether Outline is deployed in this environment.
+          ui: hidden
+
+        hostname:
+          type: string
+          required: true
+          description: Public hostname Outline is served at.
+          example: wiki.example.org
+          # subdomain_default is a UX prefill hint, NOT a validation
+          # constraint. Consumers may prefill `<subdomain_default>.<base_domain>`
+          # on first render of this field. The user can edit to any value
+          # that passes `validation.pattern`.
+          subdomain_default: wiki
+          ui: text
+          validation:
+            pattern: ^[a-z0-9.-]+\.[a-z]{2,}$
+
+        deployment_host_key:
+          type: string
+          default: apps
+          description: Which host (key in compute_hosts) Outline runs on.
+          ui: advanced
+
+        access_level:
+          type: string
+          default: member
+          description: Authentik group key granting baseline access.
+          ui: advanced
+
+        smtp_from_email:
+          type: string
+          default: ''
+          description: From-address for transactional email. Empty disables SMTP.
+          example: wiki@example.org
+          ui: advanced
+
+        monitoring_enabled:
+          type: bool
+          default: true
+          description: Wire Outline metrics + dashboards into the monitoring stack.
+          ui: advanced
+
+        category_group:
+          type: string
+          default: Knowledge
+          description: Section the app appears under in the Authentik portal.
+          ui: advanced

@@ -1,0 +1,40 @@
+# Manifest coverage guard.
+#
+# Runs `scripts/check-manifest-coverage.sh` on every PR that touches the
+# manifest or any app's Terraform variables. Fails if the manifest declares
+# inputs that don't exist in the HCL (a producer bug that would break every
+# downstream consumer). Surfaces warnings when an HCL variable is missing
+# from the manifest (might be a deliberate operator-only knob, might be a
+# forgotten user-facing input — reviewer decides).
+
+name: manifest-guard
+
+on:
+  pull_request:
+    paths:
+      - 'consumer-template/apps-manifest.yaml'
+      - 'platform/apps/*/terraform/variables.tf'
+      - 'scripts/check-manifest-coverage.sh'
+      - '.github/workflows/manifest-guard.yml'
+  push:
+    branches: [master]
+    paths:
+      - 'consumer-template/apps-manifest.yaml'
+      - 'platform/apps/*/terraform/variables.tf'
+      - 'scripts/check-manifest-coverage.sh'
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install yq
+        run: |
+          sudo wget -q -O /usr/local/bin/yq \
+            https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64
+          sudo chmod +x /usr/local/bin/yq
+          yq --version
+
+      - name: Run manifest coverage check
+        run: ./scripts/check-manifest-coverage.sh
