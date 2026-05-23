@@ -30,11 +30,11 @@ Prerequisites:
 ```bash
 cd packer
 packer init .
-packer validate -var image_version=1.4.0 .
-packer build -var image_version=1.4.0 .
+packer validate -var image_version=2.0.0 .
+packer build -var image_version=2.0.0 .
 ```
 
-Packer creates a temporary build instance, runs the provisioners, snapshots it, and registers the snapshot as a Scaleway image named `fc-base-1.4.0`. The temporary instance and snapshot intermediates are cleaned up automatically.
+Packer creates a temporary build instance, runs the provisioners, snapshots it, and registers the snapshot as a Scaleway image named `fc-base-2.0.0`. The temporary instance and snapshot intermediates are cleaned up automatically.
 
 ### Releasing
 
@@ -45,15 +45,15 @@ After a successful build, maintainers export the snapshot to a qcow2 and upload 
 scw block snapshot export-to-object-storage \
   snapshot-id=<SNAPSHOT_ID> \
   bucket=<your-export-bucket> \
-  key=fc-base-1.4.0.qcow2
+  key=fc-base-2.0.0.qcow2
 
 # Once the export completes (status: success):
 scw object-storage object download \
   bucket=<your-export-bucket> \
-  key=fc-base-1.4.0.qcow2 \
-  > fc-base-1.4.0.qcow2
+  key=fc-base-2.0.0.qcow2 \
+  > fc-base-2.0.0.qcow2
 
-gh release upload v1.4.0 fc-base-1.4.0.qcow2
+gh release upload v2.0.0 fc-base-2.0.0.qcow2
 ```
 
 The release asset URL pattern the consumer import script expects:
@@ -65,7 +65,7 @@ Each consumer (per Scaleway project) does this **once per sabokit version**:
 
 ```bash
 cd consumer-template/scripts
-./import-base-image.sh v1.4.0
+./import-base-image.sh v2.0.0
 ```
 
 The script downloads the qcow2 from the GitHub Release, uploads it to a temporary object-storage bucket in the consumer's Scaleway project, imports it as a block snapshot, registers it as an instance image, and prints the resulting `image_id`. The consumer pastes that ID into their `terraform.tfvars`:
@@ -74,7 +74,7 @@ The script downloads the qcow2 from the GitHub Release, uploads it to a temporar
 compute_hosts = {
   tools = {
     instance_type = "PRO2-S"
-    image         = "11111111-2222-3333-4444-555555555555"  # fc-base-1.4.0
+    image         = "11111111-2222-3333-4444-555555555555"  # fc-base-2.0.0
     role          = "apps"
     ansible_group = "apps"
   }

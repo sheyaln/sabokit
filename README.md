@@ -38,7 +38,7 @@ Each step has a verifiable checkpoint. See [`consumer-template/environments/_tem
 Optional but recommended: import the sabokit base image once per Scaleway project and `up.sh` skips ~7 minutes of apt installs:
 
 ```bash
-./consumer-template/scripts/import-base-image.sh v1.2.0-rc.5
+./consumer-template/scripts/import-base-image.sh v2.0.0
 # → prints IMAGE_ID; paste into terraform.tfvars under compute_hosts.<name>.image
 ```
 
@@ -69,7 +69,8 @@ platform/                               # The platform every consumer needs.
 │   │                                   #   outpost (configured via API).
 │   └── ansible/roles/authentik-server/ #   Installs the Authentik docker stack.
 ├── apps/                               # One self-contained bundle per app.
-│   └── outline/{terraform, ansible/roles/outline, monitoring}
+│   ├── outline/{terraform, ansible/roles/outline, monitoring}
+│   └── steward/{terraform, ansible/roles/steward}
 └── ansible/                            # Orchestration only — no role definitions here.
     ├── ansible.cfg                     #   roles_path points at every bundle's ansible/roles.
     ├── bootstrap.yml                   #   docker, traefik, ..., authentik-server.
@@ -101,7 +102,7 @@ Every module is consumed by Git ref, pinned to a tag. **Never** consume `master`
 
 ```hcl
 module "private_network" {
-  source = "git::https://github.com/sheyaln/sabokit.git//modules/infrastructure/network?ref=v1.2.0-rc.5"
+  source = "git::https://github.com/sheyaln/sabokit.git//modules/infrastructure/network?ref=v2.0.0"
 
   name   = "prod-internal"
   region = "fr-par"
@@ -112,7 +113,7 @@ Most consumers won't call low-level modules directly — they'll call `module.st
 
 ### Bumping a version
 
-`consumer-template/scripts/bump-version.sh v1.2.0-rc.5` rewrites every `?ref=` pin under `modules/stack/` AND moves the `sabokit` git submodule to the same tag in one pass. Leaves the working tree dirty — you commit.
+`consumer-template/scripts/bump-version.sh v2.0.0` rewrites every `?ref=` pin under `modules/stack/` AND moves the `sabokit` git submodule to the same tag in one pass. Leaves the working tree dirty — you commit.
 
 ---
 
@@ -162,7 +163,7 @@ Per-module documentation lives next to each module's `main.tf`.
 
 ## Project status
 
-**v2 release candidate.** The 3-step consumer flow (`preflight.sh` / `up.sh` / `configure.sh`) is end-to-end dogfooded against staging Scaleway projects through the v1.2.0-rc.x cycle. The platform↔app contract is validated by `tests/local-validate/`. The reference app bundle (Outline) is complete; the other 13 apps replicate the same pattern and are being added in subsequent minor releases. Feedback on the contract is welcome via issues before v2.0.0 tags.
+The 3-step consumer flow (`preflight.sh` / `up.sh` / `configure.sh`) is dogfooded against a real staging Scaleway project every release cycle. The platform↔app contract is validated in CI by `tests/local-validate/`. Shipping app bundles: Outline (wiki) and Steward (Authentik admin UI). More land per minor release; the pattern is the same every time — start from `platform/apps/outline/` as the reference.
 
 ## License
 

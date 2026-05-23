@@ -8,7 +8,7 @@ Apps that own their own databases should pass `databases = []` and use the `post
 
 ```hcl
 module "postgres" {
-  source = "git::https://github.com/sheyaln/sabokit.git//modules/infrastructure/storage/postgres?ref=v1.0.0"
+  source = "git::https://github.com/sheyaln/sabokit.git//modules/infrastructure/storage/postgres?ref=v2.0.0"
 
   instance_name     = "fc-prod-pg"
   database_engine   = "PostgreSQL-16"

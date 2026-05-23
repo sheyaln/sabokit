@@ -306,7 +306,7 @@ The consumer's `apps.tf` reads `var.apps` and passes per-app config to each modu
 
 ```hcl
 module "outline" {
-  source   = "git::https://github.com/sheyaln/sabokit.git//platform/apps/outline/terraform?ref=v1.0.0"
+  source   = "git::https://github.com/sheyaln/sabokit.git//platform/apps/outline/terraform?ref=v2.0.0"
   enabled  = try(var.apps.outline.enabled, false)
   hostname = try(var.apps.outline.hostname, "")
   base     = module.base
@@ -381,7 +381,7 @@ locals {
 
 ```hcl
 module "prometheus" {
-  source         = "git::...//apps/prometheus/terraform?ref=v1.0.0"
+  source         = "git::...//apps/prometheus/terraform?ref=v2.0.0"
   enabled        = try(var.apps.prometheus.enabled, false)
   hostname       = try(var.apps.prometheus.hostname, "")
   base           = module.base
@@ -439,7 +439,7 @@ In the consumer:
 
 ```hcl
 module "n8n" {
-  source                            = "git::...//apps/n8n/terraform?ref=v1.0.0"
+  source                            = "git::...//apps/n8n/terraform?ref=v2.0.0"
   enabled                           = try(var.apps.n8n.enabled, false)
   hostname                          = try(var.apps.n8n.hostname, "")
   base                              = module.base
@@ -470,7 +470,7 @@ In the consumer:
 
 ```hcl
 module "base" {
-  source = "git::...//base?ref=v1.0.0"
+  source = "git::...//base?ref=v2.0.0"
   # ...
   extra_forward_auth_provider_ids = compact([
     module.backrest_mgmt.authentik_provider_id,
@@ -505,7 +505,7 @@ module "base" {
 Tags drive everything. Consumers pin module sources to a tag:
 
 ```hcl
-source = "git::https://github.com/sheyaln/sabokit.git//platform/apps/outline/terraform?ref=v1.0.0"
+source = "git::https://github.com/sheyaln/sabokit.git//platform/apps/outline/terraform?ref=v2.0.0"
 ```
 
 Tag scheme: `v<major>.<minor>.<patch>` at the repo root. **One tag covers the whole monorepo** — every module under `base/`, `apps/`, and `modules/` is versioned together. This trades fine-grained independence for "the whole platform moves as one", which is the right trade-off for a blueprint.
@@ -537,7 +537,7 @@ apps = {
 
 ```hcl
 module "outline" {
-  source   = "git::https://github.com/sheyaln/sabokit.git//platform/apps/outline/terraform?ref=v1.0.0"
+  source   = "git::https://github.com/sheyaln/sabokit.git//platform/apps/outline/terraform?ref=v2.0.0"
   enabled  = try(var.apps.outline.enabled, false)
   hostname = try(var.apps.outline.hostname, "")
   base     = module.base
@@ -588,13 +588,13 @@ module "outline" {
 
 ```yaml
 - import_playbook: ../apps/outline/ansible/playbook.yml
-- import_playbook: ../apps/nextcloud/ansible/playbook.yml
-# ... etc; commented for disabled apps
+- import_playbook: ../apps/steward/ansible/playbook.yml
+# ... etc; comment lines for apps you don't want
 ```
 
 ### What this proves
 
 - One tfvars flag and one `import_playbook` line is the entire user-facing footprint to enable an app.
 - Disabling Outline (`enabled = false`) leaves no resources, no Authentik config, no Scaleway bucket, no DB. The compose stack on the host needs explicit `docker compose down` from a separate cleanup step (Ansible doesn't auto-undeploy).
-- A consumer that only wants Outline plus base does not carry any state for the 13 other apps.
+- A consumer that only wants Outline plus base carries no state for any other app bundle.
 - Adding a new app to the catalog is a contained PR: `apps/<new-app>/` is the entire scope, plus an entry in `consumer-template/`.

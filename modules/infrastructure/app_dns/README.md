@@ -8,7 +8,7 @@ Records whose `domain_key` isn't in `domain_zones` are silently dropped — lets
 
 ```hcl
 module "app_dns" {
-  source = "git::https://github.com/sheyaln/sabokit.git//modules/infrastructure/app_dns?ref=v1.0.0"
+  source = "git::https://github.com/sheyaln/sabokit.git//modules/infrastructure/app_dns?ref=v2.0.0"
 
   dns_records = yamldecode(file("config/dns.yml")).records
   domain_zones = {

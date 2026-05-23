@@ -1,9 +1,9 @@
-# base/authentik
+# platform/identity/terraform
 
-The Authentik platform sub-module of `base/`. Every consumer of the
-sabokit blueprint calls this module once to produce a working
-Authentik instance — flows, brand, base groups, optional social sources, and
-an embedded outpost ready to bind forward-auth providers from `apps/*`.
+The Authentik configuration module. Every consumer calls this once after
+the identity bootstrap to produce a working Authentik instance — flows,
+brand, base groups, optional social sources, and an embedded outpost ready
+to bind forward-auth providers from `apps/*`.
 
 This module is the source of truth for the **group taxonomy** and the **flow
 identifiers** that every app bundle in `apps/*` references via
@@ -105,7 +105,7 @@ the first-apply cycle note.
 ## Layout
 
 ```
-base/authentik/
+platform/identity/terraform/
 ├── versions.tf           # Required providers
 ├── variables.tf          # Module inputs
 ├── locals.tf             # Derived values (notification target groups, etc.)

@@ -27,7 +27,7 @@ If you are adding a new module under `modules/`, a new app bundle under `apps/`,
 ### Validation
 - Add `validation` blocks where the cost of a bad value would be a confusing downstream error.
 - Validation messages are full sentences. Tell the caller what they passed and what's expected.
-- Don't validate against a hardcoded enum that reflects one consumer's taxonomy (the old `access_level ∈ {admin,delegate,treasurer,member}` was wrong because it baked in DCIWW's group names — see the [audit](./ARCHITECTURE.md) for context).
+- Don't validate against a hardcoded enum that reflects one consumer's taxonomy. Group names like `{admin, treasurer, member}` look universal but bake one org's structure into the module, forcing every other consumer to fork. Use `type = string` and let the consumer pass any name their Authentik instance has.
 
 ### Sensitive
 - Mark `sensitive = true` on anything secret-bearing. Passwords, tokens, private keys, OAuth client secrets.
@@ -135,7 +135,7 @@ One-line purpose.
 
 ```hcl
 module "<name>" {
-  source = "git::https://github.com/sheyaln/sabokit.git//<path>?ref=v1.0.0"
+  source = "git::https://github.com/sheyaln/sabokit.git//<path>?ref=v2.0.0"
 
   required_input = "value"
 }
@@ -171,5 +171,5 @@ No fluff. No "why we built this" essays — that's for ARCHITECTURE.md and commi
 ## When in doubt
 
 1. Read [ARCHITECTURE.md](./ARCHITECTURE.md).
-2. Look at how `platform/base/terraform/` does it (canonical platform module) or `platform/apps/outline/` (canonical app bundle, once built).
+2. Look at how `platform/base/terraform/` does it (canonical platform module) or `platform/apps/outline/` (canonical app bundle).
 3. If still in doubt, copy the closest existing pattern and ask in a PR.

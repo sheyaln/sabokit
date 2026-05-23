@@ -82,7 +82,7 @@ A consumer's `site.yml` for a single application host:
           - "10.0.0.5/32"   # central prometheus
 
 - import_playbook: ../apps/outline/ansible/playbook.yml
-- import_playbook: ../apps/nextcloud/ansible/playbook.yml
+- import_playbook: ../apps/steward/ansible/playbook.yml
 ```
 
 ## Conventions
