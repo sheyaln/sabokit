@@ -1,9 +1,21 @@
 ---
+# Skip the apt install when the ufw binary is already present (pre-baked
+# fc-base image). The rest of the role — policies, rules, enable — runs
+# unconditionally and is fully idempotent.
+- name: Check for existing ufw binary
+  ansible.builtin.command: ufw --version
+  register: ufw_present_check
+  changed_when: false
+  failed_when: false
+  check_mode: false
+  become: true
+
 - name: Install UFW
   ansible.builtin.package:
     name: ufw
     state: present
   become: true
+  when: ufw_present_check.rc != 0
 
 - name: Reset UFW to defaults
   community.general.ufw:
