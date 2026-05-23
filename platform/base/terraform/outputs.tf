@@ -32,7 +32,8 @@ output "compute" {
         name          = h.instance_name
         public_ip     = h.ip_address
         private_ip    = h.private_ip
-        ansible_group = var.compute_hosts[k].ansible_group
+        ansible_group  = var.compute_hosts[k].ansible_group
+        ansible_groups = var.compute_hosts[k].ansible_groups
         role          = var.compute_hosts[k].role
       }
     }

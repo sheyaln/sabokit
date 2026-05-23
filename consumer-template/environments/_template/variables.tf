@@ -74,6 +74,7 @@ variable "compute_hosts" {
     disk_type         = optional(string, "sbs_volume")
     role              = string
     ansible_group     = string
+    ansible_groups    = optional(list(string), [])
     protected         = optional(bool, false)
     user_data         = optional(map(string), {})
     security_group_id = optional(string, null)

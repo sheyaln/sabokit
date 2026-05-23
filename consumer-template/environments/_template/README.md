@@ -11,17 +11,73 @@ Then per env:
 
 ```bash
 cd environments/prod
-cp terraform.tfvars.example terraform.tfvars      # fill in
-cp backend.hcl.example      backend.hcl           # fill in (bucket+key)
-cp inventory.ini.example    inventory.ini         # add hosts after first apply
-chmod +x preflight.sh deploy.sh
-
-./preflight.sh                                    # one-time per env
-./deploy.sh
+cp terraform.tfvars.example terraform.tfvars    # fill in
+cp backend.hcl.example      backend.hcl         # fill in (bucket + key)
+chmod +x preflight.sh up.sh configure.sh
 ```
 
-`preflight.sh` is idempotent — re-run it as often as you like. It checks the Scaleway credentials, installs the `scaleway` Python SDK into Ansible's interpreter, uploads your SSH key to the project keystore if it's missing, and creates a placeholder DNS A record for `gateway_domain` so Let's Encrypt can issue a cert when `deploy.sh` brings the gateway up. If your DNS zone lives in a different Scaleway project from this one, export `SCW_DNS_ACCESS_KEY` / `SCW_DNS_SECRET_KEY` before running.
+## Deploy in three steps
 
-`deploy.sh` is also idempotent — first run does cold-start, subsequent runs are a fast re-apply. Use `./deploy.sh --skip-tags bootstrap` to skip the Ansible bootstrap phase for app-only redeploys.
+Each step has a verifiable checkpoint — stop, look, then continue. Re-running any step is safe.
 
-`deploy.sh` expects `sabokit/` to be reachable. Default is `../../../sabokit` (sibling of the consumer repo). Override with `FED_COMMONS_DIR=/path/to/sabokit ./deploy.sh`. The canonical pattern is a git submodule at the consumer repo root.
+```bash
+./preflight.sh          # one-time per env: CLI deps, SSH key, DNS placeholder
+./up.sh                 # provision infra + install Authentik
+./configure.sh          # configure Authentik (flows, brand, groups) + app TF
+```
+
+Checkpoints:
+
+| After | Verify with |
+|---|---|
+| `up.sh`        | `curl -sf https://<gateway_domain>/api/v3/root/config/` returns 200. Authentik is reachable but unconfigured. |
+| `configure.sh` | Log in to the gateway as `akadmin`. Flows, brand, groups, any enabled app's OIDC provider are visible. |
+
+## Deploy / update apps
+
+Apps are deployed by the `apps.yml` Ansible playbook. No wrapper script — the
+command is short enough to copy:
+
+```bash
+ansible-playbook \
+  "$FED_COMMONS_DIR/platform/ansible/apps.yml" \
+  -i inventory.ini \
+  -e @.ansible-vars.json \
+  -e env_name="$(basename "$PWD")" \
+  -e gateway_domain="$(awk -F= '/^[[:space:]]*gateway_domain/{gsub(/[ "#]/, "", $2); print $2; exit}' terraform.tfvars)"
+```
+
+Common variants:
+
+```bash
+# Deploy a single app + dependencies
+...apps.yml ... --tags outline
+
+# Skip the full Ansible run, just re-render configs
+...apps.yml ... --skip-tags compose
+```
+
+`FED_COMMONS_DIR` defaults to `../../../sabokit` (sibling of the
+consumer repo). Override with `FED_COMMONS_DIR=/path/to/sabokit`
+if your layout differs.
+
+## Smoke test
+
+```bash
+# Each enabled app's URL should redirect to Authentik (302/303) or
+# render its own UI (200).
+jq -r '.enabled_apps.value | to_entries[] | select(.value != null) | .value.url' .tf-output.json | while read -r url; do
+  printf "%-50s %s\n" "$url" "$(curl -sfo /dev/null -w '%{http_code}' --max-time 15 "$url" || echo CONNECT_FAIL)"
+done
+```
+
+## Re-deploys
+
+Day-to-day work usually only needs `apps.yml`. Re-run `configure.sh` when you
+add/remove an app in `terraform.tfvars` or change platform/identity config.
+Re-run `up.sh` only when the VPC/host topology or Authentik install changes —
+usually after a sabokit version bump.
+
+`./up.sh` accepts trailing args that get forwarded to `ansible-playbook
+bootstrap.yml` — for example `./up.sh --skip-tags bootstrap` to short-circuit
+the heavy roles if you know the host is already bootstrapped.

@@ -260,7 +260,7 @@ else
     c_ok "A record for $gateway_domain exists"
   else
     c_warn "No A record for $gateway_domain — creating placeholder pointing to 1.1.1.1"
-    c_info "(deploy.sh phase 1 will overwrite this with the real gateway IP.)"
+    c_info "(up.sh step 2 will overwrite this with the real gateway IP.)"
     "${dns_creds_env[@]}" scw dns record add "$zone" \
       name="$subdomain" type=A data=1.1.1.1 ttl=60 >/dev/null
     c_ok "Placeholder A record created"
@@ -270,4 +270,4 @@ fi
 # ── Done ────────────────────────────────────────────────────────────────────
 
 section "Preflight passed"
-c_ok "Ready to run ./deploy.sh"
+c_ok "Ready to run ./up.sh (then ./configure.sh)"

@@ -23,6 +23,23 @@ infra_email    = "ops@example.org"
 
 # compute_hosts can be overridden here if you need a different topology
 # than the default (single "apps" DEV1-L host).
+#
+# Multi-host prod: one VM per role.
+#   compute_hosts = {
+#     apps     = { instance_type = "DEV1-L", role = "apps",     ansible_group = "apps" }
+#     identity = { instance_type = "DEV1-M", role = "identity", ansible_group = "identity" }
+#   }
+#
+# Single-VM staging/dev: one VM serves multiple Ansible plays. Use
+# ansible_groups to list every group the play-selectors look for.
+#   compute_hosts = {
+#     staging = {
+#       instance_type  = "DEV1-M"
+#       role           = "apps"
+#       ansible_group  = "staging"
+#       ansible_groups = ["apps", "identity"]
+#     }
+#   }
 
 apps = {
   outline = {

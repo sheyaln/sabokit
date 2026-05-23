@@ -92,6 +92,10 @@ variable "compute_hosts" {
     disk_type         = optional(string, "sbs_volume")
     role              = string
     ansible_group     = string
+    # Extra Ansible groups this host belongs to. Lets a single-VM staging
+    # setup put one host in [apps], [identity], and a custom env group at
+    # the same time. Primary group = ansible_group; extras append.
+    ansible_groups    = optional(list(string), [])
     protected         = optional(bool, false)
     user_data         = optional(map(string), {})
     security_group_id = optional(string, null)
