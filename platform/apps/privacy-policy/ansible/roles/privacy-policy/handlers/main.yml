@@ -1,5 +1,5 @@
 ---
-- name: Restart privacy_policy
+- name: Restart privacy-policy
   community.docker.docker_compose_v2:
     project_src: "{{ privacy_policy_install_dir }}"
     state: restarted

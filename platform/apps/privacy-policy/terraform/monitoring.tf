@@ -3,7 +3,7 @@ locals {
     prometheus_scrape_configs = []
     grafana_dashboards        = []
     loki_log_paths = [
-      "/var/log/containers/privacy_policy-*.log",
+      "/var/log/containers/privacy-policy-*.log",
     ]
     alert_rules = []
   } : null

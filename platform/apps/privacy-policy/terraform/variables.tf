@@ -18,7 +18,7 @@ variable "hostname" {
 }
 
 variable "monitoring_enabled" {
-  description = "If true and a monitoring app is enabled, the privacy_policy access log paths wire in."
+  description = "If true and a monitoring app is enabled, the privacy-policy access log paths wire in."
   type        = bool
   default     = true
 }

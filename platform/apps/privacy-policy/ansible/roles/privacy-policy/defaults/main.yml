@@ -2,7 +2,7 @@
 privacy_policy_hostname: ""                 # Required.
 privacy_policy_page_title: "Privacy Policy"
 
-privacy_policy_install_dir: "/opt/privacy_policy"
+privacy_policy_install_dir: "/opt/privacy-policy"
 privacy_policy_traefik_docker_network: "traefik"
 
 # Image: any small static-file server works. nginx:alpine is the default
@@ -16,7 +16,7 @@ privacy_policy_image: "nginx:alpine"
 # rendered when unset.
 #
 # Example (in your site.yml or group_vars):
-#   privacy_policy_html_path: "{{ playbook_dir }}/../files/privacy_policy.html"
+#   privacy_policy_html_path: "{{ playbook_dir }}/../files/privacy-policy.html"
 #   privacy_policy_logo_path: "{{ playbook_dir }}/../files/org-logo.png"
 privacy_policy_html_path: ""
 privacy_policy_logo_path: ""

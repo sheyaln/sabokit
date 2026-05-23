@@ -1,5 +1,5 @@
 ---
-# Deploy a public-facing privacy_policy page (single nginx container, no auth).
+# Deploy a public-facing privacy-policy page (single nginx container, no auth).
 #
 # Required vars:
 #   privacy_policy_hostname  - full hostname
@@ -48,7 +48,7 @@
     owner: root
     group: root
   when: privacy_policy_html_path | length > 0
-  notify: Restart privacy_policy
+  notify: Restart privacy-policy
 
 - name: Ship placeholder HTML when no consumer file is provided
   ansible.builtin.template:
@@ -58,7 +58,7 @@
     owner: root
     group: root
   when: privacy_policy_html_path | length == 0
-  notify: Restart privacy_policy
+  notify: Restart privacy-policy
 
 - name: Copy consumer-provided logo
   ansible.builtin.copy:
@@ -68,7 +68,7 @@
     owner: root
     group: root
   when: privacy_policy_logo_path | length > 0
-  notify: Restart privacy_policy
+  notify: Restart privacy-policy
 
 - name: Render docker-compose.yml
   ansible.builtin.template:
@@ -77,7 +77,7 @@
     mode: "0644"
     owner: root
     group: root
-  notify: Restart privacy_policy
+  notify: Restart privacy-policy
 
 - name: Ensure Privacy Policy stack is running
   community.docker.docker_compose_v2:

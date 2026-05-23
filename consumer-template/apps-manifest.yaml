@@ -404,7 +404,7 @@ apps:
   # Public static page. No Authentik integration — privacy policies must be
   # reachable without login. Consumer provides HTML + logo via the Ansible
   # role vars; the bundle ships a placeholder otherwise.
-  - id: privacy_policy
+  - id: privacy-policy
     display_name: Privacy Policy
     category: compliance
     description_short: Public static privacy policy page

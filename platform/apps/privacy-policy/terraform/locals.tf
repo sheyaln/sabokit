@@ -1,4 +1,4 @@
 locals {
-  slug    = "privacy_policy"
+  slug    = "privacy-policy"
   app_url = "https://${var.hostname}"
 }

@@ -1,11 +1,11 @@
 ---
-# Managed by sabokit apps/privacy_policy/ansible/role.
+# Managed by sabokit apps/privacy-policy/ansible/role.
 # Do not edit by hand — regenerated on every ansible-playbook run.
 
 services:
-  privacy_policy:
+  privacy-policy:
     image: "{{ privacy_policy_image }}"
-    container_name: privacy_policy
+    container_name: privacy-policy
     restart: unless-stopped
     volumes:
       - ./index.html:/usr/share/nginx/html/index.html:ro
@@ -19,11 +19,11 @@ services:
     labels:
       - "traefik.enable=true"
       - "traefik.docker.network={{ privacy_policy_traefik_docker_network }}"
-      - "traefik.http.services.privacy_policy.loadbalancer.server.port=80"
-      - "traefik.http.routers.privacy_policy.rule=Host(`{{ privacy_policy_hostname }}`)"
-      - "traefik.http.routers.privacy_policy.entrypoints=websecure"
-      - "traefik.http.routers.privacy_policy.tls.certresolver=le"
-      - "traefik.http.routers.privacy_policy.service=privacy_policy"
+      - "traefik.http.services.privacy-policy.loadbalancer.server.port=80"
+      - "traefik.http.routers.privacy-policy.rule=Host(`{{ privacy_policy_hostname }}`)"
+      - "traefik.http.routers.privacy-policy.entrypoints=websecure"
+      - "traefik.http.routers.privacy-policy.tls.certresolver=le"
+      - "traefik.http.routers.privacy-policy.service=privacy-policy"
       # No auth middleware — privacy policies are public by definition.
     deploy:
       resources:

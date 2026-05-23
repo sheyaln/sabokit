@@ -1,4 +1,4 @@
-# apps/privacy_policy
+# apps/privacy-policy
 
 Public static HTML page for serving your organization's privacy policy at a stable URL. nginx in a container, no DB, no auth. Self-contained bundle:
 
@@ -11,10 +11,10 @@ No Authentik integration — privacy policies must be reachable without login fo
 ## Usage
 
 ```hcl
-module "privacy_policy" {
-  source   = "git::https://github.com/sheyaln/sabokit.git//platform/apps/privacy_policy/terraform?ref=v2.2.0"
-  enabled  = try(var.apps.privacy_policy.enabled, false)
-  hostname = try(var.apps.privacy_policy.hostname, "")
+module "privacy-policy" {
+  source   = "git::https://github.com/sheyaln/sabokit.git//platform/apps/privacy-policy/terraform?ref=v2.2.0"
+  enabled  = try(var.apps.privacy-policy.enabled, false)
+  hostname = try(var.apps.privacy-policy.hostname, "")
   base     = module.base
 }
 ```
@@ -23,7 +23,7 @@ In `terraform.tfvars`:
 
 ```hcl
 apps = {
-  privacy_policy = {
+  privacy-policy = {
     enabled  = true
     hostname = "privacy.example.org"
   }
@@ -33,13 +33,13 @@ apps = {
 In `site.yml` — point at your org's HTML + logo files:
 
 ```yaml
-- import_playbook: ../apps/privacy_policy/ansible/playbook.yml
+- import_playbook: ../apps/privacy-policy/ansible/playbook.yml
   vars:
-    privacy_policy_html_path: "{{ playbook_dir }}/files/privacy_policy.html"
-    privacy_policy_logo_path: "{{ playbook_dir }}/files/org-logo.png"
+    privacy-policy_html_path: "{{ playbook_dir }}/files/privacy-policy.html"
+    privacy-policy_logo_path: "{{ playbook_dir }}/files/org-logo.png"
 ```
 
-Both file paths are optional. If `privacy_policy_html_path` is empty, the bundle ships a labelled placeholder so the deploy doesn't fail with an empty page. If `privacy_policy_logo_path` is empty, no logo is mounted or rendered.
+Both file paths are optional. If `privacy-policy_html_path` is empty, the bundle ships a labelled placeholder so the deploy doesn't fail with an empty page. If `privacy-policy_logo_path` is empty, no logo is mounted or rendered.
 
 ## Inputs
 
@@ -56,11 +56,11 @@ Both file paths are optional. If `privacy_policy_html_path` is empty, the bundle
 
 | Name | Default | Description |
 |------|---------|-------------|
-| `privacy_policy_html_path` | `""` | Path on the Ansible controller to the org's HTML. Empty → placeholder. |
-| `privacy_policy_logo_path` | `""` | Path on the Ansible controller to a logo (PNG/SVG). Empty → no logo rendered. |
-| `privacy_policy_logo_filename` | `"logo.png"` | Basename the logo is served as inside the container. Override if your HTML references a specific filename. |
-| `privacy_policy_image` | `"nginx:alpine"` | Container image. |
-| `privacy_policy_memory_limit` / `_cpu_limit` etc. | conservative | Resource caps. |
+| `privacy-policy_html_path` | `""` | Path on the Ansible controller to the org's HTML. Empty → placeholder. |
+| `privacy-policy_logo_path` | `""` | Path on the Ansible controller to a logo (PNG/SVG). Empty → no logo rendered. |
+| `privacy-policy_logo_filename` | `"logo.png"` | Basename the logo is served as inside the container. Override if your HTML references a specific filename. |
+| `privacy-policy_image` | `"nginx:alpine"` | Container image. |
+| `privacy-policy_memory_limit` / `_cpu_limit` etc. | conservative | Resource caps. |
 
 ## Outputs
 
@@ -73,4 +73,4 @@ Both file paths are optional. If `privacy_policy_html_path` is empty, the bundle
 
 ## Disabling
 
-`apps.privacy_policy.enabled = false` + `terraform apply` drops the DNS record. The container survives on the host until you `docker compose down`.
+`apps.privacy-policy.enabled = false` + `terraform apply` drops the DNS record. The container survives on the host until you `docker compose down`.

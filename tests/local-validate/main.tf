@@ -144,7 +144,7 @@ module "notifuse" {
 }
 
 module "privacy_policy" {
-  source = "../../platform/apps/privacy_policy/terraform"
+  source = "../../platform/apps/privacy-policy/terraform"
 
   enabled  = true
   hostname = "privacy.example.org"

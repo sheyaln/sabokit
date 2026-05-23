@@ -3,4 +3,4 @@
   hosts: "{{ privacy_policy_host_group | default('apps') }}"
   become: true
   roles:
-    - role: privacy_policy
+    - role: privacy-policy
