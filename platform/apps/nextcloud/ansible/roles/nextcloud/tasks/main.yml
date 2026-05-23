@@ -1,0 +1,132 @@
+---
+# Deploy Nextcloud as a docker-compose stack (app + cron + redis). Secrets are
+# pulled from Scaleway Secret Manager at deploy time and rendered into
+# /opt/nextcloud/.env (mode 0600). Post-deploy, run occ to wire up Redis, OIDC,
+# trusted_proxies, and S3-integrity flags that the env vars can't set.
+#
+# Required vars:
+#   nextcloud_hostname                  - full hostname
+#   nextcloud_app_secret_id             - Scaleway secret ID for the app's secret bag
+#   nextcloud_db_credentials_secret_id  - Scaleway secret ID for DB credentials
+#
+# Prereqs (NOT installed by this role — see platform/ansible/bootstrap.yml):
+#   - Docker engine + compose plugin
+#   - Traefik on an external network named per nextcloud_traefik_docker_network
+#   - scaleway.scaleway Ansible collection on the controller (for the lookup)
+
+- name: Validate required Nextcloud variables
+  ansible.builtin.assert:
+    that:
+      - nextcloud_hostname | length > 0
+      - nextcloud_app_secret_id | length > 0
+      - nextcloud_db_credentials_secret_id | length > 0
+    fail_msg: "nextcloud_hostname, nextcloud_app_secret_id and nextcloud_db_credentials_secret_id are required."
+
+- name: Assert Docker is installed and running
+  ansible.builtin.command: docker info
+  register: nextcloud_docker_check
+  changed_when: false
+  failed_when: nextcloud_docker_check.rc != 0
+  # If this fails, run platform/ansible/bootstrap.yml first.
+
+- name: Assert Traefik external network exists
+  community.docker.docker_network_info:
+    name: "{{ nextcloud_traefik_docker_network }}"
+  register: nextcloud_traefik_net
+  failed_when: not nextcloud_traefik_net.exists
+  # If this fails, the traefik role from platform/ansible/bootstrap.yml hasn't run.
+
+- name: Ensure Nextcloud directory exists
+  ansible.builtin.file:
+    path: "{{ nextcloud_install_dir }}"
+    state: directory
+    mode: "0750"
+    owner: root
+    group: root
+
+- name: Normalize Scaleway secret IDs (strip leading region/ prefix)
+  ansible.builtin.set_fact:
+    _nextcloud_app_secret_uuid: "{{ nextcloud_app_secret_id | regex_replace('^[^/]+/', '') }}"
+    _nextcloud_db_credentials_secret_uuid: "{{ nextcloud_db_credentials_secret_id | regex_replace('^[^/]+/', '') }}"
+
+- name: Look up Nextcloud app secrets from Scaleway
+  ansible.builtin.set_fact:
+    nextcloud_app_secrets: "{{ lookup('scaleway.scaleway.scaleway_secret', _nextcloud_app_secret_uuid) | b64decode | from_json }}"
+  no_log: true
+
+- name: Look up Nextcloud DB credentials from Scaleway
+  ansible.builtin.set_fact:
+    nextcloud_db_credentials: "{{ lookup('scaleway.scaleway.scaleway_secret', _nextcloud_db_credentials_secret_uuid) | b64decode | from_json }}"
+  no_log: true
+
+- name: Default Nextcloud SMTP config to empty when smtp_secret_name is unset
+  ansible.builtin.set_fact:
+    nextcloud_smtp_config: {}
+  when: nextcloud_smtp_secret_name | default('') | length == 0
+
+- name: Look up SMTP config from Scaleway
+  ansible.builtin.set_fact:
+    nextcloud_smtp_config: "{{ lookup('scaleway.scaleway.scaleway_secret', nextcloud_smtp_secret_name, errors='ignore') | default('e30=', true) | b64decode | from_json }}"
+  when: nextcloud_smtp_secret_name | default('') | length > 0
+  no_log: true
+
+- name: Deploy Nextcloud PHP configuration
+  ansible.builtin.copy:
+    src: nextcloud-custom.ini
+    dest: "{{ nextcloud_install_dir }}/nextcloud-custom.ini"
+    mode: "0644"
+    owner: root
+    group: root
+  notify: Restart nextcloud
+
+- name: Render docker-compose.yml
+  ansible.builtin.template:
+    src: docker-compose.yml.j2
+    dest: "{{ nextcloud_install_dir }}/docker-compose.yml"
+    mode: "0644"
+    owner: root
+    group: root
+  notify: Restart nextcloud
+
+- name: Render Nextcloud environment file
+  ansible.builtin.template:
+    src: env.j2
+    dest: "{{ nextcloud_install_dir }}/.env"
+    mode: "0600"
+    owner: root
+    group: root
+  notify: Restart nextcloud
+  no_log: true
+
+- name: Ensure Nextcloud stack is running
+  community.docker.docker_compose_v2:
+    project_src: "{{ nextcloud_install_dir }}"
+    state: present
+    pull: always
+
+- name: Wait for Nextcloud to respond on status.php
+  ansible.builtin.uri:
+    url: "https://{{ nextcloud_hostname }}/status.php"
+    method: GET
+    validate_certs: false
+    status_code: [200]
+  register: nextcloud_status
+  until: nextcloud_status.status == 200
+  retries: 30
+  delay: 10
+
+- name: Deploy occ post-install configuration script
+  ansible.builtin.copy:
+    src: configure-nextcloud.sh
+    dest: "{{ nextcloud_install_dir }}/configure-nextcloud.sh"
+    mode: "0750"
+    owner: root
+    group: root
+
+- name: Run occ post-install configuration (idempotent)
+  ansible.builtin.command:
+    cmd: "{{ nextcloud_install_dir }}/configure-nextcloud.sh"
+  environment:
+    NC_CONTAINER: "nextcloud-app"
+  register: nextcloud_configure
+  changed_when: "'CHANGED' in nextcloud_configure.stdout"

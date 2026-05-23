@@ -1,0 +1,6 @@
+---
+# No role dependencies. Bootstrap roles (docker, traefik, scw-secrets) are
+# expected to be on the host before this role runs — they're provisioned by
+# platform/ansible/bootstrap.yml. The role asserts prereqs at the top of
+# tasks/main.yml and fails loud if they're missing.
+dependencies: []
