@@ -53,6 +53,23 @@ module "vikunja" {
   deployment_host_key     = try(var.apps.vikunja.deployment_host_key, "apps")
 }
 
+# Forward-auth app (no OIDC). Its provider_id MUST also be added to the
+# identity module's extra_forward_auth_provider_ids list — see identity.tf.
+module "bentopdf" {
+  source = "git::https://github.com/sheyaln/sabokit.git//platform/apps/bentopdf/terraform?ref=v2.2.0"
+
+  enabled  = try(var.apps.bentopdf.enabled, false)
+  hostname = try(var.apps.bentopdf.hostname, "")
+  base     = local.base
+
+  # Optional overrides
+  access_level            = try(var.apps.bentopdf.access_level, "member")
+  extra_authorized_groups = try(var.apps.bentopdf.extra_authorized_groups, {})
+  image                   = try(var.apps.bentopdf.image, "ghcr.io/digital-blueprint/bento-pdf:latest")
+  monitoring_enabled      = try(var.apps.bentopdf.monitoring_enabled, true)
+  deployment_host_key     = try(var.apps.bentopdf.deployment_host_key, "apps")
+}
+
 # Add more apps here as bundles ship. Same shape every time:
 #
 # module "nextcloud" {

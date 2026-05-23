@@ -124,3 +124,11 @@ module "vikunja" {
   hostname = "tasks.example.org"
   base     = local.base
 }
+
+module "bentopdf" {
+  source = "../../platform/apps/bentopdf/terraform"
+
+  enabled  = true
+  hostname = "pdf.example.org"
+  base     = local.base
+}

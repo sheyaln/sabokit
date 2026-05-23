@@ -1,0 +1,36 @@
+---
+# Managed by sabokit apps/bentopdf/ansible/role.
+# Do not edit by hand — regenerated on every ansible-playbook run.
+
+services:
+  bentopdf:
+    image: "{{ bentopdf_image }}"
+    container_name: bentopdf
+    restart: unless-stopped
+    expose:
+      - "8080"
+    networks:
+      - "{{ bentopdf_traefik_docker_network }}"
+    security_opt:
+      - no-new-privileges:true
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network={{ bentopdf_traefik_docker_network }}"
+      - "traefik.http.services.bentopdf.loadbalancer.server.port=8080"
+      - "traefik.http.routers.bentopdf.rule=Host(`{{ bentopdf_hostname }}`)"
+      - "traefik.http.routers.bentopdf.entrypoints=websecure"
+      - "traefik.http.routers.bentopdf.tls.certresolver=le"
+      - "traefik.http.routers.bentopdf.service=bentopdf"
+      - "traefik.http.routers.bentopdf.middlewares={{ bentopdf_authentik_middleware }}"
+    deploy:
+      resources:
+        limits:
+          memory: "{{ bentopdf_memory_limit }}"
+          cpus: "{{ bentopdf_cpu_limit }}"
+        reservations:
+          memory: "{{ bentopdf_memory_reservation }}"
+          cpus: "{{ bentopdf_cpu_reservation }}"
+
+networks:
+  "{{ bentopdf_traefik_docker_network }}":
+    external: true

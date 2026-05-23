@@ -1,0 +1,14 @@
+---
+bentopdf_hostname: ""                       # Required.
+bentopdf_image: "ghcr.io/digital-blueprint/bento-pdf:latest"
+
+bentopdf_install_dir: "/opt/bentopdf"
+bentopdf_traefik_docker_network: "traefik"
+bentopdf_authentik_middleware: "authentik-auth@docker"
+
+# Resource limits — PDF rendering is mostly CPU. Default conservative; bump
+# memory if the host serves large attachments.
+bentopdf_memory_limit: "512M"
+bentopdf_memory_reservation: "128M"
+bentopdf_cpu_limit: "1.0"
+bentopdf_cpu_reservation: "0.25"

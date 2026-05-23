@@ -1,0 +1,6 @@
+---
+- name: Deploy BentoPDF
+  hosts: "{{ bentopdf_host_group | default('apps') }}"
+  become: true
+  roles:
+    - role: bentopdf

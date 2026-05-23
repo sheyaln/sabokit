@@ -1,0 +1,39 @@
+# Contract outputs (every app bundle has these). See ARCHITECTURE.md.
+
+output "enabled" {
+  description = "Whether this app is enabled."
+  value       = var.enabled
+}
+
+output "app_url" {
+  description = "Where BentoPDF is reachable. null when disabled."
+  value       = var.enabled ? local.app_url : null
+}
+
+output "authentik_provider_id" {
+  description = "Authentik proxy-provider ID. The consumer MUST include this in identity's `extra_forward_auth_provider_ids` for the embedded outpost to protect this app."
+  value       = var.enabled ? module.authentik[0].provider_id : null
+}
+
+output "authentik_application_group_id" {
+  description = "ID of the per-app Authentik group (app-bentopdf). Used by service accounts that need direct access."
+  value       = var.enabled ? module.authentik[0].application_group_id : null
+}
+
+output "monitoring" {
+  description = "Monitoring contribution. null when disabled or opted out."
+  value       = local.monitoring_contribution
+}
+
+output "ansible" {
+  description = "Ansible deployment metadata. Consumed by the consumer's site.yml."
+  value = var.enabled ? {
+    role_path  = "${path.module}/../ansible/role"
+    playbook   = "${path.module}/../ansible/playbook.yml"
+    host_group = var.base.compute.hosts[var.deployment_host_key].ansible_group
+    vars = {
+      bentopdf_hostname = var.hostname
+      bentopdf_image    = var.image
+    }
+  } : null
+}

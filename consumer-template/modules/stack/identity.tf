@@ -1,5 +1,5 @@
 module "identity" {
-  source = "git::https://github.com/sheyaln/sabokit.git//platform/identity/terraform?ref=v1.0.0"
+  source = "git::https://github.com/sheyaln/sabokit.git//platform/identity/terraform?ref=v2.2.0"
 
   gateway_domain = module.base.domains.gateway_domain
   base_domain    = module.base.domains.base_domain
@@ -16,9 +16,8 @@ module "identity" {
   # Forward-auth providers from any enabled apps/* bundles register here.
   # compact() drops nulls from disabled apps.
   extra_forward_auth_provider_ids = compact([
-    # Example (uncomment when bundles ship):
-    # module.bentopdf.authentik_provider_id,
-    # module.backrest.authentik_provider_id,
+    module.bentopdf.authentik_provider_id,
+    # module.backrest.authentik_provider_id,   # uncomment when backrest ships
   ])
 }
 

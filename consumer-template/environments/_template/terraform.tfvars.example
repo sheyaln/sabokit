@@ -78,6 +78,13 @@ apps = {
   #   # smtp_from_email = "tasks@example.org"
   # }
 
+  # BentoPDF: browser PDF toolkit. Forward-auth (no OIDC inside the app).
+  # No DB, no storage — fully stateless.
+  # bentopdf = {
+  #   enabled  = true
+  #   hostname = "pdf.example.org"
+  # }
+
   # nextcloud = {
   #   enabled             = true
   #   hostname            = "cloud.example.org"

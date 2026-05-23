@@ -51,5 +51,11 @@ output "enabled_apps" {
       ansible_group = module.vikunja.ansible.host_group
       monitoring    = module.vikunja.monitoring
     } : null
+    bentopdf = module.bentopdf.enabled ? {
+      url           = module.bentopdf.app_url
+      ansible_vars  = module.bentopdf.ansible.vars
+      ansible_group = module.bentopdf.ansible.host_group
+      monitoring    = module.bentopdf.monitoring
+    } : null
   }
 }

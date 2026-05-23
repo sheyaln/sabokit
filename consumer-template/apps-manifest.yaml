@@ -257,3 +257,61 @@ apps:
           default: Productivity
           description: Section the app appears under in the Authentik portal.
           ui: advanced
+
+  # ── BentoPDF ────────────────────────────────────────────────────────────
+  # Browser-based PDF toolkit (merge, split, OCR, redact). Stateless — no
+  # DB, no storage. Authenticated via Authentik forward-auth (the embedded
+  # outpost gates every request). See platform/apps/bentopdf/.
+  - id: bentopdf
+    display_name: BentoPDF
+    category: tools
+    description_short: Browser PDF toolkit (merge, split, OCR, redact)
+    description: |
+      Self-hosted PDF toolkit with no server-side state. Authentik's
+      embedded outpost gates every request via Traefik forward-auth;
+      BentoPDF itself has no auth integration.
+    icon: icons/bentopdf.svg
+    upstream_url: https://github.com/digital-blueprint/bento-pdf
+
+    tfvars:
+      key: bentopdf
+      schema:
+        enabled:
+          type: bool
+          default: true
+          description: Whether BentoPDF is deployed in this environment.
+          ui: hidden
+
+        hostname:
+          type: string
+          required: true
+          description: Public hostname BentoPDF is served at.
+          example: pdf.example.org
+          subdomain_default: pdf
+          ui: text
+          validation:
+            pattern: ^[a-z0-9.-]+\.[a-z]{2,}$
+
+        deployment_host_key:
+          type: string
+          default: apps
+          description: Which host (key in compute_hosts) BentoPDF runs on.
+          ui: advanced
+
+        access_level:
+          type: string
+          default: member
+          description: Authentik group key granting baseline access.
+          ui: advanced
+
+        monitoring_enabled:
+          type: bool
+          default: true
+          description: Wire BentoPDF log paths into the monitoring stack.
+          ui: advanced
+
+        category_group:
+          type: string
+          default: Tools
+          description: Section the app appears under in the Authentik portal.
+          ui: advanced
