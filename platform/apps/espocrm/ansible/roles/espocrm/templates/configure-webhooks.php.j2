@@ -1,0 +1,65 @@
+<?php
+// {{ ansible_managed }}
+// Upserts EspoCRM webhooks defined via espocrm_member_entity_webhooks. The
+// REST `/api/v1/Webhook` endpoint requires an authenticated admin, so we
+// write directly to the webhook table. The handler the daemon container
+// runs picks them up on its next polling cycle.
+
+$basePath   = '/var/www/html';
+$configPath = $basePath . '/data/config.php';
+
+if (!file_exists($configPath)) {
+    fwrite(STDERR, "Error: config.php not found at $configPath\n");
+    exit(1);
+}
+
+$config = include($configPath);
+
+$dbHost = $config['database']['host']     ?? '{{ espocrm_db_credentials.host }}';
+$dbPort = $config['database']['port']     ?? '{{ espocrm_db_credentials.port }}';
+$dbName = $config['database']['dbname']   ?? '{{ espocrm_db_credentials.dbname }}';
+$dbUser = $config['database']['user']     ?? '{{ espocrm_db_credentials.username }}';
+$dbPass = $config['database']['password'] ?? {{ espocrm_db_credentials.password | to_json }};
+
+$webhooks = {{ espocrm_member_entity_webhooks | to_json }};
+
+try {
+    $pdo = new PDO(
+        "pgsql:host=$dbHost;port=$dbPort;dbname=$dbName",
+        $dbUser,
+        $dbPass,
+        [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION]
+    );
+
+    foreach ($webhooks as $w) {
+        $stmt = $pdo->prepare("SELECT id FROM webhook WHERE id = ?");
+        $stmt->execute([$w['id']]);
+        $exists = (bool) $stmt->fetch();
+
+        $entity = $w['entity'] ?? 'Member';
+        $type   = $w['type']   ?? 'create';
+        $field  = $w['field']  ?? null;
+
+        if ($exists) {
+            $stmt = $pdo->prepare("
+                UPDATE webhook
+                SET name = ?, event = ?, entity_type = ?, url = ?, is_active = true, modified_at = NOW()
+                WHERE id = ?
+            ");
+            $stmt->execute([$w['name'], $w['event'], $entity, $w['url'], $w['id']]);
+            echo "Updated webhook: {$w['name']} → {$w['url']}\n";
+        } else {
+            $stmt = $pdo->prepare("
+                INSERT INTO webhook (id, name, event, entity_type, url, is_active, deleted, created_at)
+                VALUES (?, ?, ?, ?, ?, true, false, NOW())
+            ");
+            $stmt->execute([$w['id'], $w['name'], $w['event'], $entity, $w['url']]);
+            echo "Created webhook: {$w['name']} → {$w['url']}\n";
+        }
+    }
+} catch (PDOException $e) {
+    fwrite(STDERR, "Database error: " . $e->getMessage() . "\n");
+    exit(1);
+}
+
+echo "Webhook bootstrap complete.\n";

@@ -1,0 +1,486 @@
+<?php
+// {{ ansible_managed }}
+// Opt-in bootstrap: provisions a Member and DuesPayment custom-entity pair,
+// the matching roles and teams, and a minimal navbar layout. Aimed at orgs
+// using EspoCRM to track constituents/members + dues rather than as a
+// generic sales CRM.
+//
+// Skip this script (espocrm_enable_member_entity_bootstrap = false) if you
+// want EspoCRM's default Accounts/Leads/Contacts/Opportunities model.
+//
+// The entity definitions are intentionally generic — every field reflects
+// something most membership orgs need (status, join date, paid-up-through).
+// Extend in EspoCRM's Admin UI for org-specific fields; the bootstrap is
+// idempotent and won't clobber later UI changes for fields it doesn't own.
+
+$basePath   = '/var/www/html';
+$customPath = $basePath . '/custom/Espo/Custom/Resources/metadata';
+
+// EspoCRM's discovery requires the Controller/Entity/Repository PHP classes
+// plus the metadata JSON files. Create the layout once.
+$directories = [
+    $customPath . '/entityDefs',
+    $customPath . '/scopes',
+    $customPath . '/clientDefs',
+    $customPath . '/entityAcl',
+    $basePath . '/custom/Espo/Custom/Resources/layouts/Member',
+    $basePath . '/custom/Espo/Custom/Resources/layouts/DuesPayment',
+    $basePath . '/custom/Espo/Custom/Resources/i18n/en_US',
+    $basePath . '/custom/Espo/Custom/Controllers',
+    $basePath . '/custom/Espo/Custom/Entities',
+    $basePath . '/custom/Espo/Custom/Repositories',
+];
+foreach ($directories as $dir) {
+    if (!is_dir($dir)) {
+        mkdir($dir, 0755, true);
+    }
+}
+
+// ── PHP class stubs (one per entity) ────────────────────────────────────────
+
+$classStubs = [
+    'Controllers/Member.php'      => "<?php\nnamespace Espo\\Custom\\Controllers;\nclass Member extends \\Espo\\Core\\Templates\\Controllers\\Base {}\n",
+    'Entities/Member.php'         => "<?php\nnamespace Espo\\Custom\\Entities;\nclass Member extends \\Espo\\Core\\Templates\\Entities\\Base { public const ENTITY_TYPE = 'Member'; }\n",
+    'Repositories/Member.php'     => "<?php\nnamespace Espo\\Custom\\Repositories;\nclass Member extends \\Espo\\Core\\Templates\\Repositories\\Base {}\n",
+    'Controllers/DuesPayment.php' => "<?php\nnamespace Espo\\Custom\\Controllers;\nclass DuesPayment extends \\Espo\\Core\\Templates\\Controllers\\Base {}\n",
+    'Entities/DuesPayment.php'    => "<?php\nnamespace Espo\\Custom\\Entities;\nclass DuesPayment extends \\Espo\\Core\\Templates\\Entities\\Base { public const ENTITY_TYPE = 'DuesPayment'; }\n",
+    'Repositories/DuesPayment.php' => "<?php\nnamespace Espo\\Custom\\Repositories;\nclass DuesPayment extends \\Espo\\Core\\Templates\\Repositories\\Base {}\n",
+];
+foreach ($classStubs as $rel => $body) {
+    file_put_contents("$basePath/custom/Espo/Custom/$rel", $body);
+}
+
+// ── Member entity ───────────────────────────────────────────────────────────
+
+$memberEntityDefs = [
+    'fields' => [
+        'name'           => ['type' => 'personName', 'isPersonalData' => true],
+        'firstName'      => ['type' => 'varchar', 'maxLength' => 100, 'required' => true],
+        'lastName'       => ['type' => 'varchar', 'maxLength' => 100, 'required' => true],
+        'memberId'       => ['type' => 'varchar', 'maxLength' => 64, 'tooltip' => true],
+        'emailAddress'   => ['type' => 'email', 'isPersonalData' => true],
+        'phoneNumber'    => ['type' => 'phone', 'isPersonalData' => true],
+        'city'           => ['type' => 'varchar', 'maxLength' => 100],
+        'streetAddress'  => ['type' => 'varchar', 'maxLength' => 255, 'isPersonalData' => true],
+        'state'          => ['type' => 'varchar', 'maxLength' => 100],
+        'postalCode'     => ['type' => 'varchar', 'maxLength' => 20, 'isPersonalData' => true],
+        'country'        => ['type' => 'varchar', 'maxLength' => 100],
+        'chapter'        => ['type' => 'varchar', 'maxLength' => 100, 'tooltip' => true],
+        'membershipStatus' => [
+            'type'    => 'enum',
+            'options' => ['Active', 'In Arrears', 'Suspended', 'Withdrawn', 'Deceased'],
+            'default' => 'Active',
+            'style'   => [
+                'Active'     => 'success',
+                'In Arrears' => 'warning',
+                'Suspended'  => 'danger',
+                'Withdrawn'  => 'info',
+                'Deceased'   => 'default',
+            ],
+        ],
+        'duesTier'       => ['type' => 'varchar', 'maxLength' => 32],
+        'joinDate'       => ['type' => 'date'],
+        'paidUpThrough'  => ['type' => 'date'],
+        'recurringDues'  => ['type' => 'bool', 'default' => false],
+        'assignedUser'   => ['type' => 'link', 'required' => false],
+        'teams'          => ['type' => 'linkMultiple'],
+        'duesPayments'   => [
+            'type'     => 'linkMultiple',
+            'readOnly' => true,
+            'columns'  => ['amount' => 'amount', 'paymentDate' => 'paymentDate'],
+        ],
+        'createdAt'   => ['type' => 'datetime', 'readOnly' => true],
+        'modifiedAt'  => ['type' => 'datetime', 'readOnly' => true],
+        'createdBy'   => ['type' => 'link', 'readOnly' => true],
+        'modifiedBy'  => ['type' => 'link', 'readOnly' => true],
+        'description' => ['type' => 'text'],
+    ],
+    'links' => [
+        'assignedUser' => ['type' => 'belongsTo', 'entity' => 'User'],
+        'teams'        => ['type' => 'hasMany', 'entity' => 'Team', 'relationName' => 'entityTeam', 'layoutRelationshipsDisabled' => true],
+        'duesPayments' => ['type' => 'hasMany', 'entity' => 'DuesPayment', 'foreign' => 'member'],
+        'createdBy'    => ['type' => 'belongsTo', 'entity' => 'User'],
+        'modifiedBy'   => ['type' => 'belongsTo', 'entity' => 'User'],
+    ],
+    'collection' => [
+        'orderBy'          => 'lastName',
+        'order'            => 'asc',
+        'textFilterFields' => ['name', 'memberId', 'emailAddress', 'city', 'chapter'],
+    ],
+    'indexes' => [
+        'memberId'         => ['columns' => ['memberId']],
+        'membershipStatus' => ['columns' => ['membershipStatus']],
+        'assignedUser'     => ['columns' => ['assignedUserId']],
+    ],
+];
+
+// ── DuesPayment entity ──────────────────────────────────────────────────────
+
+$duesPaymentEntityDefs = [
+    'fields' => [
+        'name'        => ['type' => 'varchar', 'required' => false, 'readOnly' => true],
+        'member'      => ['type' => 'link', 'required' => true],
+        'amount'      => ['type' => 'currency', 'required' => true],
+        'paymentDate' => ['type' => 'date', 'required' => true, 'default' => 'javascript: return this.dateTime.getToday();'],
+        'method'      => [
+            'type'    => 'enum',
+            'options' => ['Cash', 'Bank Transfer', 'Card', 'Other'],
+            'default' => 'Cash',
+        ],
+        'coversUntil'   => ['type' => 'date', 'required' => true],
+        'receiptNumber' => ['type' => 'varchar', 'maxLength' => 64],
+        'notes'         => ['type' => 'text'],
+        'createdAt'     => ['type' => 'datetime', 'readOnly' => true],
+        'modifiedAt'    => ['type' => 'datetime', 'readOnly' => true],
+        'createdBy'     => ['type' => 'link', 'readOnly' => true],
+        'modifiedBy'    => ['type' => 'link', 'readOnly' => true],
+    ],
+    'links' => [
+        'member'     => ['type' => 'belongsTo', 'entity' => 'Member', 'foreign' => 'duesPayments'],
+        'createdBy'  => ['type' => 'belongsTo', 'entity' => 'User'],
+        'modifiedBy' => ['type' => 'belongsTo', 'entity' => 'User'],
+    ],
+    'collection' => ['orderBy' => 'paymentDate', 'order' => 'desc'],
+    'indexes'    => [
+        'member'      => ['columns' => ['memberId']],
+        'paymentDate' => ['columns' => ['paymentDate']],
+    ],
+];
+
+$memberScopes = [
+    'entity' => true, 'object' => true, 'module' => 'Custom', 'tab' => true,
+    'acl' => true, 'aclPortal' => true, 'customizable' => true, 'importable' => true,
+    'notifications' => true, 'stream' => true, 'disabled' => false, 'type' => 'Base', 'isCustom' => true,
+];
+$duesPaymentScopes = [
+    'entity' => true, 'object' => true, 'module' => 'Custom', 'tab' => true,
+    'acl' => true, 'aclPortal' => false, 'customizable' => true, 'importable' => true,
+    'notifications' => false, 'stream' => false, 'disabled' => false, 'type' => 'Base', 'isCustom' => true,
+];
+
+$memberClientDefs = [
+    'controller'   => 'controllers/record',
+    'iconClass'    => 'fas fa-users',
+    'color'        => '#6c5ce7',
+    'boolFilterList' => ['onlyMy'],
+    'filterList'   => [
+        ['name' => 'active',     'filter' => ['membershipStatus' => 'Active']],
+        ['name' => 'inArrears',  'filter' => ['membershipStatus' => 'In Arrears']],
+        ['name' => 'suspended',  'filter' => ['membershipStatus' => 'Suspended']],
+    ],
+    'relationshipPanels' => [
+        'duesPayments' => [
+            'create'         => true,
+            'select'         => false,
+            'rowActionsView' => 'views/record/row-actions/relationship',
+            'orderBy'        => 'paymentDate',
+            'order'          => 'desc',
+        ],
+    ],
+];
+$duesPaymentClientDefs = [
+    'controller' => 'controllers/record',
+    'iconClass'  => 'fas fa-dollar-sign',
+    'color'      => '#00b894',
+];
+
+// Field-level ACL: treat the postal address as sensitive — readers below
+// admin/manager see only the city, not the street. Override in Admin UI for
+// orgs with different privacy needs.
+$memberEntityAcl = [
+    'fields' => [
+        'streetAddress' => ['readOnlyRoles' => ['Member Viewer'], 'hiddenRoles' => ['Member Viewer']],
+        'postalCode'    => ['readOnlyRoles' => ['Member Viewer'], 'hiddenRoles' => ['Member Viewer']],
+    ],
+];
+
+$memberDetailLayout = [
+    ['label' => 'Overview', 'rows' => [
+        [['name' => 'memberId'], ['name' => 'membershipStatus']],
+        [['name' => 'firstName'], ['name' => 'lastName']],
+        [['name' => 'emailAddress'], ['name' => 'phoneNumber']],
+        [['name' => 'duesTier'], ['name' => 'chapter']],
+        [['name' => 'joinDate'], ['name' => 'paidUpThrough']],
+        [['name' => 'recurringDues'], ['name' => 'assignedUser']],
+    ]],
+    ['label' => 'Address', 'rows' => [
+        [['name' => 'streetAddress'], ['name' => 'city']],
+        [['name' => 'state'], ['name' => 'postalCode']],
+        [['name' => 'country'], false],
+    ]],
+    ['label' => 'Notes', 'rows' => [[['name' => 'description', 'fullWidth' => true]]]],
+];
+
+$memberListLayout = [
+    ['name' => 'memberId', 'width' => 10],
+    ['name' => 'name', 'width' => 18, 'link' => true],
+    ['name' => 'emailAddress', 'width' => 18],
+    ['name' => 'city', 'width' => 12],
+    ['name' => 'chapter', 'width' => 12],
+    ['name' => 'membershipStatus', 'width' => 12],
+    ['name' => 'assignedUser', 'width' => 12],
+];
+
+$duesPaymentDetailLayout = [
+    ['label' => 'Overview', 'rows' => [
+        [['name' => 'member'], ['name' => 'paymentDate']],
+        [['name' => 'amount'], ['name' => 'method']],
+        [['name' => 'coversUntil'], ['name' => 'receiptNumber']],
+        [['name' => 'notes', 'fullWidth' => true]],
+    ]],
+];
+$duesPaymentListLayout = [
+    ['name' => 'member', 'width' => 25, 'link' => true],
+    ['name' => 'amount', 'width' => 15],
+    ['name' => 'paymentDate', 'width' => 15],
+    ['name' => 'method', 'width' => 15],
+    ['name' => 'coversUntil', 'width' => 20],
+    ['name' => 'receiptNumber', 'width' => 10],
+];
+
+$memberLabels = [
+    'labels' => [
+        'Create Member'  => 'Create Member',
+        'Record Payment' => 'Record Payment',
+    ],
+    'fields' => [
+        'memberId'         => 'Member ID',
+        'firstName'        => 'First Name',
+        'lastName'         => 'Last Name',
+        'name'             => 'Name',
+        'emailAddress'     => 'Email',
+        'phoneNumber'      => 'Phone',
+        'city'             => 'City',
+        'streetAddress'    => 'Street Address',
+        'state'            => 'State / Province',
+        'country'          => 'Country',
+        'chapter'          => 'Chapter / Branch',
+        'postalCode'       => 'Postal Code',
+        'membershipStatus' => 'Membership Status',
+        'duesTier'         => 'Dues Tier',
+        'joinDate'         => 'Join Date',
+        'paidUpThrough'    => 'Paid Up Through',
+        'recurringDues'    => 'Recurring Dues',
+        'assignedUser'     => 'Assigned Steward',
+        'duesPayments'     => 'Dues Payments',
+        'description'      => 'Notes',
+    ],
+    'tooltips' => [
+        'memberId' => 'Organization-issued member number.',
+        'chapter'  => 'Local chapter, branch, or sub-group this member belongs to.',
+    ],
+    'options' => [
+        'membershipStatus' => [
+            'Active'     => 'Active',
+            'In Arrears' => 'In Arrears',
+            'Suspended'  => 'Suspended',
+            'Withdrawn'  => 'Withdrawn',
+            'Deceased'   => 'Deceased',
+        ],
+    ],
+];
+
+$duesPaymentLabels = [
+    'labels' => ['Create DuesPayment' => 'Record Payment'],
+    'fields' => [
+        'member'        => 'Member',
+        'amount'        => 'Amount',
+        'paymentDate'   => 'Payment Date',
+        'method'        => 'Payment Method',
+        'coversUntil'   => 'Covers Until',
+        'receiptNumber' => 'Receipt Number',
+        'notes'         => 'Notes',
+    ],
+    'tooltips' => ['coversUntil' => 'The date until which dues are paid.'],
+    'options'  => [
+        'method' => [
+            'Cash'          => 'Cash',
+            'Bank Transfer' => 'Bank Transfer',
+            'Card'          => 'Card',
+            'Other'         => 'Other',
+        ],
+    ],
+];
+
+$globalLabels = [
+    'scopeNames'       => ['Member' => 'Member', 'DuesPayment' => 'Dues Payment'],
+    'scopeNamesPlural' => ['Member' => 'Members', 'DuesPayment' => 'Dues Payments'],
+];
+
+// ── Write metadata to disk ─────────────────────────────────────────────────
+
+function writeJson(string $path, array $data): void {
+    file_put_contents($path, json_encode($data, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
+}
+
+writeJson($customPath . '/entityDefs/Member.json',          $memberEntityDefs);
+writeJson($customPath . '/entityDefs/DuesPayment.json',     $duesPaymentEntityDefs);
+writeJson($customPath . '/scopes/Member.json',              $memberScopes);
+writeJson($customPath . '/scopes/DuesPayment.json',         $duesPaymentScopes);
+writeJson($customPath . '/clientDefs/Member.json',          $memberClientDefs);
+writeJson($customPath . '/clientDefs/DuesPayment.json',     $duesPaymentClientDefs);
+writeJson($customPath . '/entityAcl/Member.json',           $memberEntityAcl);
+writeJson($basePath . '/custom/Espo/Custom/Resources/layouts/Member/detail.json',      $memberDetailLayout);
+writeJson($basePath . '/custom/Espo/Custom/Resources/layouts/Member/list.json',        $memberListLayout);
+writeJson($basePath . '/custom/Espo/Custom/Resources/layouts/DuesPayment/detail.json', $duesPaymentDetailLayout);
+writeJson($basePath . '/custom/Espo/Custom/Resources/layouts/DuesPayment/list.json',   $duesPaymentListLayout);
+writeJson($basePath . '/custom/Espo/Custom/Resources/i18n/en_US/Member.json',          $memberLabels);
+writeJson($basePath . '/custom/Espo/Custom/Resources/i18n/en_US/DuesPayment.json',     $duesPaymentLabels);
+writeJson($basePath . '/custom/Espo/Custom/Resources/i18n/en_US/Global.json',          $globalLabels);
+
+echo "Entity metadata written.\n";
+
+// ── Roles + teams ──────────────────────────────────────────────────────────
+// Provisioned via direct SQL so the first apply has them ready before any
+// OIDC login attempt. Operators tune via Admin UI afterwards; the upsert
+// preserves anything edited that isn't in the data column we write.
+
+$configPath = $basePath . '/data/config.php';
+$config     = include($configPath);
+
+$dbHost = $config['database']['host']     ?? '{{ espocrm_db_credentials.host }}';
+$dbPort = $config['database']['port']     ?? '{{ espocrm_db_credentials.port }}';
+$dbName = $config['database']['dbname']   ?? '{{ espocrm_db_credentials.dbname }}';
+$dbUser = $config['database']['user']     ?? '{{ espocrm_db_credentials.username }}';
+$dbPass = $config['database']['password'] ?? {{ espocrm_db_credentials.password | to_json }};
+
+$roles = [
+    [
+        'id'   => 'member_admin_role',
+        'name' => 'Member Admin',
+        'data' => [
+            'Member'      => ['create' => 'yes', 'read' => 'all', 'edit' => 'all', 'delete' => 'all', 'stream' => 'all'],
+            'DuesPayment' => ['create' => 'yes', 'read' => 'all', 'edit' => 'all', 'delete' => 'all'],
+        ],
+        'fieldData' => [
+            'Member' => [
+                'streetAddress' => ['read' => 'yes', 'edit' => 'yes'],
+                'postalCode'    => ['read' => 'yes', 'edit' => 'yes'],
+            ],
+        ],
+    ],
+    [
+        'id'   => 'member_steward_role',
+        'name' => 'Member Steward',
+        'data' => [
+            'Member'      => ['create' => 'yes', 'read' => 'all', 'edit' => 'all', 'delete' => 'no', 'stream' => 'all'],
+            'DuesPayment' => ['create' => 'yes', 'read' => 'all', 'edit' => 'all', 'delete' => 'no'],
+        ],
+        'fieldData' => [
+            'Member' => [
+                'streetAddress' => ['read' => 'yes', 'edit' => 'yes'],
+                'postalCode'    => ['read' => 'yes', 'edit' => 'yes'],
+            ],
+        ],
+    ],
+    [
+        'id'   => 'member_viewer_role',
+        'name' => 'Member Viewer',
+        'data' => [
+            'Member'      => ['create' => 'no', 'read' => 'all', 'edit' => 'no', 'delete' => 'no', 'stream' => 'all'],
+            'DuesPayment' => ['create' => 'no', 'read' => 'all', 'edit' => 'no', 'delete' => 'no'],
+        ],
+        'fieldData' => [
+            'Member' => [
+                'streetAddress' => ['read' => 'no', 'edit' => 'no'],
+                'postalCode'    => ['read' => 'no', 'edit' => 'no'],
+            ],
+        ],
+    ],
+    [
+        'id'   => 'dues_treasurer_role',
+        'name' => 'Dues Treasurer',
+        'data' => [
+            'Member'      => ['create' => 'no', 'read' => 'all', 'edit' => 'no', 'delete' => 'no', 'stream' => 'no'],
+            'DuesPayment' => ['create' => 'yes', 'read' => 'all', 'edit' => 'all', 'delete' => 'no'],
+        ],
+        'fieldData' => [
+            'Member' => [
+                'streetAddress' => ['read' => 'no', 'edit' => 'no'],
+                'postalCode'    => ['read' => 'no', 'edit' => 'no'],
+            ],
+        ],
+    ],
+];
+
+try {
+    $pdo = new PDO(
+        "pgsql:host=$dbHost;port=$dbPort;dbname=$dbName",
+        $dbUser,
+        $dbPass,
+        [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION]
+    );
+
+    foreach ($roles as $role) {
+        $stmt = $pdo->prepare("
+            INSERT INTO role (id, name, data, field_data, deleted)
+            VALUES (?, ?, ?, ?, false)
+            ON CONFLICT (id) DO UPDATE SET
+                name = EXCLUDED.name,
+                data = EXCLUDED.data,
+                field_data = EXCLUDED.field_data,
+                deleted = false
+        ");
+        $stmt->execute([
+            $role['id'],
+            $role['name'],
+            json_encode($role['data']),
+            json_encode($role['fieldData']),
+        ]);
+        echo "Configured role: {$role['name']}\n";
+    }
+
+    // One team per role; the SSO team-sync (configured separately) can then
+    // place users on the matching team and they pick up role permissions.
+    $teams = [
+        ['id' => 'memberadmins',    'name' => 'Member Admins',    'roleId' => 'member_admin_role'],
+        ['id' => 'memberstewards',  'name' => 'Member Stewards',  'roleId' => 'member_steward_role'],
+        ['id' => 'memberviewers',   'name' => 'Member Viewers',   'roleId' => 'member_viewer_role'],
+        ['id' => 'duestreasurers',  'name' => 'Dues Treasurers',  'roleId' => 'dues_treasurer_role'],
+    ];
+    foreach ($teams as $team) {
+        $stmt = $pdo->prepare("
+            INSERT INTO team (id, name, deleted, created_at)
+            VALUES (?, ?, false, NOW())
+            ON CONFLICT (id) DO UPDATE SET name = EXCLUDED.name, deleted = false
+        ");
+        $stmt->execute([$team['id'], $team['name']]);
+
+        $stmt = $pdo->prepare("
+            INSERT INTO role_team (role_id, team_id, deleted)
+            VALUES (?, ?, false)
+            ON CONFLICT (role_id, team_id) DO UPDATE SET deleted = false
+        ");
+        $stmt->execute([$team['roleId'], $team['id']]);
+        echo "Configured team: {$team['name']}\n";
+    }
+} catch (PDOException $e) {
+    fwrite(STDERR, "Database error: " . $e->getMessage() . "\n");
+    fwrite(STDERR, "Roles and teams must be configured manually.\n");
+}
+
+// ── Navigation: scope the navbar to the custom entities ────────────────────
+
+$config['tabList'] = ['Member', 'DuesPayment', '_delimiter_', 'Calendar', 'Email'];
+$config['tabGroups'] = [
+    [
+        'label'     => 'Membership',
+        'iconClass' => 'fas fa-address-book',
+        'color'     => '#6c5ce7',
+        'itemList'  => ['Member', 'DuesPayment'],
+    ],
+];
+$config['quickCreateList']        = ['Member', 'DuesPayment'];
+$config['globalSearchEntityList'] = ['Member', 'DuesPayment'];
+file_put_contents($configPath, "<?php\nreturn " . var_export($config, true) . ";\n");
+echo "Navigation updated.\n";
+
+// Hide the default sales-CRM entities. Data, if any, is preserved.
+$disabled = ['Account', 'Lead', 'Contact', 'Opportunity', 'Case', 'Campaign', 'TargetList', 'Target', 'Document', 'DocumentFolder'];
+foreach ($disabled as $entity) {
+    writeJson($customPath . "/scopes/$entity.json", ['disabled' => true, 'tab' => false]);
+}
+echo "Disabled default entities: " . implode(', ', $disabled) . "\n";
+
+// rebuild + clear-cache runs in the Ansible task that owns the post-bootstrap step.
+echo "Member-entity bootstrap complete.\n";

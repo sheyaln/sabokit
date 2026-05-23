@@ -1,0 +1,107 @@
+<?php
+// {{ ansible_managed }}
+// Bootstraps EspoCRM's OIDC config and optional group→role mapping by
+// mutating /var/www/html/data/config.php directly. EspoCRM exposes no API
+// for these keys before an admin signs in, so the file-edit path is the one
+// that works on a fresh install.
+
+$basePath   = '/var/www/html';
+$configPath = $basePath . '/data/config.php';
+
+if (!file_exists($configPath)) {
+    fwrite(STDERR, "Error: config.php not found at $configPath\n");
+    exit(1);
+}
+
+$config = include($configPath);
+
+// ── OIDC provider settings ──────────────────────────────────────────────────
+
+$config['authenticationMethod']         = 'Oidc';
+$config['oidcClientId']                 = {{ espocrm_app_secrets.OIDC_CLIENT_ID | to_json }};
+$config['oidcClientSecret']             = {{ espocrm_app_secrets.OIDC_CLIENT_SECRET | to_json }};
+$config['oidcAuthorizationEndpoint']    = {{ espocrm_app_secrets.OIDC_AUTHORIZATION_ENDPOINT | to_json }};
+$config['oidcTokenEndpoint']            = {{ espocrm_app_secrets.OIDC_TOKEN_ENDPOINT | to_json }};
+$config['oidcUserinfoEndpoint']         = {{ espocrm_app_secrets.OIDC_USERINFO_ENDPOINT | to_json }};
+$config['oidcJwksEndpoint']             = {{ espocrm_app_secrets.OIDC_JWKS_ENDPOINT | to_json }};
+$config['oidcRedirectUri']              = {{ espocrm_app_secrets.OIDC_REDIRECT_URI | to_json }};
+$config['oidcLogoutUrl']                = {{ espocrm_app_secrets.OIDC_LOGOUT_URL | to_json }};
+
+$config['oidcScopes']                   = ['openid', 'profile', 'email', 'groups'];
+$config['oidcUsernameClaim']            = {{ espocrm_oidc_username_claim | to_json }};
+$config['oidcGroupClaim']               = {{ espocrm_oidc_group_claim | to_json }};
+
+// User and team auto-provisioning.
+$config['oidcCreateUser']               = true;
+$config['oidcSync']                     = true;
+$config['oidcSyncTeams']                = true;
+$config['oidcTeamIdPrefix']             = {{ espocrm_oidc_team_id_prefix | to_json }};
+
+// Keep the local admin password reachable as a break-glass account; deny
+// regular local logins so OIDC is the only path for non-admin users.
+$config['oidcFallback']                 = true;
+$config['oidcAllowRegularUserFallback'] = false;
+$config['oidcAllowAdminUser']           = true;
+
+// ── System-wide settings ────────────────────────────────────────────────────
+
+$config['timeZone']                              = {{ espocrm_timezone | to_json }};
+$config['b2cMode']                               = {{ espocrm_b2c_mode | bool | to_json }};
+// Password recovery emails are pointless when OIDC is mandatory for everyone
+// except the admin fallback account.
+$config['passwordRecoveryDisabled']                  = true;
+$config['passwordRecoveryForInternalUsersDisabled']  = true;
+$config['passwordRecoveryForAdminDisabled']          = false;
+
+// Persist before doing the role mapping; if the DB lookup fails below the
+// OIDC config is at least already in place.
+file_put_contents($configPath, "<?php\nreturn " . var_export($config, true) . ";\n");
+echo "OIDC configuration updated.\n";
+
+{% if espocrm_oidc_group_role_mapping | length > 0 %}
+// ── Group → role mapping ────────────────────────────────────────────────────
+// Resolve the operator-supplied {authentik_group: EspoCRM Role Name} list to
+// {authentik_group: EspoCRM role ID} by joining against the role table.
+
+$dbHost = $config['database']['host']     ?? '{{ espocrm_db_credentials.host }}';
+$dbPort = $config['database']['port']     ?? '{{ espocrm_db_credentials.port }}';
+$dbName = $config['database']['dbname']   ?? '{{ espocrm_db_credentials.dbname }}';
+$dbUser = $config['database']['user']     ?? '{{ espocrm_db_credentials.username }}';
+$dbPass = $config['database']['password'] ?? {{ espocrm_db_credentials.password | to_json }};
+
+$mapping = {{ espocrm_oidc_group_role_mapping | to_json }};
+
+try {
+    $pdo = new PDO(
+        "pgsql:host=$dbHost;port=$dbPort;dbname=$dbName",
+        $dbUser,
+        $dbPass,
+        [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION]
+    );
+
+    $roleIds = [];
+    foreach ($pdo->query("SELECT id, name FROM role WHERE deleted = false") as $row) {
+        $roleIds[$row['name']] = $row['id'];
+    }
+
+    $resolved = [];
+    foreach ($mapping as $group => $roleName) {
+        if (isset($roleIds[$roleName])) {
+            $resolved[$group] = $roleIds[$roleName];
+            echo "Mapped group '$group' → role '$roleName' (id={$roleIds[$roleName]})\n";
+        } else {
+            echo "Warning: role '$roleName' not found, skipping group '$group'\n";
+        }
+    }
+
+    $config['oidcGroupRoleMapping'] = $resolved;
+    $config['oidcSyncRoles']        = true;
+    file_put_contents($configPath, "<?php\nreturn " . var_export($config, true) . ";\n");
+    echo "Group-role mapping configured.\n";
+} catch (PDOException $e) {
+    fwrite(STDERR, "Database error: " . $e->getMessage() . "\n");
+    fwrite(STDERR, "Group-role mapping not applied; configure manually.\n");
+}
+{% endif %}
+
+echo "OIDC bootstrap complete.\n";
