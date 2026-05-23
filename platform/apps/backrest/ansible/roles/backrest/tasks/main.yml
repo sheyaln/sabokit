@@ -1,0 +1,93 @@
+---
+# Deploy one Backrest instance behind Authentik forward-auth.
+#
+# This role is idempotent and is invoked once per (host, instance_name) pair
+# from the consumer's site.yml. Multiple instances on a single host use
+# distinct install_dirs and container names — they coexist cleanly.
+#
+# Required vars:
+#   backrest_instance_name  - per-instance suffix matching the Terraform module's instance_name
+#   backrest_hostname       - full hostname for Traefik routing
+#   backrest_app_secret_id  - Scaleway secret ID holding RESTIC_PASSWORD + S3 creds
+#
+# Prereqs (NOT installed by this role — see platform/ansible/bootstrap.yml):
+#   - Docker engine + compose plugin
+#   - Traefik on an external network named per backrest_traefik_docker_network
+#   - Authentik embedded outpost wired (middleware backrest_authentik_middleware)
+#   - scaleway.scaleway Ansible collection on the controller (for the secret lookup)
+
+- name: Validate required Backrest variables
+  ansible.builtin.assert:
+    that:
+      - backrest_instance_name | length > 0
+      - backrest_hostname | length > 0
+      - backrest_app_secret_id | length > 0
+    fail_msg: "backrest_instance_name, backrest_hostname and backrest_app_secret_id are required."
+
+- name: Assert Docker is installed and running
+  ansible.builtin.command: docker info
+  register: backrest_docker_check
+  changed_when: false
+  failed_when: backrest_docker_check.rc != 0
+
+- name: Assert Traefik external network exists
+  community.docker.docker_network_info:
+    name: "{{ backrest_traefik_docker_network }}"
+  register: backrest_traefik_net
+  failed_when: not backrest_traefik_net.exists
+
+- name: Ensure Backrest directories exist
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    mode: "0750"
+    owner: root
+    group: root
+  loop:
+    - "{{ backrest_install_dir }}"
+    - "{{ backrest_install_dir }}/data"
+    - "{{ backrest_install_dir }}/config"
+    - "{{ backrest_install_dir }}/cache"
+
+- name: Normalize Scaleway secret ID (strip leading region/ prefix)
+  ansible.builtin.set_fact:
+    _backrest_app_secret_uuid: "{{ backrest_app_secret_id | regex_replace('^[^/]+/', '') }}"
+
+- name: Look up Backrest secrets from Scaleway
+  ansible.builtin.set_fact:
+    backrest_app_secrets: "{{ lookup('scaleway.scaleway.scaleway_secret', _backrest_app_secret_uuid) | b64decode | from_json }}"
+  no_log: true
+
+- name: Render Backrest config.json
+  ansible.builtin.template:
+    src: config.json.j2
+    dest: "{{ backrest_install_dir }}/config/config.json"
+    mode: "0600"
+    owner: root
+    group: root
+  notify: Restart backrest
+  no_log: true
+
+- name: Render docker-compose.yml
+  ansible.builtin.template:
+    src: docker-compose.yml.j2
+    dest: "{{ backrest_install_dir }}/docker-compose.yml"
+    mode: "0644"
+    owner: root
+    group: root
+  notify: Restart backrest
+
+- name: Render Backrest environment file
+  ansible.builtin.template:
+    src: env.j2
+    dest: "{{ backrest_install_dir }}/.env"
+    mode: "0600"
+    owner: root
+    group: root
+  notify: Restart backrest
+  no_log: true
+
+- name: Ensure Backrest stack is running
+  community.docker.docker_compose_v2:
+    project_src: "{{ backrest_install_dir }}"
+    state: present

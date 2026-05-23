@@ -1,0 +1,46 @@
+---
+# Set by the consumer via the values that come out of platform/apps/backrest/terraform's
+# ansible.vars output. Defaults below are sane only for shape — required vars
+# (instance_name, hostname, secret IDs) are asserted at the top of tasks/main.yml.
+
+backrest_instance_name: ""                    # Required. e.g. "tools-prod".
+backrest_hostname: ""                         # Required. e.g. "backup.tools.example.org".
+backrest_image: "garethgeorge/backrest"
+backrest_image_tag: "latest"
+
+# Per-instance install dir so multiple instances on one host don't clobber each
+# other's compose project / data / cache.
+backrest_install_dir: "/opt/backrest-{{ backrest_instance_name }}"
+
+# Scaleway secret ID (set by Terraform; passed in via ansible.vars).
+backrest_app_secret_id: ""                    # Single secret holding RESTIC_PASSWORD + S3 creds + repo URI.
+
+backrest_traefik_docker_network: "traefik"
+backrest_authentik_middleware: "authentik-auth@docker"
+
+# Backup plans rendered into config.json. List of objects:
+#   - id, paths, excludes (optional), schedule.cron, retention.{daily,weekly,monthly,...}
+# Authored in terraform.tfvars and passed through Terraform's ansible.vars.
+backrest_backup_plans: []
+
+# Host paths bind-mounted read-only into the container under /backup-sources/<key>.
+# Default covers the two trees sabokit apps write to. Extend (don't
+# replace) when an app stores state outside these.
+backrest_backup_sources:
+  opt: /opt
+  docker-volumes: /var/lib/docker/volumes
+
+# Restic repo policy knobs — defaults match Terraform variables of the same name.
+backrest_restic_prune_max_frequency_days: 7
+backrest_restic_check_max_frequency_days: 30
+backrest_restic_check_read_data_subset_pct: 5
+
+# Resource limits. restic compression + dedup is CPU-heavy during the first
+# snapshot of a large tree; subsequent snapshots are cheap. Defaults aim for
+# "won't starve the host's other services".
+backrest_memory_limit: "1G"
+backrest_memory_reservation: "256M"
+backrest_cpu_limit: "1.0"
+backrest_cpu_reservation: "0.25"
+
+backrest_timezone: "UTC"
