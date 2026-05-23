@@ -35,7 +35,7 @@ services:
           memory: "{{ steward_memory_reservation }}"
           cpus: "{{ steward_cpu_reservation }}"
     healthcheck:
-      test: ["CMD-SHELL", "python -c \"import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:8000/healthz').status==200 else 1)\""]
+      test: ["CMD-SHELL", "python -c \"import urllib.request,sys; req=urllib.request.Request('http://127.0.0.1:8000/healthz', headers={'Host':'{{ steward_hostname }}'}); sys.exit(0 if urllib.request.urlopen(req).status==200 else 1)\""]
       interval: 30s
       timeout: 10s
       retries: 5

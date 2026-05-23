@@ -52,9 +52,10 @@ resource "authentik_user" "service_account" {
 resource "authentik_token" "service_account" {
   count = var.enabled ? 1 : 0
 
-  identifier  = "${local.slug}-api-token"
-  intent      = "api"
-  user        = authentik_user.service_account[0].id
-  expiring    = false
-  description = "Server-to-server API token for the Steward web app."
+  identifier   = "${local.slug}-api-token"
+  intent       = "api"
+  user         = authentik_user.service_account[0].id
+  expiring     = false
+  retrieve_key = true
+  description  = "Server-to-server API token for the Steward web app."
 }
