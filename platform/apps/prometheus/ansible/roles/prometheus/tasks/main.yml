@@ -1,0 +1,64 @@
+---
+# Deploy Prometheus + (optional) node_exporter + cadvisor as a single
+# docker-compose stack. Scrape configs and alert rules are aggregated by
+# the consumer from each app's monitoring output and passed in via
+# prometheus_scrape_configs / prometheus_alert_rules.
+
+- name: Assert Docker is installed and running
+  ansible.builtin.command: docker info
+  register: prometheus_docker_check
+  changed_when: false
+  failed_when: prometheus_docker_check.rc != 0
+
+- name: Ensure Prometheus directory tree
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    mode: "0755"
+    owner: root
+    group: root
+  loop:
+    - "{{ prometheus_install_dir }}"
+    - "{{ prometheus_install_dir }}/config"
+    - "{{ prometheus_install_dir }}/rules"
+
+# Create the shared monitoring network. Idempotent — Loki and Grafana
+# bundles do the same and the first one wins. Marked external in each
+# bundle's compose so docker-compose doesn't try to recreate it.
+- name: Ensure shared monitoring network exists
+  community.docker.docker_network:
+    name: "{{ prometheus_internal_network }}"
+    state: present
+
+- name: Render prometheus.yml
+  ansible.builtin.template:
+    src: prometheus.yml.j2
+    dest: "{{ prometheus_install_dir }}/config/prometheus.yml"
+    mode: "0644"
+    owner: root
+    group: root
+  notify: Reload prometheus config
+
+- name: Render alert rules
+  ansible.builtin.template:
+    src: rules.yml.j2
+    dest: "{{ prometheus_install_dir }}/rules/rules.yml"
+    mode: "0644"
+    owner: root
+    group: root
+  notify: Reload prometheus config
+
+- name: Render docker-compose.yml
+  ansible.builtin.template:
+    src: docker-compose.yml.j2
+    dest: "{{ prometheus_install_dir }}/docker-compose.yml"
+    mode: "0644"
+    owner: root
+    group: root
+  notify: Restart prometheus
+
+- name: Ensure Prometheus stack is running
+  community.docker.docker_compose_v2:
+    project_src: "{{ prometheus_install_dir }}"
+    state: present
+    pull: missing

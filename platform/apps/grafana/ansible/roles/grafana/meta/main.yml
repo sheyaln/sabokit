@@ -1,0 +1,6 @@
+---
+galaxy_info:
+  role_name: grafana
+  description: Grafana UI with OIDC + provisioned datasources for Prometheus + Loki
+  min_ansible_version: "2.14"
+dependencies: []

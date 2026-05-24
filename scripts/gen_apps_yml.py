@@ -51,6 +51,9 @@ BUNDLES = [
     ("espocrm",        "espocrm",         "espocrm"),
     ("n8n",            "n8n",             "n8n"),
     ("backrest",       "backrest_mgmt",   "backrest"),
+    ("prometheus",     "prometheus",      "prometheus"),
+    ("loki",           "loki",            "loki"),
+    ("grafana",        "grafana",         "grafana"),
     ("watchtower",     "watchtower_apps", "watchtower"),
     ("autoheal",       "autoheal_apps",   "autoheal"),
 ]

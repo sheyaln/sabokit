@@ -1,0 +1,12 @@
+---
+- name: Restart prometheus
+  community.docker.docker_compose_v2:
+    project_src: "{{ prometheus_install_dir }}"
+    state: restarted
+
+- name: Reload prometheus config
+  ansible.builtin.uri:
+    url: "http://127.0.0.1:9090/-/reload"
+    method: POST
+    status_code: 200
+  ignore_errors: true

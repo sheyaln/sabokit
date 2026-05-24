@@ -1,0 +1,33 @@
+# {{ ansible_managed }}
+# Managed by sabokit apps/prometheus/ansible/role.
+# Regenerated on every play from the consumer's aggregated scrape_configs.
+
+global:
+  scrape_interval: 30s
+  evaluation_interval: 30s
+
+rule_files:
+  - /etc/prometheus/rules/*.yml
+
+scrape_configs:
+  # Self-scrape so Prometheus shows up in its own metrics.
+  - job_name: prometheus
+    static_configs:
+      - targets: ["localhost:9090"]
+
+{% if prometheus_exporters_enabled %}
+  # Host-level metrics from node_exporter sidecar.
+  - job_name: node
+    static_configs:
+      - targets: ["node_exporter:9100"]
+
+  # Per-container metrics from cAdvisor sidecar.
+  - job_name: cadvisor
+    static_configs:
+      - targets: ["cadvisor:8080"]
+{% endif %}
+
+{# Consumer-aggregated scrape configs from each enabled app's monitoring output #}
+{% for cfg in prometheus_scrape_configs | default([]) %}
+  - {{ cfg | to_nice_yaml(indent=2) | indent(4) }}
+{% endfor %}

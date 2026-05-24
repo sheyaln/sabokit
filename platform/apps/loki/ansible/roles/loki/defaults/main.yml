@@ -1,0 +1,20 @@
+---
+loki_image: "grafana/loki"
+loki_image_tag: "latest"
+loki_install_dir: "/opt/loki"
+
+loki_retention: "744h"
+loki_ingestion_rate_mb: 10
+loki_ingestion_burst_size_mb: 20
+loki_private_ip_bind: ""
+
+loki_memory_limit: "1G"
+loki_memory_reservation: "256M"
+loki_cpu_limit: "1.0"
+loki_cpu_reservation: "0.25"
+
+loki_timezone: "UTC"
+loki_internal_network: "monitoring_internal"
+
+loki_auto_update_enabled: false
+loki_autoheal_enabled: true

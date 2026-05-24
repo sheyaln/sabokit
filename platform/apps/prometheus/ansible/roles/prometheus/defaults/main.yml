@@ -1,0 +1,30 @@
+---
+prometheus_image: "prom/prometheus"
+prometheus_image_tag: "latest"
+prometheus_install_dir: "/opt/prometheus"
+
+prometheus_retention: "30d"
+prometheus_scrape_configs: []
+prometheus_alert_rules: []
+prometheus_exporters_enabled: true
+prometheus_remote_write_enabled: true
+prometheus_private_ip_bind: ""
+
+prometheus_memory_limit: "2G"
+prometheus_memory_reservation: "512M"
+prometheus_cpu_limit: "2.0"
+prometheus_cpu_reservation: "0.5"
+
+prometheus_timezone: "UTC"
+
+# Shared docker network for the monitoring stack. Grafana + Loki + Prometheus
+# all join it so grafana can reach prometheus/loki by hostname.
+prometheus_internal_network: "monitoring_internal"
+
+# Ops labels (forwarded from terraform).
+prometheus_auto_update_enabled: false
+prometheus_autoheal_enabled: true
+
+# Image tags for the optional sidecars (only used when exporters_enabled).
+prometheus_node_exporter_image_tag: "latest"
+prometheus_cadvisor_image_tag: "latest"

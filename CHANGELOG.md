@@ -2,6 +2,35 @@
 
 All notable changes to sabokit go here. Versioning follows semver; major bumps signal breaking contract changes for consumers.
 
+## v2.6.0 — Monitoring stack (prometheus + loki + grafana)
+
+Three new bundles forming the standard observability triad. Headless prometheus + loki with grafana fronting via Authentik OIDC. Shared `monitoring_internal` docker network (each bundle creates it idempotently).
+
+### New platform bundles
+
+- **`platform/apps/prometheus/`** — TSDB + optional `node_exporter` + `cadvisor` sidecars. Headless (binds 127.0.0.1 by default; set `private_ip_bind` to expose on the VPC). Scrape configs and alert rules are aggregated by consumer-template from each enabled app's `monitoring.prometheus_scrape_configs` / `monitoring.alert_rules` — bundles own their scraping, consumer plumbs.
+- **`platform/apps/loki/`** — single-tenant filesystem-backed log aggregator. Receives Alloy/Promtail pushes on port 3100 (default 127.0.0.1). For multi-tenant or S3-backed deployments, replace `templates/loki-config.yml.j2`.
+- **`platform/apps/grafana/`** — UI behind Authentik OIDC. Prometheus + Loki datasources auto-provisioned via the shared network. OIDC role mapping: configurable `oidc_admin_group` / `oidc_editor_group` → Admin/Editor; everyone else → Viewer. Dashboards via file-provider in `/opt/grafana/provisioning/dashboards/`.
+
+### Consumer-template wiring
+
+- `local.aggregated_scrape_configs` + `local.aggregated_alert_rules` collect from every enabled app's `monitoring` output and pass into the prometheus module. Backup-plan aggregation extended to cover the 3 new bundles.
+- `module "prometheus"`, `module "loki"`, `module "grafana"` blocks added with sensible defaults.
+- `enabled_apps` output extended with the 3 new entries.
+- All module refs bumped `v2.5.0` → `v2.6.0`.
+
+### Manifest + autogen
+
+- 3 new manifest entries (17 apps total). `bash scripts/check-manifest-coverage.sh` clean (0 errors).
+- `scripts/gen_apps_yml.py` BUNDLES list extended; `platform/ansible/apps.yml` regenerated.
+- `tests/local-validate`: `terraform validate` green across base + identity + 17 app bundles.
+
+### No breaking changes
+
+This is additive; existing v2.5.0 consumers can opt in with `apps.prometheus.enabled = true` etc.
+
+---
+
 ## v2.5.0 — Retro feature survival + plug-and-play ops payload
 
 Two themes:

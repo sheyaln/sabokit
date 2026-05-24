@@ -1043,3 +1043,156 @@ apps:
           default: 60
           description: Grace period after container start before Autoheal acts. Lets slow-booting apps finish migrations.
           ui: advanced
+
+  # ── Prometheus ──────────────────────────────────────────────────────────
+  # TSDB + node_exporter + cadvisor sidecars. Headless; access via Grafana.
+  # Scrape configs auto-aggregated from each enabled app's monitoring output.
+  - id: prometheus
+    display_name: Prometheus
+    category: ops
+    description_short: Metrics TSDB + host & container exporters
+    description: |
+      Prometheus time-series database with node_exporter and cadvisor
+      sidecars on the same host. Scrape configs and alert rules are
+      aggregated by the consumer-template from each enabled app's
+      monitoring output — bundles own their scraping, consumer plumbs.
+    icon: icons/prometheus.svg
+    upstream_url: https://github.com/prometheus/prometheus
+
+    tfvars:
+      key: prometheus
+      schema:
+        enabled:
+          type: bool
+          default: false
+          description: Whether Prometheus is deployed.
+          ui: hidden
+
+        deployment_host_key:
+          type: string
+          default: management
+          description: Which host this Prometheus runs on.
+          ui: advanced
+
+        retention:
+          type: string
+          default: "30d"
+          description: TSDB retention window (Prometheus duration). Storage scales linearly with this and sample rate.
+          ui: text
+
+        exporters_enabled:
+          type: bool
+          default: true
+          description: Deploy node_exporter + cadvisor sidecars alongside Prometheus.
+          ui: advanced
+
+        private_ip_bind:
+          type: string
+          default: ""
+          description: Optional private IP to bind 9090 to. Empty = 127.0.0.1 only.
+          ui: advanced
+
+  # ── Loki ────────────────────────────────────────────────────────────────
+  - id: loki
+    display_name: Loki
+    category: ops
+    description_short: Log aggregation, single-tenant filesystem store
+    description: |
+      Receives log pushes from Alloy/Promtail agents on every host. Grafana
+      reads back via its Loki datasource. Single-tenant + filesystem store —
+      replace templates/loki-config.yml.j2 for multi-tenant or S3.
+    icon: icons/loki.svg
+    upstream_url: https://grafana.com/oss/loki/
+
+    tfvars:
+      key: loki
+      schema:
+        enabled:
+          type: bool
+          default: false
+          description: Whether Loki is deployed.
+          ui: hidden
+
+        deployment_host_key:
+          type: string
+          default: management
+          description: Which host this Loki runs on.
+          ui: advanced
+
+        retention:
+          type: string
+          default: "744h"
+          description: Log retention window (Loki schema duration). ~31d.
+          ui: text
+
+        private_ip_bind:
+          type: string
+          default: ""
+          description: Optional private IP to bind 3100 to (for remote agents pushing logs).
+          ui: advanced
+
+  # ── Grafana ─────────────────────────────────────────────────────────────
+  - id: grafana
+    display_name: Grafana
+    category: ops
+    description_short: Dashboards UI for Prometheus + Loki
+    description: |
+      Grafana UI behind Authentik OIDC. Datasources for Prometheus + Loki
+      auto-provisioned. OIDC role mapping: admin group → Admin, manager
+      group → Editor, everyone else → Viewer (override per-group).
+    icon: icons/grafana.svg
+    upstream_url: https://github.com/grafana/grafana
+
+    tfvars:
+      key: grafana
+      schema:
+        enabled:
+          type: bool
+          default: false
+          description: Whether Grafana is deployed.
+          ui: hidden
+
+        hostname:
+          type: string
+          required: true
+          description: Public hostname Grafana is served at.
+          example: grafana.example.org
+          ui: text
+          validation:
+            pattern: ^[a-z0-9.-]+\.[a-z]{2,}$
+
+        deployment_host_key:
+          type: string
+          default: management
+          description: Which host this Grafana runs on. Should match prometheus + loki for in-network DNS.
+          ui: advanced
+
+        access_level:
+          type: string
+          default: admin
+          description: Authentik group key for baseline access (defaults to admin — Grafana is ops).
+          ui: advanced
+
+        oidc_admin_group:
+          type: string
+          default: admin
+          description: Authentik group name whose members get Grafana Admin role.
+          ui: advanced
+
+        oidc_editor_group:
+          type: string
+          default: manager
+          description: Authentik group name whose members get Grafana Editor role.
+          ui: advanced
+
+        plugins:
+          type: list(string)
+          default: []
+          description: Grafana plugins to preinstall via GF_PLUGINS_PREINSTALL.
+          ui: advanced
+
+        category_group:
+          type: string
+          default: Operations
+          description: Authentik portal category.
+          ui: advanced

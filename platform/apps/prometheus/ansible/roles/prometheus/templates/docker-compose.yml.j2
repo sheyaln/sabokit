@@ -1,0 +1,101 @@
+---
+# {{ ansible_managed }}
+# Managed by sabokit apps/prometheus/ansible/role.
+# Do not edit by hand — regenerated on every ansible-playbook run.
+
+services:
+  prometheus:
+    image: "{{ prometheus_image }}:{{ prometheus_image_tag }}"
+    container_name: prometheus
+    restart: unless-stopped
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --storage.tsdb.path=/prometheus
+      - --storage.tsdb.retention.time={{ prometheus_retention }}
+      - --web.console.libraries=/etc/prometheus/console_libraries
+      - --web.console.templates=/etc/prometheus/consoles
+{% if prometheus_remote_write_enabled %}
+      - --web.enable-remote-write-receiver
+{% endif %}
+      - --web.enable-lifecycle
+    ports:
+      # Default: localhost only. Set prometheus_private_ip_bind to a private
+      # IP to expose to other hosts on the VPC.
+      - "{{ prometheus_private_ip_bind | default('127.0.0.1', true) }}:9090:9090"
+    volumes:
+      - ./config:/etc/prometheus:ro
+      - ./rules:/etc/prometheus/rules:ro
+      - prometheus-data:/prometheus
+    environment:
+      TZ: "{{ prometheus_timezone }}"
+    networks:
+      - "{{ prometheus_internal_network }}"
+    security_opt:
+      - no-new-privileges:true
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:9090/-/healthy"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    deploy:
+      resources:
+        limits:
+          memory: "{{ prometheus_memory_limit }}"
+          cpus: "{{ prometheus_cpu_limit }}"
+        reservations:
+          memory: "{{ prometheus_memory_reservation }}"
+          cpus: "{{ prometheus_cpu_reservation }}"
+    labels:
+{% if prometheus_auto_update_enabled | default(false) %}
+      - "com.centurylinklabs.watchtower.enable=true"
+{% endif %}
+{% if prometheus_autoheal_enabled | default(false) %}
+      - "autoheal=true"
+{% endif %}
+
+{% if prometheus_exporters_enabled %}
+  # Host-level metrics (cpu, mem, disk, network, etc.) for prometheus to scrape.
+  node_exporter:
+    image: "prom/node-exporter:{{ prometheus_node_exporter_image_tag }}"
+    container_name: prometheus-node-exporter
+    restart: unless-stopped
+    command:
+      - --path.rootfs=/host
+    volumes:
+      - /:/host:ro,rslave
+    networks:
+      - "{{ prometheus_internal_network }}"
+    security_opt:
+      - no-new-privileges:true
+    pid: host
+    labels:
+{% if prometheus_autoheal_enabled | default(false) %}
+      - "autoheal=true"
+{% endif %}
+
+  # Per-container metrics (cpu, mem, network, fs I/O per container).
+  cadvisor:
+    image: "gcr.io/cadvisor/cadvisor:{{ prometheus_cadvisor_image_tag }}"
+    container_name: prometheus-cadvisor
+    restart: unless-stopped
+    privileged: true
+    volumes:
+      - /:/rootfs:ro
+      - /var/run:/var/run:ro
+      - /sys:/sys:ro
+      - /var/lib/docker/:/var/lib/docker:ro
+      - /dev/disk/:/dev/disk:ro
+    networks:
+      - "{{ prometheus_internal_network }}"
+    labels:
+{% if prometheus_autoheal_enabled | default(false) %}
+      - "autoheal=true"
+{% endif %}
+{% endif %}
+
+volumes:
+  prometheus-data:
+
+networks:
+  "{{ prometheus_internal_network }}":
+    external: true

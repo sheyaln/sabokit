@@ -1,0 +1,22 @@
+# {{ ansible_managed }}
+apiVersion: 1
+
+datasources:
+  - name: Prometheus
+    type: prometheus
+    access: proxy
+    url: {{ grafana_prometheus_url }}
+    isDefault: true
+    editable: false
+    jsonData:
+      timeInterval: "{{ grafana_prometheus_scrape_interval }}"
+      httpMethod: POST
+
+  - name: Loki
+    type: loki
+    access: proxy
+    url: {{ grafana_loki_url }}
+    isDefault: false
+    editable: false
+    jsonData:
+      maxLines: 1000
