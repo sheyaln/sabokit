@@ -1,0 +1,6 @@
+---
+- name: Deploy Wazuh server stack
+  hosts: "{{ wazuh_host_group | default('management') }}"
+  become: true
+  roles:
+    - role: wazuh

@@ -1,0 +1,22 @@
+---
+# {{ ansible_managed }}
+# Bootstraps the indexer's internal-user database on first start. Passwords
+# are bcrypted at runtime by the security plugin's securityadmin tool.
+# After first start, opensearch-security takes the index as authoritative;
+# editing this file no longer affects live state.
+
+_meta:
+  type: "internalusers"
+  config_version: 2
+
+admin:
+  hash: "{{ wazuh_app_secrets.WAZUH_INDEXER_PASSWORD | password_hash('bcrypt') }}"
+  reserved: true
+  backend_roles:
+    - "admin"
+  description: "Demo admin user"
+
+kibanaserver:
+  hash: "{{ wazuh_app_secrets.WAZUH_DASHBOARD_PASSWORD | password_hash('bcrypt') }}"
+  reserved: true
+  description: "Demo kibanaserver user"

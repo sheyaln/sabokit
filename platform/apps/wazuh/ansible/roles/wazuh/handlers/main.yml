@@ -1,0 +1,5 @@
+---
+- name: Restart wazuh stack
+  community.docker.docker_compose_v2:
+    project_src: "{{ wazuh_install_dir }}"
+    state: restarted

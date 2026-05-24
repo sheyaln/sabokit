@@ -1,0 +1,25 @@
+---
+# {{ ansible_managed }}
+# opensearch-security authentication config. Basic-auth via the indexer's
+# internal_users.yml. Authentik OIDC happens at the gateway (forward-auth)
+# — see authentik.tf in the bundle's terraform.
+
+_meta:
+  type: "config"
+  config_version: 2
+
+config:
+  dynamic:
+    http:
+      anonymous_auth_enabled: false
+    authc:
+      basic_internal_auth_domain:
+        description: "Authenticate via HTTP Basic against the internal users database"
+        http_enabled: true
+        transport_enabled: true
+        order: 1
+        http_authenticator:
+          type: basic
+          challenge: true
+        authentication_backend:
+          type: intern
