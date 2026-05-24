@@ -1,0 +1,25 @@
+---
+# {{ ansible_managed }}
+# Managed by sabokit apps/autoheal/ansible/role.
+# Do not edit by hand — regenerated on every ansible-playbook run.
+
+services:
+  autoheal:
+    image: "{{ autoheal_image }}:{{ autoheal_image_tag }}"
+    container_name: autoheal
+    restart: unless-stopped
+    environment:
+      TZ: "{{ autoheal_timezone }}"
+      AUTOHEAL_CONTAINER_LABEL: "{{ autoheal_container_label }}"
+      AUTOHEAL_INTERVAL: "{{ autoheal_interval_seconds }}"
+      AUTOHEAL_START_PERIOD: "{{ autoheal_start_period_seconds }}"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    deploy:
+      resources:
+        limits:
+          memory: "{{ autoheal_memory_limit }}"
+          cpus: "{{ autoheal_cpu_limit }}"
+        reservations:
+          memory: "{{ autoheal_memory_reservation }}"
+          cpus: "{{ autoheal_cpu_reservation }}"

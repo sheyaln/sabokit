@@ -1,0 +1,16 @@
+---
+autoheal_image: "willfarrell/autoheal"
+autoheal_image_tag: "latest"
+
+autoheal_install_dir: "/opt/autoheal"
+
+autoheal_container_label: "autoheal"
+autoheal_interval_seconds: 5
+autoheal_start_period_seconds: 60
+autoheal_timezone: "UTC"
+
+# Resource limits — autoheal is tiny.
+autoheal_memory_limit: "128M"
+autoheal_memory_reservation: "16M"
+autoheal_cpu_limit: "0.25"
+autoheal_cpu_reservation: "0.02"
