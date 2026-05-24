@@ -2,6 +2,26 @@
 
 All notable changes to sabokit go here. Versioning follows semver; major bumps signal breaking contract changes for consumers.
 
+## v2.9.2 — File Integrity Monitoring on by default for `apps/wazuh-agent`
+
+The `wazuh-agent` bundle now ships FIM enabled out of the box: a custom `ossec.conf` is mounted at `/wazuh-config-mount/etc/ossec.conf` (full override of the image's auto-config) with `<syscheck>` enabled on the standard sensitive paths, plus host `auditd` rules dropped at `/etc/audit/rules.d/wazuh.rules` and `/var/log/audit/` bind-mounted into the container so the agent's `localfile` reader tails `audit.log`.
+
+Defaults cover: `/etc/passwd`, `/etc/shadow`, `/etc/sudoers`(.d), `/etc/pam.d`, `/etc/ssh/sshd_config`(.d), `/root/.ssh`, the full cron tree (`/etc/crontab`, `/etc/cron.{d,hourly,daily,weekly,monthly}`, `/var/spool/cron`), `/etc/hosts`, `/etc/resolv.conf`, systemd units (`/etc/systemd/system`, `/lib/systemd/system`), `/etc/docker/daemon.json`, plus syscheck-only coverage of `/boot`, `/usr/bin`, `/usr/sbin`, `/bin`, `/sbin`. See `platform/apps/wazuh-agent/README.md` for the full list + the default exclusions.
+
+New TF vars on the `wazuh-agent` bundle:
+- `fim_enabled` (default `true`) — master FIM toggle. Set `false` if you ship FIM another way.
+- `fim_extra_paths` (default `[]`) — extra absolute paths to monitor (added to both auditd rules and syscheck).
+- `fim_extra_exclusions` (default `[]`) — extra `<ignore>` entries for syscheck.
+
+Behavioural notes:
+- `rootcheck` stays disabled (history of false positives + load), `syscheck realtime="yes"` is restricted to small config dirs (`/etc/ssh`, `/etc/sudoers.d`, `/etc/pam.d`) to avoid inotify exhaustion, and `syscollector scan_on_start` is off — these patterns have crashed managers in the past.
+- The role gates auditd rule rendering on `/etc/audit/rules.d` existing; if `auditd` isn't installed on the host, syscheck still runs, only the kernel-sourced `-w` events are missed (debug warning is emitted).
+- The handler runs `augenrules --load` then restarts `auditd` when rules change.
+
+No breaking changes — existing consumers get FIM automatically on the next ansible run. To opt out: set `fim_enabled = false` on the bundle.
+
+---
+
 ## v2.9.1 — Scaleway TEM observability reshape: Grafana dashboard + alerts + n8n alert router
 
 Outbound-email observability moves from a standalone n8n polling/alerting workflow to the Grafana stack already in the platform. Cleaner separation: Grafana owns thresholds + visualization, n8n owns notification routing.

@@ -1483,3 +1483,21 @@ apps:
           default: "4.9.0"
           description: Image tag. MUST match the manager's release_version.
           ui: text
+
+        fim_enabled:
+          type: bool
+          default: true
+          description: File Integrity Monitoring master toggle. Ships syscheck + auditd integration on standard sensitive paths.
+          ui: advanced
+
+        fim_extra_paths:
+          type: list(string)
+          default: []
+          description: Extra absolute paths to monitor on top of the standard set.
+          ui: advanced
+
+        fim_extra_exclusions:
+          type: list(string)
+          default: []
+          description: Paths to suppress from FIM reporting (syscheck `<ignore>` entries).
+          ui: advanced

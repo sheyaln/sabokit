@@ -7,3 +7,9 @@ wazuh_agent_manager_address: ""
 
 wazuh_agent_auto_update_enabled: false
 wazuh_agent_autoheal_enabled: true
+
+# File Integrity Monitoring — defaults-on, see templates/ossec.conf.j2 +
+# templates/audit.rules.j2 for the full path set.
+wazuh_agent_fim_enabled: true
+wazuh_agent_fim_extra_paths: []
+wazuh_agent_fim_extra_exclusions: []

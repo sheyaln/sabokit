@@ -3,3 +3,19 @@
   community.docker.docker_compose_v2:
     project_src: "{{ wazuh_agent_install_dir }}"
     state: restarted
+
+# augenrules compiles /etc/audit/rules.d/*.rules → /etc/audit/audit.rules
+# then the auditd service is restarted to load them into the kernel.
+# Both gated on the auditd service existing — see tasks/main.yml.
+- name: Reload auditd
+  block:
+    - name: Compile audit rules
+      ansible.builtin.command: augenrules --load
+      changed_when: true
+
+    - name: Restart auditd service
+      ansible.builtin.service:
+        name: auditd
+        state: restarted
+  when: ansible_facts.services['auditd.service'] is defined
+        or (ansible_facts.services is not defined)
