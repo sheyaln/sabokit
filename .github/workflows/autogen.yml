@@ -1,0 +1,61 @@
+# Auto-regenerate files that get derived from other sources, on every push
+# to any branch. Anything matched by AUTOGEN_SCRIPTS below runs; if its
+# output differs from what's checked in, the workflow commits + pushes the
+# regenerated file back to the same branch.
+#
+# Files currently auto-generated:
+#   - platform/ansible/apps.yml  (from each bundle's outputs.tf)
+#
+# Adding a new generator:
+#   1. Drop a script in scripts/gen_*.py
+#   2. Add its `python3 ...` line to the `Regenerate` step below
+#   3. Make sure the script supports both `--check` (CI) and the no-arg
+#      write mode (auto-commit). Pattern: see scripts/gen_apps_yml.py.
+#
+# Cycle protection: the auto-commit message includes [skip ci], which the
+# workflow's `if:` guard checks for to avoid infinite loop.
+
+name: autogen
+
+on:
+  push:
+    branches:
+      - '**'
+
+permissions:
+  contents: write
+
+jobs:
+  regenerate:
+    runs-on: ubuntu-latest
+    if: "!contains(github.event.head_commit.message, '[skip ci]')"
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          # Need full history so the auto-commit doesn't end up in detached HEAD.
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Regenerate
+        run: |
+          python3 scripts/gen_apps_yml.py
+          # Add more generators here as they land.
+
+      - name: Commit and push if changed
+        run: |
+          if [[ -z "$(git status --porcelain)" ]]; then
+            echo "No regenerated changes; nothing to commit."
+            exit 0
+          fi
+          git config user.name  "sabokit-autogen"
+          git config user.email "autogen@sabokit.invalid"
+          git add -A
+          git commit -m "chore(autogen): regenerate derived files [skip ci]
+
+          Triggered by ${{ github.sha }} on ${{ github.ref_name }}."
+          git push origin HEAD:${{ github.ref_name }}
