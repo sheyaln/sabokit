@@ -83,6 +83,22 @@ variable "extra_groups" {
   default = {}
 }
 
+# ── Admin membership ────────────────────────────────────────────────────────
+# Optional declarative control over the admin group's user list. The provider's
+# `users` attribute is exclusive — setting it makes Terraform the source of
+# truth, so anyone added to admin via the Authentik UI will be reconciled out
+# on the next apply. Leave null to let UI-managed admin membership float.
+#
+# Common patterns the consumer supplies:
+#   admin_user_pks = [123, 456]                              # explicit list
+#   admin_user_pks = data.authentik_group.delegate.users     # mirror another group
+
+variable "admin_user_pks" {
+  description = "Optional list of user PKs (numeric IDs) that should make up the admin group. Null means UI-managed membership (default)."
+  type        = list(number)
+  default     = null
+}
+
 # ── Branding asset filenames ────────────────────────────────────────────────
 # Paths under Authentik's custom-assets directory. The actual image files are
 # deployed out-of-band by the Ansible authentik role.

@@ -10,6 +10,7 @@
 resource "authentik_group" "admin" {
   name         = var.admin_group_name
   is_superuser = true
+  users        = var.admin_user_pks
   attributes = jsonencode({
     description = "Administrative users with full access"
     settings = {
