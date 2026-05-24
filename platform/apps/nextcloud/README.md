@@ -21,6 +21,11 @@ Nextcloud only supports one-major-at-a-time upgrades. Step through majors (`32` 
 | `deployment_host_key` | `string` | `"apps"` | Target host. |
 | `image_tag` | `string` | `"32-apache"` | Nextcloud image tag. Pin to a major. |
 | `admin_username` | `string` | `"ncadmin"` | Bootstrap admin username. |
+| `instance_name` | `string` | `"Nextcloud"` | User-facing instance name (browser tab, mail headers, mobile clients). |
+| `maintenance_window_start` | `number` | `2` | UTC hour for nightly background-job window. |
+| `enabled_apps` | `list(string)` | groupfolders/notify_push/notes/tasks/forms/polls/epubviewer/webhook_listeners | Apps the post-install script auto-installs + enables every run. |
+| `disabled_apps` | `list(string)` | `["photos"]` | Apps the post-install script disables every run. |
+| `n8n_form_webhook_url` | `string` | `""` | Optional. Registers a `webhook_listeners` hook for `OCA\Forms\Events\FormSubmittedEvent` pointed at this URL. Requires `webhook_listeners` in `enabled_apps`. |
 | `default_phone_region` | `string` | `"US"` | ISO 3166-1 alpha-2 region for phone-number formatting. |
 | `max_upload_size_bytes` | `number` | `2147483648` | 2 GiB. Apache body limit tracks this. |
 | `trusted_proxies` | `string` | `"172.16.0.0/12"` | CIDR trusted as reverse proxy (covers Docker bridge by default). |
@@ -54,3 +59,5 @@ Nextcloud only supports one-major-at-a-time upgrades. Step through majors (`32` 
 - User files live in the S3 bucket (`<secrets_namespace>-nextcloud-data`), not on the host. The local Nextcloud volume only holds the PHP install, apps, and metadata.
 - Talk HPB media (TURN + UDP relay range) bypasses Traefik and binds on the host; the bundle opens the ports in the SG and patches `eturnal.yml` on each restart to advertise the public IP.
 - E2E call encryption in spreed is disabled — the server middleware otherwise rejects current Talk mobile clients with HTTP 426. Re-enable once apps catch up.
+- App auto-install runs on every play and is idempotent. Removing an app from `enabled_apps` does NOT uninstall it — only newly-added apps install; flip `disabled_apps` to actively turn one off.
+- The post-install script also sets fixed defaults that aren't surfaced as vars (sensible for ~every consumer): preview limit 2048×2048, JPEG quality 60, distributed file locking on, versions retention `auto, 30`, activity expiry 365 days, log rotate at 100 MB. Edit `configure-nextcloud.sh` if your install needs different.

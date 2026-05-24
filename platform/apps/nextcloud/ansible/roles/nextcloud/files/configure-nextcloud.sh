@@ -217,6 +217,98 @@ if [[ -n "${SMTP_HOST}" ]]; then
     occ config:system:set mail_domain --value="${MAIL_DOMAIN}" >/dev/null
 fi
 
+# ── Instance identity ──
+NEXTCLOUD_INSTANCE_NAME="$(ce NEXTCLOUD_INSTANCE_NAME)"
+if [[ -n "${NEXTCLOUD_INSTANCE_NAME}" ]]; then
+    CURRENT_NAME="$(occ config:system:get instancename 2>/dev/null || true)"
+    if [[ "${CURRENT_NAME}" != "${NEXTCLOUD_INSTANCE_NAME}" ]]; then
+        occ config:system:set instancename --value="${NEXTCLOUD_INSTANCE_NAME}" >/dev/null
+        note_change
+    fi
+fi
+
+# ── Nightly maintenance window ──
+MAINTENANCE_WINDOW_START="$(ce MAINTENANCE_WINDOW_START)"
+if [[ -n "${MAINTENANCE_WINDOW_START}" ]]; then
+    CURRENT_WIN="$(occ config:system:get maintenance_window_start 2>/dev/null || true)"
+    if [[ "${CURRENT_WIN}" != "${MAINTENANCE_WINDOW_START}" ]]; then
+        occ config:system:set maintenance_window_start --value="${MAINTENANCE_WINDOW_START}" --type=integer >/dev/null
+        note_change
+    fi
+fi
+
+# ── App auto-enable / auto-disable ──
+# Both lists are space-separated. occ app:enable is idempotent; install
+# happens first (also idempotent, returns nonzero if already installed which
+# we swallow).
+NEXTCLOUD_ENABLED_APPS="$(ce NEXTCLOUD_ENABLED_APPS)"
+for app in ${NEXTCLOUD_ENABLED_APPS}; do
+    if ! occ app:list 2>/dev/null | grep -q "^  - ${app}:"; then
+        occ app:install "${app}" >/dev/null 2>&1 || true
+        note_change
+    fi
+    occ app:enable "${app}" >/dev/null 2>&1 || true
+done
+
+NEXTCLOUD_DISABLED_APPS="$(ce NEXTCLOUD_DISABLED_APPS)"
+for app in ${NEXTCLOUD_DISABLED_APPS}; do
+    if occ app:list 2>/dev/null | grep -q "^  - ${app}:"; then
+        occ app:disable "${app}" >/dev/null 2>&1 || true
+    fi
+done
+
+# ── File handling defaults ──
+# Preview thumbnails, JPEG quality, distributed file locking, retention.
+occ config:system:set preview_max_x --value="2048" --type=integer >/dev/null
+occ config:system:set preview_max_y --value="2048" --type=integer >/dev/null
+occ config:system:set jpeg_quality --value="60" --type=integer >/dev/null
+occ config:system:set filelocking.enabled --value="true" --type=boolean >/dev/null
+occ config:system:set versions_retention_obligation --value="auto, 30" >/dev/null
+occ config:system:set activity_expire_days --value="365" --type=integer >/dev/null
+# Log rotate at 100 MB.
+occ config:system:set log_rotate_size --value="104857600" --type=integer >/dev/null
+
+# ── n8n webhook registration for Nextcloud Forms submissions ──
+# Idempotent: list existing webhooks via OCS API, register only if the
+# target URL isn't already present. Requires the webhook_listeners app
+# (auto-enabled above when included in NEXTCLOUD_ENABLED_APPS).
+N8N_FORM_WEBHOOK_URL="$(ce N8N_FORM_WEBHOOK_URL)"
+if [[ -n "${N8N_FORM_WEBHOOK_URL}" ]]; then
+    ADMIN_USER="$(ce NEXTCLOUD_ADMIN_USER)"
+    ADMIN_PASSWORD="$(ce NEXTCLOUD_ADMIN_PASSWORD)"
+    TRUSTED_DOMAIN="$(ce NEXTCLOUD_TRUSTED_DOMAINS)"
+
+    if [[ -n "${ADMIN_USER}" && -n "${ADMIN_PASSWORD}" && -n "${TRUSTED_DOMAIN}" ]]; then
+        WEBHOOK_EVENT='OCA\Forms\Events\FormSubmittedEvent'
+        OCS_URL="https://${TRUSTED_DOMAIN}/ocs/v2.php/apps/webhook_listeners/api/v1/webhooks"
+
+        EXISTING="$(curl -fsS -u "${ADMIN_USER}:${ADMIN_PASSWORD}" \
+            -H 'OCS-APIRequest: true' \
+            -H 'Accept: application/json' \
+            "${OCS_URL}" 2>/dev/null || true)"
+
+        if ! echo "${EXISTING}" | grep -Fq "${N8N_FORM_WEBHOOK_URL}"; then
+            CODE="$(curl -s -o /dev/null -w '%{http_code}' \
+                -X POST \
+                -u "${ADMIN_USER}:${ADMIN_PASSWORD}" \
+                -H 'OCS-APIRequest: true' \
+                -H 'Content-Type: application/json' \
+                -d "{\"httpMethod\":\"POST\",\"uri\":\"${N8N_FORM_WEBHOOK_URL}\",\"event\":\"${WEBHOOK_EVENT}\"}" \
+                "${OCS_URL}")"
+            if [[ "${CODE}" =~ ^2 ]]; then
+                note_change
+            else
+                echo "WARN: webhook_listeners registration returned HTTP ${CODE}" >&2
+            fi
+        fi
+    fi
+fi
+
+# ── Repair pass (catches the file-locking + apps_paths fallout from the
+# above changes). Expensive checks are bounded; this is safe to run on
+# every play.
+occ maintenance:repair --include-expensive >/dev/null 2>&1 || true
+
 if (( DID_CHANGE == 1 )); then
     echo "CHANGED"
 fi

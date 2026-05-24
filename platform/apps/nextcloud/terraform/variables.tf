@@ -79,6 +79,49 @@ variable "admin_username" {
   default     = "ncadmin"
 }
 
+variable "instance_name" {
+  description = "User-facing instance name (browser tab, email headers, mobile clients). Default \"Nextcloud\" — set to your org's product name (e.g. \"Acme Cloud\") for branded deployments."
+  type        = string
+  default     = "Nextcloud"
+}
+
+variable "maintenance_window_start" {
+  description = "UTC hour (0-23) when Nextcloud runs its nightly background-job window. 2 = 2 AM UTC. Pick a low-traffic hour for your user base."
+  type        = number
+  default     = 2
+  validation {
+    condition     = var.maintenance_window_start >= 0 && var.maintenance_window_start <= 23
+    error_message = "maintenance_window_start must be in [0, 23]."
+  }
+}
+
+variable "enabled_apps" {
+  description = "Nextcloud apps the post-install script auto-installs and enables on every run. Default set turns Nextcloud into a full collaboration suite (group folders, push, notes, tasks, forms, polls, epub reader, webhooks). Override to keep the install lean or add your own (e.g. \"deck\", \"calendar\", \"contacts\")."
+  type        = list(string)
+  default = [
+    "groupfolders",
+    "notify_push",
+    "notes",
+    "tasks",
+    "forms",
+    "polls",
+    "epubviewer",
+    "webhook_listeners",
+  ]
+}
+
+variable "disabled_apps" {
+  description = "Nextcloud apps the post-install script disables on every run. Default disables `photos` because the thumbnail jobs are heavy and most consumers don't actively use the photos surface."
+  type        = list(string)
+  default     = ["photos"]
+}
+
+variable "n8n_form_webhook_url" {
+  description = "Optional: URL of an n8n webhook receiver for Nextcloud Forms submissions. When non-empty, the post-install script registers a webhook_listeners hook for `OCA\\Forms\\Events\\FormSubmittedEvent` pointed at this URL (idempotent). Requires `webhook_listeners` in `enabled_apps`."
+  type        = string
+  default     = ""
+}
+
 variable "default_phone_region" {
   description = "ISO 3166-1 alpha-2 country code used by Nextcloud to format phone numbers when no region is supplied (e.g. \"US\", \"DE\", \"FR\")."
   type        = string

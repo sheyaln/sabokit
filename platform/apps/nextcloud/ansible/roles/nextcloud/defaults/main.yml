@@ -32,6 +32,40 @@ nextcloud_cpu_reservation: "0.5"
 # Timezone applied to all containers (mostly for log timestamps).
 nextcloud_timezone: "UTC"
 
+# User-facing instance name (the string Nextcloud shows in browser tabs,
+# email headers, mobile clients, etc.). Default "Nextcloud" — override for
+# branding.
+nextcloud_instance_name: "Nextcloud"
+
+# UTC hour when Nextcloud runs its nightly background-job window. `2` = 2 AM.
+nextcloud_maintenance_window_start: 2
+
+# Apps the configure script enables on every run (idempotent). The default
+# set turns Nextcloud from a plain file-store into a credible knowledge +
+# collaboration platform: group folders, push notifications, notes, tasks,
+# forms, polls, epub reader, and outbound webhooks. Drop entries to keep a
+# leaner install; add more (e.g. "deck", "calendar", "contacts") to extend.
+nextcloud_enabled_apps:
+  - groupfolders
+  - notify_push
+  - notes
+  - tasks
+  - forms
+  - polls
+  - epubviewer
+  - webhook_listeners
+
+# Apps the configure script disables on every run. Photos is disabled by
+# default — heavy thumbnail jobs that most consumers don't actively use.
+nextcloud_disabled_apps:
+  - photos
+
+# Optional: URL of an n8n webhook receiver for Nextcloud Forms submissions.
+# When non-empty, the configure script registers a webhook_listeners hook
+# pointed at this URL on the OCA\Forms\Events\FormSubmittedEvent. Idempotent.
+# Empty disables registration.
+nextcloud_n8n_form_webhook_url: ""
+
 # ── OnlyOffice Document Server ───────────────────────────────────────────────
 # Hostname is required when the stack is enabled; the configure script also
 # wires Nextcloud's onlyoffice connector app to talk to it on this URL.
