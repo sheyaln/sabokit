@@ -1,0 +1,18 @@
+# {{ ansible_managed }}
+# File-based dashboards live in /etc/grafana/provisioning/dashboards.
+# Consumers drop JSON files into the local provisioning/dashboards dir via
+# the ansible side (out-of-band copy) — this provider just declares the path.
+
+apiVersion: 1
+
+providers:
+  - name: default
+    orgId: 1
+    folder: ""
+    type: file
+    disableDeletion: false
+    updateIntervalSeconds: 30
+    allowUiUpdates: true
+    options:
+      path: /etc/grafana/provisioning/dashboards
+      foldersFromFilesStructure: true

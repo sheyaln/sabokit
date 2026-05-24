@@ -1,0 +1,24 @@
+---
+grafana_hostname: ""                       # Required.
+grafana_image: "grafana/grafana"
+grafana_image_tag: "latest"
+grafana_install_dir: "/opt/grafana"
+grafana_traefik_docker_network: "traefik"
+grafana_internal_network: "monitoring_internal"
+
+grafana_plugins: []
+grafana_oidc_admin_group: "admin"
+grafana_oidc_editor_group: "manager"
+grafana_prometheus_url: "http://prometheus:9090"
+grafana_loki_url: "http://loki:3100"
+grafana_prometheus_scrape_interval: "30s"
+
+grafana_app_secret_id: ""
+
+grafana_memory_limit: "1G"
+grafana_memory_reservation: "256M"
+grafana_cpu_limit: "1.0"
+grafana_cpu_reservation: "0.1"
+
+grafana_auto_update_enabled: false
+grafana_autoheal_enabled: true

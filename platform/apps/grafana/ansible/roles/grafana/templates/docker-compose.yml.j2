@@ -1,0 +1,56 @@
+---
+# {{ ansible_managed }}
+# Managed by sabokit apps/grafana/ansible/role.
+# Do not edit by hand — regenerated on every ansible-playbook run.
+
+services:
+  grafana:
+    image: "{{ grafana_image }}:{{ grafana_image_tag }}"
+    container_name: grafana
+    restart: unless-stopped
+    env_file:
+      - .env
+    volumes:
+      - grafana-data:/var/lib/grafana
+      - ./provisioning:/etc/grafana/provisioning:ro
+    networks:
+      - "{{ grafana_internal_network }}"
+      - "{{ grafana_traefik_docker_network }}"
+    security_opt:
+      - no-new-privileges:true
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    deploy:
+      resources:
+        limits:
+          memory: "{{ grafana_memory_limit }}"
+          cpus: "{{ grafana_cpu_limit }}"
+        reservations:
+          memory: "{{ grafana_memory_reservation }}"
+          cpus: "{{ grafana_cpu_reservation }}"
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network={{ grafana_traefik_docker_network }}"
+      - "traefik.http.services.grafana.loadbalancer.server.port=3000"
+      - "traefik.http.routers.grafana.rule=Host(`{{ grafana_hostname }}`)"
+      - "traefik.http.routers.grafana.entrypoints=websecure"
+      - "traefik.http.routers.grafana.tls.certresolver=le"
+      - "traefik.http.routers.grafana.service=grafana"
+{% if grafana_auto_update_enabled | default(false) %}
+      - "com.centurylinklabs.watchtower.enable=true"
+{% endif %}
+{% if grafana_autoheal_enabled | default(false) %}
+      - "autoheal=true"
+{% endif %}
+
+volumes:
+  grafana-data:
+
+networks:
+  "{{ grafana_internal_network }}":
+    external: true
+  "{{ grafana_traefik_docker_network }}":
+    external: true

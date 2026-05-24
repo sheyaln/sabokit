@@ -1,0 +1,85 @@
+---
+# Deploy Grafana with OIDC (Authentik) + provisioned Prometheus + Loki
+# datasources. Joins the shared monitoring_internal network so it can reach
+# the prometheus and loki bundles by hostname.
+
+- name: Validate required Grafana variables
+  ansible.builtin.assert:
+    that:
+      - grafana_hostname | length > 0
+      - grafana_app_secret_id | length > 0
+    fail_msg: "grafana_hostname and grafana_app_secret_id are required."
+
+- name: Assert Docker is installed and running
+  ansible.builtin.command: docker info
+  register: grafana_docker_check
+  changed_when: false
+  failed_when: grafana_docker_check.rc != 0
+
+- name: Assert Traefik external network exists
+  community.docker.docker_network_info:
+    name: "{{ grafana_traefik_docker_network }}"
+  register: grafana_traefik_net
+  failed_when: not grafana_traefik_net.exists
+
+- name: Ensure Grafana directory tree
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    mode: "0755"
+    owner: root
+    group: root
+  loop:
+    - "{{ grafana_install_dir }}"
+    - "{{ grafana_install_dir }}/provisioning"
+    - "{{ grafana_install_dir }}/provisioning/datasources"
+    - "{{ grafana_install_dir }}/provisioning/dashboards"
+
+- name: Ensure shared monitoring network exists
+  community.docker.docker_network:
+    name: "{{ grafana_internal_network }}"
+    state: present
+
+- name: Normalize Scaleway secret ID
+  ansible.builtin.set_fact:
+    _grafana_app_secret_uuid: "{{ grafana_app_secret_id | regex_replace('^[^/]+/', '') }}"
+
+- name: Look up Grafana app secrets from Scaleway
+  ansible.builtin.set_fact:
+    grafana_app_secrets: "{{ lookup('scaleway.scaleway.scaleway_secret', _grafana_app_secret_uuid) | b64decode | from_json }}"
+  no_log: true
+
+- name: Render datasources.yml
+  ansible.builtin.template:
+    src: datasources.yml.j2
+    dest: "{{ grafana_install_dir }}/provisioning/datasources/datasources.yml"
+    mode: "0644"
+  notify: Restart grafana
+
+- name: Render dashboard provider
+  ansible.builtin.template:
+    src: dashboard-provider.yml.j2
+    dest: "{{ grafana_install_dir }}/provisioning/dashboards/provider.yml"
+    mode: "0644"
+  notify: Restart grafana
+
+- name: Render docker-compose.yml
+  ansible.builtin.template:
+    src: docker-compose.yml.j2
+    dest: "{{ grafana_install_dir }}/docker-compose.yml"
+    mode: "0644"
+  notify: Restart grafana
+
+- name: Render Grafana environment file
+  ansible.builtin.template:
+    src: env.j2
+    dest: "{{ grafana_install_dir }}/.env"
+    mode: "0600"
+  notify: Restart grafana
+  no_log: true
+
+- name: Ensure Grafana is running
+  community.docker.docker_compose_v2:
+    project_src: "{{ grafana_install_dir }}"
+    state: present
+    pull: missing
