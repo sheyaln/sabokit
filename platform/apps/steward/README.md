@@ -1,87 +1,44 @@
-# Steward (member administration UI)
+# apps/steward
 
-Federated-commons bundle that deploys [Steward](https://github.com/sheyaln/sabokit-steward), a
-simplified Authentik admin UI for non-technical organization administrators.
-It is the friendly admin surface for membership secretaries, organizers, and
-chapter admins -- the people you don't want clicking around in the raw
-Authentik admin UI.
+[Steward](https://github.com/sheyaln/sabokit-steward) — friendly Authentik admin UI for non-technical organization admins (membership secretaries, organizers, chapter admins). OIDC login plus a non-expiring Authentik API token for server-to-server admin calls; PostgreSQL DB for Steward's audit log and import-job state; Ansible role deploying `web` + `qcluster` containers behind Traefik. Authentik remains the source of truth — Steward holds no local user mirror.
 
-## What this bundle provisions
+## Inputs
 
-| Layer | Resource | Notes |
-| --- | --- | --- |
-| Authentik | OIDC application + provider | end-user login (`/oidc/callback/`) |
-| Authentik | service-account user + non-expiring API token | server-to-server admin API |
-| Scaleway | PostgreSQL database via the `postgres_database` module | Steward's local schema (audit log, import jobs) |
-| Scaleway Secret Manager | one app-secrets bag + DB-credentials secret | rendered into `.env` by Ansible |
-| DNS | `A` record on `var.hostname` | points at the deployment host |
-| Host (Ansible) | docker-compose stack: `web` + `qcluster` | served behind Traefik |
+| Name | Type | Default | Description |
+|------|------|---------|-------------|
+| `enabled` | `bool` | `false` | Master toggle. |
+| `base` | `any` | — | Outputs from `module.base`. |
+| `hostname` | `string` | `""` | Full hostname (required when enabled). |
+| `category_group` | `string` | `"Administration"` | Authentik portal category. |
+| `icon_url` | `string` | `null` | Icon path in Authentik media. |
+| `access_level` | `string` | `"admin"` | Key in `base.authentik.groups`. Admin by default — Steward is itself an admin surface. |
+| `extra_authorized_groups` | `map(string)` | `{}` | Extra Authentik group IDs. Keys must be static strings. |
+| `monitoring_enabled` | `bool` | `true` | Contribute to the monitoring aggregate. |
+| `deployment_host_key` | `string` | `"apps"` | Key in `base.compute.hosts` for the target VM. |
+| `image_repository` | `string` | `"ghcr.io/sheyaln/sabokit-steward"` | OCI repo (without tag). Repoint to a mirror if needed. |
+| `image_tag` | `string` | `"latest"` | Image tag. |
+| `admin_group_name` | `string` | `"steward-admins"` | Authentik group name whose members get Steward access. Must match `access_level` so the OIDC `groups` claim contains it. |
+| `invite_flow_slug` | `string` | `""` | Authentik enrollment-flow slug attached to invitations (e.g. `default-source-enrollment`). Empty disables invitation creation. |
+| `memory_limit` | `string` | `"512M"` | Web container memory cap. |
+| `memory_reservation` | `string` | `"128M"` | Web container memory reservation. |
+| `cpu_limit` | `string` | `"0.5"` | Web container CPU cap. |
+| `cpu_reservation` | `string` | `"0.1"` | Web container CPU reservation. |
 
-Steward holds **no local user mirror**. Authentik remains the source of truth
-for member state; Steward only stores its own audit log and bulk-import job
-state in its database.
+## Outputs
 
-## Wiring it into a consumer site
+| Name | Description |
+|------|-------------|
+| `enabled` | Mirrors `var.enabled`. |
+| `app_url` | `https://<hostname>` or `null`. |
+| `authentik_provider_id` | OIDC provider ID. |
+| `authentik_application_group_id` | Per-app group `app-steward`. |
+| `ansible` | `{role_path, playbook, host_group, vars}`. |
+| `database_name` | PostgreSQL database name. |
+| `service_account_token_secret_hint` | Pointer to where the Authentik API token lives in the app-secrets bag. |
 
-Steward is opt-in. Enable it in your apps Terraform layer (see
-`consumer-template/`):
+## Notes
 
-```hcl
-module "steward" {
-  source   = "../../platform/apps/steward/terraform"
-  enabled  = true
-  base     = module.base
-  hostname = "members.example.org"
-}
-```
-
-The bundle uses the standard contract: `enabled`, `base`, `hostname`,
-`deployment_host_key`, `access_level`. See `terraform/variables.tf` for the
-full list.
-
-## Required base outputs
-
-The bundle consumes the standard `module.base` outputs. Specifically:
-
-- `base.authentik.gateway_domain` -- public Authentik hostname
-- `base.authentik.groups[var.access_level]` -- group UUID gating access
-- `base.authentik.flows.{authentication,authorization,invalidation}_flow` -- flow UUIDs
-- `base.scaleway.postgres_instance_id` / `postgres_endpoint` / `postgres_engine`
-- `base.compute.hosts[var.deployment_host_key].public_ip` / `ansible_group`
-- `base.domains.base_domain`
-
-## Admin gating
-
-Members of the group named by `var.admin_group_name` (default
-`steward-admins`) are admitted to Steward. The OIDC `groups` claim must
-contain that group name -- the bundle requests the `groups` scope and Steward
-verifies it on every login. Membership is managed in Authentik like any other
-group.
-
-## Service-account authority
-
-`authentik.tf` puts the service-account user into the built-in
-`authentik Admins` group, which grants blanket Authentik admin permissions.
-That is more authority than Steward strictly needs (it only manipulates users
-and groups). A future iteration should narrow this to a custom Authentik role.
-
-## Invitation flow
-
-`var.invite_flow_slug` is empty by default. Set it to the slug of an Authentik
-enrollment flow you want Steward to attach to new-member invitations -- e.g.
-`default-source-enrollment` if you've enabled the bundled enrollment flow.
-Authentik handles email delivery; Steward never speaks SMTP itself.
-
-## Operating it
-
-Restart: `ansible -m community.docker.docker_compose_v2 -a "project_src=/opt/steward state=restarted" <host>`
-
-Migrations: run automatically on every container start via Steward's
-entrypoint. The qcluster sidecar opts out (one migrator is enough).
-
-Logs: `docker logs steward-web` and `docker logs steward-qcluster`.
-
-Reaching the admin Django site for emergencies: `docker exec -it steward-web
-python manage.py createsuperuser`, then visit `https://<hostname>/admin/`.
-The OIDC flow is the normal entry point; the Django admin is a break-glass
-escape hatch.
+- Default `access_level` is `"admin"` because Steward is itself an admin surface.
+- The service-account user lands in Authentik's built-in `authentik Admins` group — broader than Steward strictly needs. A future iteration should narrow this to a custom role.
+- Database migrations run on every `web` container start; the `qcluster` sidecar opts out.
+- Break-glass: `docker exec -it steward-web python manage.py createsuperuser`, then `/admin/`. OIDC is the normal entry point.
