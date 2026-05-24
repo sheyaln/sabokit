@@ -55,6 +55,18 @@ variable "deployment_host_key" {
 
 # ── Steward-specific inputs ─────────────────────────────────────────────────
 
+variable "auto_update_enabled" {
+  description = "Whether the Watchtower platform bundle (if deployed) auto-pulls newer Steward image versions. Default true — Steward is the maintainer's own app with a stable migration contract; the qcluster sidecar pulls in lockstep."
+  type        = bool
+  default     = true
+}
+
+variable "autoheal_enabled" {
+  description = "Whether the Autoheal platform bundle (if deployed) restarts Steward when its healthcheck fails. Default true."
+  type        = bool
+  default     = true
+}
+
 variable "image_repository" {
   description = "OCI repository of the Steward image (without tag). Defaults to the canonical pre-beta location; consumers can repoint to their own mirror."
   type        = string

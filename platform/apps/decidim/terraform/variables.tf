@@ -67,6 +67,18 @@ variable "image_tag" {
   default     = "latest"
 }
 
+variable "auto_update_enabled" {
+  description = "Whether the Watchtower platform bundle (if deployed) auto-pulls newer Decidim image versions. Default FALSE — Decidim is a Rails app with non-trivial schema migrations and the locally-built image (when extra_gems is non-empty) wouldn't be touched by Watchtower anyway. Consumers bump image_tag explicitly."
+  type        = bool
+  default     = false
+}
+
+variable "autoheal_enabled" {
+  description = "Whether the Autoheal platform bundle (if deployed) restarts the Decidim app container when its healthcheck fails. Default true."
+  type        = bool
+  default     = true
+}
+
 variable "extra_gems" {
   description = "Decidim modular gems to add on top of the base image, each pinned to `image_tag`. The base `decidim` meta-gem ships proposals, meetings, debates, assemblies, etc. — but optional modules like `decidim-elections` are NOT included and must be added explicitly. Default ships elections because every participatory-democracy deployment eventually wants it. Set to `[]` for a lean install."
   type        = list(string)

@@ -14,6 +14,10 @@ notifuse_install_dir: "/opt/notifuse"
 notifuse_data_dir: "/opt/notifuse/data"
 notifuse_traefik_docker_network: "traefik"
 
+# Ops-bundle opt-in labels.
+notifuse_auto_update_enabled: true
+notifuse_autoheal_enabled: true
+
 notifuse_timezone: "UTC"
 
 notifuse_app_secret_id: ""

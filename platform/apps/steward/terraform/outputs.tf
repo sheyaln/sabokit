@@ -36,6 +36,8 @@ output "ansible" {
       steward_memory_reservation       = var.memory_reservation
       steward_cpu_limit                = var.cpu_limit
       steward_cpu_reservation          = var.cpu_reservation
+      steward_auto_update_enabled      = var.auto_update_enabled
+      steward_autoheal_enabled         = var.autoheal_enabled
     }
   } : null
 }

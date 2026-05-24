@@ -24,3 +24,7 @@ steward_cpu_reservation: "0.1"
 # Worker counts.
 steward_gunicorn_workers: 3
 steward_qcluster_workers: 2
+
+# Ops-bundle opt-in labels.
+steward_auto_update_enabled: true
+steward_autoheal_enabled: true

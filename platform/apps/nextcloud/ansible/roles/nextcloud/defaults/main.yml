@@ -101,3 +101,9 @@ nextcloud_talk_memory_limit: "1G"
 nextcloud_talk_memory_reservation: "128M"
 nextcloud_talk_cpu_limit: "1.0"
 nextcloud_talk_cpu_reservation: "0.1"
+
+# Ops-bundle opt-in labels.
+# auto_update default false: Nextcloud is one-major-at-a-time and needs
+# post-upgrade occ steps; let Ansible handle the bumps.
+nextcloud_auto_update_enabled: false
+nextcloud_autoheal_enabled: true

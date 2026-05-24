@@ -85,6 +85,18 @@ variable "smtp_from_email" {
   default     = ""
 }
 
+variable "auto_update_enabled" {
+  description = "Whether the Watchtower platform bundle (if deployed) auto-pulls newer Vikunja image versions. Default true — Vikunja has a simple migration story and a single container."
+  type        = bool
+  default     = true
+}
+
+variable "autoheal_enabled" {
+  description = "Whether the Autoheal platform bundle (if deployed) restarts Vikunja when its healthcheck fails. Default true."
+  type        = bool
+  default     = true
+}
+
 variable "default_week_start" {
   description = "Day the week starts on in Vikunja's calendar views. `0` = Sunday, `1` = Monday. Leave null to let Vikunja use its built-in default (per-user, no global override)."
   type        = number

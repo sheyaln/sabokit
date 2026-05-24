@@ -29,3 +29,7 @@ privacy_policy_memory_limit: "128M"
 privacy_policy_memory_reservation: "32M"
 privacy_policy_cpu_limit: "0.25"
 privacy_policy_cpu_reservation: "0.05"
+
+# Ops-bundle opt-in labels.
+privacy_policy_auto_update_enabled: true
+privacy_policy_autoheal_enabled: true

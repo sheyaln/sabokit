@@ -7,6 +7,12 @@ n8n_image_tag: "latest"
 
 n8n_install_dir: "/opt/n8n"
 
+# Ops-bundle opt-in labels.
+# auto_update default false: schema migrations + lockstep n8n/runners version
+# requirement; let Ansible bump both together.
+n8n_auto_update_enabled: false
+n8n_autoheal_enabled: true
+
 n8n_timezone: "UTC"
 
 # Public REST API: high-value attack surface because workflows hold credentials

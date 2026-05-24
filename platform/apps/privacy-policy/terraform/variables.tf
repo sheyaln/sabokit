@@ -42,3 +42,15 @@ variable "page_title" {
   type        = string
   default     = "Privacy Policy"
 }
+
+variable "auto_update_enabled" {
+  description = "Whether the Watchtower platform bundle (if deployed) auto-pulls newer nginx image versions. Default true — pure static-content nginx, image bumps are routine."
+  type        = bool
+  default     = true
+}
+
+variable "autoheal_enabled" {
+  description = "Whether the Autoheal platform bundle (if deployed) restarts nginx when its healthcheck fails. Default true."
+  type        = bool
+  default     = true
+}

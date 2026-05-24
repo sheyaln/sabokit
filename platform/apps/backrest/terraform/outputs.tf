@@ -41,6 +41,8 @@ output "ansible" {
       backrest_restic_prune_max_frequency_days   = var.restic_prune_max_frequency_days
       backrest_restic_check_max_frequency_days   = var.restic_check_max_frequency_days
       backrest_restic_check_read_data_subset_pct = var.restic_check_read_data_subset_percent
+      backrest_auto_update_enabled               = var.auto_update_enabled
+      backrest_autoheal_enabled                  = var.autoheal_enabled
     }
   } : null
 }

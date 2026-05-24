@@ -21,6 +21,12 @@ services:
       - "traefik.http.routers.espocrm.entrypoints=websecure"
       - "traefik.http.routers.espocrm.tls.certresolver=le"
       - "traefik.http.routers.espocrm.service=espocrm"
+{% if espocrm_auto_update_enabled | default(false) %}
+      - "com.centurylinklabs.watchtower.enable=true"
+{% endif %}
+{% if espocrm_autoheal_enabled | default(false) %}
+      - "autoheal=true"
+{% endif %}
     security_opt:
       - no-new-privileges:true
     deploy:

@@ -30,6 +30,10 @@ vikunja_smtp_secret_name: ""
 # Docker networks the Vikunja container joins.
 vikunja_traefik_docker_network: "traefik"
 
+# Ops-bundle opt-in labels.
+vikunja_auto_update_enabled: true
+vikunja_autoheal_enabled: true
+
 # Resource limits.
 vikunja_memory_limit: "512M"
 vikunja_memory_reservation: "128M"

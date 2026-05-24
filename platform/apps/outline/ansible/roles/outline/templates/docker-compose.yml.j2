@@ -49,6 +49,12 @@ services:
       - "traefik.http.middlewares.outline-buffering.buffering.maxRequestBodyBytes={{ outline_max_upload_size_bytes }}"
       - "traefik.http.middlewares.outline-buffering.buffering.maxResponseBodyBytes={{ outline_max_upload_size_bytes }}"
       - "traefik.http.routers.outline.middlewares=outline-buffering@docker"
+{% if outline_auto_update_enabled | default(false) %}
+      - "com.centurylinklabs.watchtower.enable=true"
+{% endif %}
+{% if outline_autoheal_enabled | default(false) %}
+      - "autoheal=true"
+{% endif %}
     networks:
       - "{{ outline_traefik_docker_network }}"
       - outline_network

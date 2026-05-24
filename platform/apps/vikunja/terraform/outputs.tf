@@ -41,6 +41,8 @@ output "ansible" {
       vikunja_db_credentials_secret_id = module.database[0].secret_id
       vikunja_smtp_secret_name         = var.smtp_from_email == "" ? "" : "smtp-config"
       vikunja_default_week_start       = var.default_week_start
+      vikunja_auto_update_enabled      = var.auto_update_enabled
+      vikunja_autoheal_enabled         = var.autoheal_enabled
     }
   } : null
 }

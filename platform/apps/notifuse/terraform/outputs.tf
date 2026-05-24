@@ -39,6 +39,8 @@ output "ansible" {
       notifuse_app_secret_id            = scaleway_secret.app[0].id
       notifuse_db_credentials_secret_id = module.database[0].secret_id
       notifuse_smtp_secret_name         = var.smtp_from_email == "" ? "" : "smtp-config"
+      notifuse_auto_update_enabled      = var.auto_update_enabled
+      notifuse_autoheal_enabled         = var.autoheal_enabled
     }
   } : null
 }

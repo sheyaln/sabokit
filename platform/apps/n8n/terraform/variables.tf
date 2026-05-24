@@ -61,6 +61,18 @@ variable "image_tag" {
   default     = "latest"
 }
 
+variable "auto_update_enabled" {
+  description = "Whether the Watchtower platform bundle (if deployed) auto-pulls newer n8n image versions. Default FALSE — n8n schema migrations and the lock-step runner version requirement (n8nio/runners must match n8n exactly) make blind updates risky. Consumers bump image_tag explicitly and Ansible restarts both n8n + n8n-runners together."
+  type        = bool
+  default     = false
+}
+
+variable "autoheal_enabled" {
+  description = "Whether the Autoheal platform bundle (if deployed) restarts n8n when its healthcheck fails. Default true."
+  type        = bool
+  default     = true
+}
+
 variable "n8n_admin_group_name" {
   description = "Name of the Authentik group whose members the n8n hook promotes to n8n's `global:owner` role on first OIDC login. Members of other groups land as `global:member`. The first ever sign-in always becomes owner regardless of group (bootstrap). Must match a group claim emitted by the OIDC provider (Authentik's `groups` claim carries group names)."
   type        = string

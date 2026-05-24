@@ -79,6 +79,18 @@ variable "storage_bucket_acl" {
   default     = "public-read"
 }
 
+variable "auto_update_enabled" {
+  description = "Whether the Watchtower platform bundle (if deployed on this host) auto-pulls newer Outline image versions. Default true — Outline has stable migration story for minor versions; majors are rare and pin-tag-safe via image_tag."
+  type        = bool
+  default     = true
+}
+
+variable "autoheal_enabled" {
+  description = "Whether the Autoheal platform bundle (if deployed) restarts Outline when its healthcheck fails. Default true."
+  type        = bool
+  default     = true
+}
+
 variable "oidc_username_claim" {
   description = "OIDC claim Outline reads as the username. Authentik exposes both `preferred_username` (usually the email-local part or AK username) and `sub` (the stable UUID). Default matches Outline's documented expectation; switch to `sub` for installs where usernames change."
   type        = string

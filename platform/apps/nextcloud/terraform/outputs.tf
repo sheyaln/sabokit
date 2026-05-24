@@ -74,6 +74,8 @@ output "ansible" {
       nextcloud_enabled_apps             = var.enabled_apps
       nextcloud_disabled_apps            = var.disabled_apps
       nextcloud_n8n_form_webhook_url     = var.n8n_form_webhook_url
+      nextcloud_auto_update_enabled      = var.auto_update_enabled
+      nextcloud_autoheal_enabled         = var.autoheal_enabled
 
       # OnlyOffice + Talk HPB knobs that aren't secret-shaped (image tags,
       # resource caps, port ranges). Secret-shaped values travel through the

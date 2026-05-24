@@ -44,6 +44,8 @@ output "ansible" {
       espocrm_member_entity_webhooks         = var.member_entity_webhooks
       espocrm_app_secret_id                  = scaleway_secret.app[0].id
       espocrm_db_credentials_secret_id       = module.database[0].secret_id
+      espocrm_auto_update_enabled            = var.auto_update_enabled
+      espocrm_autoheal_enabled               = var.autoheal_enabled
     }
   } : null
 }

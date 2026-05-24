@@ -60,3 +60,15 @@ variable "image" {
   type        = string
   default     = "ghcr.io/alam00000/bentopdf:latest"
 }
+
+variable "auto_update_enabled" {
+  description = "Whether the Watchtower platform bundle (if deployed on this host) auto-pulls newer image versions for BentoPDF. Default true — BentoPDF is stateless, browser-only, and has no migration risk on image bumps."
+  type        = bool
+  default     = true
+}
+
+variable "autoheal_enabled" {
+  description = "Whether the Autoheal platform bundle (if deployed on this host) restarts BentoPDF when its healthcheck fails. Default true."
+  type        = bool
+  default     = true
+}

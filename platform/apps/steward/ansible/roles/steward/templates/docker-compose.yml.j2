@@ -21,6 +21,12 @@ services:
       - "traefik.http.routers.steward.entrypoints=websecure"
       - "traefik.http.routers.steward.tls.certresolver=le"
       - "traefik.http.routers.steward.service=steward"
+{% if steward_auto_update_enabled | default(false) %}
+      - "com.centurylinklabs.watchtower.enable=true"
+{% endif %}
+{% if steward_autoheal_enabled | default(false) %}
+      - "autoheal=true"
+{% endif %}
     networks:
       - "{{ steward_traefik_docker_network }}"
       - steward_network

@@ -85,6 +85,18 @@ variable "image_source_ref" {
   default     = "feat/oidc-v1"
 }
 
+variable "auto_update_enabled" {
+  description = "Whether the Watchtower platform bundle (if deployed) auto-pulls newer Notifuse image versions. Default true — bug-fix releases are routine. NOTE: when build_from_source = true, Watchtower can't update the locally-built image; this knob only takes effect for pull-mode deploys."
+  type        = bool
+  default     = true
+}
+
+variable "autoheal_enabled" {
+  description = "Whether the Autoheal platform bundle (if deployed) restarts Notifuse when its healthcheck fails. Default true."
+  type        = bool
+  default     = true
+}
+
 variable "root_admin_email" {
   description = "Email address of the initial root administrator. Used both as the ROOT_EMAIL fallback identity and as ROOT_ADMIN_EMAIL for the bootstrap login. The matching password is auto-generated and stored in the app-secrets bag."
   type        = string

@@ -116,6 +116,18 @@ variable "disabled_apps" {
   default     = ["photos"]
 }
 
+variable "auto_update_enabled" {
+  description = "Whether the Watchtower platform bundle (if deployed) auto-pulls newer Nextcloud image versions. Default FALSE — Nextcloud only supports one-major-at-a-time upgrades and major bumps require post-upgrade occ steps. Consumers should bump image_tag explicitly and let Ansible handle the upgrade path."
+  type        = bool
+  default     = false
+}
+
+variable "autoheal_enabled" {
+  description = "Whether the Autoheal platform bundle (if deployed) restarts Nextcloud when its healthcheck fails. Default true — restart-on-unhealthy is safe; the bigger concern is the upgrade path, not unhealthy state recovery."
+  type        = bool
+  default     = true
+}
+
 variable "n8n_form_webhook_url" {
   description = "Optional: URL of an n8n webhook receiver for Nextcloud Forms submissions. When non-empty, the post-install script registers a webhook_listeners hook for `OCA\\Forms\\Events\\FormSubmittedEvent` pointed at this URL (idempotent). Requires `webhook_listeners` in `enabled_apps`."
   type        = string

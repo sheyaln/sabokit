@@ -61,6 +61,18 @@ variable "image_tag" {
   default     = "latest"
 }
 
+variable "auto_update_enabled" {
+  description = "Whether the Watchtower platform bundle (if deployed) auto-pulls newer EspoCRM image versions. Default FALSE — EspoCRM customizations live in the database AND in `custom/` on a host bind mount; new image versions occasionally need post-upgrade DB rebuild + cache clear. Consumers bump image_tag explicitly so Ansible can run the upgrade steps."
+  type        = bool
+  default     = false
+}
+
+variable "autoheal_enabled" {
+  description = "Whether the Autoheal platform bundle (if deployed) restarts EspoCRM when its healthcheck fails. Default true."
+  type        = bool
+  default     = true
+}
+
 variable "timezone" {
   description = "IANA timezone applied to the EspoCRM runtime config and the container's TZ."
   type        = string
