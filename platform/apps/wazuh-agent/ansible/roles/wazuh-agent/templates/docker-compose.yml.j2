@@ -1,0 +1,26 @@
+---
+# {{ ansible_managed }}
+# Managed by sabokit apps/wazuh-agent/ansible/role.
+# Do not edit by hand — regenerated on every ansible-playbook run.
+
+services:
+  wazuh-agent:
+    image: "{{ wazuh_agent_image }}:{{ wazuh_agent_release_version }}"
+    container_name: wazuh-agent
+    restart: unless-stopped
+    hostname: "{{ wazuh_agent_name }}"
+    environment:
+      WAZUH_MANAGER_SERVER: "{{ wazuh_agent_manager_address }}"
+    # Host network — agent monitors host-level logs + needs to reach the
+    # manager over the host's network interfaces.
+    network_mode: host
+    volumes:
+      # Read-only access to host logs for filebeat/log monitoring.
+      - /var/log:/var/log:ro
+    labels:
+{% if wazuh_agent_auto_update_enabled | default(false) %}
+      - "com.centurylinklabs.watchtower.enable=true"
+{% endif %}
+{% if wazuh_agent_autoheal_enabled | default(false) %}
+      - "autoheal=true"
+{% endif %}

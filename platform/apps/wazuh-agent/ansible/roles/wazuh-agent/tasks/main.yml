@@ -1,0 +1,36 @@
+---
+# Deploy Wazuh agent as a host-network container. Auto-enrolls against the
+# manager via the WAZUH_MANAGER_SERVER env var. Re-running with a different
+# wazuh_agent_name creates a NEW agent record on the manager — keep stable.
+
+- name: Validate required vars
+  ansible.builtin.assert:
+    that:
+      - wazuh_agent_name | length > 0
+      - wazuh_agent_manager_address | length > 0
+    fail_msg: "wazuh_agent_name and wazuh_agent_manager_address are required."
+
+- name: Assert Docker is installed and running
+  ansible.builtin.command: docker info
+  register: wazuh_agent_docker_check
+  changed_when: false
+  failed_when: wazuh_agent_docker_check.rc != 0
+
+- name: Ensure agent directory
+  ansible.builtin.file:
+    path: "{{ wazuh_agent_install_dir }}"
+    state: directory
+    mode: "0755"
+
+- name: Render docker-compose.yml
+  ansible.builtin.template:
+    src: docker-compose.yml.j2
+    dest: "{{ wazuh_agent_install_dir }}/docker-compose.yml"
+    mode: "0644"
+  notify: Restart wazuh-agent
+
+- name: Ensure agent is running
+  community.docker.docker_compose_v2:
+    project_src: "{{ wazuh_agent_install_dir }}"
+    state: present
+    pull: missing

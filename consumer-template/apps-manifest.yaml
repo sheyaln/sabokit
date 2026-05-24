@@ -1262,3 +1262,50 @@ apps:
           default: Security
           description: Authentik portal category.
           ui: advanced
+
+  # ── Wazuh Agent ─────────────────────────────────────────────────────────
+  # Host-network container that ships logs to a Wazuh manager. Multi-instance
+  # like backrest — one block per host you want monitored.
+  - id: wazuh-agent
+    display_name: Wazuh Agent
+    category: ops
+    description_short: Wazuh agent for a managed host
+    description: |
+      Auto-enrolls against the manager via WAZUH_MANAGER_SERVER. Uses
+      host networking so the agent can monitor host-level logs and reach
+      the manager directly. release_version MUST match the manager's.
+    icon: icons/wazuh.svg
+    upstream_url: https://documentation.wazuh.com/current/installation-guide/wazuh-agent/
+
+    tfvars:
+      key: wazuh_agent_apps
+      schema:
+        enabled:
+          type: bool
+          default: false
+          description: Whether this agent instance is deployed.
+          ui: hidden
+
+        deployment_host_key:
+          type: string
+          required: true
+          description: Which host this agent runs on.
+          ui: text
+
+        manager_address:
+          type: string
+          required: true
+          description: Network address of the Wazuh manager (private IP or DNS).
+          ui: text
+
+        agent_name:
+          type: string
+          default: ""
+          description: Stable name registered with the manager. Defaults to deployment_host_key.
+          ui: advanced
+
+        release_version:
+          type: string
+          default: "4.9.0"
+          description: Image tag. MUST match the manager's release_version.
+          ui: text

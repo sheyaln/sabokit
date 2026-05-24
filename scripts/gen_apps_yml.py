@@ -56,6 +56,7 @@ BUNDLES = [
     ("grafana",        "grafana",         "grafana"),
     ("watchtower",     "watchtower_apps", "watchtower"),
     ("wazuh",          "wazuh",           "wazuh"),
+    ("wazuh-agent",    "wazuh_agent_apps","wazuh_agent"),
     ("autoheal",       "autoheal_apps",   "autoheal"),
 ]
 
