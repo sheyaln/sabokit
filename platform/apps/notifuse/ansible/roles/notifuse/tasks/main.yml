@@ -38,6 +38,15 @@
     - "{{ notifuse_install_dir }}"
     - "{{ notifuse_data_dir }}"
 
+- name: Clone Notifuse source repository (build_from_source path)
+  ansible.builtin.git:
+    repo: "{{ notifuse_image_source_repo }}"
+    dest: "{{ notifuse_install_dir }}/src"
+    version: "{{ notifuse_image_source_ref }}"
+    force: true
+  when: notifuse_build_from_source | default(false)
+  notify: Restart notifuse
+
 - name: Normalize Scaleway secret IDs
   ansible.builtin.set_fact:
     _notifuse_app_secret_uuid: "{{ notifuse_app_secret_id | regex_replace('^[^/]+/', '') }}"
@@ -83,7 +92,16 @@
   notify: Restart notifuse
   no_log: true
 
-- name: Ensure Notifuse stack is running
+- name: Ensure Notifuse stack is running (build_from_source)
   community.docker.docker_compose_v2:
     project_src: "{{ notifuse_install_dir }}"
     state: present
+    build: always
+  when: notifuse_build_from_source | default(false)
+
+- name: Ensure Notifuse stack is running (pulled image)
+  community.docker.docker_compose_v2:
+    project_src: "{{ notifuse_install_dir }}"
+    state: present
+    pull: always
+  when: not (notifuse_build_from_source | default(false))

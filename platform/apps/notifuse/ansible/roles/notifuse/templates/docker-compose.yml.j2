@@ -4,7 +4,14 @@
 
 services:
   notifuse:
+{% if notifuse_build_from_source | default(false) %}
+    build:
+      context: "{{ notifuse_install_dir }}/src"
+      dockerfile: Dockerfile
+    image: notifuse-local:latest
+{% else %}
     image: "{{ notifuse_image }}:{{ notifuse_image_tag }}"
+{% endif %}
     container_name: notifuse
     restart: unless-stopped
     volumes:

@@ -1,7 +1,14 @@
 ---
 notifuse_hostname: ""
+
+# Stock `notifuse/notifuse:latest` does not support OIDC. If you need OIDC,
+# either flip notifuse_build_from_source=true (clones the fork below and
+# builds on the host) or point notifuse_image at a published fork image.
 notifuse_image: "notifuse/notifuse"
 notifuse_image_tag: "latest"
+notifuse_build_from_source: false
+notifuse_image_source_repo: "https://github.com/sheyaln/notifuse.git"
+notifuse_image_source_ref: "feat/oidc-v1"
 
 notifuse_install_dir: "/opt/notifuse"
 notifuse_data_dir: "/opt/notifuse/data"

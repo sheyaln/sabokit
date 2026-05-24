@@ -55,10 +55,34 @@ variable "deployment_host_key" {
 
 # ── Notifuse-specific inputs ────────────────────────────────────────────────
 
+variable "image" {
+  description = "Notifuse Docker image repository (without tag). Stock `notifuse/notifuse` does NOT support OIDC — the bundle wires OIDC envs unconditionally, so a stock image will silently ignore them and require local-account login. For OIDC, point at a build that includes the github.com/sheyaln/notifuse `feat/oidc-v1` patch set (either a fork-published image like `ghcr.io/sheyaln/notifuse`, or use `build_from_source = true` to build on the host from the cloned repo)."
+  type        = string
+  default     = "notifuse/notifuse"
+}
+
 variable "image_tag" {
-  description = "Notifuse Docker image tag."
+  description = "Notifuse Docker image tag. Pin in production."
   type        = string
   default     = "latest"
+}
+
+variable "build_from_source" {
+  description = "Build the Notifuse image on the deployment host from a cloned git repo instead of pulling. Needed if the desired feature set (e.g. OIDC) lives only on an unpublished branch. When true, `image_source_repo` + `image_source_ref` define the checkout; the resulting image is tagged `notifuse-local:latest` on the host and `image`/`image_tag` are ignored."
+  type        = bool
+  default     = false
+}
+
+variable "image_source_repo" {
+  description = "Git URL the host clones when `build_from_source = true`. Defaults to the OIDC-enabled fork."
+  type        = string
+  default     = "https://github.com/sheyaln/notifuse.git"
+}
+
+variable "image_source_ref" {
+  description = "Git ref (branch, tag, or SHA) checked out when `build_from_source = true`. Pin to a SHA for reproducibility."
+  type        = string
+  default     = "feat/oidc-v1"
 }
 
 variable "root_admin_email" {
