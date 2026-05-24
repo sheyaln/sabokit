@@ -1,0 +1,51 @@
+---
+# {{ ansible_managed }}
+# Managed by sabokit apps/loki/ansible/role.
+# Do not edit by hand — regenerated on every ansible-playbook run.
+
+services:
+  loki:
+    image: "{{ loki_image }}:{{ loki_image_tag }}"
+    container_name: loki
+    restart: unless-stopped
+    command: -config.file=/etc/loki/loki-config.yml
+    ports:
+      # Default localhost-only. Set loki_private_ip_bind to a private IP
+      # to let remote Alloy agents push logs.
+      - "{{ loki_private_ip_bind | default('127.0.0.1', true) }}:3100:3100"
+    volumes:
+      - ./config/loki-config.yml:/etc/loki/loki-config.yml:ro
+      - loki-data:/loki
+    environment:
+      TZ: "{{ loki_timezone }}"
+    networks:
+      - "{{ loki_internal_network }}"
+    security_opt:
+      - no-new-privileges:true
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3100/ready"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    deploy:
+      resources:
+        limits:
+          memory: "{{ loki_memory_limit }}"
+          cpus: "{{ loki_cpu_limit }}"
+        reservations:
+          memory: "{{ loki_memory_reservation }}"
+          cpus: "{{ loki_cpu_reservation }}"
+    labels:
+{% if loki_auto_update_enabled | default(false) %}
+      - "com.centurylinklabs.watchtower.enable=true"
+{% endif %}
+{% if loki_autoheal_enabled | default(false) %}
+      - "autoheal=true"
+{% endif %}
+
+volumes:
+  loki-data:
+
+networks:
+  "{{ loki_internal_network }}":
+    external: true

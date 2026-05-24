@@ -1,0 +1,49 @@
+---
+# Deploy Loki as a single-tenant filesystem-backed log aggregator. Receives
+# pushes from Alloy/Promtail agents on every host with log_paths declared.
+
+- name: Assert Docker is installed and running
+  ansible.builtin.command: docker info
+  register: loki_docker_check
+  changed_when: false
+  failed_when: loki_docker_check.rc != 0
+
+- name: Ensure Loki directory tree
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    mode: "0755"
+    owner: root
+    group: root
+  loop:
+    - "{{ loki_install_dir }}"
+    - "{{ loki_install_dir }}/config"
+
+- name: Ensure shared monitoring network exists
+  community.docker.docker_network:
+    name: "{{ loki_internal_network }}"
+    state: present
+
+- name: Render loki-config.yml
+  ansible.builtin.template:
+    src: loki-config.yml.j2
+    dest: "{{ loki_install_dir }}/config/loki-config.yml"
+    mode: "0644"
+    owner: root
+    group: root
+  notify: Restart loki
+
+- name: Render docker-compose.yml
+  ansible.builtin.template:
+    src: docker-compose.yml.j2
+    dest: "{{ loki_install_dir }}/docker-compose.yml"
+    mode: "0644"
+    owner: root
+    group: root
+  notify: Restart loki
+
+- name: Ensure Loki is running
+  community.docker.docker_compose_v2:
+    project_src: "{{ loki_install_dir }}"
+    state: present
+    pull: missing
