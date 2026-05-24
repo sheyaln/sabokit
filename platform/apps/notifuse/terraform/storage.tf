@@ -5,6 +5,10 @@ module "files_bucket" {
   name   = local.bucket_name
   region = var.base.scaleway.region
   acl    = "private"
+
+  storage_class                 = var.storage_class
+  storage_class_transition_days = var.storage_class_transition_days
+
   tags = {
     app  = local.slug
     role = "files"

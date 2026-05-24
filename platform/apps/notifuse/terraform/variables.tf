@@ -144,6 +144,18 @@ variable "backup_extra_paths" {
   default     = []
 }
 
+variable "storage_class" {
+  description = "Scaleway storage class the files bucket transitions objects to. Default `STANDARD` (Multi-AZ). `ONEZONE_IA` halves the storage cost for template/asset buckets that don't see traffic spikes; reasonable for small notifuse deployments."
+  type        = string
+  default     = "STANDARD"
+}
+
+variable "storage_class_transition_days" {
+  description = "Days after upload before objects move to `storage_class`. Only consulted when storage_class != STANDARD."
+  type        = number
+  default     = 1
+}
+
 variable "backup_schedule_cron" {
   description = "Backrest cron (6-field, seconds first). Default 02:00 UTC daily."
   type        = string

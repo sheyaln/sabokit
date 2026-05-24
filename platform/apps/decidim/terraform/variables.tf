@@ -159,6 +159,18 @@ variable "storage_bucket_acl" {
   default     = "public-read"
 }
 
+variable "storage_class" {
+  description = "Scaleway storage class the uploads bucket transitions objects to. Default `STANDARD` (Multi-AZ). `ONEZONE_IA` halves the storage cost for proposals/comments with attachments that aren't accessed frequently; weigh against the single-AZ durability tradeoff."
+  type        = string
+  default     = "STANDARD"
+}
+
+variable "storage_class_transition_days" {
+  description = "Days after upload before objects move to `storage_class`. Only consulted when storage_class != STANDARD."
+  type        = number
+  default     = 1
+}
+
 variable "sidekiq_concurrency" {
   description = "Sidekiq worker thread count. Decidim's background queues (emails, search indexing, notifications) drain through this single sidekiq container."
   type        = number

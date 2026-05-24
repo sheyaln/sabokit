@@ -5,6 +5,10 @@ module "uploads_bucket" {
   name   = local.bucket_name
   region = var.base.scaleway.region
   acl    = var.storage_bucket_acl
+
+  storage_class                 = var.storage_class
+  storage_class_transition_days = var.storage_class_transition_days
+
   tags = {
     app  = local.slug
     role = "uploads"
