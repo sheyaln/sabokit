@@ -1,0 +1,437 @@
+{
+  "name": "TEM Email Delivery Alerting",
+  "nodes": [
+    {
+      "parameters": {
+        "fromEmail": "={{ $env.SMTP_FROM }}",
+        "toEmail": "={{ $env.INFRA_EMAIL }}",
+        "subject": "=Slow Email Delivery: {{ $json.latencyMinutes }} min to {{ $json.recipient }}",
+        "options": {}
+      },
+      "id": "4cded14c-6b71-4409-ac23-2b1934b3b497",
+      "name": "Email Latency Alert",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [
+        1072,
+        784
+      ],
+      "webhookId": "a18aca67-f695-415e-ad54-60077333a48f",
+      "credentials": {
+        "smtp": {
+          "id": "",
+          "name": "SMTP account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.SLACK_WEBHOOK_INFRA_ALERTS }}",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"blocks\": [\n    {\n      \"type\": \"header\",\n      \"text\": {\n        \"type\": \"plain_text\",\n        \"text\": \"\\u23f1\\ufe0f Slow Email Delivery\",\n        \"emoji\": true\n      }\n    },\n    {\n      \"type\": \"section\",\n      \"fields\": [\n        {\n          \"type\": \"mrkdwn\",\n          \"text\": \"*Recipient:*\\n{{ $json.recipient }}\"\n        },\n        {\n          \"type\": \"mrkdwn\",\n          \"text\": \"*Subject:*\\n{{ $json.subject || 'N/A' }}\"\n        },\n        {\n          \"type\": \"mrkdwn\",\n          \"text\": \"*Delivery Time:*\\n{{ $json.latencyMinutes }} min ({{ $json.latencySeconds }}s)\"\n        },\n        {\n          \"type\": \"mrkdwn\",\n          \"text\": \"*Threshold:*\\n3 minutes\"\n        }\n      ]\n    },\n    {\n      \"type\": \"context\",\n      \"elements\": [\n        {\n          \"type\": \"mrkdwn\",\n          \"text\": \"Message ID: {{ $json.messageId }}\"\n        }\n      ]\n    }\n  ]\n}",
+        "options": {}
+      },
+      "id": "98873a2c-f4ce-4d9a-8b18-77abf4f102a8",
+      "name": "Slack Latency Alert",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        832,
+        784
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 1
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ $json.alertNeeded }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "f20ba059-8b2f-42ea-adc4-a55e193e37da",
+      "name": "Latency Alert Needed?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        592,
+        848
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Check delivery latency against the stored queue timestamp.\n// Alert if delivery took longer than 3 minutes.\n\nconst input = $input.first().json;\nconst messageId = input.messageId;\nconst deliveredAt = new Date(input.timestamp).getTime();\n\nconst tracking = $getWorkflowStaticData('global').emailTracking || {};\nconst queuedInfo = tracking[messageId];\n\nif (!queuedInfo) {\n  return [{ json: { alertNeeded: false, reason: 'No queue record', ...input } }];\n}\n\nconst latencyMs = deliveredAt - queuedInfo.queuedAt;\nconst latencySeconds = Math.round(latencyMs / 1000);\nconst latencyMinutes = (latencyMs / 1000 / 60).toFixed(1);\n\nconst THRESHOLD_MS = 3 * 60 * 1000; // 3 minutes\nconst alertNeeded = latencyMs > THRESHOLD_MS;\n\n// Clean up tracked entry\ndelete tracking[messageId];\n$getWorkflowStaticData('global').emailTracking = tracking;\n\nreturn [{\n  json: {\n    alertNeeded,\n    latencyMs,\n    latencySeconds,\n    latencyMinutes,\n    recipient: queuedInfo.recipient || input.recipient,\n    subject: queuedInfo.subject || input.subject,\n    messageId,\n    eventType: 'slow_delivery',\n    category: alertNeeded ? 'slow' : 'success',\n    timestamp: input.timestamp\n  }\n}];"
+      },
+      "id": "432a2f9a-f05f-4369-94b7-6b1cf4af695d",
+      "name": "Check Delivery Latency",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        352,
+        848
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Store queued email timestamp for delivery latency tracking.\n// When a 'delivered' event arrives later, we compare timestamps.\n\nconst input = $input.first().json;\nconst messageId = input.messageId;\nconst timestamp = input.timestamp;\n\nif (!messageId || messageId === 'unknown') {\n  return [{ json: { stored: false, reason: 'No message ID', ...input } }];\n}\n\nlet tracking = $getWorkflowStaticData('global').emailTracking || {};\n\ntracking[messageId] = {\n  queuedAt: new Date(timestamp).getTime(),\n  recipient: input.recipient,\n  subject: input.subject\n};\n\n// Evict entries older than 24 hours\nconst cutoff = Date.now() - 24 * 60 * 60 * 1000;\nfor (const [id, entry] of Object.entries(tracking)) {\n  if (entry.queuedAt < cutoff) delete tracking[id];\n}\n\n$getWorkflowStaticData('global').emailTracking = tracking;\n\nreturn [{ json: { stored: true, messageId, ...input } }];"
+      },
+      "id": "1583a41c-b450-4efd-8a07-4577154fa5cc",
+      "name": "Store Queue Time",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        352,
+        704
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.SLACK_WEBHOOK_INFRA_ALERTS }}",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"blocks\": [\n    {\n      \"type\": \"header\",\n      \"text\": {\n        \"type\": \"plain_text\",\n        \"text\": \"\\u26a0\\ufe0f Email Delivery Deferred\",\n        \"emoji\": true\n      }\n    },\n    {\n      \"type\": \"section\",\n      \"fields\": [\n        {\n          \"type\": \"mrkdwn\",\n          \"text\": \"*Recipient:*\\n{{ $json.recipient }}\"\n        },\n        {\n          \"type\": \"mrkdwn\",\n          \"text\": \"*Subject:*\\n{{ $json.subject || 'N/A' }}\"\n        },\n        {\n          \"type\": \"mrkdwn\",\n          \"text\": \"*From:*\\n{{ $json.source }}\"\n        },\n        {\n          \"type\": \"mrkdwn\",\n          \"text\": \"*Time:*\\n{{ $json.timestamp }}\"\n        }\n      ]\n    },\n    {\n      \"type\": \"context\",\n      \"elements\": [\n        {\n          \"type\": \"mrkdwn\",\n          \"text\": \"TEM will retry delivery automatically. Investigate if not delivered within 72 hours.\"\n        }\n      ]\n    }\n  ]\n}",
+        "options": {}
+      },
+      "id": "c36b5e7e-828d-4b55-a0c9-7c1b59807d2d",
+      "name": "Slack Deferred Alert",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        352,
+        560
+      ]
+    },
+    {
+      "parameters": {
+        "fromEmail": "={{ $env.SMTP_FROM }}",
+        "toEmail": "={{ $env.INFRA_EMAIL }}",
+        "subject": "=Email Delivery Alert: {{ $json.eventType }} - {{ $json.recipient }}",
+        "options": {}
+      },
+      "id": "67b4ad9d-1296-4130-96fc-0b36fed8424a",
+      "name": "Email Failure Alert",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [
+        592,
+        400
+      ],
+      "webhookId": "9af012ea-fd0e-454b-b08e-265adae75348",
+      "credentials": {
+        "smtp": {
+          "id": "",
+          "name": "SMTP account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.SLACK_WEBHOOK_INFRA_ALERTS }}",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"blocks\": [\n    {\n      \"type\": \"header\",\n      \"text\": {\n        \"type\": \"plain_text\",\n        \"text\": \"\\ud83d\\udea8 Email Delivery Failed\",\n        \"emoji\": true\n      }\n    },\n    {\n      \"type\": \"section\",\n      \"fields\": [\n        {\n          \"type\": \"mrkdwn\",\n          \"text\": \"*Event:*\\n{{ $json.eventType }}\"\n        },\n        {\n          \"type\": \"mrkdwn\",\n          \"text\": \"*Recipient:*\\n{{ $json.recipient }}\"\n        },\n        {\n          \"type\": \"mrkdwn\",\n          \"text\": \"*Subject:*\\n{{ $json.subject || 'N/A' }}\"\n        },\n        {\n          \"type\": \"mrkdwn\",\n          \"text\": \"*From:*\\n{{ $json.source }}\"\n        }\n      ]\n    },\n    {\n      \"type\": \"section\",\n      \"text\": {\n        \"type\": \"mrkdwn\",\n        \"text\": \"*Error:*\\n{{ $json.errorMessage || 'No details available' }}\"\n      }\n    },\n    {\n      \"type\": \"context\",\n      \"elements\": [\n        {\n          \"type\": \"mrkdwn\",\n          \"text\": \"Message ID: {{ $json.messageId }} | {{ $json.timestamp }}\"\n        }\n      ]\n    }\n  ]\n}",
+        "options": {}
+      },
+      "id": "5bf8dbcf-c133-496c-ba98-ab80968c712b",
+      "name": "Slack Failure Alert",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        352,
+        400
+      ]
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 1
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.category }}",
+                    "rightValue": "failure",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "failure"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 1
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.category }}",
+                    "rightValue": "delayed",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "delayed"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 1
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.category }}",
+                    "rightValue": "queued",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "queued"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 1
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.category }}",
+                    "rightValue": "success",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "success"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "82cb3d7f-af39-4e14-a14e-e3552edf3083",
+      "name": "Route by Event Type",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [
+        96,
+        608
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Parse Scaleway TEM webhook payload delivered via SNS envelope.\n// TEM events arrive wrapped in an SNS message: { Type, Message (JSON string), ... }\n\nconst input = $input.first().json;\nconst body = input.body || input;\n\n// Unwrap SNS envelope if present\nlet message = body;\nif (typeof body.Message === 'string') {\n  try {\n    message = JSON.parse(body.Message);\n  } catch (e) {\n    message = body;\n  }\n}\n\n// Extract event details\nconst eventType = message.eventType || message.event_type || 'unknown';\nconst timestamp = message.timestamp || new Date().toISOString();\nconst messageId = message.mail?.messageId || message.message_id || 'unknown';\nconst recipient = message.mail?.destination?.[0] || message.recipient || 'unknown';\nconst subject = message.mail?.commonHeaders?.subject || message.subject || 'N/A';\nconst source = message.mail?.source || message.sender || 'unknown';\n\n// Categorize event\nlet category = 'info';\nlet alertNeeded = false;\n\nswitch (eventType) {\n  case 'Bounce':\n  case 'bounce':\n  case 'email_dropped':\n  case 'Complaint':\n  case 'complaint':\n  case 'Reject':\n  case 'reject':\n    category = 'failure';\n    alertNeeded = true;\n    break;\n  case 'Delivery':\n  case 'delivery':\n  case 'email_delivered':\n    category = 'success';\n    break;\n  case 'Send':\n  case 'send':\n  case 'email_queued':\n    category = 'queued';\n    break;\n  case 'DeliveryDelay':\n  case 'email_deferred':\n    category = 'delayed';\n    break;\n}\n\n// Extract error details for failures\nlet errorMessage = '';\nif (message.bounce) {\n  errorMessage = message.bounce.bouncedRecipients\n    ?.map(r => `${r.emailAddress}: ${r.diagnosticCode || r.status}`)\n    .join(', ') || 'Bounce detected';\n} else if (message.complaint) {\n  errorMessage = 'Spam complaint received';\n} else if (message.reject) {\n  errorMessage = message.reject.reason || 'Rejected';\n}\n\nreturn [{\n  json: {\n    eventType,\n    category,\n    alertNeeded,\n    messageId,\n    recipient,\n    subject,\n    source,\n    timestamp,\n    errorMessage,\n    rawEvent: message\n  }\n}];"
+      },
+      "id": "df0dfae7-cbe2-4b85-b02d-0fa9fccd25e4",
+      "name": "Parse TEM Event",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -128,
+        608
+      ]
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "tem-delivery",
+        "options": {}
+      },
+      "id": "c086a503-2cce-4727-8df0-12976b4e4072",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -352,
+        608
+      ],
+      "webhookId": "tem-delivery"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Slack Latency Alert": {
+      "main": [
+        [
+          {
+            "node": "Email Latency Alert",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Latency Alert Needed?": {
+      "main": [
+        [
+          {
+            "node": "Slack Latency Alert",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Delivery Latency": {
+      "main": [
+        [
+          {
+            "node": "Latency Alert Needed?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Slack Failure Alert": {
+      "main": [
+        [
+          {
+            "node": "Email Failure Alert",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Route by Event Type": {
+      "main": [
+        [
+          {
+            "node": "Slack Failure Alert",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Slack Deferred Alert",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Store Queue Time",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Check Delivery Latency",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse TEM Event": {
+      "main": [
+        [
+          {
+            "node": "Route by Event Type",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Parse TEM Event",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false,
+    "timeSavedMode": "fixed",
+    "errorWorkflow": "ScNDFrAVG90ETWIh",
+    "callerPolicy": "workflowsFromSameOwner"
+  },
+  "versionId": "",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": ""
+  },
+  "id": "lWROIz82F7gYAcgx",
+  "tags": [
+    {
+      "updatedAt": "2026-02-15T16:35:20.534Z",
+      "createdAt": "2026-02-15T16:35:20.534Z",
+      "id": "",
+      "name": "infrastructure"
+    },
+    {
+      "updatedAt": "2026-02-15T16:35:20.537Z",
+      "createdAt": "2026-02-15T16:35:20.537Z",
+      "id": "",
+      "name": "email"
+    },
+    {
+      "updatedAt": "2026-02-15T16:35:20.540Z",
+      "createdAt": "2026-02-15T16:35:20.540Z",
+      "id": "",
+      "name": "alerting"
+    }
+  ]
+}

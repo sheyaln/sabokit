@@ -123,17 +123,28 @@ Set `apps.n8n.enabled = false` in tfvars and `terraform apply`. Drops the Authen
 | File | Purpose |
 |------|---------|
 | `authentik-user-onboarding.json` | Dispatcher webhook. Receives `user_signup` and `user_activation` events from the Authentik notification policies; posts the signup notice to Slack and (on activation) fans out to the two sub-workflows below. |
+| `authentik-user-lifecycle-notifier.json` | Receives full Authentik user-lifecycle webhook events (created / activated / deactivated / deleted) and posts a richly-formatted Slack card to `#user-onboarding`. Sister workflow to onboarding; covers the post-signup states. |
 | `espocrm-member-upsert.json` | Sub-workflow. Looks up a CRM `Member` by email; creates one if missing, otherwise updates a small set of fields while preserving everything else. Refuses to act on duplicate matches and alerts an admin channel. |
+| `espocrm-membership-notifier.json` | Posts to `#membership-events` when an EspoCRM Member's `membershipStatus` changes (good standing / in arrears / suspended / etc.). Useful as a Slack feed for membership coordinators. |
 | `slack-invite-stub.json` | Sub-workflow. No-op placeholder for Slack workspace provisioning — Slack Free has no usable invite API. Replace the Code node when a real path exists. |
+| `error-notification.json` | Global error trigger. When any other workflow throws, a richly-formatted error card lands in `#infra-alerts` with workflow name, execution ID, last node, error message, stacktrace, and an "Open Workflow" link. Point this workflow's ID at every other workflow's `Workflow settings → Error Workflow`. |
+| `infra-notifications-receiver.json` | Generic webhook receiver on `/webhook/infra-notifications`. Formats incoming JSON (unattended-upgrade events, etc.) into Slack Block Kit cards posted to `#infra-alerts`. Use as the target for Ansible/cron/SSH callbacks that need a human-readable feed. |
+| `scaleway-billing-forecast.json` | Daily scheduled run: pulls Scaleway billing data, computes month-end forecast, and posts to `#infra-alerts` when the projection crosses thresholds. Pair with a `Scaleway` HTTP-header credential. |
+| `tem-delivery-alerting.json` | Polls Scaleway TEM (Transactional Email) delivery status and alerts on bounces / failures / dropped messages. Pair with a `Scaleway` credential. |
+| `nextcloud-form-submission-notifier.json` | Receives `OCA\Forms\Events\FormSubmittedEvent` webhooks from Nextcloud (registered automatically when the `nextcloud` bundle's `n8n_form_webhook_url` points here). Fetches form schema + recent submissions via the Nextcloud OCS API, formats as email, and sends to form editors. Pair with a `Nextcloud admin` HTTP basic-auth credential + SMTP. |
+| `nextcloud-form-edit-access-notifier.json` | Sister workflow: when a form's edit-access list changes, notifies the newly-added editor(s) by email. Same credentials as above. |
 
-After import, in the dispatcher, re-bind the two `Execute Workflow` nodes to point at the newly-imported sub-workflows (n8n cannot resolve workflow IDs across instances).
+All workflows ship as `"active": false` — review and activate manually after import. Credential IDs and `instanceId` fields are scrubbed from the JSON so n8n won't try to bind to credentials from another instance. Re-bind credentials and (in dispatcher workflows) the `Execute Workflow` node targets via the n8n UI; n8n cannot resolve those across instances.
 
 **Required n8n credentials** (create in `Credentials → New`, named exactly as below):
 
-| Name | Type | Notes |
-|------|------|-------|
-| `Slack account` | Slack API (Bot token, `xoxb-…`) | Bot scopes: `chat:write`, `channels:read`. |
-| `EspoCRM API` | HTTP Header Auth | Header `X-Api-Key`, value from a CRM API User. `allowedDomains` must include the CRM base URL. |
+| Name | Type | Used by | Notes |
+|------|------|---------|-------|
+| `Slack account` | Slack API (Bot token, `xoxb-…`) | every notifier | Bot scopes: `chat:write`, `channels:read`. |
+| `EspoCRM API` | HTTP Header Auth | EspoCRM workflows | Header `X-Api-Key`, value from a CRM API User. `allowedDomains` must include the CRM base URL. |
+| `Scaleway` | HTTP Header Auth | billing-forecast, tem-delivery | Header `X-Auth-Token`, value = a Scaleway API key with billing + TEM read scopes. |
+| `Nextcloud admin` | HTTP Basic Auth | nextcloud form notifiers | Admin username + password from `terraform output`. |
+| `SMTP` | SMTP | nextcloud form notifiers, anything sending email | Same SMTP creds shared across platform. |
 
 **Required n8n environment variables** (set in `platform/apps/n8n/ansible/.../docker-compose` env or the host's `/opt/n8n/.env`):
 

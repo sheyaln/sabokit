@@ -1,0 +1,49 @@
+{
+  "name": "Error Notification",
+  "nodes": [
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.errorTrigger",
+      "typeVersion": 1,
+      "position": [0, 0],
+      "id": "4c10418b-3f4c-4c08-9f03-c16d62b5afe5",
+      "name": "Error Trigger"
+    },
+    {
+      "parameters": {
+        "select": "channel",
+        "channelId": {
+          "__rl": true,
+          "value": "#infra-alerts",
+          "mode": "name"
+        },
+        "messageType": "block",
+        "blocksUi": "={\n  \"blocks\": [\n    {\n      \"type\": \"header\",\n      \"text\": {\n        \"type\": \"plain_text\",\n        \"text\": \":rotating_light: n8n Workflow Error\",\n        \"emoji\": true\n      }\n    },\n    {\n      \"type\": \"section\",\n      \"fields\": [\n        {\n          \"type\": \"mrkdwn\",\n          \"text\": \"*Workflow:*\\n{{ $json.workflow?.name ?? 'Unknown Workflow' }}\"\n        },\n        {\n          \"type\": \"mrkdwn\",\n          \"text\": \"*Workflow ID:*\\n{{ $json.workflow?.id ?? 'Unknown' }}\"\n        },\n        {\n          \"type\": \"mrkdwn\",\n          \"text\": \"*Execution ID:*\\n{{ $json.execution?.id ?? 'Unknown' }}\"\n        },\n        {\n          \"type\": \"mrkdwn\",\n          \"text\": \"*Mode:*\\n{{ $json.execution?.mode ?? 'Unknown' }}\"\n        }\n      ]\n    },\n    { \"type\": \"divider\" },\n    {\n      \"type\": \"section\",\n      \"fields\": [\n        {\n          \"type\": \"mrkdwn\",\n          \"text\": \"*Last Node Executed:*\\n{{ $json.execution?.lastNodeExecuted ?? 'Unknown' }}\"\n        },\n        {\n          \"type\": \"mrkdwn\",\n          \"text\": \"*Retry Of:*\\n{{ $json.execution?.retryOf ?? 'None' }}\"\n        }\n      ]\n    },\n    {\n      \"type\": \"section\",\n      \"text\": {\n        \"type\": \"mrkdwn\",\n        \"text\": \"*Error Message:*\\n```{{ $json.execution?.error?.message ?? 'No error message provided' }}```\\n*Stacktrace (if present):*\\n```{{ $json.execution?.error?.stack ?? 'No stacktrace provided' }}```\"\n      }\n    },\n    { \"type\": \"divider\" },\n    {\n      \"type\": \"actions\",\n      \"elements\": [\n        {\n          \"type\": \"button\",\n          \"action_id\": \"open_workflow\",\n          \"text\": { \"type\": \"plain_text\", \"text\": \"Open Workflow\", \"emoji\": true },\n          \"url\": \"{{ $json.execution?.url ? $json.execution.url.split('/execution/')[0] + '/workflow/' + ($json.workflow?.id ?? '') : '#' }}\"\n        }\n      ]\n    },\n    {\n      \"type\": \"context\",\n      \"elements\": [\n        {\n          \"type\": \"mrkdwn\",\n          \"text\": \"This message was generated automatically from an n8n execution error.\"\n        }\n      ]\n    }\n  ]\n}",
+        "otherOptions": {
+          "includeLinkToWorkflow": true
+        }
+      },
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.4,
+      "position": [208, 0],
+      "id": "96b9d4f5-4655-4399-8378-423bd9306003",
+      "name": "Post to Slack"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Error Trigger": {
+      "main": [[{ "node": "Post to Slack", "type": "main", "index": 0 }]]
+    },
+    "Post to Slack": {
+      "main": [[]]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "tags": []
+}
