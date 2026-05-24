@@ -1,0 +1,70 @@
+<!-- {{ ansible_managed }} -->
+<!-- Default Wazuh manager config. Override by editing this template or
+     bind-mounting your own ossec.conf via wazuh_install_dir. -->
+<ossec_config>
+  <global>
+    <jsonout_output>yes</jsonout_output>
+    <alerts_log>yes</alerts_log>
+    <logall>no</logall>
+    <logall_json>no</logall_json>
+    <email_notification>no</email_notification>
+    <smtp_server>smtp.example.org</smtp_server>
+    <email_from>wazuh@example.org</email_from>
+    <email_to>admin@example.org</email_to>
+    <email_maxperhour>12</email_maxperhour>
+    <email_log_source>alerts.log</email_log_source>
+    <agents_disconnection_time>10m</agents_disconnection_time>
+    <agents_disconnection_alert_time>0</agents_disconnection_alert_time>
+  </global>
+
+  <alerts>
+    <log_alert_level>3</log_alert_level>
+    <email_alert_level>12</email_alert_level>
+  </alerts>
+
+  <remote>
+    <connection>secure</connection>
+    <port>{{ wazuh_manager_agent_port }}</port>
+    <protocol>tcp</protocol>
+    <queue_size>131072</queue_size>
+  </remote>
+
+  <auth>
+    <disabled>no</disabled>
+    <port>{{ wazuh_manager_enrollment_port }}</port>
+    <use_source_ip>no</use_source_ip>
+    <force>
+      <enabled>yes</enabled>
+      <key_mismatch>yes</key_mismatch>
+      <disconnected_time enabled="yes">1h</disconnected_time>
+      <after_registration_time>1h</after_registration_time>
+    </force>
+    <purge>yes</purge>
+    <use_password>no</use_password>
+    <ciphers>HIGH:!ADH:!EXP:!MD5:!RC4:!3DES:!CAMELLIA:@STRENGTH</ciphers>
+    <ssl_verify_host>no</ssl_verify_host>
+    <ssl_manager_cert>/var/ossec/etc/sslmanager.cert</ssl_manager_cert>
+    <ssl_manager_key>/var/ossec/etc/sslmanager.key</ssl_manager_key>
+    <ssl_auto_negotiate>no</ssl_auto_negotiate>
+  </auth>
+
+  <vulnerability-detection>
+    <enabled>yes</enabled>
+    <index-status>yes</index-status>
+    <feed-update-interval>60m</feed-update-interval>
+  </vulnerability-detection>
+
+  <indexer>
+    <enabled>yes</enabled>
+    <hosts>
+      <host>https://wazuh.indexer:9200</host>
+    </hosts>
+    <ssl>
+      <certificate_authorities>
+        <ca>/etc/ssl/root-ca.pem</ca>
+      </certificate_authorities>
+      <certificate>/etc/ssl/filebeat.pem</certificate>
+      <key>/etc/ssl/filebeat.key</key>
+    </ssl>
+  </indexer>
+</ossec_config>

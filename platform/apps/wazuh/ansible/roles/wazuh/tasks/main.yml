@@ -1,0 +1,195 @@
+---
+# Deploy Wazuh server stack: indexer (OpenSearch) + manager + dashboard.
+# All three images are pinned to the same wazuh_version (Wazuh's lockstep
+# requirement). On first run, generates SSL certs via the official wazuh-
+# certs-generator one-shot container, then brings up the stack. Subsequent
+# runs reuse the certs unless wazuh_regenerate_certs is true.
+
+- name: Validate required Wazuh variables
+  ansible.builtin.assert:
+    that:
+      - wazuh_hostname | length > 0
+      - wazuh_app_secret_id | length > 0
+    fail_msg: "wazuh_hostname and wazuh_app_secret_id are required."
+
+- name: Assert Docker is installed and running
+  ansible.builtin.command: docker info
+  register: wazuh_docker_check
+  changed_when: false
+  failed_when: wazuh_docker_check.rc != 0
+
+- name: Assert Traefik external network exists
+  community.docker.docker_network_info:
+    name: "{{ wazuh_traefik_docker_network }}"
+  register: wazuh_traefik_net
+  failed_when: not wazuh_traefik_net.exists
+
+# OpenSearch (and therefore the wazuh-indexer) refuses to start unless
+# vm.max_map_count is at least 262144.
+- name: Set vm.max_map_count for OpenSearch
+  ansible.posix.sysctl:
+    name: vm.max_map_count
+    value: "262144"
+    state: present
+    reload: true
+
+- name: Ensure Wazuh directory tree
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    mode: "0755"
+    owner: root
+    group: root
+  loop:
+    - "{{ wazuh_install_dir }}"
+    - "{{ wazuh_install_dir }}/config"
+    - "{{ wazuh_install_dir }}/config/wazuh_indexer_ssl_certs"
+    - "{{ wazuh_install_dir }}/config/wazuh_indexer"
+    - "{{ wazuh_install_dir }}/config/wazuh_dashboard"
+    - "{{ wazuh_install_dir }}/config/wazuh_cluster"
+
+- name: Normalize Scaleway secret ID
+  ansible.builtin.set_fact:
+    _wazuh_app_secret_uuid: "{{ wazuh_app_secret_id | regex_replace('^[^/]+/', '') }}"
+
+- name: Look up Wazuh app secrets from Scaleway
+  ansible.builtin.set_fact:
+    wazuh_app_secrets: "{{ lookup('scaleway.scaleway.scaleway_secret', _wazuh_app_secret_uuid) | b64decode | from_json }}"
+  no_log: true
+
+# ── Certificate generation (one-shot) ────────────────────────────────────────
+# Drop existing certs on regenerate request, then run the official cert
+# generator container.
+
+- name: Drop existing certs when regenerate requested
+  ansible.builtin.file:
+    path: "{{ wazuh_install_dir }}/config/wazuh_indexer_ssl_certs"
+    state: absent
+  when: wazuh_regenerate_certs | bool
+
+- name: Re-create certs dir
+  ansible.builtin.file:
+    path: "{{ wazuh_install_dir }}/config/wazuh_indexer_ssl_certs"
+    state: directory
+    mode: "0755"
+  when: wazuh_regenerate_certs | bool
+
+- name: Check whether certs already exist
+  ansible.builtin.stat:
+    path: "{{ wazuh_install_dir }}/config/wazuh_indexer_ssl_certs/root-ca.pem"
+  register: wazuh_certs_exist
+
+- name: Render certs.yml
+  ansible.builtin.template:
+    src: certs.yml.j2
+    dest: "{{ wazuh_install_dir }}/config/certs.yml"
+    mode: "0644"
+  when: not wazuh_certs_exist.stat.exists
+
+- name: Render cert-generator compose file
+  ansible.builtin.template:
+    src: generate-certs-compose.yml.j2
+    dest: "{{ wazuh_install_dir }}/generate-certs-compose.yml"
+    mode: "0644"
+  when: not wazuh_certs_exist.stat.exists
+
+- name: Generate Wazuh certs (one-shot)
+  community.docker.docker_compose_v2:
+    project_src: "{{ wazuh_install_dir }}"
+    project_name: wazuh-certs
+    files:
+      - generate-certs-compose.yml
+    state: present
+  when: not wazuh_certs_exist.stat.exists
+
+- name: Tear down cert-generator container
+  community.docker.docker_compose_v2:
+    project_src: "{{ wazuh_install_dir }}"
+    project_name: wazuh-certs
+    files:
+      - generate-certs-compose.yml
+    state: absent
+  when: not wazuh_certs_exist.stat.exists
+
+# Some artifacts come out as e.g. wazuh.indexer-key.pem; the manager mounts
+# need a copy named wazuh.manager.pem etc. Rename in place.
+- name: Normalize cert filenames
+  ansible.builtin.copy:
+    src: "{{ wazuh_install_dir }}/config/wazuh_indexer_ssl_certs/root-ca.pem"
+    dest: "{{ wazuh_install_dir }}/config/wazuh_indexer_ssl_certs/root-ca-manager.pem"
+    remote_src: true
+    mode: preserve
+  when: not wazuh_certs_exist.stat.exists
+
+# ── Configs ─────────────────────────────────────────────────────────────────
+
+- name: Render opensearch.yml (indexer config)
+  ansible.builtin.template:
+    src: wazuh.indexer.yml.j2
+    dest: "{{ wazuh_install_dir }}/config/wazuh_indexer/wazuh.indexer.yml"
+    mode: "0644"
+  notify: Restart wazuh stack
+
+- name: Render internal_users.yml (bootstraps indexer admin password)
+  ansible.builtin.template:
+    src: internal_users.yml.j2
+    dest: "{{ wazuh_install_dir }}/config/wazuh_indexer/internal_users.yml"
+    mode: "0644"
+  no_log: true
+  notify: Restart wazuh stack
+
+- name: Render security config.yml
+  ansible.builtin.template:
+    src: config.yml.j2
+    dest: "{{ wazuh_install_dir }}/config/wazuh_indexer/config.yml"
+    mode: "0644"
+  notify: Restart wazuh stack
+
+- name: Render roles_mapping.yml
+  ansible.builtin.template:
+    src: roles_mapping.yml.j2
+    dest: "{{ wazuh_install_dir }}/config/wazuh_indexer/roles_mapping.yml"
+    mode: "0644"
+  notify: Restart wazuh stack
+
+- name: Render dashboard config
+  ansible.builtin.template:
+    src: opensearch_dashboards.yml.j2
+    dest: "{{ wazuh_install_dir }}/config/wazuh_dashboard/opensearch_dashboards.yml"
+    mode: "0644"
+  notify: Restart wazuh stack
+
+- name: Render dashboard wazuh.yml (API endpoint config)
+  ansible.builtin.template:
+    src: wazuh.yml.j2
+    dest: "{{ wazuh_install_dir }}/config/wazuh_dashboard/wazuh.yml"
+    mode: "0644"
+  notify: Restart wazuh stack
+
+- name: Render manager ossec.conf
+  ansible.builtin.template:
+    src: wazuh_manager.conf.j2
+    dest: "{{ wazuh_install_dir }}/config/wazuh_cluster/wazuh_manager.conf"
+    mode: "0644"
+  notify: Restart wazuh stack
+
+- name: Render env
+  ansible.builtin.template:
+    src: env.j2
+    dest: "{{ wazuh_install_dir }}/.env"
+    mode: "0600"
+  no_log: true
+  notify: Restart wazuh stack
+
+- name: Render docker-compose.yml
+  ansible.builtin.template:
+    src: docker-compose.yml.j2
+    dest: "{{ wazuh_install_dir }}/docker-compose.yml"
+    mode: "0644"
+  notify: Restart wazuh stack
+
+- name: Ensure Wazuh stack is running
+  community.docker.docker_compose_v2:
+    project_src: "{{ wazuh_install_dir }}"
+    state: present
+    pull: missing

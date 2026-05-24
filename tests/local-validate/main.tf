@@ -254,3 +254,11 @@ module "grafana" {
   deployment_host_key = "apps"
   base                = local.base
 }
+
+module "wazuh" {
+  source              = "../../platform/apps/wazuh/terraform"
+  enabled             = true
+  hostname            = "wazuh.example.org"
+  deployment_host_key = "apps"
+  base                = local.base
+}

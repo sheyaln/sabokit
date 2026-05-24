@@ -1196,3 +1196,69 @@ apps:
           default: Operations
           description: Authentik portal category.
           ui: advanced
+
+  # ── Wazuh ───────────────────────────────────────────────────────────────
+  # SIEM server stack: manager + indexer (OpenSearch) + dashboard. UI fronted
+  # via Authentik forward-auth at the gateway (the dashboard's native SSO is
+  # OpenSearch-flavoured; full OIDC would need custom config.yml for the
+  # opensearch-security plugin).
+  - id: wazuh
+    display_name: Wazuh
+    category: ops
+    description_short: SIEM + endpoint detection
+    description: |
+      Three lockstep containers: manager, indexer (OpenSearch fork),
+      dashboard. SSL certs auto-generated on first deploy via the official
+      wazuh-certs-generator. Manager exposes TCP 1514/1515 + UDP 514 for
+      agent traffic (auto-opened in the host SG via required_inbound_rules).
+      Agent role for monitored hosts ships in v2.7.1.
+    icon: icons/wazuh.svg
+    upstream_url: https://wazuh.com/
+
+    tfvars:
+      key: wazuh
+      schema:
+        enabled:
+          type: bool
+          default: false
+          description: Whether Wazuh is deployed.
+          ui: hidden
+
+        hostname:
+          type: string
+          required: true
+          description: Public hostname the Wazuh dashboard is served at.
+          example: wazuh.example.org
+          ui: text
+          validation:
+            pattern: ^[a-z0-9.-]+\.[a-z]{2,}$
+
+        deployment_host_key:
+          type: string
+          default: management
+          description: Which host the Wazuh manager runs on.
+          ui: advanced
+
+        access_level:
+          type: string
+          default: admin
+          description: Authentik group key for baseline access (Wazuh defaults admin-only).
+          ui: advanced
+
+        release_version:
+          type: string
+          default: "4.9.0"
+          description: Wazuh release. All three images (manager, indexer, dashboard) move in lockstep.
+          ui: text
+
+        indexer_heap_size:
+          type: string
+          default: "1g"
+          description: JVM heap size for the indexer (OpenSearch). 50% of host RAM, max 31g.
+          ui: advanced
+
+        category_group:
+          type: string
+          default: Security
+          description: Authentik portal category.
+          ui: advanced

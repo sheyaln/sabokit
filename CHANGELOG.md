@@ -2,6 +2,34 @@
 
 All notable changes to sabokit go here. Versioning follows semver; major bumps signal breaking contract changes for consumers.
 
+## v2.7.0 — Wazuh server stack
+
+New `platform/apps/wazuh/` bundle: three lockstep containers (manager + indexer (OpenSearch fork) + dashboard) with SSL certs auto-generated via the official `wazuh-certs-generator` one-shot. UI gated by Authentik forward-auth at the gateway; native OIDC for the dashboard would require custom `config.yml` for the opensearch-security plugin (deferred).
+
+### New bundle
+
+- **`platform/apps/wazuh/`** — manager (TCP 1514/1515 + UDP 514 for agents, 55000 API on 127.0.0.1) + indexer + dashboard. Sets `vm.max_map_count` via sysctl (OpenSearch requirement). Internal-user passwords pinned (`ignore_changes = all`).
+- `required_inbound_rules` emits the agent ports; consumer-template aggregates into base's SG.
+- Agent role for monitored hosts: deferred to v2.7.1.
+
+### Variable note
+
+Wazuh's release version is exposed as **`release_version`** (not `version`) because `version` is reserved in TF module blocks.
+
+### Consumer-template + manifest + autogen
+
+- Module ref bumped `v2.6.0` → `v2.7.0`.
+- Forward-auth provider_id added to `extra_forward_auth_provider_ids` in `identity.tf`.
+- `required_inbound_rules` aggregation in `base.tf` extended.
+- `enabled_apps` output extended; `apps-manifest.yaml` now lists 18 apps; `scripts/gen_apps_yml.py` BUNDLES list extended; `platform/ansible/apps.yml` regenerated.
+- `tests/local-validate`: `terraform validate` green across 18 bundles.
+
+### No breaking changes
+
+Additive. Opt in with `apps.wazuh.enabled = true`.
+
+---
+
 ## v2.6.0 — Monitoring stack (prometheus + loki + grafana)
 
 Three new bundles forming the standard observability triad. Headless prometheus + loki with grafana fronting via Authentik OIDC. Shared `monitoring_internal` docker network (each bundle creates it idempotently).

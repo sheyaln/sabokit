@@ -1,0 +1,8 @@
+# {{ ansible_managed }}
+services:
+  generator:
+    image: wazuh/wazuh-certs-generator:{{ wazuh_certs_generator_version }}
+    hostname: wazuh-certs-generator
+    volumes:
+      - {{ wazuh_install_dir }}/config/wazuh_indexer_ssl_certs/:/certificates/
+      - {{ wazuh_install_dir }}/config/certs.yml:/config/certs.yml
