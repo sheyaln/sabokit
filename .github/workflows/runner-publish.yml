@@ -1,0 +1,74 @@
+# Build + push ghcr.io/<owner>/sabokit-runner:<tag> on every v*
+# tag push. The image bakes ansible-core + collections + the entire platform/
+# tree at the matching repo tag — see docker/runner/README.md for the
+# consumer-side usage.
+#
+# Triggers:
+#   - push of any v* tag (production)
+#   - manual dispatch with explicit version (ad-hoc rebuilds / backports)
+#
+# No external secrets — uses the workflow's GITHUB_TOKEN to push to ghcr.io.
+
+name: runner-publish
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Image version (with leading v). Defaults to the triggering tag.'
+        required: false
+        type: string
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Resolve version
+        id: ver
+        run: |
+          if [[ -n "${{ inputs.version }}" ]]; then
+            v="${{ inputs.version }}"
+          else
+            v="${GITHUB_REF#refs/tags/}"
+          fi
+          [[ -n "$v" ]] || { echo "could not resolve version" >&2; exit 1; }
+          echo "version=$v" >> "$GITHUB_OUTPUT"
+          # Only roll :latest forward for tag pushes (not manual backports).
+          if [[ "${{ github.event_name }}" == "push" && "$v" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "tag_latest=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "tag_latest=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - uses: docker/setup-buildx-action@v3
+
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build + push
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: docker/runner/Dockerfile
+          push: true
+          build-args: |
+            FEDERATED_COMMONS_VERSION=${{ steps.ver.outputs.version }}
+          tags: |
+            ghcr.io/${{ github.repository_owner }}/sabokit-runner:${{ steps.ver.outputs.version }}
+            ${{ steps.ver.outputs.tag_latest == 'true' && format('ghcr.io/{0}/sabokit-runner:latest', github.repository_owner) || '' }}
+          labels: |
+            org.opencontainers.image.source=https://github.com/${{ github.repository }}
+            org.opencontainers.image.version=${{ steps.ver.outputs.version }}

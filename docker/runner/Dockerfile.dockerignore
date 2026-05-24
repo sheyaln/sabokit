@@ -1,0 +1,12 @@
+**/.git
+**/.terraform
+**/terraform.tfstate*
+**/.terraform.lock.hcl
+**/*.tfvars
+**/*_local.tf
+**/.audit
+**/node_modules
+**/.DS_Store
+consumer-template/
+packer/
+.github/
