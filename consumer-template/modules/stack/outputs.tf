@@ -129,6 +129,10 @@ output "enabled_apps" {
       ansible_vars  = module.watchtower_apps.ansible.vars
       ansible_group = module.watchtower_apps.ansible.host_group
     } : null
+    wazuh_agent_apps = module.wazuh_agent_apps.enabled ? {
+      ansible_vars  = module.wazuh_agent_apps.ansible.vars
+      ansible_group = module.wazuh_agent_apps.ansible.host_group
+    } : null
     autoheal_apps = module.autoheal_apps.enabled ? {
       ansible_vars  = module.autoheal_apps.ansible.vars
       ansible_group = module.autoheal_apps.ansible.host_group
