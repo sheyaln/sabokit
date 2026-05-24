@@ -1,0 +1,5 @@
+# Managed by Ansible (split-dns role) -- do not edit manually.
+# Primary: local dnsmasq (handles split-horizon overrides + caches upstream).
+nameserver 127.0.0.1
+# Fallback so the box can still resolve if dnsmasq is down.
+nameserver {{ split_dns_upstream_servers[0] }}

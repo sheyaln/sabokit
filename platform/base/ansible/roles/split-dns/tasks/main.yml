@@ -1,0 +1,95 @@
+---
+# Split-horizon DNS via dnsmasq. Overrides public app hostnames with
+# private VPC IPs on every host so cross-host hostname references resolve
+# over the private network instead of the public internet.
+#
+# Required when the deployment spans more than one VM AND any app on one
+# host references another app by its public hostname. The consumer-template
+# auto-disables the role for single-host deployments by passing an empty
+# overrides map.
+
+- name: Skip split-dns when no overrides supplied
+  ansible.builtin.meta: end_play
+  when: split_dns_overrides | length == 0
+
+# systemd-resolved squats on :53 on stock Ubuntu — has to go before
+# dnsmasq can bind. We blow away the resolv.conf symlink, drop a stub
+# pointing at the metadata DNS so apt can still talk to the world, then
+# install dnsmasq.
+- name: Check whether systemd-resolved is active
+  ansible.builtin.command: systemctl is-active systemd-resolved
+  register: _resolved_status
+  changed_when: false
+  failed_when: false
+
+- name: Stop and disable systemd-resolved
+  ansible.builtin.systemd:
+    name: systemd-resolved
+    state: stopped
+    enabled: false
+  when: _resolved_status.stdout == 'active'
+
+- name: Remove resolv.conf symlink (systemd-resolved owned it)
+  ansible.builtin.file:
+    path: /etc/resolv.conf
+    state: absent
+  when: _resolved_status.stdout == 'active'
+
+- name: Drop a temporary resolv.conf so apt can resolve
+  ansible.builtin.copy:
+    content: |
+      nameserver {{ split_dns_upstream_servers[0] }}
+      nameserver {{ split_dns_upstream_servers[1] | default('1.1.1.1') }}
+    dest: /etc/resolv.conf
+    owner: root
+    group: root
+    mode: "0644"
+  when: _resolved_status.stdout == 'active'
+
+- name: Install dnsmasq
+  ansible.builtin.apt:
+    name: dnsmasq
+    state: present
+    update_cache: true
+
+- name: Render dnsmasq split-horizon config
+  ansible.builtin.template:
+    src: dnsmasq.conf.j2
+    dest: "{{ split_dns_config_path }}"
+    owner: root
+    group: root
+    mode: "0644"
+  notify: Restart dnsmasq
+
+- name: Point resolv.conf at local dnsmasq
+  ansible.builtin.template:
+    src: resolv.conf.j2
+    dest: /etc/resolv.conf
+    owner: root
+    group: root
+    mode: "0644"
+
+# UFW rules so containers on the docker bridge (and other VPC hosts) can
+# query our dnsmasq. The role assumes ufw is already enabled — the base
+# ufw role runs ahead of this one in bootstrap.yml.
+- name: Allow DNS from VPC + Docker (UDP)
+  community.general.ufw:
+    rule: allow
+    from_ip: "{{ split_dns_allowed_cidr }}"
+    to_port: "53"
+    proto: udp
+    comment: "split-dns: docker/VPC clients"
+
+- name: Allow DNS from VPC + Docker (TCP)
+  community.general.ufw:
+    rule: allow
+    from_ip: "{{ split_dns_allowed_cidr }}"
+    to_port: "53"
+    proto: tcp
+    comment: "split-dns: docker/VPC clients"
+
+- name: Ensure dnsmasq is enabled + running
+  ansible.builtin.systemd:
+    name: dnsmasq
+    enabled: true
+    state: started

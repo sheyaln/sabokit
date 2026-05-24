@@ -1,0 +1,26 @@
+---
+# Map of public-hostname -> private-VPC-IP overrides. Aggregated by the
+# consumer-template from every enabled app's `ansible.split_dns_entry`
+# output. Empty by default — when empty the role is a no-op (single-host
+# topologies don't need this).
+split_dns_overrides: {}
+
+# Upstream resolvers dnsmasq falls back to for anything NOT in the
+# overrides map. Scaleway's metadata DNS first (works inside the VPC),
+# Cloudflare second.
+split_dns_upstream_servers:
+  - 169.254.169.254
+  - 1.1.1.1
+
+# Address dnsmasq binds for docker container resolution. The default
+# Docker bridge IP — change only if Docker's `bip` was overridden.
+split_dns_docker_bridge_ip: "172.17.0.1"
+
+# CIDR allowed to query dnsmasq over the VPC. RFC1918 172.16.0.0/12
+# covers both Docker default bridge networks AND Scaleway VPC private
+# networks under that range. Override if your VPC sits in 10.0.0.0/8.
+split_dns_allowed_cidr: "172.16.0.0/12"
+
+# Path of the dnsmasq drop-in we render. Distinct filename so operators
+# can `cat /etc/dnsmasq.d/fc-split.conf` to see what fc is overriding.
+split_dns_config_path: "/etc/dnsmasq.d/fc-split.conf"
