@@ -31,6 +31,11 @@ output "infra_email" {
   value       = var.infra_email
 }
 
+output "split_dns_overrides" {
+  description = "Map of public-hostname -> private-VPC-IP overrides aggregated from every enabled bundle's split_dns_entries. Consumed by the base split-dns ansible role on every host. Empty map when only one compute host exists (single-host topologies need no split-horizon)."
+  value       = local.split_dns_overrides
+}
+
 output "enabled_apps" {
   description = "Map of enabled app name -> bundle outputs. Consumed by Ansible via `terraform output -json enabled_apps`."
   value = {
