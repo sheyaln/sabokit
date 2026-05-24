@@ -56,15 +56,21 @@ variable "deployment_host_key" {
 # ── Decidim-specific inputs ─────────────────────────────────────────────────
 
 variable "image" {
-  description = "Decidim Docker image (without tag). Decidim publishes via ghcr.io/decidim/decidim."
+  description = "Decidim Docker image (without tag) used as the BASE for the locally-built image. The Ansible role extends this image with `extra_gems` and re-runs `bundle install` + `assets:precompile`. Decidim publishes via ghcr.io/decidim/decidim."
   type        = string
   default     = "ghcr.io/decidim/decidim"
 }
 
 variable "image_tag" {
-  description = "Decidim Docker image tag. Pin to a release tag (e.g. \"0.28.1\") for production; \"latest\" follows the project's published latest."
+  description = "Decidim Docker image tag. Pin to a release tag (e.g. \"0.30.0\") for production; \"latest\" follows the project's published latest. Same tag is used as the version for every gem in `extra_gems` (Decidim modules version-lock to the core)."
   type        = string
   default     = "latest"
+}
+
+variable "extra_gems" {
+  description = "Decidim modular gems to add on top of the base image, each pinned to `image_tag`. The base `decidim` meta-gem ships proposals, meetings, debates, assemblies, etc. — but optional modules like `decidim-elections` are NOT included and must be added explicitly. Default ships elections because every participatory-democracy deployment eventually wants it. Set to `[]` for a lean install."
+  type        = list(string)
+  default     = ["decidim-elections"]
 }
 
 variable "organization_name" {

@@ -53,7 +53,15 @@ services:
   # successful run writes /init/db_initialized; subsequent runs short-circuit.
   # On failure (e.g. transient DB connectivity), the next play retries.
   db-init:
+{% if decidim_extra_gems and decidim_extra_gems | length > 0 %}
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: "decidim-local:{{ decidim_image_tag }}"
+    pull_policy: never
+{% else %}
     image: "{{ decidim_image }}:{{ decidim_image_tag }}"
+{% endif %}
     container_name: decidim-db-init
     restart: "no"
     env_file:
@@ -144,7 +152,15 @@ services:
           cpus: '0.5'
 
   app:
+{% if decidim_extra_gems and decidim_extra_gems | length > 0 %}
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: "decidim-local:{{ decidim_image_tag }}"
+    pull_policy: never
+{% else %}
     image: "{{ decidim_image }}:{{ decidim_image_tag }}"
+{% endif %}
     container_name: decidim-app
     restart: always
     command: bundle exec rails server -p 3000 -b 0.0.0.0
@@ -193,7 +209,15 @@ services:
           cpus: "{{ decidim_app_cpu_reservation }}"
 
   sidekiq:
+{% if decidim_extra_gems and decidim_extra_gems | length > 0 %}
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: "decidim-local:{{ decidim_image_tag }}"
+    pull_policy: never
+{% else %}
     image: "{{ decidim_image }}:{{ decidim_image_tag }}"
+{% endif %}
     container_name: decidim-sidekiq
     restart: always
     command: bundle exec sidekiq -c {{ decidim_sidekiq_concurrency }}

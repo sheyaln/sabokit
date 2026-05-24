@@ -1,0 +1,24 @@
+# {{ ansible_managed }}
+# Decidim image extended with optional modular gems (e.g. decidim-elections)
+# that aren't in the `decidim` meta-gem.
+#
+# Pinning rule: each gem's version MUST match the Decidim core version, so
+# every extra gem here gets the same version as decidim_image_tag.
+
+FROM {{ decidim_image }}:{{ decidim_image_tag }}
+
+WORKDIR /code
+
+{% if decidim_extra_gems and decidim_extra_gems | length > 0 %}
+# Append the extra gems to the app's Gemfile, then re-resolve + re-compile
+# assets. `bundle lock --update` lets bundler pull a compatible version
+# graph; we then bundle install with frozen lock for reproducibility.
+RUN { \
+{% for gem in decidim_extra_gems %}
+  echo 'gem "{{ gem }}", "{{ decidim_image_tag }}"' ; \
+{% endfor %}
+  } >> Gemfile \
+  && bundle lock --update \
+  && bundle install \
+  && bundle exec rake assets:precompile
+{% endif %}

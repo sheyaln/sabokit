@@ -15,8 +15,9 @@ Decidim — Rails-based participatory democracy platform. Deploys app + sidekiq 
 | `extra_authorized_groups` | `map(string)` | `{}` | Additional Authentik groups beyond `access_level`. |
 | `monitoring_enabled` | `bool` | `true` | Wire log paths into monitoring. |
 | `deployment_host_key` | `string` | `"apps"` | Target host. |
-| `image` | `string` | `"ghcr.io/decidim/decidim"` | Docker image (without tag). |
-| `image_tag` | `string` | `"latest"` | Docker image tag. Pin to a release for production. |
+| `image` | `string` | `"ghcr.io/decidim/decidim"` | Docker image (without tag). Used as the BASE for the locally-built image. |
+| `image_tag` | `string` | `"latest"` | Docker image tag. Pin to a release for production. Also used as the version for every gem in `extra_gems` (Decidim modules lock to the core). |
+| `extra_gems` | `list(string)` | `["decidim-elections"]` | Modular Decidim gems to add on top of the base image. Default ships elections (not in the `decidim` meta-gem). Set to `[]` for a lean install with no local image build. |
 | `organization_name` | `string` | — (required when enabled) | Display name of the first Decidim organization. |
 | `organization_reference_prefix` | `string` | `""` (auto from name) | Short uppercase prefix on internal reference numbers. |
 | `default_locale` | `string` | `"en"` | Two-letter ISO 639-1 default locale. |
@@ -47,4 +48,5 @@ Decidim — Rails-based participatory democracy platform. Deploys app + sidekiq 
 - OIDC redirect URI is `https://<hostname>/users/auth/oauth2_authentik/callback`.
 - `SECRET_KEY_BASE` is pinned (`ignore_changes = all`). Rotating it invalidates every session and every encrypted attribute in the DB — taint deliberately.
 - `db-init` is idempotent via an internal marker volume. To reset on a wiped database, pass `-e decidim_force_db_init=true`.
-- The upstream `ghcr.io/decidim/decidim` image precompiles assets at build time. If you build a custom image, run `bundle exec rails assets:precompile` in your Dockerfile.
+- The upstream `ghcr.io/decidim/decidim` image precompiles assets at build time. The bundle's own Dockerfile (auto-rendered when `extra_gems` is non-empty) re-runs `bundle install` + `assets:precompile` to pick up the added gems.
+- First deploy with non-empty `extra_gems` adds ~5 min for the local image build. Subsequent deploys reuse the built image unless `image_tag` changes or you bump `extra_gems`.
