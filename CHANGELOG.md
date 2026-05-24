@@ -2,6 +2,24 @@
 
 All notable changes to sabokit go here. Versioning follows semver; major bumps signal breaking contract changes for consumers.
 
+## v2.9.3 — Ansible-runner image, grafana picks up bundle dashboards, TF↔Ansible boundary doc
+
+Three landings, no contract breaks.
+
+**Ansible runner image** — `.github/workflows/runner-publish.yml` publishes `ghcr.io/sheyaln/sabokit-runner:<tag>` on every `v*` tag. Bakes ansible-core + the four collections (`community.docker`, `community.general`, `ansible.posix`, `scaleway.scaleway`) + the whole `platform/` tree. Consumers stop installing ansible locally and run `docker run --rm -v $PWD/env:/env:ro runner:vX site.yml -i /env/inventory.ini -e @/env/enabled_apps.json`. `:latest` rolls forward only on clean `vN.N.N` pushes — backports via `workflow_dispatch` get the explicit tag only. See `docker/runner/README.md`. Same path `sabokit-manager` will shell out to.
+
+**Grafana dashboard pickup** — every bundle's `monitoring.grafana_dashboards` output now actually reaches Grafana. Consumer-template aggregates contributions across bundles into `local.aggregated_grafana_dashboards`, passes them as `grafana_dashboards = list(object({ filename, contents }))` into the grafana bundle, and the role's new `Provision aggregated dashboards` task writes each entry under `{{ grafana_install_dir }}/provisioning/dashboards/`. File provider polls every 30s — no restart needed. TEM dashboard from v2.9.1 finally lands somewhere visible.
+
+Drive-by fixes that came with that:
+- `apps/prometheus` gained `monitoring.tf` + `output "monitoring"` — the TEM dashboard JSON had been on-disk since v2.9.1 with no contract output exposing it.
+- `apps/steward` gained the `monitoring.tf` + `output "monitoring"` it was missing (had `monitoring_enabled` var, no output). Blocked `terraform validate` against the consumer module. Empty contribution placeholder for now.
+
+**TF↔Ansible boundary doc** — new `## Terraform vs Ansible` section in `ARCHITECTURE.md`. Names the split: TF owns cloud + API state; Ansible owns convergent host-side execution. Bridge is the per-bundle `output "ansible"` map. Section covers the rule, the bridge contract with a real snippet, a three-question deciding test for new things, the failure modes when you cross the line, and the Scaleway Secret Manager edge case (TF writes, Ansible reads at deploy time).
+
+No vars to add, no migrations. Consumers running `consumer-template/scripts/bump-version.sh v2.9.3` get the grafana wiring on next apply.
+
+---
+
 ## v2.9.2 — File Integrity Monitoring on by default for `apps/wazuh-agent`
 
 The `wazuh-agent` bundle now ships FIM enabled out of the box: a custom `ossec.conf` is mounted at `/wazuh-config-mount/etc/ossec.conf` (full override of the image's auto-config) with `<syscheck>` enabled on the standard sensitive paths, plus host `auditd` rules dropped at `/etc/audit/rules.d/wazuh.rules` and `/var/log/audit/` bind-mounted into the container so the agent's `localfile` reader tails `audit.log`.
