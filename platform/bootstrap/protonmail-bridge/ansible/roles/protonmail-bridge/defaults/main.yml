@@ -1,0 +1,20 @@
+---
+protonmail_bridge_image: "shenxn/protonmail-bridge"
+protonmail_bridge_image_tag: "latest"
+protonmail_bridge_install_dir: "/opt/protonmail-bridge"
+
+# The shared docker network apps join to reach the bridge by hostname.
+# Apps that send mail must also be on this network OR the bridge must be
+# joined to whatever per-app network they use. For most consumers,
+# letting apps join `protonmail-bridge-net` is the simpler path.
+protonmail_bridge_network: "protonmail-bridge-net"
+
+protonmail_bridge_timezone: "UTC"
+
+protonmail_bridge_memory_limit: "256M"
+protonmail_bridge_memory_reservation: "64M"
+protonmail_bridge_cpu_limit: "0.5"
+protonmail_bridge_cpu_reservation: "0.05"
+
+protonmail_bridge_auto_update_enabled: false
+protonmail_bridge_autoheal_enabled: true

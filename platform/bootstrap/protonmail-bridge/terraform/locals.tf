@@ -1,0 +1,3 @@
+locals {
+  slug = "protonmail-bridge"
+}

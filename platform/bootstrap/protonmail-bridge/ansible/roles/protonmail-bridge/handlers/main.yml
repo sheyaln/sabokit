@@ -1,0 +1,5 @@
+---
+- name: Restart protonmail-bridge
+  community.docker.docker_compose_v2:
+    project_src: "{{ protonmail_bridge_install_dir }}"
+    state: restarted

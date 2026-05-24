@@ -1,0 +1,39 @@
+---
+# Deploy the ProtonMail Bridge container. First-time login is INTERACTIVE
+# and happens out-of-band (see README); this role just makes sure the
+# container is running.
+#
+# Bootstrap-tier dependency-ordering note: this role runs BEFORE any app
+# role that consumes the smtp-config Scaleway secret. The consumer's
+# site.yml drives the order — see consumer-template/ansible-local/site.yml
+# or the upstream platform/ansible/bootstrap.yml.
+
+- name: Assert Docker is installed and running
+  ansible.builtin.command: docker info
+  register: protonmail_bridge_docker_check
+  changed_when: false
+  failed_when: protonmail_bridge_docker_check.rc != 0
+
+- name: Ensure bridge directory
+  ansible.builtin.file:
+    path: "{{ protonmail_bridge_install_dir }}"
+    state: directory
+    mode: "0755"
+
+- name: Ensure shared bridge network exists
+  community.docker.docker_network:
+    name: "{{ protonmail_bridge_network }}"
+    state: present
+
+- name: Render docker-compose.yml
+  ansible.builtin.template:
+    src: docker-compose.yml.j2
+    dest: "{{ protonmail_bridge_install_dir }}/docker-compose.yml"
+    mode: "0644"
+  notify: Restart protonmail-bridge
+
+- name: Ensure bridge is running
+  community.docker.docker_compose_v2:
+    project_src: "{{ protonmail_bridge_install_dir }}"
+    state: present
+    pull: missing

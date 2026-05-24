@@ -22,6 +22,33 @@ If you are adding a new app bundle, building a new base sub-module, or writing a
 
 ---
 
+## Tiers
+
+The repo organizes bundles by **what they're a dependency of**, not by what they do. Four tiers, ordered by who-depends-on-whom:
+
+| Tier | Path | What lives here | Startup order |
+|------|------|-----------------|---------------|
+| **Base** | `platform/base/` | Cloud primitives — VPC, RDB, IAM, Secret Manager, DNS zones, baseline security groups, the shared Postgres instance, **Scaleway TEM** for outbound SMTP (writes the well-known `smtp-config` Scaleway secret every app sends through). | First. Nothing else can plan without these outputs. |
+| **Identity** | `platform/identity/` | The SSO server (Authentik) + flows + brand. Every OIDC-using app pulls its provider info from here. | After base. |
+| **Bootstrap** | `platform/bootstrap/` | Services that **apps depend on at runtime** beyond what base provides. Most apps use SMTP — Scaleway TEM in base covers that universally. Bootstrap is for the narrower set: IMAP gateways for mail-fetching apps, similar shared dependencies. Apps consume via shared Scaleway secrets (`imap-config` for the IMAP case) that bootstrap bundles write. | After base + identity. Before apps that depend on it. |
+| **Apps** | `platform/apps/` | User-facing apps + per-host platform enrichment (watchtower, autoheal, backrest, monitoring stack). Nothing depends on these for startup order; they consume base + identity + bootstrap, never the other way around. | Last. |
+
+### What makes something bootstrap-tier vs apps-tier
+
+A bundle is **bootstrap-tier** when ALL of these are true:
+
+1. Other apps REQUIRE it to be running for their normal operation (not just "can use" — actually depend on).
+2. The dependency is platform-wide — consumed via a shared mechanism (Scaleway secret, base output, well-known DNS name), not via app-to-app TF references.
+3. Real startup-order constraint at deploy time.
+4. Single instance per environment.
+5. Disabling it breaks the platform's default "everything works" flow, not just one specific app.
+
+Counter-examples: an app that other apps merely *can* call (Outline isn't bootstrap-tier — nothing depends on it). Per-host enrichment that lifts capability without being structurally required (backrest, watchtower — apps-tier, even though they're "platform" in spirit). Notifuse: it sends through SMTP itself; it's not the SMTP gateway. Apps-tier.
+
+SMTP (Scaleway TEM) lives in **base**, not bootstrap, because (a) every app uses it, (b) it's a managed Scaleway product with no host-side runtime — base already owns Scaleway resources. The bootstrap tier is for runtime-host-bound services where base would be the wrong owner.
+
+---
+
 ## Layered model
 
 ```
