@@ -78,3 +78,9 @@ variable "storage_bucket_acl" {
   type        = string
   default     = "public-read"
 }
+
+variable "oidc_username_claim" {
+  description = "OIDC claim Outline reads as the username. Authentik exposes both `preferred_username` (usually the email-local part or AK username) and `sub` (the stable UUID). Default matches Outline's documented expectation; switch to `sub` for installs where usernames change."
+  type        = string
+  default     = "preferred_username"
+}
