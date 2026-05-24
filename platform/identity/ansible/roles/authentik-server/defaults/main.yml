@@ -60,3 +60,10 @@ authentik_worker_cpu_reservation: "0.25"
 # ── Private-network metrics binding ─────────────────────────────────────────
 # Set to the host's private IP if you want metrics bound to it. Empty = 0.0.0.0.
 authentik_metrics_bind_ip: ""
+
+# Ops-bundle opt-in labels for Watchtower + Autoheal sidecars on the same host.
+# auto_update default false — Authentik has breaking changes between releases
+# and post-upgrade DB migrations; consumers bump AUTHENTIK_TAG explicitly and
+# let Ansible handle the upgrade flow.
+authentik_auto_update_enabled: false
+authentik_autoheal_enabled: true
