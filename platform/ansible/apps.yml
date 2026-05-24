@@ -228,6 +228,12 @@
     prometheus_timezone: "{{ enabled_apps.prometheus.ansible_vars.prometheus_timezone }}"
     prometheus_auto_update_enabled: "{{ enabled_apps.prometheus.ansible_vars.prometheus_auto_update_enabled }}"
     prometheus_autoheal_enabled: "{{ enabled_apps.prometheus.ansible_vars.prometheus_autoheal_enabled }}"
+    prometheus_tem_exporter_enabled: "{{ enabled_apps.prometheus.ansible_vars.prometheus_tem_exporter_enabled }}"
+    prometheus_tem_smtp_secret_id: "{{ enabled_apps.prometheus.ansible_vars.prometheus_tem_smtp_secret_id }}"
+    prometheus_tem_scaleway_project_id: "{{ enabled_apps.prometheus.ansible_vars.prometheus_tem_scaleway_project_id }}"
+    prometheus_tem_scaleway_region: "{{ enabled_apps.prometheus.ansible_vars.prometheus_tem_scaleway_region }}"
+    prometheus_tem_exporter_poll_interval: "{{ enabled_apps.prometheus.ansible_vars.prometheus_tem_exporter_poll_interval }}"
+    prometheus_tem_exporter_lookback_minutes: "{{ enabled_apps.prometheus.ansible_vars.prometheus_tem_exporter_lookback_minutes }}"
   when: enabled_apps.prometheus is defined and enabled_apps.prometheus is not none
   tags: [apps, prometheus]
 - import_playbook: ../apps/loki/ansible/playbook.yml

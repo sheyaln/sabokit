@@ -1,0 +1,185 @@
+{
+  "name": "Grafana Alert Router",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "grafana-alerts",
+        "options": {}
+      },
+      "id": "f8a4e4e5-7c6e-4b9e-9b9d-3a7c1b2f0001",
+      "name": "Grafana Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [-352, 320],
+      "webhookId": "grafana-alerts"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Normalize Grafana's webhook payload into a flat per-alert list.\n//\n// Grafana posts: { receiver, status, alerts:[{status,labels,annotations,startsAt,endsAt,values,generatorURL,silenceURL,dashboardURL,panelURL,fingerprint}], groupLabels, commonLabels, commonAnnotations, externalURL, version, groupKey, truncatedAlerts, orgId, title, message }.\n// We fan out one item per alert so downstream nodes (Slack, email) can format independently.\n\nconst body = $input.first().json.body || $input.first().json;\nconst alerts = Array.isArray(body.alerts) ? body.alerts : [];\nconst externalURL = body.externalURL || '';\n\nif (alerts.length === 0) {\n  return [{ json: { skip: true, reason: 'No alerts in payload', raw: body } }];\n}\n\nreturn alerts.map((a) => {\n  const labels = a.labels || {};\n  const annotations = a.annotations || {};\n  // Severity convention: alert rule labels.severity ∈ {info, warning, critical}.\n  const severity = (labels.severity || 'info').toLowerCase();\n  const isFiring = (a.status || 'firing') === 'firing';\n  return {\n    json: {\n      alertName: labels.alertname || annotations.summary || 'Grafana alert',\n      status: a.status,\n      isFiring,\n      isResolved: !isFiring,\n      severity,\n      summary: annotations.summary || '',\n      description: annotations.description || annotations.message || '',\n      runbookUrl: annotations.runbook_url || '',\n      labels,\n      annotations,\n      startsAt: a.startsAt,\n      endsAt: a.endsAt,\n      values: a.values || {},\n      generatorURL: a.generatorURL || '',\n      silenceURL: a.silenceURL || '',\n      dashboardURL: a.dashboardURL || '',\n      panelURL: a.panelURL || '',\n      externalURL,\n      fingerprint: a.fingerprint || '',\n    },\n  };\n});"
+      },
+      "id": "f8a4e4e5-7c6e-4b9e-9b9d-3a7c1b2f0002",
+      "name": "Parse Grafana Alert",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [-128, 320]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict", "version": 1 },
+          "conditions": [
+            { "leftValue": "={{ $json.skip }}", "rightValue": true, "operator": { "type": "boolean", "operation": "notEquals" } }
+          ],
+          "combinator": "and"
+        }
+      },
+      "id": "f8a4e4e5-7c6e-4b9e-9b9d-3a7c1b2f0003",
+      "name": "Has Alerts?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [96, 320]
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict", "version": 1 },
+                "conditions": [
+                  { "leftValue": "={{ $json.severity }}", "rightValue": "critical", "operator": { "type": "string", "operation": "equals" } }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "critical"
+            },
+            {
+              "conditions": {
+                "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict", "version": 1 },
+                "conditions": [
+                  { "leftValue": "={{ $json.severity }}", "rightValue": "warning", "operator": { "type": "string", "operation": "equals" } }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "warning"
+            },
+            {
+              "conditions": {
+                "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict", "version": 1 },
+                "conditions": [
+                  { "leftValue": "={{ $json.severity }}", "rightValue": "info", "operator": { "type": "string", "operation": "equals" } }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "info"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "f8a4e4e5-7c6e-4b9e-9b9d-3a7c1b2f0004",
+      "name": "Route by Severity",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [320, 320]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.SLACK_WEBHOOK_INFRA_CRITICAL || $env.SLACK_WEBHOOK_INFRA_ALERTS }}",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"blocks\": [\n    {\n      \"type\": \"header\",\n      \"text\": {\n        \"type\": \"plain_text\",\n        \"text\": \"{{ $json.isFiring ? '\\ud83d\\udea8 CRITICAL' : '\\u2705 RESOLVED' }}: {{ $json.alertName }}\",\n        \"emoji\": true\n      }\n    },\n    {\n      \"type\": \"section\",\n      \"text\": {\n        \"type\": \"mrkdwn\",\n        \"text\": \"*{{ $json.summary }}*\\n{{ $json.description }}\"\n      }\n    },\n    {\n      \"type\": \"context\",\n      \"elements\": [\n        { \"type\": \"mrkdwn\", \"text\": \"Severity: {{ $json.severity }} | Started: {{ $json.startsAt }}\" }\n      ]\n    },\n    {\n      \"type\": \"actions\",\n      \"elements\": [\n        { \"type\": \"button\", \"text\": { \"type\": \"plain_text\", \"text\": \"View in Grafana\" }, \"url\": \"{{ $json.generatorURL || $json.externalURL }}\" },\n        { \"type\": \"button\", \"text\": { \"type\": \"plain_text\", \"text\": \"Silence\" }, \"url\": \"{{ $json.silenceURL }}\" }\n      ]\n    }\n  ]\n}",
+        "options": {}
+      },
+      "id": "f8a4e4e5-7c6e-4b9e-9b9d-3a7c1b2f0005",
+      "name": "Slack Critical",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [592, 160]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.SLACK_WEBHOOK_INFRA_ALERTS }}",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"blocks\": [\n    {\n      \"type\": \"header\",\n      \"text\": {\n        \"type\": \"plain_text\",\n        \"text\": \"{{ $json.isFiring ? '\\u26a0\\ufe0f Warning' : '\\u2705 Resolved' }}: {{ $json.alertName }}\",\n        \"emoji\": true\n      }\n    },\n    {\n      \"type\": \"section\",\n      \"text\": {\n        \"type\": \"mrkdwn\",\n        \"text\": \"*{{ $json.summary }}*\\n{{ $json.description }}\"\n      }\n    },\n    {\n      \"type\": \"context\",\n      \"elements\": [\n        { \"type\": \"mrkdwn\", \"text\": \"Severity: {{ $json.severity }} | Started: {{ $json.startsAt }}\" }\n      ]\n    },\n    {\n      \"type\": \"actions\",\n      \"elements\": [\n        { \"type\": \"button\", \"text\": { \"type\": \"plain_text\", \"text\": \"View in Grafana\" }, \"url\": \"{{ $json.generatorURL || $json.externalURL }}\" }\n      ]\n    }\n  ]\n}",
+        "options": {}
+      },
+      "id": "f8a4e4e5-7c6e-4b9e-9b9d-3a7c1b2f0006",
+      "name": "Slack Warning",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [592, 320]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.SLACK_WEBHOOK_INFRA_ALERTS }}",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"blocks\": [\n    {\n      \"type\": \"section\",\n      \"text\": {\n        \"type\": \"mrkdwn\",\n        \"text\": \":information_source: *{{ $json.alertName }}* ({{ $json.status }})\\n{{ $json.summary }} — {{ $json.description }}\"\n      }\n    }\n  ]\n}",
+        "options": {}
+      },
+      "id": "f8a4e4e5-7c6e-4b9e-9b9d-3a7c1b2f0007",
+      "name": "Slack Info",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [592, 480]
+    },
+    {
+      "parameters": {
+        "fromEmail": "={{ $env.SMTP_FROM }}",
+        "toEmail": "={{ $env.INFRA_EMAIL }}",
+        "subject": "=[CRITICAL] {{ $json.alertName }}",
+        "text": "={{ $json.summary }}\n\n{{ $json.description }}\n\nStarted: {{ $json.startsAt }}\nGrafana: {{ $json.generatorURL || $json.externalURL }}\nSilence: {{ $json.silenceURL }}",
+        "options": {}
+      },
+      "id": "f8a4e4e5-7c6e-4b9e-9b9d-3a7c1b2f0008",
+      "name": "Email Critical",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [816, 160],
+      "credentials": { "smtp": { "id": "", "name": "SMTP account" } }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Grafana Webhook": { "main": [[{ "node": "Parse Grafana Alert", "type": "main", "index": 0 }]] },
+    "Parse Grafana Alert": { "main": [[{ "node": "Has Alerts?", "type": "main", "index": 0 }]] },
+    "Has Alerts?": { "main": [[{ "node": "Route by Severity", "type": "main", "index": 0 }], []] },
+    "Route by Severity": {
+      "main": [
+        [{ "node": "Slack Critical", "type": "main", "index": 0 }],
+        [{ "node": "Slack Warning", "type": "main", "index": 0 }],
+        [{ "node": "Slack Info", "type": "main", "index": 0 }]
+      ]
+    },
+    "Slack Critical": { "main": [[{ "node": "Email Critical", "type": "main", "index": 0 }]] }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false,
+    "timeSavedMode": "fixed",
+    "errorWorkflow": "ScNDFrAVG90ETWIh",
+    "callerPolicy": "workflowsFromSameOwner"
+  },
+  "versionId": "",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": ""
+  },
+  "id": "GrafanaAlertRouter01",
+  "tags": [
+    { "updatedAt": "2026-05-24T00:00:00.000Z", "createdAt": "2026-05-24T00:00:00.000Z", "id": "", "name": "infrastructure" },
+    { "updatedAt": "2026-05-24T00:00:00.000Z", "createdAt": "2026-05-24T00:00:00.000Z", "id": "", "name": "alerting" },
+    { "updatedAt": "2026-05-24T00:00:00.000Z", "createdAt": "2026-05-24T00:00:00.000Z", "id": "", "name": "grafana" }
+  ]
+}
