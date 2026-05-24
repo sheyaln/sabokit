@@ -92,6 +92,14 @@ services:
       - "traefik.http.routers.jitsi.entrypoints=websecure"
       - "traefik.http.routers.jitsi.tls.certresolver=le"
       - "traefik.http.routers.jitsi.service=jitsi"
+{% if jitsi_auto_update_enabled | default(false) %}
+      # Bump propagates to prosody/jicofo/jvb too since they share jitsi_image_tag.
+      # Watchtower restarts every container in the project on tag change.
+      - "com.centurylinklabs.watchtower.enable=true"
+{% endif %}
+{% if jitsi_autoheal_enabled | default(false) %}
+      - "autoheal=true"
+{% endif %}
     networks:
       - "{{ jitsi_traefik_docker_network }}"
       - meet.jitsi

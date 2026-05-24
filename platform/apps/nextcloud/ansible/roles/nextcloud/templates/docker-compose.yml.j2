@@ -68,6 +68,12 @@ services:
       - "traefik.http.middlewares.nextcloud-headers.headers.stsincludesubdomains=true"
       - "traefik.http.middlewares.nextcloud-headers.headers.stsseconds=31536000"
       - "traefik.http.middlewares.nextcloud-headers.headers.referrerpolicy=no-referrer"
+{% if nextcloud_auto_update_enabled | default(false) %}
+      - "com.centurylinklabs.watchtower.enable=true"
+{% endif %}
+{% if nextcloud_autoheal_enabled | default(false) %}
+      - "autoheal=true"
+{% endif %}
     networks:
       - "{{ nextcloud_traefik_docker_network }}"
       - nextcloud_network

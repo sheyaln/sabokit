@@ -4,25 +4,248 @@
 # the top of tasks/main.yml — failures here mean bootstrap was skipped or
 # something got removed.
 #
-# Each import is conditional on `enabled_apps.<name>` being non-null. That map
+# Each import is conditional on `enabled_apps.<key>` being non-null. That map
 # is produced by `terraform output -json enabled_apps` in the per-env deploy.sh
-# and passed via `-e @.enabled_apps.json`. Apps the consumer didn't enable
+# and passed via `-e @enabled_apps.json`. Apps the consumer didn't enable
 # evaluate to null and the import is skipped.
+#
+# Vars are spelled out per app — Ansible's `import_playbook` requires a static
+# dict, so we explicitly map each terraform-rendered var into the role
+# namespace. New bundles need: one block here + the module call in
+# consumer-template/modules/stack/apps.tf + the entry in modules/stack/outputs.tf.
 
 - import_playbook: ../apps/outline/ansible/playbook.yml
   vars:
-    outline_host_group:                "{{ enabled_apps.outline.ansible_group }}"
-    outline_hostname:                  "{{ enabled_apps.outline.url | regex_replace('^https?://', '') }}"
-    outline_app_secret_id:             "{{ enabled_apps.outline.ansible_vars.outline_app_secret_id }}"
-    outline_db_credentials_secret_id:  "{{ enabled_apps.outline.ansible_vars.outline_db_credentials_secret_id }}"
-    # Empty when var.smtp_from_email isn't set; the role guards on it.
-    outline_smtp_secret_name:          "{{ enabled_apps.outline.ansible_vars.outline_smtp_secret_name | default('') }}"
+    outline_host_group: "{{ enabled_apps.outline.ansible_group }}"
+    outline_hostname: "{{ enabled_apps.outline.ansible_vars.outline_hostname }}"
+    outline_image_tag: "{{ enabled_apps.outline.ansible_vars.outline_image_tag }}"
+    outline_app_secret_id: "{{ enabled_apps.outline.ansible_vars.outline_app_secret_id }}"
+    outline_db_credentials_secret_id: "{{ enabled_apps.outline.ansible_vars.outline_db_credentials_secret_id }}"
+    outline_smtp_secret_name: "{{ enabled_apps.outline.ansible_vars.outline_smtp_secret_name }}"
+    outline_auto_update_enabled: "{{ enabled_apps.outline.ansible_vars.outline_auto_update_enabled }}"
+    outline_autoheal_enabled: "{{ enabled_apps.outline.ansible_vars.outline_autoheal_enabled }}"
   when: enabled_apps.outline is defined and enabled_apps.outline is not none
   tags: [apps, outline]
 
-# More app imports land here as bundles ship. Same shape every time:
-#
-# - import_playbook: ../apps/nextcloud/ansible/playbook.yml
-#   vars: ...
-#   when: enabled_apps.nextcloud is defined and enabled_apps.nextcloud is not none
-#   tags: [apps, nextcloud]
+- import_playbook: ../apps/steward/ansible/playbook.yml
+  vars:
+    steward_host_group: "{{ enabled_apps.steward.ansible_group }}"
+    steward_hostname: "{{ enabled_apps.steward.ansible_vars.steward_hostname }}"
+    steward_image_repository: "{{ enabled_apps.steward.ansible_vars.steward_image_repository }}"
+    steward_image_tag: "{{ enabled_apps.steward.ansible_vars.steward_image_tag }}"
+    steward_app_secret_id: "{{ enabled_apps.steward.ansible_vars.steward_app_secret_id }}"
+    steward_db_credentials_secret_id: "{{ enabled_apps.steward.ansible_vars.steward_db_credentials_secret_id }}"
+    steward_memory_limit: "{{ enabled_apps.steward.ansible_vars.steward_memory_limit }}"
+    steward_memory_reservation: "{{ enabled_apps.steward.ansible_vars.steward_memory_reservation }}"
+    steward_cpu_limit: "{{ enabled_apps.steward.ansible_vars.steward_cpu_limit }}"
+    steward_cpu_reservation: "{{ enabled_apps.steward.ansible_vars.steward_cpu_reservation }}"
+    steward_auto_update_enabled: "{{ enabled_apps.steward.ansible_vars.steward_auto_update_enabled }}"
+    steward_autoheal_enabled: "{{ enabled_apps.steward.ansible_vars.steward_autoheal_enabled }}"
+  when: enabled_apps.steward is defined and enabled_apps.steward is not none
+  tags: [apps, steward]
+
+- import_playbook: ../apps/vikunja/ansible/playbook.yml
+  vars:
+    vikunja_host_group: "{{ enabled_apps.vikunja.ansible_group }}"
+    vikunja_hostname: "{{ enabled_apps.vikunja.ansible_vars.vikunja_hostname }}"
+    vikunja_image_tag: "{{ enabled_apps.vikunja.ansible_vars.vikunja_image_tag }}"
+    vikunja_timezone: "{{ enabled_apps.vikunja.ansible_vars.vikunja_timezone }}"
+    vikunja_enable_registration: "{{ enabled_apps.vikunja.ansible_vars.vikunja_enable_registration }}"
+    vikunja_enable_local_auth: "{{ enabled_apps.vikunja.ansible_vars.vikunja_enable_local_auth }}"
+    vikunja_app_secret_id: "{{ enabled_apps.vikunja.ansible_vars.vikunja_app_secret_id }}"
+    vikunja_db_credentials_secret_id: "{{ enabled_apps.vikunja.ansible_vars.vikunja_db_credentials_secret_id }}"
+    vikunja_smtp_secret_name: "{{ enabled_apps.vikunja.ansible_vars.vikunja_smtp_secret_name }}"
+    vikunja_default_week_start: "{{ enabled_apps.vikunja.ansible_vars.vikunja_default_week_start }}"
+    vikunja_auto_update_enabled: "{{ enabled_apps.vikunja.ansible_vars.vikunja_auto_update_enabled }}"
+    vikunja_autoheal_enabled: "{{ enabled_apps.vikunja.ansible_vars.vikunja_autoheal_enabled }}"
+  when: enabled_apps.vikunja is defined and enabled_apps.vikunja is not none
+  tags: [apps, vikunja]
+
+- import_playbook: ../apps/bentopdf/ansible/playbook.yml
+  vars:
+    bentopdf_host_group: "{{ enabled_apps.bentopdf.ansible_group }}"
+    bentopdf_hostname: "{{ enabled_apps.bentopdf.ansible_vars.bentopdf_hostname }}"
+    bentopdf_image: "{{ enabled_apps.bentopdf.ansible_vars.bentopdf_image }}"
+    bentopdf_auto_update_enabled: "{{ enabled_apps.bentopdf.ansible_vars.bentopdf_auto_update_enabled }}"
+    bentopdf_autoheal_enabled: "{{ enabled_apps.bentopdf.ansible_vars.bentopdf_autoheal_enabled }}"
+  when: enabled_apps.bentopdf is defined and enabled_apps.bentopdf is not none
+  tags: [apps, bentopdf]
+
+- import_playbook: ../apps/notifuse/ansible/playbook.yml
+  vars:
+    notifuse_host_group: "{{ enabled_apps.notifuse.ansible_group }}"
+    notifuse_hostname: "{{ enabled_apps.notifuse.ansible_vars.notifuse_hostname }}"
+    notifuse_image: "{{ enabled_apps.notifuse.ansible_vars.notifuse_image }}"
+    notifuse_image_tag: "{{ enabled_apps.notifuse.ansible_vars.notifuse_image_tag }}"
+    notifuse_build_from_source: "{{ enabled_apps.notifuse.ansible_vars.notifuse_build_from_source }}"
+    notifuse_image_source_repo: "{{ enabled_apps.notifuse.ansible_vars.notifuse_image_source_repo }}"
+    notifuse_image_source_ref: "{{ enabled_apps.notifuse.ansible_vars.notifuse_image_source_ref }}"
+    notifuse_app_secret_id: "{{ enabled_apps.notifuse.ansible_vars.notifuse_app_secret_id }}"
+    notifuse_db_credentials_secret_id: "{{ enabled_apps.notifuse.ansible_vars.notifuse_db_credentials_secret_id }}"
+    notifuse_smtp_secret_name: "{{ enabled_apps.notifuse.ansible_vars.notifuse_smtp_secret_name }}"
+    notifuse_auto_update_enabled: "{{ enabled_apps.notifuse.ansible_vars.notifuse_auto_update_enabled }}"
+    notifuse_autoheal_enabled: "{{ enabled_apps.notifuse.ansible_vars.notifuse_autoheal_enabled }}"
+  when: enabled_apps.notifuse is defined and enabled_apps.notifuse is not none
+  tags: [apps, notifuse]
+
+- import_playbook: ../apps/privacy-policy/ansible/playbook.yml
+  vars:
+    privacy_policy_host_group: "{{ enabled_apps.privacy_policy.ansible_group }}"
+    privacy_policy_hostname: "{{ enabled_apps.privacy_policy.ansible_vars.privacy_policy_hostname }}"
+    privacy_policy_page_title: "{{ enabled_apps.privacy_policy.ansible_vars.privacy_policy_page_title }}"
+    privacy_policy_auto_update_enabled: "{{ enabled_apps.privacy_policy.ansible_vars.privacy_policy_auto_update_enabled }}"
+    privacy_policy_autoheal_enabled: "{{ enabled_apps.privacy_policy.ansible_vars.privacy_policy_autoheal_enabled }}"
+  when: enabled_apps.privacy_policy is defined and enabled_apps.privacy_policy is not none
+  tags: [apps, privacy_policy]
+
+- import_playbook: ../apps/nextcloud/ansible/playbook.yml
+  vars:
+    nextcloud_host_group: "{{ enabled_apps.nextcloud.ansible_group }}"
+    nextcloud_hostname: "{{ enabled_apps.nextcloud.ansible_vars.nextcloud_hostname }}"
+    nextcloud_image_tag: "{{ enabled_apps.nextcloud.ansible_vars.nextcloud_image_tag }}"
+    nextcloud_app_secret_id: "{{ enabled_apps.nextcloud.ansible_vars.nextcloud_app_secret_id }}"
+    nextcloud_db_credentials_secret_id: "{{ enabled_apps.nextcloud.ansible_vars.nextcloud_db_credentials_secret_id }}"
+    nextcloud_smtp_secret_name: "{{ enabled_apps.nextcloud.ansible_vars.nextcloud_smtp_secret_name }}"
+    nextcloud_instance_name: "{{ enabled_apps.nextcloud.ansible_vars.nextcloud_instance_name }}"
+    nextcloud_maintenance_window_start: "{{ enabled_apps.nextcloud.ansible_vars.nextcloud_maintenance_window_start }}"
+    nextcloud_enabled_apps: "{{ enabled_apps.nextcloud.ansible_vars.nextcloud_enabled_apps }}"
+    nextcloud_disabled_apps: "{{ enabled_apps.nextcloud.ansible_vars.nextcloud_disabled_apps }}"
+    nextcloud_n8n_form_webhook_url: "{{ enabled_apps.nextcloud.ansible_vars.nextcloud_n8n_form_webhook_url }}"
+    nextcloud_auto_update_enabled: "{{ enabled_apps.nextcloud.ansible_vars.nextcloud_auto_update_enabled }}"
+    nextcloud_autoheal_enabled: "{{ enabled_apps.nextcloud.ansible_vars.nextcloud_autoheal_enabled }}"
+    nextcloud_onlyoffice_hostname: "{{ enabled_apps.nextcloud.ansible_vars.nextcloud_onlyoffice_hostname }}"
+    nextcloud_onlyoffice_image_tag: "{{ enabled_apps.nextcloud.ansible_vars.nextcloud_onlyoffice_image_tag }}"
+    nextcloud_onlyoffice_memory_limit: "{{ enabled_apps.nextcloud.ansible_vars.nextcloud_onlyoffice_memory_limit }}"
+    nextcloud_onlyoffice_cpu_limit: "{{ enabled_apps.nextcloud.ansible_vars.nextcloud_onlyoffice_cpu_limit }}"
+    nextcloud_talk_hostname: "{{ enabled_apps.nextcloud.ansible_vars.nextcloud_talk_hostname }}"
+    nextcloud_talk_image_tag: "{{ enabled_apps.nextcloud.ansible_vars.nextcloud_talk_image_tag }}"
+    nextcloud_talk_turn_port: "{{ enabled_apps.nextcloud.ansible_vars.nextcloud_talk_turn_port }}"
+    nextcloud_talk_relay_port_min: "{{ enabled_apps.nextcloud.ansible_vars.nextcloud_talk_relay_port_min }}"
+    nextcloud_talk_relay_port_max: "{{ enabled_apps.nextcloud.ansible_vars.nextcloud_talk_relay_port_max }}"
+    nextcloud_talk_memory_limit: "{{ enabled_apps.nextcloud.ansible_vars.nextcloud_talk_memory_limit }}"
+    nextcloud_talk_cpu_limit: "{{ enabled_apps.nextcloud.ansible_vars.nextcloud_talk_cpu_limit }}"
+  when: enabled_apps.nextcloud is defined and enabled_apps.nextcloud is not none
+  tags: [apps, nextcloud]
+
+- import_playbook: ../apps/decidim/ansible/playbook.yml
+  vars:
+    decidim_host_group: "{{ enabled_apps.decidim.ansible_group }}"
+    decidim_hostname: "{{ enabled_apps.decidim.ansible_vars.decidim_hostname }}"
+    decidim_image: "{{ enabled_apps.decidim.ansible_vars.decidim_image }}"
+    decidim_image_tag: "{{ enabled_apps.decidim.ansible_vars.decidim_image_tag }}"
+    decidim_extra_gems: "{{ enabled_apps.decidim.ansible_vars.decidim_extra_gems }}"
+    decidim_app_secret_id: "{{ enabled_apps.decidim.ansible_vars.decidim_app_secret_id }}"
+    decidim_db_credentials_secret_id: "{{ enabled_apps.decidim.ansible_vars.decidim_db_credentials_secret_id }}"
+    decidim_sidekiq_concurrency: "{{ enabled_apps.decidim.ansible_vars.decidim_sidekiq_concurrency }}"
+    decidim_max_upload_size_bytes: "{{ enabled_apps.decidim.ansible_vars.decidim_max_upload_size_bytes }}"
+    decidim_smtp_secret_name: "{{ enabled_apps.decidim.ansible_vars.decidim_smtp_secret_name }}"
+    decidim_auto_update_enabled: "{{ enabled_apps.decidim.ansible_vars.decidim_auto_update_enabled }}"
+    decidim_autoheal_enabled: "{{ enabled_apps.decidim.ansible_vars.decidim_autoheal_enabled }}"
+  when: enabled_apps.decidim is defined and enabled_apps.decidim is not none
+  tags: [apps, decidim]
+
+- import_playbook: ../apps/jitsi/ansible/playbook.yml
+  vars:
+    jitsi_host_group: "{{ enabled_apps.jitsi.ansible_group }}"
+    jitsi_hostname: "{{ enabled_apps.jitsi.ansible_vars.jitsi_hostname }}"
+    jitsi_image_tag: "{{ enabled_apps.jitsi.ansible_vars.jitsi_image_tag }}"
+    jitsi_timezone: "{{ enabled_apps.jitsi.ansible_vars.jitsi_timezone }}"
+    jitsi_jvb_udp_port: "{{ enabled_apps.jitsi.ansible_vars.jitsi_jvb_udp_port }}"
+    jitsi_jvb_stun_servers: "{{ enabled_apps.jitsi.ansible_vars.jitsi_jvb_stun_servers }}"
+    jitsi_enable_lobby: "{{ enabled_apps.jitsi.ansible_vars.jitsi_enable_lobby }}"
+    jitsi_enable_breakout_rooms: "{{ enabled_apps.jitsi.ansible_vars.jitsi_enable_breakout_rooms }}"
+    jitsi_enable_prejoin_page: "{{ enabled_apps.jitsi.ansible_vars.jitsi_enable_prejoin_page }}"
+    jitsi_oidc_adapter_repo: "{{ enabled_apps.jitsi.ansible_vars.jitsi_oidc_adapter_repo }}"
+    jitsi_oidc_adapter_version: "{{ enabled_apps.jitsi.ansible_vars.jitsi_oidc_adapter_version }}"
+    jitsi_oidc_log_level: "{{ enabled_apps.jitsi.ansible_vars.jitsi_oidc_log_level }}"
+    jitsi_authentik_gateway: "{{ enabled_apps.jitsi.ansible_vars.jitsi_authentik_gateway }}"
+    jitsi_app_secret_id: "{{ enabled_apps.jitsi.ansible_vars.jitsi_app_secret_id }}"
+    jitsi_auto_update_enabled: "{{ enabled_apps.jitsi.ansible_vars.jitsi_auto_update_enabled }}"
+    jitsi_autoheal_enabled: "{{ enabled_apps.jitsi.ansible_vars.jitsi_autoheal_enabled }}"
+  when: enabled_apps.jitsi is defined and enabled_apps.jitsi is not none
+  tags: [apps, jitsi]
+
+- import_playbook: ../apps/espocrm/ansible/playbook.yml
+  vars:
+    espocrm_host_group: "{{ enabled_apps.espocrm.ansible_group }}"
+    espocrm_hostname: "{{ enabled_apps.espocrm.ansible_vars.espocrm_hostname }}"
+    espocrm_image_tag: "{{ enabled_apps.espocrm.ansible_vars.espocrm_image_tag }}"
+    espocrm_timezone: "{{ enabled_apps.espocrm.ansible_vars.espocrm_timezone }}"
+    espocrm_b2c_mode: "{{ enabled_apps.espocrm.ansible_vars.espocrm_b2c_mode }}"
+    espocrm_oidc_username_claim: "{{ enabled_apps.espocrm.ansible_vars.espocrm_oidc_username_claim }}"
+    espocrm_oidc_group_claim: "{{ enabled_apps.espocrm.ansible_vars.espocrm_oidc_group_claim }}"
+    espocrm_oidc_team_id_prefix: "{{ enabled_apps.espocrm.ansible_vars.espocrm_oidc_team_id_prefix }}"
+    espocrm_oidc_group_role_mapping: "{{ enabled_apps.espocrm.ansible_vars.espocrm_oidc_group_role_mapping }}"
+    espocrm_enable_member_entity_bootstrap: "{{ enabled_apps.espocrm.ansible_vars.espocrm_enable_member_entity_bootstrap }}"
+    espocrm_member_entity_webhooks: "{{ enabled_apps.espocrm.ansible_vars.espocrm_member_entity_webhooks }}"
+    espocrm_app_secret_id: "{{ enabled_apps.espocrm.ansible_vars.espocrm_app_secret_id }}"
+    espocrm_db_credentials_secret_id: "{{ enabled_apps.espocrm.ansible_vars.espocrm_db_credentials_secret_id }}"
+    espocrm_auto_update_enabled: "{{ enabled_apps.espocrm.ansible_vars.espocrm_auto_update_enabled }}"
+    espocrm_autoheal_enabled: "{{ enabled_apps.espocrm.ansible_vars.espocrm_autoheal_enabled }}"
+  when: enabled_apps.espocrm is defined and enabled_apps.espocrm is not none
+  tags: [apps, espocrm]
+
+- import_playbook: ../apps/n8n/ansible/playbook.yml
+  vars:
+    n8n_host_group: "{{ enabled_apps.n8n.ansible_group }}"
+    n8n_hostname: "{{ enabled_apps.n8n.ansible_vars.n8n_hostname }}"
+    n8n_image_tag: "{{ enabled_apps.n8n.ansible_vars.n8n_image_tag }}"
+    n8n_timezone: "{{ enabled_apps.n8n.ansible_vars.n8n_timezone }}"
+    n8n_public_api_disabled: "{{ enabled_apps.n8n.ansible_vars.n8n_public_api_disabled }}"
+    n8n_python_stdlib_allow: "{{ enabled_apps.n8n.ansible_vars.n8n_python_stdlib_allow }}"
+    n8n_python_external_allow: "{{ enabled_apps.n8n.ansible_vars.n8n_python_external_allow }}"
+    n8n_webhook_rate_limit_avg: "{{ enabled_apps.n8n.ansible_vars.n8n_webhook_rate_limit_avg }}"
+    n8n_webhook_rate_limit_burst: "{{ enabled_apps.n8n.ansible_vars.n8n_webhook_rate_limit_burst }}"
+    n8n_webhook_rate_limit_per: "{{ enabled_apps.n8n.ansible_vars.n8n_webhook_rate_limit_per }}"
+    n8n_auto_update_enabled: "{{ enabled_apps.n8n.ansible_vars.n8n_auto_update_enabled }}"
+    n8n_autoheal_enabled: "{{ enabled_apps.n8n.ansible_vars.n8n_autoheal_enabled }}"
+    n8n_app_secret_id: "{{ enabled_apps.n8n.ansible_vars.n8n_app_secret_id }}"
+    n8n_db_credentials_secret_id: "{{ enabled_apps.n8n.ansible_vars.n8n_db_credentials_secret_id }}"
+  when: enabled_apps.n8n is defined and enabled_apps.n8n is not none
+  tags: [apps, n8n]
+
+- import_playbook: ../apps/backrest/ansible/playbook.yml
+  vars:
+    backrest_host_group: "{{ enabled_apps.backrest_mgmt.ansible_group }}"
+    backrest_instance_name: "{{ enabled_apps.backrest_mgmt.ansible_vars.backrest_instance_name }}"
+    backrest_hostname: "{{ enabled_apps.backrest_mgmt.ansible_vars.backrest_hostname }}"
+    backrest_image_tag: "{{ enabled_apps.backrest_mgmt.ansible_vars.backrest_image_tag }}"
+    backrest_app_secret_id: "{{ enabled_apps.backrest_mgmt.ansible_vars.backrest_app_secret_id }}"
+    backrest_backup_plans: "{{ enabled_apps.backrest_mgmt.ansible_vars.backrest_backup_plans }}"
+    backrest_backup_sources: "{{ enabled_apps.backrest_mgmt.ansible_vars.backrest_backup_sources }}"
+    backrest_restic_prune_max_frequency_days: "{{ enabled_apps.backrest_mgmt.ansible_vars.backrest_restic_prune_max_frequency_days }}"
+    backrest_restic_check_max_frequency_days: "{{ enabled_apps.backrest_mgmt.ansible_vars.backrest_restic_check_max_frequency_days }}"
+    backrest_restic_check_read_data_subset_pct: "{{ enabled_apps.backrest_mgmt.ansible_vars.backrest_restic_check_read_data_subset_pct }}"
+    backrest_auto_update_enabled: "{{ enabled_apps.backrest_mgmt.ansible_vars.backrest_auto_update_enabled }}"
+    backrest_autoheal_enabled: "{{ enabled_apps.backrest_mgmt.ansible_vars.backrest_autoheal_enabled }}"
+  when: enabled_apps.backrest_mgmt is defined and enabled_apps.backrest_mgmt is not none
+  tags: [apps, backrest_mgmt]
+
+- import_playbook: ../apps/watchtower/ansible/playbook.yml
+  vars:
+    watchtower_host_group: "{{ enabled_apps.watchtower_apps.ansible_group }}"
+    watchtower_image: "{{ enabled_apps.watchtower_apps.ansible_vars.watchtower_image }}"
+    watchtower_image_tag: "{{ enabled_apps.watchtower_apps.ansible_vars.watchtower_image_tag }}"
+    watchtower_schedule: "{{ enabled_apps.watchtower_apps.ansible_vars.watchtower_schedule }}"
+    watchtower_label_enable: "{{ enabled_apps.watchtower_apps.ansible_vars.watchtower_label_enable }}"
+    watchtower_scope: "{{ enabled_apps.watchtower_apps.ansible_vars.watchtower_scope }}"
+    watchtower_cleanup: "{{ enabled_apps.watchtower_apps.ansible_vars.watchtower_cleanup }}"
+    watchtower_rolling_restart: "{{ enabled_apps.watchtower_apps.ansible_vars.watchtower_rolling_restart }}"
+    watchtower_include_stopped: "{{ enabled_apps.watchtower_apps.ansible_vars.watchtower_include_stopped }}"
+    watchtower_timezone: "{{ enabled_apps.watchtower_apps.ansible_vars.watchtower_timezone }}"
+    watchtower_notifications_slack_webhook: "{{ enabled_apps.watchtower_apps.ansible_vars.watchtower_notifications_slack_webhook }}"
+  when: enabled_apps.watchtower_apps is defined and enabled_apps.watchtower_apps is not none
+  tags: [apps, watchtower_apps]
+
+- import_playbook: ../apps/autoheal/ansible/playbook.yml
+  vars:
+    autoheal_host_group: "{{ enabled_apps.autoheal_apps.ansible_group }}"
+    autoheal_image: "{{ enabled_apps.autoheal_apps.ansible_vars.autoheal_image }}"
+    autoheal_image_tag: "{{ enabled_apps.autoheal_apps.ansible_vars.autoheal_image_tag }}"
+    autoheal_container_label: "{{ enabled_apps.autoheal_apps.ansible_vars.autoheal_container_label }}"
+    autoheal_interval_seconds: "{{ enabled_apps.autoheal_apps.ansible_vars.autoheal_interval_seconds }}"
+    autoheal_start_period_seconds: "{{ enabled_apps.autoheal_apps.ansible_vars.autoheal_start_period_seconds }}"
+    autoheal_timezone: "{{ enabled_apps.autoheal_apps.ansible_vars.autoheal_timezone }}"
+  when: enabled_apps.autoheal_apps is defined and enabled_apps.autoheal_apps is not none
+  tags: [apps, autoheal_apps]
+

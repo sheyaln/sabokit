@@ -68,6 +68,16 @@
   when: decidim_smtp_secret_name | default('') | length > 0
   no_log: true
 
+- name: Render Dockerfile (extends base image with extra_gems)
+  ansible.builtin.template:
+    src: Dockerfile.j2
+    dest: "{{ decidim_install_dir }}/Dockerfile"
+    mode: "0644"
+    owner: root
+    group: root
+  when: decidim_extra_gems | default([]) | length > 0
+  notify: Restart decidim
+
 - name: Render docker-compose.yml
   ansible.builtin.template:
     src: docker-compose.yml.j2
@@ -95,6 +105,20 @@
     name: decidim_init-marker
     state: absent
   when: decidim_force_db_init | bool
+
+# Build the extended image if we have extra gems (always — keeps the gem
+# graph in sync with the base image tag on every play). When extra_gems is
+# empty, this still runs but is a fast no-op (`pull_policy: never` and no
+# build section means compose just notes the image is the base reference).
+- name: Build/pull Decidim image
+  community.docker.docker_compose_v2:
+    project_src: "{{ decidim_install_dir }}"
+    state: present
+    build: "{{ 'always' if (decidim_extra_gems | default([]) | length > 0) else 'never' }}"
+    services:
+      - app
+      - sidekiq
+    pull: "{{ 'missing' if (decidim_extra_gems | default([]) | length == 0) else 'never' }}"
 
 # Run the one-shot db-init container. Idempotent: writes /init/db_initialized
 # in the marker volume on first success and short-circuits subsequent runs.

@@ -2,7 +2,7 @@
 # Uncomment / enable in terraform.tfvars to turn an app on.
 
 module "outline" {
-  source = "git::https://github.com/sheyaln/sabokit.git//platform/apps/outline/terraform?ref=v2.3.0"
+  source = "git::https://github.com/sheyaln/sabokit.git//platform/apps/outline/terraform?ref=v2.5.0"
 
   enabled  = try(var.apps.outline.enabled, false)
   hostname = try(var.apps.outline.hostname, "")
@@ -17,7 +17,7 @@ module "outline" {
 }
 
 module "steward" {
-  source = "git::https://github.com/sheyaln/sabokit.git//platform/apps/steward/terraform?ref=v2.3.0"
+  source = "git::https://github.com/sheyaln/sabokit.git//platform/apps/steward/terraform?ref=v2.5.0"
 
   enabled  = try(var.apps.steward.enabled, false)
   hostname = try(var.apps.steward.hostname, "")
@@ -26,7 +26,7 @@ module "steward" {
   # Optional overrides
   access_level            = try(var.apps.steward.access_level, "admin")
   extra_authorized_groups = try(var.apps.steward.extra_authorized_groups, {})
-  admin_group_name        = try(var.apps.steward.admin_group_name, "steward-admins")
+  admin_group_name        = try(var.apps.steward.admin_group_name, "union-delegate")
   invite_flow_slug        = try(var.apps.steward.invite_flow_slug, "")
   image_repository        = try(var.apps.steward.image_repository, "ghcr.io/sheyaln/sabokit-steward")
   image_tag               = try(var.apps.steward.image_tag, "latest")
@@ -35,7 +35,7 @@ module "steward" {
 }
 
 module "vikunja" {
-  source = "git::https://github.com/sheyaln/sabokit.git//platform/apps/vikunja/terraform?ref=v2.3.0"
+  source = "git::https://github.com/sheyaln/sabokit.git//platform/apps/vikunja/terraform?ref=v2.5.0"
 
   enabled  = try(var.apps.vikunja.enabled, false)
   hostname = try(var.apps.vikunja.hostname, "")
@@ -56,7 +56,7 @@ module "vikunja" {
 # Forward-auth app (no OIDC). Its provider_id MUST also be added to the
 # identity module's extra_forward_auth_provider_ids list — see identity.tf.
 module "bentopdf" {
-  source = "git::https://github.com/sheyaln/sabokit.git//platform/apps/bentopdf/terraform?ref=v2.3.0"
+  source = "git::https://github.com/sheyaln/sabokit.git//platform/apps/bentopdf/terraform?ref=v2.5.0"
 
   enabled  = try(var.apps.bentopdf.enabled, false)
   hostname = try(var.apps.bentopdf.hostname, "")
@@ -72,7 +72,7 @@ module "bentopdf" {
 
 # Public — no auth integration. Privacy policies must be reachable without login.
 module "privacy_policy" {
-  source = "git::https://github.com/sheyaln/sabokit.git//platform/apps/privacy-policy/terraform?ref=v2.3.0"
+  source = "git::https://github.com/sheyaln/sabokit.git//platform/apps/privacy-policy/terraform?ref=v2.5.0"
 
   enabled  = try(var.apps.privacy_policy.enabled, false)
   hostname = try(var.apps.privacy_policy.hostname, "")
@@ -84,7 +84,7 @@ module "privacy_policy" {
 }
 
 module "notifuse" {
-  source = "git::https://github.com/sheyaln/sabokit.git//platform/apps/notifuse/terraform?ref=v2.3.0"
+  source = "git::https://github.com/sheyaln/sabokit.git//platform/apps/notifuse/terraform?ref=v2.5.0"
 
   enabled          = try(var.apps.notifuse.enabled, false)
   hostname         = try(var.apps.notifuse.hostname, "")
@@ -106,7 +106,7 @@ module "notifuse" {
 # top of the host firewall — extend default_security_group_extra_inbound_rules
 # in module.base accordingly.
 module "nextcloud" {
-  source = "git::https://github.com/sheyaln/sabokit.git//platform/apps/nextcloud/terraform?ref=v2.3.0"
+  source = "git::https://github.com/sheyaln/sabokit.git//platform/apps/nextcloud/terraform?ref=v2.5.0"
 
   enabled             = try(var.apps.nextcloud.enabled, false)
   hostname            = try(var.apps.nextcloud.hostname, "")
@@ -126,7 +126,7 @@ module "nextcloud" {
 }
 
 module "decidim" {
-  source = "git::https://github.com/sheyaln/sabokit.git//platform/apps/decidim/terraform?ref=v2.3.0"
+  source = "git::https://github.com/sheyaln/sabokit.git//platform/apps/decidim/terraform?ref=v2.5.0"
 
   enabled            = try(var.apps.decidim.enabled, false)
   hostname           = try(var.apps.decidim.hostname, "")
@@ -151,7 +151,7 @@ module "decidim" {
 # to extra_forward_auth_provider_ids below). The adapter brokers between
 # Authentik's OIDC dance and Jitsi's JWT room-token model.
 module "jitsi" {
-  source = "git::https://github.com/sheyaln/sabokit.git//platform/apps/jitsi/terraform?ref=v2.3.0"
+  source = "git::https://github.com/sheyaln/sabokit.git//platform/apps/jitsi/terraform?ref=v2.5.0"
 
   enabled  = try(var.apps.jitsi.enabled, false)
   hostname = try(var.apps.jitsi.hostname, "")
@@ -174,7 +174,7 @@ module "jitsi" {
 }
 
 module "espocrm" {
-  source = "git::https://github.com/sheyaln/sabokit.git//platform/apps/espocrm/terraform?ref=v2.3.0"
+  source = "git::https://github.com/sheyaln/sabokit.git//platform/apps/espocrm/terraform?ref=v2.5.0"
 
   enabled  = try(var.apps.espocrm.enabled, false)
   hostname = try(var.apps.espocrm.hostname, "")
@@ -197,7 +197,7 @@ module "espocrm" {
 }
 
 module "n8n" {
-  source = "git::https://github.com/sheyaln/sabokit.git//platform/apps/n8n/terraform?ref=v2.3.0"
+  source = "git::https://github.com/sheyaln/sabokit.git//platform/apps/n8n/terraform?ref=v2.5.0"
 
   enabled  = try(var.apps.n8n.enabled, false)
   hostname = try(var.apps.n8n.hostname, "")
@@ -206,7 +206,6 @@ module "n8n" {
   access_level            = try(var.apps.n8n.access_level, "member")
   extra_authorized_groups = try(var.apps.n8n.extra_authorized_groups, {})
   image_tag               = try(var.apps.n8n.image_tag, "latest")
-  build_from_source       = try(var.apps.n8n.build_from_source, false)
   n8n_admin_group_name    = try(var.apps.n8n.n8n_admin_group_name, "admin")
   timezone                = try(var.apps.n8n.timezone, "UTC")
   public_api_disabled     = try(var.apps.n8n.public_api_disabled, true)
@@ -214,18 +213,44 @@ module "n8n" {
   deployment_host_key     = try(var.apps.n8n.deployment_host_key, "apps")
 }
 
+# App bundles export their backup contribution as `backup_plan` (null when
+# disabled or backup_enabled=false). Aggregate and pass to every backrest
+# instance — same plug-and-play pattern as required_inbound_rules for SG.
+# Each backrest only backs up paths that exist on its own host; restic skips
+# missing ones, so passing the full union is safe.
+locals {
+  aggregated_backup_plans = [for plan in [
+    module.outline.backup_plan,
+    module.steward.backup_plan,
+    module.vikunja.backup_plan,
+    module.bentopdf.backup_plan,
+    module.privacy_policy.backup_plan,
+    module.notifuse.backup_plan,
+    module.nextcloud.backup_plan,
+    module.decidim.backup_plan,
+    module.jitsi.backup_plan,
+    module.espocrm.backup_plan,
+    module.n8n.backup_plan,
+  ] : plan if plan != null]
+}
+
 # Backrest is multi-instance: each backed-up host gets its own module block,
 # its own bucket, its own restic repo. Forward-auth — its provider_id MUST
 # be added to identity's extra_forward_auth_provider_ids list (see identity.tf).
 # Example: a single "mgmt" instance. Add more module blocks for each host.
 module "backrest_mgmt" {
-  source = "git::https://github.com/sheyaln/sabokit.git//platform/apps/backrest/terraform?ref=v2.3.0"
+  source = "git::https://github.com/sheyaln/sabokit.git//platform/apps/backrest/terraform?ref=v2.5.0"
 
   enabled       = try(var.apps.backrest_mgmt.enabled, false)
   hostname      = try(var.apps.backrest_mgmt.hostname, "")
   instance_name = try(var.apps.backrest_mgmt.instance_name, "mgmt")
-  backup_plans  = try(var.apps.backrest_mgmt.backup_plans, [])
-  base          = local.base
+  # Auto-backed-up from every enabled app's backup_plan output, plus any
+  # consumer-supplied extras.
+  backup_plans = concat(
+    local.aggregated_backup_plans,
+    try(var.apps.backrest_mgmt.backup_plans, []),
+  )
+  base = local.base
 
   access_level                          = try(var.apps.backrest_mgmt.access_level, "admin")
   extra_authorized_groups               = try(var.apps.backrest_mgmt.extra_authorized_groups, {})
@@ -236,4 +261,34 @@ module "backrest_mgmt" {
   restic_check_read_data_subset_percent = try(var.apps.backrest_mgmt.restic_check_read_data_subset_percent, 5)
   monitoring_enabled                    = try(var.apps.backrest_mgmt.monitoring_enabled, true)
   deployment_host_key                   = try(var.apps.backrest_mgmt.deployment_host_key, "apps")
+}
+
+# ── Platform host-services (one container per host) ─────────────────────────
+# Watchtower auto-updates opted-in app containers; Autoheal restarts unhealthy
+# ones. Multi-instance like backrest — one block per host you want them on.
+# Each app bundle's per-app `auto_update_enabled` / `autoheal_enabled` knobs
+# decide which containers are labelled for these to act on.
+
+module "watchtower_apps" {
+  source = "git::https://github.com/sheyaln/sabokit.git//platform/apps/watchtower/terraform?ref=v2.5.0"
+
+  enabled = try(var.apps.watchtower_apps.enabled, false)
+  base    = local.base
+
+  deployment_host_key         = try(var.apps.watchtower_apps.deployment_host_key, "apps")
+  image_tag                   = try(var.apps.watchtower_apps.image_tag, "latest")
+  schedule                    = try(var.apps.watchtower_apps.schedule, "0 0 4 * * *")
+  notifications_slack_webhook = try(var.apps.watchtower_apps.notifications_slack_webhook, "")
+}
+
+module "autoheal_apps" {
+  source = "git::https://github.com/sheyaln/sabokit.git//platform/apps/autoheal/terraform?ref=v2.5.0"
+
+  enabled = try(var.apps.autoheal_apps.enabled, false)
+  base    = local.base
+
+  deployment_host_key  = try(var.apps.autoheal_apps.deployment_host_key, "apps")
+  image_tag            = try(var.apps.autoheal_apps.image_tag, "latest")
+  interval_seconds     = try(var.apps.autoheal_apps.interval_seconds, 5)
+  start_period_seconds = try(var.apps.autoheal_apps.start_period_seconds, 60)
 }

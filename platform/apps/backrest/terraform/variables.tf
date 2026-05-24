@@ -64,6 +64,18 @@ variable "instance_name" {
   }
 }
 
+variable "auto_update_enabled" {
+  description = "Whether the Watchtower platform bundle (if deployed on this host) auto-pulls newer Backrest image versions. Default true — Backrest is a backup tool with stable migration story; staying current matters for security patches."
+  type        = bool
+  default     = true
+}
+
+variable "autoheal_enabled" {
+  description = "Whether the Autoheal platform bundle (if deployed) restarts Backrest when its healthcheck fails. Default true."
+  type        = bool
+  default     = true
+}
+
 variable "image_tag" {
   description = "Backrest Docker image tag. Pin in production; the upstream `latest` tag moves frequently."
   type        = string

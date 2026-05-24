@@ -1,0 +1,6 @@
+---
+- name: Deploy Autoheal
+  hosts: "{{ autoheal_host_group | default('apps') }}"
+  become: true
+  roles:
+    - role: autoheal

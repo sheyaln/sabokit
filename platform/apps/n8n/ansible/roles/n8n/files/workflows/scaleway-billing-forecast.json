@@ -1,0 +1,184 @@
+{
+  "name": "Scaleway Billing Forecast",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "triggerAtHour": 9
+            }
+          ]
+        }
+      },
+      "id": "09d47a4b-69a8-43fa-bdaa-933631429020",
+      "name": "Daily 9 AM Trigger",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -48,
+        -32
+      ]
+    },
+    {
+      "parameters": {
+        "url": "=https://api.scaleway.com/billing/v2beta1/consumptions?project_id=36d97667-15ea-4f59-af44-ab612a133374",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {}
+      },
+      "id": "a1316f17-19a8-4e6b-894c-067ea87898f2",
+      "name": "Get Scaleway Consumption",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        176,
+        -32
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "",
+          "name": "Header Auth account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "url": "https://api.frankfurter.app/latest?from=EUR&to=USD",
+        "options": {}
+      },
+      "id": "760c40cb-5fe0-4ba4-b151-76a26237d95f",
+      "name": "Get EUR/USD Rate",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        400,
+        -32
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// ============================================================\n// Scaleway Billing Forecast\n// ============================================================\n// Sums current-month Scaleway consumption, converts EUR → USD\n// using today's exchange rate, and projects end-of-month spend.\n// Outputs Slack Block Kit blocks array + fallback text.\n// ============================================================\n\nconst consumption = $('Get Scaleway Consumption').first().json;\nconst exchangeData = $('Get EUR/USD Rate').first().json;\n\n// --- Sum consumption ------------------------------------------\n// Scaleway Money type: { currency_code, units (int64), nanos (int32) }\n// Total = units + nanos / 1e9\nconst items = consumption.consumptions || [];\nlet totalEur = 0;\nfor (const item of items) {\n  if (item.value) {\n    totalEur += Number(item.value.units || 0) + Number(item.value.nanos || 0) / 1e9;\n  }\n}\n\n// --- EUR → USD conversion ------------------------------------\nconst eurToUsd = exchangeData.rates?.USD || 1.08;\nconst totalUsd = totalEur * eurToUsd;\n\n// --- Date math ------------------------------------------------\nconst now = new Date();\nconst daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();\nconst dayOfMonth = now.getDate();\nconst daysRemaining = daysInMonth - dayOfMonth;\n\n// --- Linear projection ----------------------------------------\nconst dailyRate = dayOfMonth > 0 ? totalUsd / dayOfMonth : 0;\nconst projectedEom = dailyRate * daysInMonth;\n\nconst THRESHOLD_USD = 200;\nconst overBudget = projectedEom >= THRESHOLD_USD;\n\n// --- Helpers --------------------------------------------------\nconst fmt = (n) => Number(n).toFixed(2);\nconst monthName = now.toLocaleString('en-US', { month: 'long' });\nconst pctDone = Math.round((dayOfMonth / daysInMonth) * 10);\nconst bar = '\\u2588'.repeat(pctDone) + '\\u2591'.repeat(10 - pctDone);\n\n// --- Slack Block Kit ------------------------------------------\nconst emoji = overBudget ? '\\ud83d\\udea8' : '\\u2705';\nconst statusText = overBudget\n  ? `Projected to *exceed* $${THRESHOLD_USD} threshold`\n  : `Projected to stay *under* $${THRESHOLD_USD} threshold`;\n\nconst blocks = [\n  {\n    type: 'header',\n    text: {\n      type: 'plain_text',\n      text: `${emoji} Scaleway Billing \\u2014 ${monthName} ${now.getFullYear()}`,\n      emoji: true\n    }\n  },\n  {\n    type: 'section',\n    text: { type: 'mrkdwn', text: statusText }\n  },\n  {\n    type: 'section',\n    fields: [\n      { type: 'mrkdwn', text: `*Spend to date:*\\n$${fmt(totalUsd)} (\\u20ac${fmt(totalEur)})` },\n      { type: 'mrkdwn', text: `*Projected EOM:*\\n$${fmt(projectedEom)}` },\n      { type: 'mrkdwn', text: `*Daily burn:*\\n$${fmt(dailyRate)}/day` },\n      { type: 'mrkdwn', text: `*EUR\\u2192USD rate:*\\n${eurToUsd.toFixed(4)}` }\n    ]\n  },\n  {\n    type: 'context',\n    elements: [\n      {\n        type: 'mrkdwn',\n        text: `${bar}  Day ${dayOfMonth} of ${daysInMonth} \\u00b7 ${daysRemaining} days remaining`\n      }\n    ]\n  }\n];\n\nconst fallbackText = `${emoji} Scaleway Billing: $${fmt(totalUsd)} spent, $${fmt(projectedEom)} projected EOM`;\n\nreturn [{ json: { blocks, fallbackText } }];"
+      },
+      "id": "850a4571-15b3-4570-ad8b-bdb554f19aac",
+      "name": "Calculate Projection",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        624,
+        -32
+      ]
+    },
+    {
+      "parameters": {
+        "select": "channel",
+        "channelId": {
+          "__rl": true,
+          "value": "#infra-alerts",
+          "mode": "name"
+        },
+        "messageType": "block",
+        "blocksUi": "={{ JSON.stringify({ blocks: $json.blocks }) }}",
+        "text": "={{ $json.fallbackText }}",
+        "otherOptions": {}
+      },
+      "id": "e661cae0-c25e-4ed1-8edb-da3680af03dc",
+      "name": "Send Slack Alert",
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.2,
+      "position": [
+        832,
+        -32
+      ],
+      "webhookId": "cad60c4d-668e-42bb-9d68-b0e0ec2eaaa1",
+      "credentials": {
+        "slackApi": {
+          "id": "",
+          "name": "Slack account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Daily 9 AM Trigger": {
+      "main": [
+        [
+          {
+            "node": "Get Scaleway Consumption",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Scaleway Consumption": {
+      "main": [
+        [
+          {
+            "node": "Get EUR/USD Rate",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get EUR/USD Rate": {
+      "main": [
+        [
+          {
+            "node": "Calculate Projection",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Calculate Projection": {
+      "main": [
+        [
+          {
+            "node": "Send Slack Alert",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false,
+    "timeSavedMode": "fixed",
+    "errorWorkflow": "ScNDFrAVG90ETWIh",
+    "callerPolicy": "workflowsFromSameOwner"
+  },
+  "versionId": "",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": ""
+  },
+  "id": "ieo3vFR9cFbSf9Km",
+  "tags": [
+    {
+      "updatedAt": "2026-02-15T16:35:20.534Z",
+      "createdAt": "2026-02-15T16:35:20.534Z",
+      "id": "",
+      "name": "infrastructure"
+    },
+    {
+      "updatedAt": "2026-02-15T16:35:20.540Z",
+      "createdAt": "2026-02-15T16:35:20.540Z",
+      "id": "",
+      "name": "alerting"
+    },
+    {
+      "updatedAt": "2026-02-15T17:06:31.440Z",
+      "createdAt": "2026-02-15T17:06:31.440Z",
+      "id": "",
+      "name": "billing"
+    }
+  ]
+}

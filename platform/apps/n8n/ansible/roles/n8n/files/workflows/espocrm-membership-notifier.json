@@ -1,0 +1,147 @@
+{
+  "name": "EspoCRM Membership Status Notifier",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "espocrm-slack-notification",
+        "options": {}
+      },
+      "id": "78cd1968-a1ef-4a62-8af2-7eaf8510a0be",
+      "name": "Webhook - Member Created",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -608,
+        32
+      ],
+      "webhookId": "espocrm-slack-notification"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": false,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+              "leftValue": "={{ $json.body[0].branchMembership }}",
+              "rightValue": "At Large",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "looseTypeValidation": true,
+        "options": {
+          "ignoreCase": true
+        }
+      },
+      "id": "9d1a6974-3066-4662-b47c-6c2129c4122c",
+      "name": "Check Membership Status",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        -384,
+        32
+      ]
+    },
+    {
+      "parameters": {
+        "select": "channel",
+        "channelId": {
+          "__rl": true,
+          "value": "#membership-events",
+          "mode": "name"
+        },
+        "messageType": "block",
+        "blocksUi": "=",
+        "text": "=",
+        "otherOptions": {}
+      },
+      "id": "dbda197d-cb7b-46ef-8772-6b0a364e473e",
+      "name": "Send Slack Notification",
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.4,
+      "position": [
+        -160,
+        -64
+      ],
+      "webhookId": "14a2254e-78b2-4550-8035-03ba6f4edde0",
+      "retryOnFail": true,
+      "credentials": {
+        "slackApi": {
+          "id": "",
+          "name": "Slack account"
+        }
+      }
+    },
+    {
+      "parameters": {},
+      "id": "84f036bd-e309-4f9d-9aec-dfa5c777371e",
+      "name": "No Action Required",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        -160,
+        128
+      ]
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook - Member Created": {
+      "main": [
+        [
+          {
+            "node": "Check Membership Status",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Membership Status": {
+      "main": [
+        [
+          {
+            "node": "Send Slack Notification",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "No Action Required",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false,
+    "timeSavedMode": "fixed",
+    "errorWorkflow": "ScNDFrAVG90ETWIh",
+    "callerPolicy": "workflowsFromSameOwner"
+  },
+  "versionId": "",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": ""
+  },
+  "id": "-kEBHmnqta7YXlt1fBxMR",
+  "tags": []
+}

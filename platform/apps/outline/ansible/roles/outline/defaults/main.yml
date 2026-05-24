@@ -21,6 +21,10 @@ outline_smtp_secret_name: ""
 # Docker networks the Outline container joins.
 outline_traefik_docker_network: "traefik"
 
+# Ops-bundle opt-in labels.
+outline_auto_update_enabled: true
+outline_autoheal_enabled: true
+
 # Resource limits.
 outline_memory_limit: "1G"
 outline_memory_reservation: "512M"

@@ -4,7 +4,14 @@
 
 services:
   notifuse:
+{% if notifuse_build_from_source | default(false) %}
+    build:
+      context: "{{ notifuse_install_dir }}/src"
+      dockerfile: Dockerfile
+    image: notifuse-local:latest
+{% else %}
     image: "{{ notifuse_image }}:{{ notifuse_image_tag }}"
+{% endif %}
     container_name: notifuse
     restart: unless-stopped
     volumes:
@@ -19,6 +26,12 @@ services:
       - "traefik.http.routers.notifuse.entrypoints=websecure"
       - "traefik.http.routers.notifuse.tls.certresolver=le"
       - "traefik.http.routers.notifuse.service=notifuse"
+{% if notifuse_auto_update_enabled | default(false) %}
+      - "com.centurylinklabs.watchtower.enable=true"
+{% endif %}
+{% if notifuse_autoheal_enabled | default(false) %}
+      - "autoheal=true"
+{% endif %}
     networks:
       - "{{ notifuse_traefik_docker_network }}"
     security_opt:

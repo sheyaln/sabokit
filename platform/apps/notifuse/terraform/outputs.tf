@@ -31,10 +31,16 @@ output "ansible" {
     host_group = var.base.compute.hosts[var.deployment_host_key].ansible_group
     vars = {
       notifuse_hostname                 = var.hostname
+      notifuse_image                    = var.image
       notifuse_image_tag                = var.image_tag
+      notifuse_build_from_source        = var.build_from_source
+      notifuse_image_source_repo        = var.image_source_repo
+      notifuse_image_source_ref         = var.image_source_ref
       notifuse_app_secret_id            = scaleway_secret.app[0].id
       notifuse_db_credentials_secret_id = module.database[0].secret_id
       notifuse_smtp_secret_name         = var.smtp_from_email == "" ? "" : "smtp-config"
+      notifuse_auto_update_enabled      = var.auto_update_enabled
+      notifuse_autoheal_enabled         = var.autoheal_enabled
     }
   } : null
 }
@@ -52,4 +58,15 @@ output "database_name" {
 output "root_admin_email" {
   description = "Email address of the initial root admin (echoed back for documentation; the password is in the app-secrets bag)."
   value       = var.enabled ? var.root_admin_email : null
+}
+
+output "backup_plan" {
+  description = "Backrest backup plan contribution. null when disabled or backup_enabled = false. Aggregated by consumer-template into backrest's backup_plans."
+  value = (var.enabled && var.backup_enabled) ? {
+    id        = local.slug
+    paths     = concat(["/backup-sources/opt/${local.slug}"], var.backup_extra_paths)
+    excludes  = []
+    schedule  = { cron = var.backup_schedule_cron }
+    retention = var.backup_retention
+  } : null
 }

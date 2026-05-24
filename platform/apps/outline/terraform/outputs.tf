@@ -38,8 +38,21 @@ output "ansible" {
       outline_db_credentials_secret_id = module.database[0].secret_id
       # SMTP is opt-in: empty smtp_from_email means SMTP is off and Outline
       # should skip the lookup entirely. The Ansible role guards on this.
-      outline_smtp_secret_name = var.smtp_from_email == "" ? "" : "smtp-config"
+      outline_smtp_secret_name    = var.smtp_from_email == "" ? "" : "smtp-config"
+      outline_auto_update_enabled = var.auto_update_enabled
+      outline_autoheal_enabled    = var.autoheal_enabled
     }
+  } : null
+}
+
+output "backup_plan" {
+  description = "Backrest backup plan contribution. null when disabled or backup_enabled = false. Consumer-template aggregates contributions across all apps and passes the list to the backrest module call (same shape as `required_inbound_rules` for SG rules — bundles own their backup story, consumer just plumbs)."
+  value = (var.enabled && var.backup_enabled) ? {
+    id        = local.slug
+    paths     = concat(["/backup-sources/opt/${local.slug}"], var.backup_extra_paths)
+    excludes  = []
+    schedule  = { cron = var.backup_schedule_cron }
+    retention = var.backup_retention
   } : null
 }
 

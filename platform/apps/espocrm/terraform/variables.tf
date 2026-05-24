@@ -61,6 +61,18 @@ variable "image_tag" {
   default     = "latest"
 }
 
+variable "auto_update_enabled" {
+  description = "Whether the Watchtower platform bundle (if deployed) auto-pulls newer EspoCRM image versions. Default FALSE — EspoCRM customizations live in the database AND in `custom/` on a host bind mount; new image versions occasionally need post-upgrade DB rebuild + cache clear. Consumers bump image_tag explicitly so Ansible can run the upgrade steps."
+  type        = bool
+  default     = false
+}
+
+variable "autoheal_enabled" {
+  description = "Whether the Autoheal platform bundle (if deployed) restarts EspoCRM when its healthcheck fails. Default true."
+  type        = bool
+  default     = true
+}
+
 variable "timezone" {
   description = "IANA timezone applied to the EspoCRM runtime config and the container's TZ."
   type        = string
@@ -126,4 +138,39 @@ variable "smtp_from_email" {
   description = "From: address for EspoCRM transactional email. Empty disables SMTP. Set explicitly (e.g. \"crm@example.org\") when an SMTP secret exists in base."
   type        = string
   default     = ""
+}
+
+variable "backup_enabled" {
+  description = "Whether the Backrest platform bundle (if deployed on the same host) backs up this app's host-side state. Default true."
+  type        = bool
+  default     = true
+}
+
+variable "backup_extra_paths" {
+  description = "Additional restic paths beyond `/backup-sources/opt/espocrm`. Use for named docker volumes, etc."
+  type        = list(string)
+  default     = []
+}
+
+variable "backup_schedule_cron" {
+  description = "Backrest cron (6-field, seconds first). Default 02:00 UTC daily."
+  type        = string
+  default     = "0 0 2 * * *"
+}
+
+variable "backup_retention" {
+  description = "Restic retention policy."
+  type = object({
+    hourly  = optional(number)
+    daily   = optional(number)
+    weekly  = optional(number)
+    monthly = optional(number)
+    yearly  = optional(number)
+  })
+  default = {
+    daily   = 7
+    weekly  = 4
+    monthly = 12
+    yearly  = 1
+  }
 }

@@ -1,0 +1,304 @@
+{
+  "name": "EspoCRM Member Upsert",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "trigger-1",
+      "name": "When Called by Parent",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        240,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "={{ $env.ESPOCRM_BASE_URL + '/api/v1/Member' }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "where[0][type]",
+              "value": "equals"
+            },
+            {
+              "name": "where[0][attribute]",
+              "value": "emailAddress"
+            },
+            {
+              "name": "where[0][value]",
+              "value": "={{ $json.email }}"
+            },
+            {
+              "name": "select",
+              "value": "id,firstName,lastName,emailAddress,xNumber"
+            },
+            {
+              "name": "maxSize",
+              "value": "2"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "lookup-1",
+      "name": "Lookup Member By Email",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        460,
+        300
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "name": "EspoCRM API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.total }}",
+                    "rightValue": 0,
+                    "operator": {
+                      "type": "number",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "create"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.total }}",
+                    "rightValue": 1,
+                    "operator": {
+                      "type": "number",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "update"
+            }
+          ]
+        },
+        "options": {
+          "fallbackOutput": "extra",
+          "renameFallbackOutput": true,
+          "fallbackOutputName": "duplicate"
+        }
+      },
+      "id": "switch-1",
+      "name": "Existing Member?",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [
+        680,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Build the Member create body. xNumber comes from AK attributes (forwarded by the upstream policy).\nconst parent = $('When Called by Parent').first().json;\nconst attrs = parent.attributes || {};\nconst body = {\n  firstName: parent.firstName || '',\n  lastName: parent.lastName || '',\n  emailAddress: parent.email || '',\n  branchMembership: 'Yes',\n};\nif (attrs.x_number) body.xNumber = String(attrs.x_number);\nreturn [{ json: body }];\n"
+      },
+      "id": "build-create-1",
+      "name": "Build Create Body",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        900,
+        180
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.ESPOCRM_BASE_URL + '/api/v1/Member' }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json) }}",
+        "options": {}
+      },
+      "id": "create-1",
+      "name": "Create Member",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1120,
+        180
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "name": "EspoCRM API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// PATCH-like update: only set fields present in input (preserves existing Member data).\nconst parent = $('When Called by Parent').first().json;\nconst existing = $json.list && $json.list[0];\nif (!existing) return [];\nconst body = {};\nif (parent.firstName) body.firstName = parent.firstName;\nif (parent.lastName)  body.lastName  = parent.lastName;\nif (parent.email)     body.emailAddress = parent.email;\nconst xNum = (parent.attributes || {}).x_number;\nif (xNum && !existing.xNumber) body.xNumber = String(xNum);\nreturn [{ json: { id: existing.id, body } }];\n"
+      },
+      "id": "build-update-1",
+      "name": "Build Update Body",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        900,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "method": "PUT",
+        "url": "={{ $env.ESPOCRM_BASE_URL + '/api/v1/Member/' + $json.id }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json.body) }}",
+        "options": {}
+      },
+      "id": "update-1",
+      "name": "Update Member",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1120,
+        300
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "name": "EspoCRM API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "select": "channel",
+        "channelId": {
+          "__rl": true,
+          "value": "={{ $env.SLACK_CHANNEL_ADMIN_ALERTS }}",
+          "mode": "name"
+        },
+        "text": "=:warning: Multiple EspoCRM Members match email `{{ $('When Called by Parent').first().json.email }}` \u2014 manual disambiguation required before activation can complete.",
+        "otherOptions": {}
+      },
+      "id": "alert-1",
+      "name": "Alert Duplicate Members",
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.4,
+      "position": [
+        900,
+        460
+      ],
+      "credentials": {
+        "slackApi": {
+          "name": "Slack account"
+        }
+      },
+      "webhookId": "feb40d62-420c-45b0-a5d8-2f8f1fe91cd2"
+    }
+  ],
+  "connections": {
+    "When Called by Parent": {
+      "main": [
+        [
+          {
+            "node": "Lookup Member By Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Lookup Member By Email": {
+      "main": [
+        [
+          {
+            "node": "Existing Member?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Existing Member?": {
+      "main": [
+        [
+          {
+            "node": "Build Create Body",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Build Update Body",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Alert Duplicate Members",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Create Body": {
+      "main": [
+        [
+          {
+            "node": "Create Member",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Update Body": {
+      "main": [
+        [
+          {
+            "node": "Update Member",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

@@ -1,0 +1,334 @@
+{
+  "name": "Authentik User Onboarding",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "authentik-user-onboarding",
+        "responseMode": "lastNode",
+        "options": {}
+      },
+      "id": "webhook",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        220,
+        400
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "event-signup-check",
+              "leftValue": "={{ $json.body.event }}",
+              "rightValue": "user_signup",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "looseTypeValidation": "={{ false }}",
+        "options": {}
+      },
+      "id": "is-signup",
+      "name": "Is Signup?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        460,
+        400
+      ]
+    },
+    {
+      "parameters": {
+        "select": "channel",
+        "channelId": {
+          "__rl": true,
+          "value": "={{ $env.SLACK_CHANNEL_NEW_SIGNUPS }}",
+          "mode": "name"
+        },
+        "messageType": "block",
+        "blocksUi": "={\n  \"blocks\": [\n    {\n      \"type\": \"header\",\n      \"text\": {\n        \"type\": \"plain_text\",\n        \"text\": \"\ud83c\udd95 New User Enrollment\",\n        \"emoji\": true\n      }\n    },\n    {\n      \"type\": \"section\",\n      \"fields\": [\n        { \"type\": \"mrkdwn\", \"text\": \"*Name:*\\n{{ $('Webhook').item.json.body.user.name }}\" },\n        { \"type\": \"mrkdwn\", \"text\": \"*Email:*\\n{{ $('Webhook').item.json.body.user.email }}\" },\n        { \"type\": \"mrkdwn\", \"text\": \"*Signup Method:*\\n{{ $('Webhook').item.json.body.user.signup_method }}\" },\n        { \"type\": \"mrkdwn\", \"text\": \"*Status:*\\n{{ $('Webhook').item.json.body.user.status }}\" }\n      ]\n    },\n    {\n      \"type\": \"section\",\n      \"text\": {\n        \"type\": \"mrkdwn\",\n        \"text\": \"{{ $('Webhook').item.json.body.user.needs_activation ? ':warning: *Action required:* review and activate this account only if you have verified the user is a legitimate member of your organisation.' : ':white_check_mark: User is already active \\u2014 no action needed.' }}\"\n      }\n    },\n    {\n      \"type\": \"actions\",\n      \"elements\": [\n        {\n          \"type\": \"button\",\n          \"style\": \"primary\",\n          \"text\": { \"type\": \"plain_text\", \"text\": \"Manage Users\", \"emoji\": true },\n          \"url\": \"{{ $('Webhook').item.json.body.gateway_url }}/if/admin/#/identity/users\"\n        }\n      ]\n    }\n  ]\n}\n",
+        "text": "=",
+        "otherOptions": {}
+      },
+      "id": "slack-signup",
+      "name": "Slack Signup",
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.4,
+      "position": [
+        720,
+        240
+      ],
+      "credentials": {
+        "slackApi": {
+          "name": "Slack account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Persist the signup Slack message ts keyed by user email so the later\n// activation notification can post as a thread reply.\n\nconst webhookItems = $('Webhook').all();\nif (!webhookItems.length) throw new Error('No data from Webhook node');\nconst webhookData = webhookItems[0].json;\nconst email = webhookData.body?.user?.email;\nif (!email) throw new Error('No user.email in webhook data');\n\nconst slackResponse = $input.first().json;\nconst threadTs = slackResponse.message?.ts || slackResponse.ts || slackResponse.message_timestamp;\nif (!threadTs) throw new Error('No thread_ts found in Slack response');\n\nlet threads = $getWorkflowStaticData('global').threads || {};\nthreads[email] = { ts: threadTs, timestamp: Date.now() };\n\nconst thirtyDaysAgo = Date.now() - (30 * 24 * 60 * 60 * 1000);\nthreads = Object.fromEntries(\n  Object.entries(threads).filter(([_, v]) => v.timestamp > thirtyDaysAgo)\n);\n$getWorkflowStaticData('global').threads = threads;\n\nreturn [{ json: { email, threadTs, success: true } }];"
+      },
+      "id": "store-thread",
+      "name": "Store Thread TS",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        960,
+        240
+      ]
+    },
+    {
+      "parameters": {},
+      "id": "signup-done",
+      "name": "Signup Done",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        1200,
+        240
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Resolve the signup thread_ts for this email so the activation notice\n// posts as a reply in the original signup thread (best-effort, no error\n// if there is no prior thread - first message falls back to a plain post).\n\nconst inputData = $input.first().json;\nconst email = inputData.body?.user?.email;\nif (!email) {\n  return [{ json: { threadTs: '', found: false, error: 'No email in payload', ...inputData } }];\n}\n\nconst payloadThreadTs = inputData.body?.user?.signup_correlation_id;\nif (payloadThreadTs) {\n  return [{ json: { threadTs: payloadThreadTs, found: true, source: 'authentik', ...inputData } }];\n}\n\nconst threads = $getWorkflowStaticData('global').threads || {};\nconst thread = threads[email];\nif (thread && thread.ts) {\n  return [{ json: { threadTs: thread.ts, found: true, source: 'static_data', ...inputData } }];\n}\nreturn [{ json: { threadTs: '', found: false, ...inputData } }];"
+      },
+      "id": "get-thread",
+      "name": "Get Thread TS",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        720,
+        560
+      ]
+    },
+    {
+      "parameters": {
+        "select": "channel",
+        "channelId": {
+          "__rl": true,
+          "value": "={{ $env.SLACK_CHANNEL_NEW_SIGNUPS }}",
+          "mode": "name"
+        },
+        "messageType": "block",
+        "blocksUi": "={\n  \"blocks\": [\n    {\n      \"type\": \"section\",\n      \"text\": {\n        \"type\": \"mrkdwn\",\n        \"text\": \":white_check_mark: *User Activated*\\n*{{ $('Webhook').item.json.body.user.name }}* ({{ $('Webhook').item.json.body.user.email }}) has been activated by {{ $('Webhook').item.json.body.user.activated_by }}.\\nSignup method: {{ $('Webhook').item.json.body.user.signup_method }}\"\n      }\n    }\n  ]\n}\n",
+        "text": "=",
+        "otherOptions": {
+          "thread_ts": {
+            "replyValues": {
+              "thread_ts": "={{ $json.threadTs }}"
+            }
+          }
+        }
+      },
+      "id": "slack-activation",
+      "name": "Slack Activation",
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.4,
+      "position": [
+        960,
+        560
+      ],
+      "credentials": {
+        "slackApi": {
+          "name": "Slack account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "source": "database",
+        "workflowId": {
+          "__rl": true,
+          "value": "qQTnYA4D5EgMVd69",
+          "mode": "list",
+          "cachedResultName": "EspoCRM Member Upsert"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "email": "={{ $('Webhook').item.json.body.user.email }}",
+            "name": "={{ $('Webhook').item.json.body.user.name }}",
+            "firstName": "={{ ($('Webhook').item.json.body.user.name || '').split(' ').slice(0, -1).join(' ') || ($('Webhook').item.json.body.user.name || '').split(' ')[0] || '' }}",
+            "lastName": "={{ ($('Webhook').item.json.body.user.name || '').split(' ').length > 1 ? ($('Webhook').item.json.body.user.name || '').split(' ').slice(-1)[0] : '' }}",
+            "attributes": "={{ $('Webhook').item.json.body.user.attributes || {} }}"
+          },
+          "matchingColumns": [],
+          "schema": [],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "options": {}
+      },
+      "id": "exec-espocrm",
+      "name": "Upsert EspoCRM Member",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.2,
+      "position": [
+        1200,
+        480
+      ]
+    },
+    {
+      "parameters": {
+        "source": "database",
+        "workflowId": {
+          "__rl": true,
+          "value": "HDDxV0lpi7dgj1c2",
+          "mode": "list",
+          "cachedResultName": "Slack Workspace Invite (STUB)"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "email": "={{ $('Webhook').item.json.body.user.email }}",
+            "name": "={{ $('Webhook').item.json.body.user.name }}"
+          },
+          "matchingColumns": [],
+          "schema": [],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "options": {}
+      },
+      "id": "exec-slack-invite",
+      "name": "Invite to Slack Workspace",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.2,
+      "position": [
+        1200,
+        640
+      ]
+    },
+    {
+      "parameters": {},
+      "id": "activation-done",
+      "name": "Activation Done",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        1440,
+        560
+      ]
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Is Signup?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Is Signup?": {
+      "main": [
+        [
+          {
+            "node": "Slack Signup",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Get Thread TS",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Slack Signup": {
+      "main": [
+        [
+          {
+            "node": "Store Thread TS",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Store Thread TS": {
+      "main": [
+        [
+          {
+            "node": "Signup Done",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Thread TS": {
+      "main": [
+        [
+          {
+            "node": "Slack Activation",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Slack Activation": {
+      "main": [
+        [
+          {
+            "node": "Upsert EspoCRM Member",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Invite to Slack Workspace",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Upsert EspoCRM Member": {
+      "main": [
+        [
+          {
+            "node": "Activation Done",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Invite to Slack Workspace": {
+      "main": [
+        [
+          {
+            "node": "Activation Done",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

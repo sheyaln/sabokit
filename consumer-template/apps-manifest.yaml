@@ -862,12 +862,6 @@ apps:
           description: Whether n8n's public REST API is disabled. On by default — n8n's API key auth is a high-value target.
           ui: advanced
 
-        build_from_source:
-          type: bool
-          default: false
-          description: If true, the Ansible role builds a custom image layering python3+pip on top of the upstream n8n image. Only needed for Execute Command nodes that shell out.
-          ui: advanced
-
         deployment_host_key:
           type: string
           default: apps
@@ -956,4 +950,96 @@ apps:
           type: string
           default: Operations
           description: Section the app appears under in the Authentik portal.
+          ui: advanced
+
+  # ── Watchtower ──────────────────────────────────────────────────────────
+  # Platform host-service: auto-pulls newer Docker image versions for
+  # containers that opt in via the standard com.centurylinklabs.watchtower
+  # label. Multi-instance — one block per host that needs auto-updates.
+  # Per-app auto_update_enabled knobs (on every app bundle) decide which
+  # containers are labelled, so consumers don't manage labels by hand.
+  - id: watchtower
+    display_name: Watchtower
+    category: ops
+    description_short: Auto-update opted-in containers
+    description: |
+      One container per host. Watches the local Docker daemon for newer
+      image versions of containers carrying com.centurylinklabs.watchtower.enable=true,
+      pulls them, restarts rolling. Apps bundles set the label from their
+      own auto_update_enabled knob — safe-to-update apps (bentopdf, vikunja,
+      etc.) default on; breaking-change apps (nextcloud, decidim, etc.)
+      default off. No DB, no S3, no Authentik.
+    icon: icons/watchtower.svg
+    upstream_url: https://github.com/containrrr/watchtower
+
+    tfvars:
+      key: watchtower_apps
+      schema:
+        enabled:
+          type: bool
+          default: true
+          description: Whether this Watchtower instance is deployed.
+          ui: hidden
+
+        deployment_host_key:
+          type: string
+          default: apps
+          description: Which host (key in compute_hosts) this Watchtower instance runs on.
+          ui: advanced
+
+        schedule:
+          type: string
+          default: "0 0 4 * * *"
+          description: Cron (6-field, seconds first) governing how often Watchtower polls. Default 04:00 UTC daily — offset from backrest 02:00.
+          ui: advanced
+
+        notifications_slack_webhook:
+          type: string
+          default: ""
+          description: Optional Slack incoming-webhook URL for post-update summaries. Empty disables notifications.
+          ui: advanced
+          sensitive: true
+
+  # ── Autoheal ────────────────────────────────────────────────────────────
+  # Platform host-service: restarts containers whose healthcheck flips to
+  # unhealthy. Multi-instance — one per host. Per-app autoheal_enabled
+  # knobs (on every app bundle) decide which containers get the autoheal=true
+  # label.
+  - id: autoheal
+    display_name: Autoheal
+    category: ops
+    description_short: Restart unhealthy containers
+    description: |
+      One container per host. Polls Docker every few seconds for containers
+      with a HEALTHCHECK in unhealthy state AND opted in via the autoheal=true
+      label, restarts them. Sister bundle to Watchtower; together they form
+      the prod-default self-healing payload alongside Backrest.
+    icon: icons/autoheal.svg
+    upstream_url: https://github.com/willfarrell/docker-autoheal
+
+    tfvars:
+      key: autoheal_apps
+      schema:
+        enabled:
+          type: bool
+          default: true
+          description: Whether this Autoheal instance is deployed.
+          ui: hidden
+
+        deployment_host_key:
+          type: string
+          default: apps
+          description: Which host (key in compute_hosts) this Autoheal instance runs on.
+          ui: advanced
+
+        interval_seconds:
+          type: number
+          default: 5
+          description: How often Autoheal polls Docker for unhealthy containers.
+          ui: advanced
+
+        start_period_seconds:
+          type: number
+          default: 60
+          description: Grace period after container start before Autoheal acts. Lets slow-booting apps finish migrations.
           ui: advanced

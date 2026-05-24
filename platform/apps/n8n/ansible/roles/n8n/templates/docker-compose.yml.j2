@@ -11,17 +11,10 @@ x-logging: &default-logging
 
 services:
   n8n:
-{% if n8n_build_from_source | bool %}
-    # Locally built image — Dockerfile in this directory adds python3 + pip.
-    build:
-      context: .
-      dockerfile: Dockerfile
-    image: "n8n-local:{{ n8n_image_tag }}"
-{% else %}
-    # Upstream image. hooks.js is bind-mounted from the host (see volumes).
+    # Upstream image. Python execution lives in the external runners container
+    # below; n8n itself stays on the hardened upstream image.
     image: "{{ n8n_image }}:{{ n8n_image_tag }}"
     pull_policy: missing
-{% endif %}
     container_name: n8n
     restart: unless-stopped
     # n8n is only reachable via Traefik. The container port is exposed to
@@ -60,6 +53,12 @@ services:
       - "traefik.http.middlewares.n8n-webhook-ratelimit.ratelimit.average={{ n8n_webhook_rate_limit_avg }}"
       - "traefik.http.middlewares.n8n-webhook-ratelimit.ratelimit.burst={{ n8n_webhook_rate_limit_burst }}"
       - "traefik.http.middlewares.n8n-webhook-ratelimit.ratelimit.period={{ n8n_webhook_rate_limit_per }}"
+{% if n8n_auto_update_enabled | default(false) %}
+      - "com.centurylinklabs.watchtower.enable=true"
+{% endif %}
+{% if n8n_autoheal_enabled | default(false) %}
+      - "autoheal=true"
+{% endif %}
     security_opt:
       - no-new-privileges:true
     healthcheck:

@@ -1,0 +1,140 @@
+{
+  "name": "Infrastructure Notifications Receiver",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "infra-notifications",
+        "options": {}
+      },
+      "id": "e2831715-ce3e-4aec-b678-996936fa6a1a",
+      "name": "Webhook Trigger",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -512,
+        -160
+      ],
+      "webhookId": "infra-notifications"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Format Slack Block Kit message for unattended-upgrade events\nconst input = $input.first().json;\nconst body = input.body || input;\n\nconst hostname = body.hostname || 'unknown';\nconst packages = body.packages || '';\nconst packageCount = body.package_count || 0;\nconst rebootRequired = body.reboot_required || false;\nconst rebootPackages = body.reboot_packages || '';\nconst timestamp = body.timestamp || new Date().toISOString();\n\n// Determine header emoji and text\nlet headerEmoji = '📦';\nlet headerText = 'Automatic Package Upgrades';\nlet statusEmoji = '✅';\nlet statusText = 'Packages upgraded successfully';\n\nif (rebootRequired) {\n  headerEmoji = '🔄';\n  headerText = 'Server Reboot Required';\n  statusEmoji = '⚠️';\n  statusText = 'Kernel update requires manual reboot';\n}\n\n// Build Grafana explore URL with LogQL query\nconst lokiQuery = `{host=\"${hostname}\"} |= \"unattended-upgrades\"`;\nconst panes = {\n  a: {\n    datasource: 'loki',\n    queries: [{ refId: 'A', expr: lokiQuery, queryType: 'range' }],\n    range: { from: 'now-6h', to: 'now' }\n  }\n};\nconst grafanaUrl = `https://grafana.example.org/explore?schemaVersion=1&panes=${encodeURIComponent(JSON.stringify(panes))}&orgId=1`;\n\n// Build blocks array\nconst blocks = [\n  {\n    type: 'header',\n    text: {\n      type: 'plain_text',\n      text: `${headerEmoji} ${headerText}`,\n      emoji: true\n    }\n  },\n  {\n    type: 'section',\n    fields: [\n      {\n        type: 'mrkdwn',\n        text: `*Server:*\\n\\`${hostname}\\``\n      },\n      {\n        type: 'mrkdwn',\n        text: `*Packages Upgraded:*\\n${packageCount}`\n      }\n    ]\n  }\n];\n\n// Add packages section if any were upgraded\nif (packages && packageCount > 0) {\n  blocks.push({\n    type: 'section',\n    text: {\n      type: 'mrkdwn',\n      text: `*Upgraded Packages:*\\n\\`\\`\\`${packages}\\`\\`\\``\n    }\n  });\n}\n\n// Add reboot section if required\nif (rebootRequired) {\n  let rebootText = '*Reboot Required:* Yes';\n  if (rebootPackages) {\n    rebootText += `\\n*Packages requiring reboot:* \\`${rebootPackages}\\``;\n  }\n  blocks.push({\n    type: 'section',\n    text: {\n      type: 'mrkdwn',\n      text: rebootText\n    }\n  });\n}\n\n// Add context footer\nblocks.push({\n  type: 'context',\n  elements: [\n    {\n      type: 'mrkdwn',\n      text: `${statusEmoji} ${statusText} | ${timestamp}`\n    }\n  ]\n});\n\n// Add View Logs button\nblocks.push({\n  type: 'actions',\n  elements: [\n    {\n      type: 'button',\n      text: {\n        type: 'plain_text',\n        text: 'View Logs',\n        emoji: true\n      },\n      url: grafanaUrl\n    }\n  ]\n});\n\nconst fallbackText = `${headerEmoji} ${headerText}: ${hostname} - ${packageCount} packages upgraded${rebootRequired ? ' (reboot required)' : ''}`;\n\nreturn [{ json: { blocks, fallbackText } }];"
+      },
+      "id": "7b379198-a6ee-494f-b369-51b7ab142ae4",
+      "name": "Format Slack Message",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -288,
+        -160
+      ]
+    },
+    {
+      "parameters": {
+        "select": "channel",
+        "channelId": {
+          "__rl": true,
+          "value": "#infra-alerts",
+          "mode": "name"
+        },
+        "messageType": "block",
+        "blocksUi": "={{ JSON.stringify({ blocks: $json.blocks }) }}",
+        "text": "={{ $json.fallbackText }}",
+        "otherOptions": {}
+      },
+      "id": "b5a56be2-0c1f-4e26-b536-5164e412a5b4",
+      "name": "Send Slack Alert",
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.2,
+      "position": [
+        -80,
+        -160
+      ],
+      "webhookId": "303ad435-a0b1-4b93-89ee-ec9261f9422f",
+      "credentials": {
+        "slackApi": {
+          "id": "",
+          "name": "Slack account"
+        }
+      }
+    }
+  ],
+  "pinData": {
+    "Webhook Trigger": [
+      {
+        "json": {
+          "headers": {
+            "host": "n8n.example.org",
+            "user-agent": "curl/7.81.0",
+            "content-length": "277",
+            "accept": "*/*",
+            "content-type": "application/json",
+            "x-forwarded-for": "172.16.0.5",
+            "x-forwarded-host": "n8n.example.org",
+            "x-forwarded-port": "443",
+            "x-forwarded-proto": "https",
+            "x-forwarded-server": "aea0c7a7f65e",
+            "x-real-ip": "172.16.0.5",
+            "accept-encoding": "gzip"
+          },
+          "params": {},
+          "query": {},
+          "body": {
+            "event": "unattended-upgrade",
+            "hostname": "management",
+            "packages": "test-package-1, test-package-2",
+            "package_count": 2,
+            "reboot_required": true,
+            "reboot_packages": "linux-image-test",
+            "timestamp": "2026-02-18T09:23:49+00:00"
+          },
+          "webhookUrl": "https://n8n.example.org/webhook-test/infra-notifications",
+          "executionMode": "test"
+        },
+        "pairedItem": {
+          "item": 0
+        }
+      }
+    ]
+  },
+  "connections": {
+    "Webhook Trigger": {
+      "main": [
+        [
+          {
+            "node": "Format Slack Message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Slack Message": {
+      "main": [
+        [
+          {
+            "node": "Send Slack Alert",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false,
+    "timeSavedMode": "fixed",
+    "errorWorkflow": "ScNDFrAVG90ETWIh",
+    "callerPolicy": "workflowsFromSameOwner"
+  },
+  "versionId": "",
+  "meta": {
+    "instanceId": ""
+  },
+  "id": "E3hYjBjw0n0kRueV",
+  "tags": []
+}

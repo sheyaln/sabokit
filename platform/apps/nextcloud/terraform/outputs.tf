@@ -68,6 +68,15 @@ output "ansible" {
       # skips the lookup entirely.
       nextcloud_smtp_secret_name = var.smtp_from_email == "" ? "" : "smtp-config"
 
+      # Instance identity + scheduling + app management.
+      nextcloud_instance_name            = var.instance_name
+      nextcloud_maintenance_window_start = var.maintenance_window_start
+      nextcloud_enabled_apps             = var.enabled_apps
+      nextcloud_disabled_apps            = var.disabled_apps
+      nextcloud_n8n_form_webhook_url     = var.n8n_form_webhook_url
+      nextcloud_auto_update_enabled      = var.auto_update_enabled
+      nextcloud_autoheal_enabled         = var.autoheal_enabled
+
       # OnlyOffice + Talk HPB knobs that aren't secret-shaped (image tags,
       # resource caps, port ranges). Secret-shaped values travel through the
       # single app-secrets bag above.
@@ -97,4 +106,15 @@ output "data_bucket_name" {
 output "database_name" {
   description = "PostgreSQL database name. null when disabled."
   value       = var.enabled ? module.database[0].database_name : null
+}
+
+output "backup_plan" {
+  description = "Backrest backup plan contribution. null when disabled or backup_enabled = false. Aggregated by consumer-template into backrest's backup_plans."
+  value = (var.enabled && var.backup_enabled) ? {
+    id        = local.slug
+    paths     = concat(["/backup-sources/opt/${local.slug}"], var.backup_extra_paths)
+    excludes  = []
+    schedule  = { cron = var.backup_schedule_cron }
+    retention = var.backup_retention
+  } : null
 }

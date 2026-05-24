@@ -61,10 +61,16 @@ variable "image_tag" {
   default     = "latest"
 }
 
-variable "build_from_source" {
-  description = "If true, the Ansible role builds a custom image from a local Dockerfile that layers python3 + pip on top of the upstream n8n image (needed for the Execute Command node to run arbitrary system commands). Default false: pull the upstream image and bind-mount hooks.js — simpler, no build step on the host, faster updates. Most consumers never need this."
+variable "auto_update_enabled" {
+  description = "Whether the Watchtower platform bundle (if deployed) auto-pulls newer n8n image versions. Default FALSE — n8n schema migrations and the lock-step runner version requirement (n8nio/runners must match n8n exactly) make blind updates risky. Consumers bump image_tag explicitly and Ansible restarts both n8n + n8n-runners together."
   type        = bool
   default     = false
+}
+
+variable "autoheal_enabled" {
+  description = "Whether the Autoheal platform bundle (if deployed) restarts n8n when its healthcheck fails. Default true."
+  type        = bool
+  default     = true
 }
 
 variable "n8n_admin_group_name" {
@@ -113,4 +119,39 @@ variable "webhook_rate_limit_period" {
   description = "Traefik rate-limit period for the webhook router (Go duration syntax, e.g. \"1m\", \"30s\")."
   type        = string
   default     = "1m"
+}
+
+variable "backup_enabled" {
+  description = "Whether the Backrest platform bundle (if deployed on the same host) backs up this app's host-side state. Default true."
+  type        = bool
+  default     = true
+}
+
+variable "backup_extra_paths" {
+  description = "Additional restic paths beyond `/backup-sources/opt/n8n`. Use for named docker volumes, etc."
+  type        = list(string)
+  default     = []
+}
+
+variable "backup_schedule_cron" {
+  description = "Backrest cron (6-field, seconds first). Default 02:00 UTC daily."
+  type        = string
+  default     = "0 0 2 * * *"
+}
+
+variable "backup_retention" {
+  description = "Restic retention policy."
+  type = object({
+    hourly  = optional(number)
+    daily   = optional(number)
+    weekly  = optional(number)
+    monthly = optional(number)
+    yearly  = optional(number)
+  })
+  default = {
+    daily   = 7
+    weekly  = 4
+    monthly = 12
+    yearly  = 1
+  }
 }

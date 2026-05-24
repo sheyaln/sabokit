@@ -79,6 +79,61 @@ variable "admin_username" {
   default     = "ncadmin"
 }
 
+variable "instance_name" {
+  description = "User-facing instance name (browser tab, email headers, mobile clients). Default \"Nextcloud\" — set to your org's product name (e.g. \"Acme Cloud\") for branded deployments."
+  type        = string
+  default     = "Nextcloud"
+}
+
+variable "maintenance_window_start" {
+  description = "UTC hour (0-23) when Nextcloud runs its nightly background-job window. 2 = 2 AM UTC. Pick a low-traffic hour for your user base."
+  type        = number
+  default     = 2
+  validation {
+    condition     = var.maintenance_window_start >= 0 && var.maintenance_window_start <= 23
+    error_message = "maintenance_window_start must be in [0, 23]."
+  }
+}
+
+variable "enabled_apps" {
+  description = "Nextcloud apps the post-install script auto-installs and enables on every run. Default set turns Nextcloud into a full collaboration suite (group folders, push, notes, tasks, forms, polls, epub reader, webhooks). Override to keep the install lean or add your own (e.g. \"deck\", \"calendar\", \"contacts\")."
+  type        = list(string)
+  default = [
+    "groupfolders",
+    "notify_push",
+    "notes",
+    "tasks",
+    "forms",
+    "polls",
+    "epubviewer",
+    "webhook_listeners",
+  ]
+}
+
+variable "disabled_apps" {
+  description = "Nextcloud apps the post-install script disables on every run. Default disables `photos` because the thumbnail jobs are heavy and most consumers don't actively use the photos surface."
+  type        = list(string)
+  default     = ["photos"]
+}
+
+variable "auto_update_enabled" {
+  description = "Whether the Watchtower platform bundle (if deployed) auto-pulls newer Nextcloud image versions. Default FALSE — Nextcloud only supports one-major-at-a-time upgrades and major bumps require post-upgrade occ steps. Consumers should bump image_tag explicitly and let Ansible handle the upgrade path."
+  type        = bool
+  default     = false
+}
+
+variable "autoheal_enabled" {
+  description = "Whether the Autoheal platform bundle (if deployed) restarts Nextcloud when its healthcheck fails. Default true — restart-on-unhealthy is safe; the bigger concern is the upgrade path, not unhealthy state recovery."
+  type        = bool
+  default     = true
+}
+
+variable "n8n_form_webhook_url" {
+  description = "Optional: URL of an n8n webhook receiver for Nextcloud Forms submissions. When non-empty, the post-install script registers a webhook_listeners hook for `OCA\\Forms\\Events\\FormSubmittedEvent` pointed at this URL (idempotent). Requires `webhook_listeners` in `enabled_apps`."
+  type        = string
+  default     = ""
+}
+
 variable "default_phone_region" {
   description = "ISO 3166-1 alpha-2 country code used by Nextcloud to format phone numbers when no region is supplied (e.g. \"US\", \"DE\", \"FR\")."
   type        = string
@@ -159,4 +214,39 @@ variable "talk_cpu_limit" {
   description = "CPU ceiling for the Talk HPB container. WebRTC media doesn't pass through the HPB once peers are connected; the SFU only touches each packet briefly."
   type        = string
   default     = "1.0"
+}
+
+variable "backup_enabled" {
+  description = "Whether the Backrest platform bundle (if deployed on the same host) backs up this app's host-side state. Default true."
+  type        = bool
+  default     = true
+}
+
+variable "backup_extra_paths" {
+  description = "Additional restic paths beyond `/backup-sources/opt/nextcloud`. Use for named docker volumes, etc."
+  type        = list(string)
+  default     = []
+}
+
+variable "backup_schedule_cron" {
+  description = "Backrest cron (6-field, seconds first). Default 02:00 UTC daily."
+  type        = string
+  default     = "0 0 2 * * *"
+}
+
+variable "backup_retention" {
+  description = "Restic retention policy."
+  type = object({
+    hourly  = optional(number)
+    daily   = optional(number)
+    weekly  = optional(number)
+    monthly = optional(number)
+    yearly  = optional(number)
+  })
+  default = {
+    daily   = 7
+    weekly  = 4
+    monthly = 12
+    yearly  = 1
+  }
 }

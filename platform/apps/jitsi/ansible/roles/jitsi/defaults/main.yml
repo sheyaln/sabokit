@@ -36,3 +36,9 @@ jitsi_app_secret_id: ""
 
 # Docker networks the Jitsi containers join.
 jitsi_traefik_docker_network: "traefik"
+
+# Ops-bundle opt-in labels.
+# auto_update default false: 5 lockstep containers (web, prosody, jicofo, jvb,
+# oidc-adapter); mixed versions break calls.
+jitsi_auto_update_enabled: false
+jitsi_autoheal_enabled: true

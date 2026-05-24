@@ -56,15 +56,33 @@ variable "deployment_host_key" {
 # ── Decidim-specific inputs ─────────────────────────────────────────────────
 
 variable "image" {
-  description = "Decidim Docker image (without tag). Decidim publishes via ghcr.io/decidim/decidim."
+  description = "Decidim Docker image (without tag) used as the BASE for the locally-built image. The Ansible role extends this image with `extra_gems` and re-runs `bundle install` + `assets:precompile`. Decidim publishes via ghcr.io/decidim/decidim."
   type        = string
   default     = "ghcr.io/decidim/decidim"
 }
 
 variable "image_tag" {
-  description = "Decidim Docker image tag. Pin to a release tag (e.g. \"0.28.1\") for production; \"latest\" follows the project's published latest."
+  description = "Decidim Docker image tag. Pin to a release tag (e.g. \"0.30.0\") for production; \"latest\" follows the project's published latest. Same tag is used as the version for every gem in `extra_gems` (Decidim modules version-lock to the core)."
   type        = string
   default     = "latest"
+}
+
+variable "auto_update_enabled" {
+  description = "Whether the Watchtower platform bundle (if deployed) auto-pulls newer Decidim image versions. Default FALSE — Decidim is a Rails app with non-trivial schema migrations and the locally-built image (when extra_gems is non-empty) wouldn't be touched by Watchtower anyway. Consumers bump image_tag explicitly."
+  type        = bool
+  default     = false
+}
+
+variable "autoheal_enabled" {
+  description = "Whether the Autoheal platform bundle (if deployed) restarts the Decidim app container when its healthcheck fails. Default true."
+  type        = bool
+  default     = true
+}
+
+variable "extra_gems" {
+  description = "Decidim modular gems to add on top of the base image, each pinned to `image_tag`. The base `decidim` meta-gem ships proposals, meetings, debates, assemblies, etc. — but optional modules like `decidim-elections` are NOT included and must be added explicitly. Default ships elections because every participatory-democracy deployment eventually wants it. Set to `[]` for a lean install."
+  type        = list(string)
+  default     = ["decidim-elections"]
 }
 
 variable "organization_name" {
@@ -137,5 +155,40 @@ variable "sidekiq_concurrency" {
   validation {
     condition     = var.sidekiq_concurrency >= 1
     error_message = "sidekiq_concurrency must be at least 1."
+  }
+}
+
+variable "backup_enabled" {
+  description = "Whether the Backrest platform bundle (if deployed on the same host) backs up this app's host-side state. Default true."
+  type        = bool
+  default     = true
+}
+
+variable "backup_extra_paths" {
+  description = "Additional restic paths beyond `/backup-sources/opt/decidim`. Use for named docker volumes, etc."
+  type        = list(string)
+  default     = []
+}
+
+variable "backup_schedule_cron" {
+  description = "Backrest cron (6-field, seconds first). Default 02:00 UTC daily."
+  type        = string
+  default     = "0 0 2 * * *"
+}
+
+variable "backup_retention" {
+  description = "Restic retention policy."
+  type = object({
+    hourly  = optional(number)
+    daily   = optional(number)
+    weekly  = optional(number)
+    monthly = optional(number)
+    yearly  = optional(number)
+  })
+  default = {
+    daily   = 7
+    weekly  = 4
+    monthly = 12
+    yearly  = 1
   }
 }

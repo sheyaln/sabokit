@@ -1,0 +1,47 @@
+{
+  "name": "Slack Workspace Invite (STUB)",
+  "nodes": [
+    {
+      "parameters": {
+        "inputSource": "passthrough"
+      },
+      "id": "trigger",
+      "name": "When Called by Parent",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        240,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// TODO: Implement Slack workspace invite when a viable path exists.\n//\n// Status (2026-05): Slack Free plan has no supported invite API.\n//   - admin.users.invite requires Business+ plan.\n//   - Email-domain allowlist is unusable for membership orgs (activation IS the vetting step).\n//   - Manual one-time invite links cannot be programmatically generated.\n//\n// This stub is a no-op pass-through so the parent dispatcher graph is wired and ready.\n// When a real provisioning path is chosen, replace this node with the actual logic.\n\nconst parent = $input.first().json;\n\nreturn [{\n  json: {\n    skipped: true,\n    reason: 'slack_invite_stub_no_op',\n    email: parent.email || null,\n    name: parent.name || null,\n  }\n}];"
+      },
+      "id": "stub",
+      "name": "No-Op Stub (TODO)",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        480,
+        300
+      ]
+    }
+  ],
+  "connections": {
+    "When Called by Parent": {
+      "main": [
+        [
+          {
+            "node": "No-Op Stub (TODO)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

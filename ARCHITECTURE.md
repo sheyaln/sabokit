@@ -235,9 +235,39 @@ output "ansible" {
     vars        = map(any)  # role variables the consumer should set on the host
   } : null
 }
+
+output "required_inbound_rules" {
+  description = "Security group rules required for this app to function. Aggregated by the consumer into base's default_security_group_extra_inbound_rules."
+  value = (var.enabled && <condition>) ? [
+    { protocol = "TCP|UDP", port = number, port_range = "lo-hi", ip_range = "cidr" },
+  ] : []
+}
+
+output "backup_plan" {
+  description = "Backrest backup plan contribution. Aggregated by the consumer into backrest's backup_plans."
+  value = (var.enabled && var.backup_enabled) ? {
+    id        = local.slug
+    paths     = list(string)   # /backup-sources/opt/<slug> + var.backup_extra_paths
+    excludes  = list(string)
+    schedule  = { cron = string }
+    retention = { hourly = number, daily = number, weekly = number, monthly = number, yearly = number }
+  } : null
+}
 ```
 
 The `null when disabled` pattern is load-bearing. Consumers and other apps use `coalesce(module.outline.monitoring, {})` patterns to drop disabled apps from aggregation.
+
+### Plug-and-play platform contributions
+
+Three outputs follow the **bundles own their requirements, consumers just plumb** pattern:
+
+| Output | Aggregated into | Pattern |
+|--------|-----------------|---------|
+| `required_inbound_rules` | `base.default_security_group_extra_inbound_rules` | Each enabled app declares the SG ports it needs open; consumer concats. |
+| `backup_plan` | `backrest_<instance>.backup_plans` | Each enabled app declares a default backup plan; consumer collects all non-null and concats with consumer-supplied extras. Each backrest instance gets the full union; restic skips paths that don't exist on its host. |
+| `monitoring` | monitoring app's scrape/dashboard/log/alert lists | Each enabled app contributes its observability footprint; monitoring apps merge. |
+
+When you add a new bundle that needs SG ports, host-side filesystem backups, or monitoring wiring: ship the output. When you add a new contributor pattern, document it here and apply it the same way.
 
 ---
 

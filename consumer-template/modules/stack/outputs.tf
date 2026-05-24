@@ -105,5 +105,13 @@ output "enabled_apps" {
       ansible_group = module.backrest_mgmt.ansible.host_group
       monitoring    = module.backrest_mgmt.monitoring
     } : null
+    watchtower_apps = module.watchtower_apps.enabled ? {
+      ansible_vars  = module.watchtower_apps.ansible.vars
+      ansible_group = module.watchtower_apps.ansible.host_group
+    } : null
+    autoheal_apps = module.autoheal_apps.enabled ? {
+      ansible_vars  = module.autoheal_apps.ansible.vars
+      ansible_group = module.autoheal_apps.ansible.host_group
+    } : null
   }
 }

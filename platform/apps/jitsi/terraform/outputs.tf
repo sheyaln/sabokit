@@ -60,6 +60,19 @@ output "ansible" {
       jitsi_oidc_log_level        = var.oidc_log_level
       jitsi_authentik_gateway     = var.base.authentik.gateway_domain
       jitsi_app_secret_id         = scaleway_secret.app[0].id
+      jitsi_auto_update_enabled   = var.auto_update_enabled
+      jitsi_autoheal_enabled      = var.autoheal_enabled
     }
+  } : null
+}
+
+output "backup_plan" {
+  description = "Backrest backup plan contribution. null when disabled or backup_enabled = false. Aggregated by consumer-template into backrest's backup_plans."
+  value = (var.enabled && var.backup_enabled) ? {
+    id        = local.slug
+    paths     = concat(["/backup-sources/opt/${local.slug}"], var.backup_extra_paths)
+    excludes  = []
+    schedule  = { cron = var.backup_schedule_cron }
+    retention = var.backup_retention
   } : null
 }

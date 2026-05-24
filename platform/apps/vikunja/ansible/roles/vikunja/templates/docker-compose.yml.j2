@@ -19,6 +19,12 @@ services:
       - "traefik.http.routers.vikunja.entrypoints=websecure"
       - "traefik.http.routers.vikunja.tls.certresolver=le"
       - "traefik.http.routers.vikunja.service=vikunja"
+{% if vikunja_auto_update_enabled | default(false) %}
+      - "com.centurylinklabs.watchtower.enable=true"
+{% endif %}
+{% if vikunja_autoheal_enabled | default(false) %}
+      - "autoheal=true"
+{% endif %}
     networks:
       - "{{ vikunja_traefik_docker_network }}"
     security_opt:

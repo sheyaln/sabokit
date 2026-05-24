@@ -36,7 +36,7 @@ resource "scaleway_secret_version" "app" {
     OIDC_TOKEN_URI      = "https://${var.base.authentik.gateway_domain}/application/o/token/"
     OIDC_USERINFO_URI   = "https://${var.base.authentik.gateway_domain}/application/o/userinfo/"
     OIDC_LOGOUT_URI     = "https://${var.base.authentik.gateway_domain}/application/o/${local.slug}/end-session/"
-    OIDC_USERNAME_CLAIM = "preferred_username"
+    OIDC_USERNAME_CLAIM = var.oidc_username_claim
     OIDC_DISPLAY_NAME   = "Authentik"
     OIDC_SCOPES         = "openid profile email"
 

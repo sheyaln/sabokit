@@ -1,0 +1,36 @@
+---
+# {{ ansible_managed }}
+# Managed by sabokit apps/watchtower/ansible/role.
+# Do not edit by hand — regenerated on every ansible-playbook run.
+
+services:
+  watchtower:
+    image: "{{ watchtower_image }}:{{ watchtower_image_tag }}"
+    container_name: watchtower
+    restart: unless-stopped
+    environment:
+      TZ: "{{ watchtower_timezone }}"
+      WATCHTOWER_SCHEDULE: "{{ watchtower_schedule }}"
+      WATCHTOWER_LABEL_ENABLE: "{{ watchtower_label_enable | string | lower }}"
+{% if watchtower_scope %}
+      WATCHTOWER_SCOPE: "{{ watchtower_scope }}"
+{% endif %}
+      WATCHTOWER_CLEANUP: "{{ watchtower_cleanup | string | lower }}"
+      WATCHTOWER_ROLLING_RESTART: "{{ watchtower_rolling_restart | string | lower }}"
+      WATCHTOWER_INCLUDE_STOPPED: "{{ watchtower_include_stopped | string | lower }}"
+{% if watchtower_notifications_slack_webhook %}
+      WATCHTOWER_NOTIFICATIONS: slack
+      WATCHTOWER_NOTIFICATION_SLACK_HOOK_URL: "{{ watchtower_notifications_slack_webhook }}"
+      WATCHTOWER_NOTIFICATION_SLACK_IDENTIFIER: "watchtower-{{ inventory_hostname }}"
+{% endif %}
+    volumes:
+      # Required: lets Watchtower talk to the local Docker daemon.
+      - /var/run/docker.sock:/var/run/docker.sock
+    deploy:
+      resources:
+        limits:
+          memory: "{{ watchtower_memory_limit }}"
+          cpus: "{{ watchtower_cpu_limit }}"
+        reservations:
+          memory: "{{ watchtower_memory_reservation }}"
+          cpus: "{{ watchtower_cpu_reservation }}"

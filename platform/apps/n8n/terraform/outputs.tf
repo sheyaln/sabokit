@@ -34,7 +34,6 @@ output "ansible" {
     vars = {
       n8n_hostname                 = var.hostname
       n8n_image_tag                = var.image_tag
-      n8n_build_from_source        = var.build_from_source
       n8n_timezone                 = var.timezone
       n8n_public_api_disabled      = var.public_api_disabled
       n8n_python_stdlib_allow      = var.python_stdlib_allow
@@ -42,6 +41,8 @@ output "ansible" {
       n8n_webhook_rate_limit_avg   = var.webhook_rate_limit_average
       n8n_webhook_rate_limit_burst = var.webhook_rate_limit_burst
       n8n_webhook_rate_limit_per   = var.webhook_rate_limit_period
+      n8n_auto_update_enabled      = var.auto_update_enabled
+      n8n_autoheal_enabled         = var.autoheal_enabled
       n8n_app_secret_id            = scaleway_secret.app[0].id
       n8n_db_credentials_secret_id = module.database[0].secret_id
     }
@@ -51,4 +52,15 @@ output "ansible" {
 output "database_name" {
   description = "PostgreSQL database name. null when disabled."
   value       = var.enabled ? module.database[0].database_name : null
+}
+
+output "backup_plan" {
+  description = "Backrest backup plan contribution. null when disabled or backup_enabled = false. Aggregated by consumer-template into backrest's backup_plans."
+  value = (var.enabled && var.backup_enabled) ? {
+    id        = local.slug
+    paths     = concat(["/backup-sources/opt/${local.slug}"], var.backup_extra_paths)
+    excludes  = []
+    schedule  = { cron = var.backup_schedule_cron }
+    retention = var.backup_retention
+  } : null
 }

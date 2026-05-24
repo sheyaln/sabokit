@@ -46,3 +46,9 @@ espocrm_daemon_memory_limit: "256M"
 espocrm_daemon_memory_reservation: "128M"
 espocrm_daemon_cpu_limit: "0.25"
 espocrm_daemon_cpu_reservation: "0.1"
+
+# Ops-bundle opt-in labels.
+# auto_update default false: PHP customizations + occasional post-upgrade
+# DB rebuild; let Ansible handle bumps.
+espocrm_auto_update_enabled: false
+espocrm_autoheal_enabled: true

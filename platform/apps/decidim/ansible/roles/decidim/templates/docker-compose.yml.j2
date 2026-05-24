@@ -27,11 +27,41 @@ services:
           memory: 64M
           cpus: '0.1'
 
+  # Memcached holds Rails fragment cache. Without it Decidim falls back to
+  # in-process caching, which works for a handful of users but loses every
+  # cache hit on `app`/`sidekiq` restart and never benefits from the second
+  # request to any view.
+  decidim-memcached:
+    image: memcached:1.6-alpine
+    container_name: decidim-memcached
+    restart: always
+    command: memcached -m {{ decidim_memcached_memory_mb }} -o modern
+    networks:
+      - decidim_network
+    security_opt:
+      - no-new-privileges:true
+    deploy:
+      resources:
+        limits:
+          memory: "{{ decidim_memcached_memory_limit }}"
+          cpus: "{{ decidim_memcached_cpu_limit }}"
+        reservations:
+          memory: "{{ decidim_memcached_memory_reservation }}"
+          cpus: "{{ decidim_memcached_cpu_reservation }}"
+
   # One-shot bootstrapper. Idempotent via the init-marker volume: the first
   # successful run writes /init/db_initialized; subsequent runs short-circuit.
   # On failure (e.g. transient DB connectivity), the next play retries.
   db-init:
+{% if decidim_extra_gems and decidim_extra_gems | length > 0 %}
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: "decidim-local:{{ decidim_image_tag }}"
+    pull_policy: never
+{% else %}
     image: "{{ decidim_image }}:{{ decidim_image_tag }}"
+{% endif %}
     container_name: decidim-db-init
     restart: "no"
     env_file:
@@ -122,7 +152,15 @@ services:
           cpus: '0.5'
 
   app:
+{% if decidim_extra_gems and decidim_extra_gems | length > 0 %}
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: "decidim-local:{{ decidim_image_tag }}"
+    pull_policy: never
+{% else %}
     image: "{{ decidim_image }}:{{ decidim_image_tag }}"
+{% endif %}
     container_name: decidim-app
     restart: always
     command: bundle exec rails server -p 3000 -b 0.0.0.0
@@ -133,6 +171,8 @@ services:
         condition: service_completed_successfully
       decidim-redis:
         condition: service_healthy
+      decidim-memcached:
+        condition: service_started
     volumes:
       - uploads-data:/code/public/uploads
       - logs-data:/code/log
@@ -148,6 +188,12 @@ services:
       - "traefik.http.middlewares.decidim-buffering.buffering.maxRequestBodyBytes={{ decidim_max_upload_size_bytes }}"
       - "traefik.http.middlewares.decidim-buffering.buffering.maxResponseBodyBytes={{ decidim_max_upload_size_bytes }}"
       - "traefik.http.routers.decidim.middlewares=decidim-buffering@docker"
+{% if decidim_auto_update_enabled | default(false) %}
+      - "com.centurylinklabs.watchtower.enable=true"
+{% endif %}
+{% if decidim_autoheal_enabled | default(false) %}
+      - "autoheal=true"
+{% endif %}
     networks:
       - "{{ decidim_traefik_docker_network }}"
       - decidim_network
@@ -169,7 +215,15 @@ services:
           cpus: "{{ decidim_app_cpu_reservation }}"
 
   sidekiq:
+{% if decidim_extra_gems and decidim_extra_gems | length > 0 %}
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: "decidim-local:{{ decidim_image_tag }}"
+    pull_policy: never
+{% else %}
     image: "{{ decidim_image }}:{{ decidim_image_tag }}"
+{% endif %}
     container_name: decidim-sidekiq
     restart: always
     command: bundle exec sidekiq -c {{ decidim_sidekiq_concurrency }}
@@ -180,6 +234,8 @@ services:
         condition: service_completed_successfully
       decidim-redis:
         condition: service_healthy
+      decidim-memcached:
+        condition: service_started
     volumes:
       - uploads-data:/code/public/uploads
       - logs-data:/code/log

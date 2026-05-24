@@ -15,12 +15,6 @@ n8n — open-source workflow automation. Self-contained bundle:
 - **`N8N_RUNNERS_AUTH_TOKEN` is also locked** — same treatment. Rotating mid-run kills any in-flight workflow.
 - **`scaleway_secret_version.app` has `ignore_changes = [data]`** so peripheral fields (e.g. OIDC client_secret rotating underneath) don't churn the version forever. To force a re-render, taint it.
 
-## Build-from-source vs upstream image
-
-Default: pull `docker.n8n.io/n8nio/n8n:<tag>` and bind-mount `hooks.js` into the container. Fast, no build step, no local image cache to manage.
-
-Flip `build_from_source = true` to render a local `Dockerfile` that layers `python3 + pip` on top of the upstream image. Only useful if a workflow's Execute Command node needs to shell out to system python — n8n's Code-node Python execution already happens in the `n8nio/runners` sidecar (which ships with python preinstalled) and works without the custom build.
-
 ## Usage
 
 ```hcl
@@ -63,7 +57,6 @@ In `site.yml`:
 | `monitoring_enabled` | `bool` | `true` | Wire log paths into monitoring. |
 | `deployment_host_key` | `string` | `"apps"` | Target host. |
 | `image_tag` | `string` | `"latest"` | n8n image tag (used for both n8n and the runners sidecar). |
-| `build_from_source` | `bool` | `false` | Build a custom image with python3+pip on top of the upstream image. |
 | `n8n_admin_group_name` | `string` | `"admin"` | OIDC group whose members become n8n owners. |
 | `timezone` | `string` | `"UTC"` | IANA timezone for the container. |
 | `public_api_disabled` | `bool` | `true` | Disable n8n's REST API (high-value target). |
@@ -116,13 +109,54 @@ After `terraform apply && ansible-playbook site.yml`:
 - `/opt/n8n/.env` — managed file (mode 0600, regenerated from Scaleway Secret Manager on every play)
 - `/opt/n8n/hooks.js` — OIDC external hook, bind-mounted into the container
 - `/opt/n8n/n8n-task-runners.json` — runners launcher config, mounted into the sidecar
-- `/opt/n8n/Dockerfile` — only when `build_from_source = true`
 - Docker named volume `n8n_data` for `/home/node/.n8n` (encryption key on disk, queue, etc.)
 - Containers `n8n` (port 5678) and `n8n-runners` on a project-scoped internal network
 
 ## Disabling
 
 Set `apps.n8n.enabled = false` in tfvars and `terraform apply`. Drops the Authentik resources, the DNS record, the database (⚠ data loss — all workflows and credentials gone), and the Scaleway secret. The compose stack and the `/opt/n8n/` directory on the host are not auto-torn-down — `ssh apps && cd /opt/n8n && docker compose down -v && sudo rm -rf /opt/n8n` to fully remove.
+
+## Bundled workflows
+
+`ansible/roles/n8n/files/workflows/` ships JSON exports that pair with `platform/identity/`'s notification webhook. They are **not auto-imported** — import once from the n8n UI (`Workflows → Import from File`).
+
+| File | Purpose |
+|------|---------|
+| `authentik-user-onboarding.json` | Dispatcher webhook. Receives `user_signup` and `user_activation` events from the Authentik notification policies; posts the signup notice to Slack and (on activation) fans out to the two sub-workflows below. |
+| `authentik-user-lifecycle-notifier.json` | Receives full Authentik user-lifecycle webhook events (created / activated / deactivated / deleted) and posts a richly-formatted Slack card to `#user-onboarding`. Sister workflow to onboarding; covers the post-signup states. |
+| `espocrm-member-upsert.json` | Sub-workflow. Looks up a CRM `Member` by email; creates one if missing, otherwise updates a small set of fields while preserving everything else. Refuses to act on duplicate matches and alerts an admin channel. |
+| `espocrm-membership-notifier.json` | Posts to `#membership-events` when an EspoCRM Member's `membershipStatus` changes (good standing / in arrears / suspended / etc.). Useful as a Slack feed for membership coordinators. |
+| `slack-invite-stub.json` | Sub-workflow. No-op placeholder for Slack workspace provisioning — Slack Free has no usable invite API. Replace the Code node when a real path exists. |
+| `error-notification.json` | Global error trigger. When any other workflow throws, a richly-formatted error card lands in `#infra-alerts` with workflow name, execution ID, last node, error message, stacktrace, and an "Open Workflow" link. Point this workflow's ID at every other workflow's `Workflow settings → Error Workflow`. |
+| `infra-notifications-receiver.json` | Generic webhook receiver on `/webhook/infra-notifications`. Formats incoming JSON (unattended-upgrade events, etc.) into Slack Block Kit cards posted to `#infra-alerts`. Use as the target for Ansible/cron/SSH callbacks that need a human-readable feed. |
+| `scaleway-billing-forecast.json` | Daily scheduled run: pulls Scaleway billing data, computes month-end forecast, and posts to `#infra-alerts` when the projection crosses thresholds. Pair with a `Scaleway` HTTP-header credential. |
+| `tem-delivery-alerting.json` | Polls Scaleway TEM (Transactional Email) delivery status and alerts on bounces / failures / dropped messages. Pair with a `Scaleway` credential. |
+| `nextcloud-form-submission-notifier.json` | Receives `OCA\Forms\Events\FormSubmittedEvent` webhooks from Nextcloud (registered automatically when the `nextcloud` bundle's `n8n_form_webhook_url` points here). Fetches form schema + recent submissions via the Nextcloud OCS API, formats as email, and sends to form editors. Pair with a `Nextcloud admin` HTTP basic-auth credential + SMTP. |
+| `nextcloud-form-edit-access-notifier.json` | Sister workflow: when a form's edit-access list changes, notifies the newly-added editor(s) by email. Same credentials as above. |
+| `jotform-submission-notifier.json` | Generic Jotform → Slack notifier. Before activating, set the form ID in the `Jotform Trigger` node (replace `REPLACE_WITH_JOTFORM_FORM_ID`) and the channel in the `Post to Slack` node (default `#form-submissions`). Walks the entire submission payload — no per-form field mapping needed. Pair with a `JotForm account` API credential. |
+
+All workflows ship as `"active": false` — review and activate manually after import. Credential IDs and `instanceId` fields are scrubbed from the JSON so n8n won't try to bind to credentials from another instance. Re-bind credentials and (in dispatcher workflows) the `Execute Workflow` node targets via the n8n UI; n8n cannot resolve those across instances.
+
+**Required n8n credentials** (create in `Credentials → New`, named exactly as below):
+
+| Name | Type | Used by | Notes |
+|------|------|---------|-------|
+| `Slack account` | Slack API (Bot token, `xoxb-…`) | every notifier | Bot scopes: `chat:write`, `channels:read`. |
+| `EspoCRM API` | HTTP Header Auth | EspoCRM workflows | Header `X-Api-Key`, value from a CRM API User. `allowedDomains` must include the CRM base URL. |
+| `Scaleway` | HTTP Header Auth | billing-forecast, tem-delivery | Header `X-Auth-Token`, value = a Scaleway API key with billing + TEM read scopes. |
+| `Nextcloud admin` | HTTP Basic Auth | nextcloud form notifiers | Admin username + password from `terraform output`. |
+| `SMTP` | SMTP | nextcloud form notifiers, anything sending email | Same SMTP creds shared across platform. |
+| `JotForm account` | JotForm API | jotform-submission-notifier | API key from your JotForm account's `Settings → API`. |
+
+**Required n8n environment variables** (set in `platform/apps/n8n/ansible/.../docker-compose` env or the host's `/opt/n8n/.env`):
+
+| Variable | Used by | Example |
+|----------|---------|---------|
+| `ESPOCRM_BASE_URL` | EspoCRM upsert | `https://crm.example.org` |
+| `SLACK_CHANNEL_NEW_SIGNUPS` | Dispatcher | `#new-signups` |
+| `SLACK_CHANNEL_ADMIN_ALERTS` | EspoCRM upsert (duplicate alert) | `#ops-alerts` |
+
+Point Authentik at the dispatcher: set `notification_webhook_url` in the identity stack to `https://<n8n hostname>/webhook/authentik-user-onboarding`.
 
 ## Notes
 

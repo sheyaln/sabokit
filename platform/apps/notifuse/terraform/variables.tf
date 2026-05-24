@@ -55,10 +55,46 @@ variable "deployment_host_key" {
 
 # ── Notifuse-specific inputs ────────────────────────────────────────────────
 
+variable "image" {
+  description = "Notifuse Docker image repository (without tag). Stock `notifuse/notifuse` does NOT support OIDC — the bundle wires OIDC envs unconditionally, so a stock image will silently ignore them and require local-account login. For OIDC, point at a build that includes the github.com/sheyaln/notifuse `feat/oidc-v1` patch set (either a fork-published image like `ghcr.io/sheyaln/notifuse`, or use `build_from_source = true` to build on the host from the cloned repo)."
+  type        = string
+  default     = "notifuse/notifuse"
+}
+
 variable "image_tag" {
-  description = "Notifuse Docker image tag."
+  description = "Notifuse Docker image tag. Pin in production."
   type        = string
   default     = "latest"
+}
+
+variable "build_from_source" {
+  description = "Build the Notifuse image on the deployment host from a cloned git repo instead of pulling. Default `true` so OIDC works out of the box (stock `notifuse/notifuse:latest` lacks OIDC; the patches live on the sheyaln fork). When true, `image_source_repo` + `image_source_ref` define the checkout; the resulting image is tagged `notifuse-local:latest` on the host and `image`/`image_tag` are ignored. Flip to `false` to pull a published image instead (only useful once a fork-built image is hosted)."
+  type        = bool
+  default     = true
+}
+
+variable "image_source_repo" {
+  description = "Git URL the host clones when `build_from_source = true`. Defaults to the OIDC-enabled fork."
+  type        = string
+  default     = "https://github.com/sheyaln/notifuse.git"
+}
+
+variable "image_source_ref" {
+  description = "Git ref (branch, tag, or SHA) checked out when `build_from_source = true`. Pin to a SHA for reproducibility."
+  type        = string
+  default     = "feat/oidc-v1"
+}
+
+variable "auto_update_enabled" {
+  description = "Whether the Watchtower platform bundle (if deployed) auto-pulls newer Notifuse image versions. Default true — bug-fix releases are routine. NOTE: when build_from_source = true, Watchtower can't update the locally-built image; this knob only takes effect for pull-mode deploys."
+  type        = bool
+  default     = true
+}
+
+variable "autoheal_enabled" {
+  description = "Whether the Autoheal platform bundle (if deployed) restarts Notifuse when its healthcheck fails. Default true."
+  type        = bool
+  default     = true
 }
 
 variable "root_admin_email" {
@@ -82,4 +118,39 @@ variable "oidc_allow_magic_code" {
   description = "Whether Notifuse offers its magic-code (email link) fallback alongside OIDC. Recommended to leave on so admins can recover if OIDC is misconfigured."
   type        = bool
   default     = true
+}
+
+variable "backup_enabled" {
+  description = "Whether the Backrest platform bundle (if deployed on the same host) backs up this app's host-side state. Default true."
+  type        = bool
+  default     = true
+}
+
+variable "backup_extra_paths" {
+  description = "Additional restic paths beyond `/backup-sources/opt/notifuse`. Use for named docker volumes, etc."
+  type        = list(string)
+  default     = []
+}
+
+variable "backup_schedule_cron" {
+  description = "Backrest cron (6-field, seconds first). Default 02:00 UTC daily."
+  type        = string
+  default     = "0 0 2 * * *"
+}
+
+variable "backup_retention" {
+  description = "Restic retention policy."
+  type = object({
+    hourly  = optional(number)
+    daily   = optional(number)
+    weekly  = optional(number)
+    monthly = optional(number)
+    yearly  = optional(number)
+  })
+  default = {
+    daily   = 7
+    weekly  = 4
+    monthly = 12
+    yearly  = 1
+  }
 }

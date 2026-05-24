@@ -35,6 +35,7 @@ output "ansible" {
       decidim_hostname                 = var.hostname
       decidim_image                    = var.image
       decidim_image_tag                = var.image_tag
+      decidim_extra_gems               = var.extra_gems
       decidim_app_secret_id            = scaleway_secret.app[0].id
       decidim_db_credentials_secret_id = module.database[0].secret_id
       decidim_sidekiq_concurrency      = var.sidekiq_concurrency
@@ -42,6 +43,8 @@ output "ansible" {
       # SMTP is opt-in: empty smtp_from_email means SMTP is off and the role
       # should skip the lookup entirely.
       decidim_smtp_secret_name = var.smtp_from_email == "" ? "" : "smtp-config"
+      decidim_auto_update_enabled = var.auto_update_enabled
+      decidim_autoheal_enabled    = var.autoheal_enabled
     }
   } : null
 }
@@ -61,4 +64,15 @@ output "database_name" {
 output "system_admin_email" {
   description = "Email of the initial /system superuser (echoed back for documentation; password is in the app-secrets bag)."
   value       = var.enabled ? var.system_admin_email : null
+}
+
+output "backup_plan" {
+  description = "Backrest backup plan contribution. null when disabled or backup_enabled = false. Aggregated by consumer-template into backrest's backup_plans."
+  value = (var.enabled && var.backup_enabled) ? {
+    id        = local.slug
+    paths     = concat(["/backup-sources/opt/${local.slug}"], var.backup_extra_paths)
+    excludes  = []
+    schedule  = { cron = var.backup_schedule_cron }
+    retention = var.backup_retention
+  } : null
 }

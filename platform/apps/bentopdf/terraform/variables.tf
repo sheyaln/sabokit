@@ -56,7 +56,54 @@ variable "deployment_host_key" {
 # ── BentoPDF-specific inputs ────────────────────────────────────────────────
 
 variable "image" {
-  description = "Full BentoPDF Docker image reference (repository + optional tag)."
+  description = "Full BentoPDF Docker image reference (repository + optional tag). Default is the official image published by the upstream project at github.com/alam00000/bentopdf. `ghcr.io/digital-blueprint/bento-pdf` is an unrelated project from a different org."
   type        = string
-  default     = "ghcr.io/digital-blueprint/bento-pdf:latest"
+  default     = "ghcr.io/alam00000/bentopdf:latest"
+}
+
+variable "auto_update_enabled" {
+  description = "Whether the Watchtower platform bundle (if deployed on this host) auto-pulls newer image versions for BentoPDF. Default true — BentoPDF is stateless, browser-only, and has no migration risk on image bumps."
+  type        = bool
+  default     = true
+}
+
+variable "autoheal_enabled" {
+  description = "Whether the Autoheal platform bundle (if deployed on this host) restarts BentoPDF when its healthcheck fails. Default true."
+  type        = bool
+  default     = true
+}
+
+variable "backup_enabled" {
+  description = "Whether the Backrest platform bundle (if deployed on the same host) backs up this app's host-side state. Default false."
+  type        = bool
+  default     = false
+}
+
+variable "backup_extra_paths" {
+  description = "Additional restic paths beyond `/backup-sources/opt/bentopdf`. Use for named docker volumes, etc."
+  type        = list(string)
+  default     = []
+}
+
+variable "backup_schedule_cron" {
+  description = "Backrest cron (6-field, seconds first). Default 02:00 UTC daily."
+  type        = string
+  default     = "0 0 2 * * *"
+}
+
+variable "backup_retention" {
+  description = "Restic retention policy."
+  type = object({
+    hourly  = optional(number)
+    daily   = optional(number)
+    weekly  = optional(number)
+    monthly = optional(number)
+    yearly  = optional(number)
+  })
+  default = {
+    daily   = 7
+    weekly  = 4
+    monthly = 12
+    yearly  = 1
+  }
 }

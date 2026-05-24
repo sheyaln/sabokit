@@ -1,0 +1,568 @@
+{
+  "name": "Nextcloud Form Submission Email Notifier (with answers)",
+  "nodes": [
+    {
+      "id": "wh-trigger",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -1280,
+        208
+      ],
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "nextcloud-form-submission",
+        "options": {
+          "rawBody": true
+        }
+      },
+      "webhookId": "44515caf-cebd-43bb-a310-bc1f804f65f9"
+    },
+    {
+      "id": "parse-body",
+      "name": "Parse Body",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -1040,
+        208
+      ],
+      "parameters": {
+        "jsCode": "const binaryKeys = Object.keys($binary || {});\n\nif (binaryKeys.length > 0) {\n  try {\n    const buffer = await this.helpers.getBinaryDataBuffer(0, binaryKeys[0]);\n    return [{ json: JSON.parse(buffer.toString('utf-8')) }];\n  } catch (e) {\n    throw new Error(`Binary read failed (key=${binaryKeys[0]}): ${e.message}`);\n  }\n}\n\nif ($json.body) {\n  const raw = $json.body;\n  try {\n    return [{ json: typeof raw === 'string' ? JSON.parse(raw) : raw }];\n  } catch (e) {\n    throw new Error(`Body parse failed (type=${typeof raw}): ${e.message}`);\n  }\n}\n\nthrow new Error(`No data. $json keys: [${Object.keys($json||{}).join(',')}], $binary keys: [${Object.keys($binary||{}).join(',')}]`);"
+      }
+    },
+    {
+      "id": "http-get-form",
+      "name": "Get Form Details",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -800,
+        208
+      ],
+      "continueOnFail": true,
+      "credentials": {
+        "nextCloudApi": {
+          "id": "",
+          "name": "NextCloud account"
+        }
+      },
+      "parameters": {
+        "url": "=https://nextcloud.example.org/ocs/v2.php/apps/forms/api/v3/forms/{{ $json.event.form.id }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "nextCloudApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "OCS-APIRequest",
+              "value": "true"
+            },
+            {
+              "name": "Accept",
+              "value": "application/json"
+            }
+          ]
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "http-get-submissions",
+      "name": "Get Form Submissions",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -560,
+        208
+      ],
+      "continueOnFail": true,
+      "credentials": {
+        "nextCloudApi": {
+          "id": "",
+          "name": "NextCloud account"
+        }
+      },
+      "parameters": {
+        "url": "=https://nextcloud.example.org/ocs/v2.php/apps/forms/api/v3/forms/{{ $('Parse Body').item.json.event.form.id }}/submissions",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "nextCloudApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "OCS-APIRequest",
+              "value": "true"
+            },
+            {
+              "name": "Accept",
+              "value": "application/json"
+            }
+          ]
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "code-extract",
+      "name": "Extract Submission Viewers",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -320,
+        208
+      ],
+      "parameters": {
+        "jsCode": "const payload = $('Parse Body').item.json;\nconst formResp = $('Get Form Details').item.json;\nconst submissionsResp = $json;\n\nconst formData = formResp?.ocs?.data;\nconst submissionsData = submissionsResp?.ocs?.data;\n\nfunction esc(s) {\n  return String(s ?? '')\n    .replace(/&/g, '&amp;')\n    .replace(/</g, '&lt;')\n    .replace(/>/g, '&gt;');\n}\nfunction escMultiline(s) {\n  return esc(s).replace(/\\n/g, '<br>');\n}\n\n// Build a human-readable diagnostic block for any failed HTTP response.\n// Surfaces the actual status code + message instead of swallowing it.\nfunction diagnose(label, resp, url) {\n  if (resp && resp.error) {\n    const e = resp.error;\n    return {\n      ok: false,\n      html: `<p style=\"color:#b00;\"><strong>${esc(label)} failed.</strong><br>` +\n            `URL: <code>${esc(url)}</code><br>` +\n            `Message: ${esc(e.message || 'Unknown error')}<br>` +\n            (e.description ? `Detail: ${esc(e.description)}<br>` : '') +\n            (e.httpCode ? `HTTP: ${esc(e.httpCode)}` : '') +\n            `</p>`,\n      summary: `${label} failed: ${e.description || e.message || 'unknown'}`,\n    };\n  }\n  if (resp && resp.ocs?.meta && resp.ocs.meta.statuscode && resp.ocs.meta.statuscode >= 300) {\n    return {\n      ok: false,\n      html: `<p style=\"color:#b00;\"><strong>${esc(label)} returned OCS error.</strong><br>` +\n            `URL: <code>${esc(url)}</code><br>` +\n            `OCS status: ${esc(resp.ocs.meta.statuscode)} ${esc(resp.ocs.meta.message || '')}` +\n            `</p>`,\n      summary: `${label} OCS ${resp.ocs.meta.statuscode}: ${resp.ocs.meta.message || ''}`,\n    };\n  }\n  if (!resp || resp.ocs?.data === undefined) {\n    return {\n      ok: false,\n      html: `<p style=\"color:#b00;\"><strong>${esc(label)} returned unexpected payload.</strong><br>` +\n            `URL: <code>${esc(url)}</code><br>` +\n            `Raw (truncated): <code>${esc(JSON.stringify(resp).slice(0, 400))}</code></p>`,\n      summary: `${label} unexpected payload`,\n    };\n  }\n  return { ok: true };\n}\n\nconst formId = payload.event.form.id;\nconst formUrl = `https://nextcloud.example.org/ocs/v2.php/apps/forms/api/v3/forms/${formId}`;\nconst submissionsUrl = `https://nextcloud.example.org/ocs/v2.php/apps/forms/api/v3/forms/${formId}/submissions`;\n\nconst formDiag = diagnose('Get Form Details', formResp, formUrl);\nconst submissionsDiag = diagnose('Get Form Submissions', submissionsResp, submissionsUrl);\n\n// Build answers HTML or fall back to a clear error block.\nlet answersHtml = '';\nif (submissionsDiag.ok) {\n  const targetSubmissionId = payload.event.submission.id;\n  const submission = (submissionsData.submissions || []).find(s => s.id === targetSubmissionId);\n  const questions = submissionsData.questions || [];\n\n  if (submission && questions.length) {\n    const byQ = {};\n    for (const a of (submission.answers || [])) {\n      if (!byQ[a.questionId]) byQ[a.questionId] = [];\n      byQ[a.questionId].push(a.text);\n    }\n    const rows = questions.map(q => {\n      const vals = byQ[q.id] || [];\n      const answer = vals.length\n        ? vals.map(v => escMultiline(v)).join(', ')\n        : '<em style=\"color:#888;\">(no answer)</em>';\n      return `<tr><td style=\"padding:6px 12px 6px 0;vertical-align:top;font-weight:bold;\">${esc(q.text)}</td><td style=\"padding:6px 0;vertical-align:top;\">${answer}</td></tr>`;\n    }).join('');\n    answersHtml = `<h3 style=\"margin:18px 0 6px;\">Submitted answers</h3><table style=\"border-collapse:collapse;font-family:sans-serif;\">${rows}</table>`;\n  } else {\n    answersHtml = `<p style=\"color:#b00;\"><strong>Submission #${esc(targetSubmissionId)} not found in API response.</strong><br>` +\n      `Found ${esc((submissionsData.submissions || []).length)} submissions, ${esc(questions.length)} questions on form ${esc(formId)}.</p>`;\n  }\n} else {\n  answersHtml = submissionsDiag.html;\n}\n\n// If form details failed, fall back to webhook data and notify owner only.\n// Prepend the form-details diagnostic so we don't lose that error either.\nif (!formDiag.ok) {\n  const form = payload.event.form;\n  return [{\n    json: {\n      shareType: 'user',\n      shareWith: form.ownerId,\n      displayName: form.ownerId,\n      formId: form.id,\n      formHash: form.hash,\n      formTitle: form.title || '(Untitled Form)',\n      submittedBy: payload.user.displayName || 'Anonymous',\n      submittedByUid: payload.user.uid,\n      submissionId: payload.event.submission.id,\n      submissionTimestamp: payload.event.submission.timestamp,\n      answersHtml: formDiag.html + answersHtml,\n    }\n  }];\n}\n\nconst form = formData;\nconst notifyList = [];\nconst submittedBy = payload.user.displayName || 'Anonymous';\n\nconst baseContext = {\n  formId: form.id,\n  formHash: form.hash,\n  formTitle: form.title,\n  submittedBy,\n  submittedByUid: payload.user.uid,\n  submissionId: payload.event.submission.id,\n  submissionTimestamp: payload.event.submission.timestamp,\n  answersHtml,\n};\n\nnotifyList.push({\n  shareType: 'user',\n  shareWith: form.ownerId,\n  displayName: form.ownerId,\n  ...baseContext,\n});\n\nfor (const share of (form.shares || [])) {\n  const canViewResults = Array.isArray(share.permissions)\n    ? share.permissions.includes('results')\n    : false;\n  if (!canViewResults) continue;\n  if (share.shareType === 0 && share.shareWith === form.ownerId) continue;\n\n  notifyList.push({\n    shareType: share.shareType === 1 ? 'group' : 'user',\n    shareWith: share.shareWith,\n    displayName: share.displayName || share.shareWith,\n    ...baseContext,\n  });\n}\n\nconst seen = new Set();\nreturn notifyList\n  .filter(s => {\n    const key = `${s.shareType}:${s.shareWith}`;\n    if (seen.has(key)) return false;\n    seen.add(key);\n    return true;\n  })\n  .map(item => ({ json: item }));"
+      }
+    },
+    {
+      "id": "split-shares",
+      "name": "Loop Over Shares",
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        -80,
+        208
+      ],
+      "parameters": {
+        "options": {}
+      }
+    },
+    {
+      "id": "if-group",
+      "name": "Is Group Share?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        160,
+        208
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "group-check",
+              "leftValue": "={{ $json.shareType }}",
+              "rightValue": "group",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "http-get-group",
+      "name": "Get Group Members",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        400,
+        48
+      ],
+      "continueOnFail": true,
+      "credentials": {
+        "nextCloudApi": {
+          "id": "",
+          "name": "NextCloud account"
+        }
+      },
+      "parameters": {
+        "url": "=https://nextcloud.example.org/ocs/v2.php/cloud/groups/{{ encodeURIComponent($json.displayName) }}/members?format=json",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "nextCloudApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "OCS-APIRequest",
+              "value": "true"
+            }
+          ]
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "code-members",
+      "name": "Extract Group Members",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        640,
+        48
+      ],
+      "parameters": {
+        "jsCode": "const members = $json.ocs?.data?.users || [];\nconst context = $('Is Group Share?').item.json;\n\nif (members.length === 0) return [];\n\nreturn members.map(userId => ({\n  json: {\n    userId,\n    formId: context.formId,\n    formHash: context.formHash,\n    formTitle: context.formTitle,\n    submittedBy: context.submittedBy,\n    submittedByUid: context.submittedByUid,\n    submissionId: context.submissionId,\n    submissionTimestamp: context.submissionTimestamp,\n    answersHtml: context.answersHtml,\n  }\n}));"
+      }
+    },
+    {
+      "id": "split-members",
+      "name": "Loop Over Members",
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        880,
+        48
+      ],
+      "parameters": {
+        "options": {}
+      }
+    },
+    {
+      "id": "http-member-info",
+      "name": "Get Group Member Info",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1120,
+        48
+      ],
+      "continueOnFail": true,
+      "credentials": {
+        "nextCloudApi": {
+          "id": "",
+          "name": "NextCloud account"
+        }
+      },
+      "parameters": {
+        "url": "=https://nextcloud.example.org/ocs/v2.php/cloud/users/{{ encodeURIComponent($json.userId) }}?format=json",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "nextCloudApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "OCS-APIRequest",
+              "value": "true"
+            }
+          ]
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "if-member-email",
+      "name": "Group Member Has Email?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        1360,
+        48
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "email-check-member",
+              "leftValue": "={{ $json.ocs?.data?.email }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "email-group-member",
+      "name": "Send Email to Group Member",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [
+        1600,
+        -64
+      ],
+      "credentials": {
+        "smtp": {
+          "id": "",
+          "name": "SMTP account"
+        }
+      },
+      "parameters": {
+        "fromEmail": "={{ $env.SMTP_FROM }}",
+        "toEmail": "={{ $json.ocs.data.email }}",
+        "subject": "=New submission on: {{ $('Extract Group Members').item.json.formTitle }}",
+        "html": "=<p>Hi {{ $json.ocs.data.displayname }},</p><p>A new submission was received on the form <strong>{{ $('Extract Group Members').item.json.formTitle }}</strong>.</p><p><strong>Submitted by:</strong> {{ $('Extract Group Members').item.json.submittedBy }}<br><strong>Submission ID:</strong> #{{ $('Extract Group Members').item.json.submissionId }}<br><strong>Submitted at:</strong> {{ new Date($('Extract Group Members').item.json.submissionTimestamp * 1000).toLocaleString('en-US', {timeZone: 'America/New_York'}) }}</p>{{ $('Extract Group Members').item.json.answersHtml }}<p style=\"margin-top:18px;\"><a href=\"https://nextcloud.example.org/apps/forms/{{ $('Extract Group Members').item.json.formHash }}/results\">View Submissions →</a></p>",
+        "options": {}
+      },
+      "webhookId": "4685596c-e6aa-4a50-a811-ccadbb5fdd7d"
+    },
+    {
+      "id": "http-user-info",
+      "name": "Get Share User Info",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        400,
+        368
+      ],
+      "continueOnFail": true,
+      "credentials": {
+        "nextCloudApi": {
+          "id": "",
+          "name": "NextCloud account"
+        }
+      },
+      "parameters": {
+        "url": "=https://nextcloud.example.org/ocs/v2.php/cloud/users/{{ encodeURIComponent($json.shareWith) }}?format=json",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "nextCloudApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "OCS-APIRequest",
+              "value": "true"
+            }
+          ]
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "if-user-email",
+      "name": "Share User Has Email?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        640,
+        368
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "email-check-user",
+              "leftValue": "={{ $json.ocs?.data?.email }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "email-share-user",
+      "name": "Send Email to Share User",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [
+        880,
+        288
+      ],
+      "credentials": {
+        "smtp": {
+          "id": "",
+          "name": "SMTP account"
+        }
+      },
+      "parameters": {
+        "fromEmail": "={{ $env.SMTP_FROM }}",
+        "toEmail": "={{ $json.ocs.data.email }}",
+        "subject": "=New submission on: {{ $('Is Group Share?').item.json.formTitle }}",
+        "html": "=<p>Hi {{ $json.ocs.data.displayname }},</p><p>A new submission was received on the form <strong>{{ $('Is Group Share?').item.json.formTitle }}</strong>.</p><p><strong>Submitted by:</strong> {{ $('Is Group Share?').item.json.submittedBy }}<br><strong>Submission ID:</strong> #{{ $('Is Group Share?').item.json.submissionId }}<br><strong>Submitted at:</strong> {{ new Date($('Is Group Share?').item.json.submissionTimestamp * 1000).toLocaleString('en-US', {timeZone: 'America/New_York'}) }}</p>{{ $('Is Group Share?').item.json.answersHtml }}<p style=\"margin-top:18px;\"><a href=\"https://nextcloud.example.org/apps/forms/{{ $('Is Group Share?').item.json.formHash }}/results\">View Submissions →</a></p>",
+        "options": {}
+      },
+      "webhookId": "8df21c0c-f877-4fcc-9159-6b9c903d7b07"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Parse Body",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Body": {
+      "main": [
+        [
+          {
+            "node": "Get Form Details",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Form Details": {
+      "main": [
+        [
+          {
+            "node": "Get Form Submissions",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Form Submissions": {
+      "main": [
+        [
+          {
+            "node": "Extract Submission Viewers",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Submission Viewers": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Shares",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Is Group Share?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Is Group Share?": {
+      "main": [
+        [
+          {
+            "node": "Get Group Members",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Get Share User Info",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Group Members": {
+      "main": [
+        [
+          {
+            "node": "Extract Group Members",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Group Members": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Members",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Get Group Member Info",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Group Member Info": {
+      "main": [
+        [
+          {
+            "node": "Group Member Has Email?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Group Member Has Email?": {
+      "main": [
+        [
+          {
+            "node": "Send Email to Group Member",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    },
+    "Get Share User Info": {
+      "main": [
+        [
+          {
+            "node": "Share User Has Email?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Share User Has Email?": {
+      "main": [
+        [
+          {
+            "node": "Send Email to Share User",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "errorWorkflow": "ScNDFrAVG90ETWIh"
+  },
+  "versionId": "",
+  "meta": null,
+  "id": "6xpMp0wU14lk33gd",
+  "tags": []
+}

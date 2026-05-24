@@ -1,0 +1,303 @@
+{
+  "name": "Authentik User Lifecycle Notifier (HTTP)",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "aec0ac7e-6292-4b57-af2d-25962eb4118d",
+      "name": "NoOp1",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        1504,
+        560
+      ]
+    },
+    {
+      "parameters": {},
+      "id": "6a64e15b-c3f7-4547-9367-7bd717baed34",
+      "name": "NoOp",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        1504,
+        320
+      ]
+    },
+    {
+      "parameters": {
+        "select": "channel",
+        "channelId": {
+          "__rl": true,
+          "value": "#user-onboarding",
+          "mode": "name"
+        },
+        "messageType": "block",
+        "blocksUi": "={\n  \"blocks\": [\n    {\n      \"type\": \"section\",\n      \"text\": {\n        \"type\": \"mrkdwn\",\n        \"text\": \":white_check_mark: *User Activated*\\n*{{ $('Webhook').item.json.body.user.name }}* ({{ $('Webhook').item.json.body.user.email }}) has been activated by {{ $('Webhook').item.json.body.user.activated_by }}.\\nSignup method: {{ $('Webhook').item.json.body.user.signup_method }}\"\n      }\n    }\n  ]\n}\n",
+        "text": "=",
+        "otherOptions": {
+          "thread_ts": {
+            "replyValues": {
+              "thread_ts": "={{ $json.threadTs }}"
+            }
+          }
+        }
+      },
+      "id": "3ab96cc1-706a-435c-a03c-8bcb949c0236",
+      "name": "Slack Activation",
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.4,
+      "position": [
+        1264,
+        560
+      ],
+      "webhookId": "bd0a772a-b006-4929-8ffe-c4fa00eed868",
+      "credentials": {
+        "slackApi": {
+          "id": "",
+          "name": "Slack account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Retrieve thread_ts - first from Authentik payload, then from workflow static data\n\nconst inputData = $input.first().json;\nconst email = inputData.body?.user?.email;\n\nif (!email) {\n  return [{ json: { threadTs: '', found: false, error: 'No email in payload', ...inputData } }];\n}\n\n// First, check if thread_ts was passed from Authentik (stored in user attributes)\nconst payloadThreadTs = inputData.body?.user?.slack_thread_ts;\nif (payloadThreadTs) {\n  return [{ json: { threadTs: payloadThreadTs, found: true, source: 'authentik', ...inputData } }];\n}\n\n// Fallback to workflow static data\nconst threads = $getWorkflowStaticData('global').threads || {};\nconst thread = threads[email];\n\nif (thread && thread.ts) {\n  return [{ json: { threadTs: thread.ts, found: true, source: 'static_data', ...inputData } }];\n} else {\n  // No thread found - will post as new message\n  return [{ json: { threadTs: '', found: false, ...inputData } }];\n}"
+      },
+      "id": "0fb5b6bd-6a4e-47b2-97a9-ceb348e7f470",
+      "name": "Get Thread TS",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1024,
+        560
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Store thread_ts in workflow static data\n\n// Get webhook data from the Webhook node\nconst webhookItems = $('Webhook').all();\nif (!webhookItems || webhookItems.length === 0) {\n  throw new Error('No data from Webhook node');\n}\nconst webhookData = webhookItems[0].json;\n\n// User data is inside body.user\nconst email = webhookData.body?.user?.email;\nif (!email) {\n  console.log('Webhook data:', JSON.stringify(webhookData));\n  throw new Error('No user.email in webhook data');\n}\n\n// Slack response - the Slack node returns the response in the current input\nconst slackResponse = $input.first().json;\nconst threadTs = slackResponse.message?.ts || slackResponse.ts || slackResponse.message_timestamp;\n\nif (!threadTs) {\n  console.log('Slack response:', JSON.stringify(slackResponse));\n  throw new Error('No thread_ts found in Slack response');\n}\n\n// Get existing threads map or create new\nlet threads = $getWorkflowStaticData('global').threads || {};\nthreads[email] = {\n  ts: threadTs,\n  timestamp: Date.now()\n};\n\n// Clean old entries > 30 days\nconst thirtyDaysAgo = Date.now() - (30 * 24 * 60 * 60 * 1000);\nthreads = Object.fromEntries(\n  Object.entries(threads).filter(([_, v]) => v.timestamp > thirtyDaysAgo)\n);\n\n// Store back\n$getWorkflowStaticData('global').threads = threads;\n\nreturn [{ json: { email, threadTs, success: true } }];"
+      },
+      "id": "73021e0f-de20-4afc-809d-dcc717728b5e",
+      "name": "Store Thread TS",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1264,
+        320
+      ]
+    },
+    {
+      "parameters": {
+        "select": "channel",
+        "channelId": {
+          "__rl": true,
+          "value": "#user-onboarding",
+          "mode": "name"
+        },
+        "messageType": "block",
+        "blocksUi": "={\n  \"blocks\": [\n    {\n      \"type\": \"header\",\n      \"text\": {\n        \"type\": \"plain_text\",\n        \"text\": \"🆕 New User Enrollment\",\n        \"emoji\": true\n      }\n    },\n    {\n      \"type\": \"section\",\n      \"fields\": [\n        {\n          \"type\": \"mrkdwn\",\n          \"text\": \"*Name:*\\n{{ $('Webhook').item.json.body.user.name }}\"\n        },\n        {\n          \"type\": \"mrkdwn\",\n          \"text\": \"*Email:*\\n{{ $('Webhook').item.json.body.user.email }}\"\n        },\n        {\n          \"type\": \"mrkdwn\",\n          \"text\": \"*Signup Method:*\\n{{ $('Webhook').item.json.body.user.signup_method }}\"\n        },\n        {\n          \"type\": \"mrkdwn\",\n          \"text\": \"*Status:*\\n{{ $('Webhook').item.json.body.user.status }}\"\n        }\n      ]\n    },\n    {\n      \"type\": \"section\",\n      \"text\": {\n        \"type\": \"mrkdwn\",\n        \"text\": \"{{ $('Webhook').item.json.body.user.needs_activation ? ':warning: *Action required:* Please review and activate this account. *Do not activate unless you have verified the user is a legitimate member.*' : '✅ User is already active — no action needed.' }}\"\n      }\n    },\n    {\n      \"type\": \"actions\",\n      \"elements\": [\n        {\n          \"type\": \"button\",\n          \"style\": \"primary\",\n          \"text\": {\n            \"type\": \"plain_text\",\n            \"text\": \"Manage Users\",\n            \"emoji\": true\n          },\n          \"url\": \"{{ $('Webhook').item.json.body.gateway_url }}/if/admin/#/identity/users\"\n        }\n      ]\n    }\n  ]\n}\n",
+        "text": "=",
+        "otherOptions": {}
+      },
+      "id": "821a8495-e658-4b2a-ac6e-893c9e1337de",
+      "name": "Slack Signup",
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.4,
+      "position": [
+        1024,
+        320
+      ],
+      "webhookId": "a3c3d4fd-5e96-4a80-9162-3f010e69399d",
+      "credentials": {
+        "slackApi": {
+          "id": "",
+          "name": "Slack account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+              "leftValue": "={{ $json.body.event }}",
+              "rightValue": "user_signup",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "looseTypeValidation": "={{ false }}",
+        "options": {}
+      },
+      "id": "752d9a25-3d6f-4e69-a276-a9daaa7215ce",
+      "name": "Is Signup?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        784,
+        432
+      ]
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "authentik-new-user-notifications",
+        "responseMode": "lastNode",
+        "options": {}
+      },
+      "id": "31a8874c-b250-434d-93d1-1c6223639d4e",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        544,
+        432
+      ],
+      "webhookId": "user-notifications"
+    }
+  ],
+  "pinData": {
+    "Webhook": [
+      {
+        "json": {
+          "headers": {
+            "host": "n8n.example.org",
+            "user-agent": "Python-urllib/3.13",
+            "content-length": "268",
+            "accept-encoding": "identity",
+            "content-type": "application/json",
+            "x-forwarded-for": "51.158.115.87",
+            "x-forwarded-host": "n8n.example.org",
+            "x-forwarded-port": "443",
+            "x-forwarded-proto": "https",
+            "x-forwarded-server": "e8c5ee46dc18",
+            "x-real-ip": "51.158.115.87"
+          },
+          "params": {},
+          "query": {},
+          "body": {
+            "event": "user_signup",
+            "user": {
+              "email": "test-user@example.org",
+              "username": "test-user@example.org",
+              "name": "Shey AlNasrawi",
+              "signup_method": "email/password",
+              "needs_activation": true,
+              "status": "PENDING ACTIVATION"
+            },
+            "gateway_url": "https://gateway.example.org"
+          },
+          "webhookUrl": "https://n8n.example.org/webhook/authentik-new-user-notifications",
+          "executionMode": "production"
+        }
+      }
+    ]
+  },
+  "connections": {
+    "Slack Activation": {
+      "main": [
+        [
+          {
+            "node": "NoOp1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Thread TS": {
+      "main": [
+        [
+          {
+            "node": "Slack Activation",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Store Thread TS": {
+      "main": [
+        [
+          {
+            "node": "NoOp",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Slack Signup": {
+      "main": [
+        [
+          {
+            "node": "Store Thread TS",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Is Signup?": {
+      "main": [
+        [
+          {
+            "node": "Slack Signup",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Get Thread TS",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Is Signup?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false,
+    "timeSavedMode": "fixed",
+    "errorWorkflow": "ScNDFrAVG90ETWIh",
+    "callerPolicy": "workflowsFromSameOwner"
+  },
+  "versionId": "",
+  "meta": {
+    "instanceId": ""
+  },
+  "id": "ybtpZGameaQok7bb14RFV",
+  "tags": [
+    {
+      "updatedAt": "2026-02-03T18:24:37.653Z",
+      "createdAt": "2026-02-03T18:24:37.653Z",
+      "id": "",
+      "name": "slack"
+    }
+  ]
+}

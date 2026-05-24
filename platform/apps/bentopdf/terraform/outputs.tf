@@ -32,8 +32,21 @@ output "ansible" {
     playbook   = "${path.module}/../ansible/playbook.yml"
     host_group = var.base.compute.hosts[var.deployment_host_key].ansible_group
     vars = {
-      bentopdf_hostname = var.hostname
-      bentopdf_image    = var.image
+      bentopdf_hostname            = var.hostname
+      bentopdf_image               = var.image
+      bentopdf_auto_update_enabled = var.auto_update_enabled
+      bentopdf_autoheal_enabled    = var.autoheal_enabled
     }
+  } : null
+}
+
+output "backup_plan" {
+  description = "Backrest backup plan contribution. null when disabled or backup_enabled = false. Aggregated by consumer-template into backrest's backup_plans."
+  value = (var.enabled && var.backup_enabled) ? {
+    id        = local.slug
+    paths     = concat(["/backup-sources/opt/${local.slug}"], var.backup_extra_paths)
+    excludes  = []
+    schedule  = { cron = var.backup_schedule_cron }
+    retention = var.backup_retention
   } : null
 }
