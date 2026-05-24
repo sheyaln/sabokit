@@ -1,0 +1,62 @@
+{
+  "name": "Jotform Submission Notifier",
+  "nodes": [
+    {
+      "parameters": {
+        "form": "REPLACE_WITH_JOTFORM_FORM_ID"
+      },
+      "type": "n8n-nodes-base.jotFormTrigger",
+      "typeVersion": 1,
+      "position": [1008, -80],
+      "id": "021c23e4-f7ff-4ade-bcb1-86b436275154",
+      "name": "Jotform Trigger",
+      "webhookId": "a8b1561c-eea8-4d67-befc-aed0d81076cb"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Generic Jotform submission formatter — flattens every answer field into\n// Slack mrkdwn, skipping empty values and Jotform's nested name objects when\n// they're blank. Truncates long answers, strips control chars, JSON-escapes\n// for safe embedding inside the Slack node's blocksUi textarea.\n//\n// Inputs are whatever the Jotform webhook delivers; no field names are\n// hardcoded — the formatter walks the entire payload.\n\nconst payload = $json.body ?? $json;\nconst data = Array.isArray(payload) ? payload[0] : payload;\n\nconst MAX_ANSWER_CHARS = 1500;\n\nfunction normalizeNewlines(s) {\n  return s.replace(/\\r\\n/g, '\\n').replace(/\\r/g, '\\n');\n}\n\nfunction stripBadControlChars(s) {\n  return s.replace(/[\\u0000-\\u0008\\u000B\\u000C\\u000E-\\u001F\\u007F]/g, '');\n}\n\nfunction safeAnswer(val) {\n  if (val === null || val === undefined) return '';\n\n  // Jotform name-field object\n  if (typeof val === 'object' && !Array.isArray(val)) {\n    const hasFirstLast = ('first' in val) || ('last' in val);\n    if (hasFirstLast) {\n      const first = String(val.first ?? '').trim();\n      const last = String(val.last ?? '').trim();\n      return `${first} ${last}`.trim();\n    }\n  }\n\n  let s;\n  if (typeof val === 'string') s = val;\n  else if (typeof val === 'number' || typeof val === 'boolean' || typeof val === 'bigint') s = String(val);\n  else {\n    try { s = JSON.stringify(val, null, 2); }\n    catch { s = String(val); }\n  }\n\n  s = stripBadControlChars(normalizeNewlines(s)).trim();\n\n  if (s.length > MAX_ANSWER_CHARS) {\n    s = s.slice(0, MAX_ANSWER_CHARS - 20) + '\\n…(truncated)';\n  }\n\n  return s;\n}\n\nfunction jsonEscapeForInlineString(s) {\n  return s\n    .replace(/\\\\/g, '\\\\\\\\')\n    .replace(/\"/g, '\\\\\"')\n    .replace(/\\n/g, '\\\\n');\n}\n\nconst lines = [];\nfor (const [key, val] of Object.entries(data)) {\n  const answer = safeAnswer(val);\n  if (!answer) continue;\n\n  const safeKey = stripBadControlChars(normalizeNewlines(String(key))).trim();\n  if (!safeKey) continue;\n\n  lines.push(`*${safeKey}:*\\n${answer}`);\n}\n\nconst mrkdwn = lines.join('\\n\\n');\nconst formId = $node['Jotform Trigger'].parameter?.form ?? '';\n\n$json.slackFieldsMrkdwn = mrkdwn;\n$json.slackFieldsMrkdwnEscaped = jsonEscapeForInlineString(mrkdwn);\n$json.formUrl = data.formUrl ?? `https://www.jotform.com/form/${formId}`;\n$json.submissionUrl = data.submissionUrl ?? `https://www.jotform.com/inbox/${formId}/`;\n\nreturn $json;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1216, -80],
+      "id": "f69dba94-a4dd-4b17-8933-a721d57f0a88",
+      "name": "Format Submission"
+    },
+    {
+      "parameters": {
+        "select": "channel",
+        "channelId": {
+          "__rl": true,
+          "value": "#form-submissions",
+          "mode": "name"
+        },
+        "messageType": "block",
+        "blocksUi": "={\n  \"blocks\": [\n    {\n      \"type\": \"header\",\n      \"text\": {\n        \"type\": \"plain_text\",\n        \"text\": \"New Form Submission\"\n      }\n    },\n    {\n      \"type\": \"section\",\n      \"text\": {\n        \"type\": \"mrkdwn\",\n        \"text\": \"A new submission was received.\"\n      }\n    },\n    { \"type\": \"divider\" },\n    {\n      \"type\": \"section\",\n      \"text\": {\n        \"type\": \"mrkdwn\",\n        \"text\": \"{{ $json.slackFieldsMrkdwnEscaped }}\"\n      }\n    },\n    { \"type\": \"divider\" },\n    {\n      \"type\": \"actions\",\n      \"elements\": [\n        {\n          \"type\": \"button\",\n          \"text\": { \"type\": \"plain_text\", \"text\": \"View Submission\" },\n          \"url\": \"{{ $json.submissionUrl }}\"\n        },\n        {\n          \"type\": \"button\",\n          \"text\": { \"type\": \"plain_text\", \"text\": \"View Original Form\" },\n          \"url\": \"{{ $json.formUrl }}\"\n        }\n      ]\n    }\n  ]\n}",
+        "otherOptions": {}
+      },
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.4,
+      "position": [1424, -80],
+      "id": "62ae4eda-4500-40d3-be7e-f896d9bd3f16",
+      "name": "Post to Slack",
+      "webhookId": "3df06ef6-3f3e-452a-86e9-f93d21f1af13"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Jotform Trigger": {
+      "main": [[{ "node": "Format Submission", "type": "main", "index": 0 }]]
+    },
+    "Format Submission": {
+      "main": [[{ "node": "Post to Slack", "type": "main", "index": 0 }]]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false,
+    "callerPolicy": "workflowsFromSameOwner"
+  },
+  "tags": []
+}

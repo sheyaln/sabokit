@@ -133,6 +133,7 @@ Set `apps.n8n.enabled = false` in tfvars and `terraform apply`. Drops the Authen
 | `tem-delivery-alerting.json` | Polls Scaleway TEM (Transactional Email) delivery status and alerts on bounces / failures / dropped messages. Pair with a `Scaleway` credential. |
 | `nextcloud-form-submission-notifier.json` | Receives `OCA\Forms\Events\FormSubmittedEvent` webhooks from Nextcloud (registered automatically when the `nextcloud` bundle's `n8n_form_webhook_url` points here). Fetches form schema + recent submissions via the Nextcloud OCS API, formats as email, and sends to form editors. Pair with a `Nextcloud admin` HTTP basic-auth credential + SMTP. |
 | `nextcloud-form-edit-access-notifier.json` | Sister workflow: when a form's edit-access list changes, notifies the newly-added editor(s) by email. Same credentials as above. |
+| `jotform-submission-notifier.json` | Generic Jotform → Slack notifier. Before activating, set the form ID in the `Jotform Trigger` node (replace `REPLACE_WITH_JOTFORM_FORM_ID`) and the channel in the `Post to Slack` node (default `#form-submissions`). Walks the entire submission payload — no per-form field mapping needed. Pair with a `JotForm account` API credential. |
 
 All workflows ship as `"active": false` — review and activate manually after import. Credential IDs and `instanceId` fields are scrubbed from the JSON so n8n won't try to bind to credentials from another instance. Re-bind credentials and (in dispatcher workflows) the `Execute Workflow` node targets via the n8n UI; n8n cannot resolve those across instances.
 
@@ -145,6 +146,7 @@ All workflows ship as `"active": false` — review and activate manually after i
 | `Scaleway` | HTTP Header Auth | billing-forecast, tem-delivery | Header `X-Auth-Token`, value = a Scaleway API key with billing + TEM read scopes. |
 | `Nextcloud admin` | HTTP Basic Auth | nextcloud form notifiers | Admin username + password from `terraform output`. |
 | `SMTP` | SMTP | nextcloud form notifiers, anything sending email | Same SMTP creds shared across platform. |
+| `JotForm account` | JotForm API | jotform-submission-notifier | API key from your JotForm account's `Settings → API`. |
 
 **Required n8n environment variables** (set in `platform/apps/n8n/ansible/.../docker-compose` env or the host's `/opt/n8n/.env`):
 
