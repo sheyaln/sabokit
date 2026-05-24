@@ -1,0 +1,33 @@
+---
+# Consumer-local site wrapper. Drives the full deploy: upstream's playbooks
+# first, then any local-only roles you ship in `ansible-local/roles/`.
+#
+# Per-env deploy invokes this from a script that has already produced
+# `enabled_apps.json` (via `terraform output -json enabled_apps`). Pass that
+# via `-e @enabled_apps.json`:
+#
+#   ansible-playbook ansible-local/site.yml -i environments/prod/inventory.ini \
+#     -e @environments/prod/.enabled_apps.json \
+#     -e env_name=prod
+#
+# Pattern: every consumer-local role import is `when: enabled_apps.<key>
+# is defined and enabled_apps.<key> is not none` so that disabling the app
+# in tfvars cleanly skips the play.
+
+- import_playbook: ../../sabokit/platform/ansible/site.yml
+
+# ── Consumer-local roles ─────────────────────────────────────────────────
+#
+# Drop blocks here for roles that aren't (yet) upstream bundles. Once
+# sabokit ships a bundle for one of these, delete the block,
+# `terraform state mv` your local module's state into the upstream
+# module, and you're done.
+#
+# Example skeleton (commented out — uncomment + adapt as needed):
+#
+# - import_playbook: roles/<your-role>/playbook.yml
+#   vars:
+#     <your_role>_host_group: "{{ enabled_apps.<your_role>.ansible_group }}"
+#     # ... add any vars terraform produces in enabled_apps.<your_role>.ansible_vars
+#   when: enabled_apps.<your_role> is defined and enabled_apps.<your_role> is not none
+#   tags: [apps, <your_role>]
