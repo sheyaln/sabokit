@@ -1,0 +1,5 @@
+---
+- name: Restart wazuh-agent
+  community.docker.docker_compose_v2:
+    project_src: "{{ wazuh_agent_install_dir }}"
+    state: restarted

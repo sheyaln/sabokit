@@ -1,0 +1,6 @@
+---
+- name: Deploy Wazuh agent
+  hosts: "{{ wazuh_agent_host_group | default('apps') }}"
+  become: true
+  roles:
+    - role: wazuh-agent

@@ -1,0 +1,6 @@
+---
+galaxy_info:
+  role_name: wazuh-agent
+  description: Wazuh agent — host-network container that ships logs to the manager
+  min_ansible_version: "2.14"
+dependencies: []
