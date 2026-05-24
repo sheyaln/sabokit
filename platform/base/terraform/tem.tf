@@ -9,7 +9,12 @@
 locals {
   tem_sender_domain_resolved = var.tem_sender_domain != "" ? var.tem_sender_domain : var.base_domain
   tem_from_email_resolved    = var.tem_from_email != "" ? var.tem_from_email : "notify@${local.tem_sender_domain_resolved}"
-  tem_subdomain_label        = local.tem_sender_domain_resolved == var.base_domain ? "@" : replace(local.tem_sender_domain_resolved, ".${var.base_domain}", "")
+  # Scaleway's DNS API rejects "@" as a record name for the zone apex — it
+  # wants the empty string. Subdomains keep their label.
+  tem_subdomain_label = local.tem_sender_domain_resolved == var.base_domain ? "" : replace(local.tem_sender_domain_resolved, ".${var.base_domain}", "")
+  # Suffix to append to composite record names (DKIM, DMARC) so they collapse
+  # cleanly at the apex (no trailing dot) instead of producing "...._dmarc.".
+  tem_subdomain_suffix = local.tem_subdomain_label == "" ? "" : ".${local.tem_subdomain_label}"
 }
 
 resource "scaleway_tem_domain" "this" {
@@ -39,7 +44,7 @@ resource "scaleway_domain_record" "tem_dkim" {
   count = var.tem_enabled ? 1 : 0
 
   dns_zone = var.base_domain
-  name     = "${scaleway_tem_domain.this[0].dkim_config}._domainkey.${local.tem_subdomain_label}"
+  name     = "${scaleway_tem_domain.this[0].dkim_config}._domainkey${local.tem_subdomain_suffix}"
   type     = "TXT"
   data     = scaleway_tem_domain.this[0].dkim_config
   ttl      = 3600
@@ -49,7 +54,7 @@ resource "scaleway_domain_record" "tem_dmarc" {
   count = var.tem_enabled ? 1 : 0
 
   dns_zone = var.base_domain
-  name     = "_dmarc.${local.tem_subdomain_label}"
+  name     = "_dmarc${local.tem_subdomain_suffix}"
   type     = "TXT"
   data     = "v=DMARC1; p=quarantine; rua=mailto:${local.tem_from_email_resolved}"
   ttl      = 3600
@@ -103,8 +108,11 @@ resource "scaleway_secret_version" "smtp_config" {
   secret_id = scaleway_secret.smtp_config[0].id
   data = jsonencode({
     # TEM SMTP endpoint. Port 2587 = STARTTLS, 2465 = implicit TLS.
+    # Port stringified — the smtp-config secret schema wants strings end-to-end
+    # (Scaleway secret store validates) and apps consuming the secret parse
+    # accordingly.
     host       = "smtp.tem.scaleway.com"
-    port       = 2587
+    port       = "2587"
     use_tls    = "starttls"
     username   = var.scaleway_project_id
     password   = scaleway_iam_api_key.tem[0].secret_key

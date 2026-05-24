@@ -21,11 +21,11 @@ data "authentik_outpost" "embedded" {
 }
 
 resource "authentik_outpost" "embedded" {
-  # Only manage the outpost when there's actually something to bind. The
-  # Authentik API refuses to PATCH `providers` with an empty list, and a
-  # consumer who hasn't enabled any forward-auth apps doesn't need us
-  # touching the embedded outpost at all.
-  count = length(var.extra_forward_auth_provider_ids) > 0 ? 1 : 0
+  # Unconditional. The previous `count = length(unknown) > 0 ? 1 : 0` gate
+  # errored at plan time when extra_forward_auth_provider_ids contained
+  # unknown-at-plan refs from compact()-ing module outputs of yet-to-be-
+  # created bundles. The outpost is a singleton anyway; managing it always
+  # is cheaper than working around plan-time unknowns.
 
   name = "authentik Embedded Outpost"
   type = "proxy"

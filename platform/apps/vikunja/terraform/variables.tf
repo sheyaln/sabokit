@@ -155,7 +155,7 @@ variable "default_week_start" {
 }
 
 variable "oidc_groups_scope_name" {
-  description = "Custom OIDC scope name the Authentik provider attaches a `vikunja_groups` claim under. Vikunja uses this claim to auto-assign team memberships. Default matches the Authentik scope convention for this app."
+  description = "OIDC scope the Authentik provider attaches the groups claim under. Default `groups` is Authentik's stock scope and works without extra provider setup. Override only if you've defined a custom scope mapping (e.g. `vikunja_scope`) in Authentik and want the provider bound to it — that requires the scope to exist in Authentik first, or the provider apply errors out."
   type        = string
-  default     = "vikunja_scope"
+  default     = "groups"
 }
