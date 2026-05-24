@@ -2,6 +2,32 @@
 
 All notable changes to sabokit go here. Versioning follows semver; major bumps signal breaking contract changes for consumers.
 
+## v2.10.3 — Bundle-level `storage_class` toggle on every bucket-creating bundle
+
+Until now every Scaleway object bucket fc spins up was Standard Multi-AZ (€0.0146/GB/mo). For backrest specifically — a restic repository that's cold by definition — that was 6x too expensive vs the right tier.
+
+`modules/infrastructure/storage/object_bucket/` grew two vars:
+- `storage_class` — `STANDARD` (default, no rule), `GLACIER` (~6x cheaper), or `ONEZONE_IA` (~half, single-AZ)
+- `storage_class_transition_days` — days an object lives in STANDARD before lifecycle rule transitions it (min 1)
+
+Scaleway has no bucket-level storage class. When `storage_class != STANDARD`, the module creates a `lifecycle_rule` transitioning matching objects to the target class after the configured days. Every existing AND future object in the bucket gets moved once the rule fires.
+
+All 5 bucket-creating bundles now expose `storage_class` + `storage_class_transition_days`:
+
+| bundle | default | rationale |
+|---|---|---|
+| `apps/backrest` | **`GLACIER`** | restic data is cold by definition; ~83% bucket savings |
+| `apps/nextcloud` | `STANDARD` | every user file read on download; hot |
+| `apps/outline` | `STANDARD` | attachments load on every doc view |
+| `apps/decidim` | `STANDARD` | public-facing uploads served inline |
+| `apps/notifuse` | `STANDARD` | template/asset access pattern varies |
+
+**Backrest behavior shift**: existing v2.10.2 backrest consumers bumping to v2.10.3 get a new lifecycle rule on their restic bucket. Existing snapshots auto-transition to GLACIER on the next rule evaluation (one day after upload). Restore latency on those snapshots goes from milliseconds to minutes/hours; restic operations that scan the repo (prune, check) will be slower. **If you actively rely on fast restic operations, set `apps.backrest.storage_class = "STANDARD"` to opt out before bumping.**
+
+**Known limitation**: backrest's first-day-of-STANDARD-storage warm window before GLACIER transition could be eliminated by threading the class through restic's S3 upload options (`--option s3.storage-class=GLACIER`). Not wired in v2.10.3; deferred to a follow-up. Cost impact: 1 day of STANDARD per snapshot before the rule fires.
+
+---
+
 ## v2.10.2 — `tier_names` cap raised from 4 to 12
 
 The v2.10.1 refactor of `modules/authentik/tier-cascade/` capped `tier_names` at 4 entries (matched the default — the previous for_each implementation was unbounded above 2). Cap raised to 12 (10 reasonable tiers + 2 extras for one-offs). Additive: consumers with `tier_names.length <= 4` see zero diff; new tier_4..tier_11 slots have `count = 0` for them. No state migration, no plan churn for existing consumers. Validation loosened to 2-12.
