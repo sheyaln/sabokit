@@ -173,3 +173,32 @@ variable "postgres_backup_schedule_retention_days" {
   type        = number
   default     = 7
 }
+
+# ── Scaleway TEM (outbound SMTP) ────────────────────────────────────────────
+# Every app sends transactional mail through Scaleway TEM. Base owns the
+# domain registration, DNS records (SPF/DKIM/DMARC), API key, and the
+# smtp-config secret. See platform/base/terraform/tem.tf.
+
+variable "tem_enabled" {
+  description = "Whether to provision Scaleway TEM for outbound SMTP. Default true — every app expects an `smtp-config` Scaleway secret to exist. Set false ONLY if you're handling SMTP out-of-band (your own SMTP relay, etc.) AND writing smtp-config yourself."
+  type        = bool
+  default     = true
+}
+
+variable "tem_sender_domain" {
+  description = "Domain TEM sends mail from. Must be a subdomain of (or equal to) base_domain so the SPF/DKIM/DMARC records this module creates land in the right zone. Default matches base_domain."
+  type        = string
+  default     = ""
+}
+
+variable "tem_from_email" {
+  description = "From: address apps use as their `smtp_from_email`. Defaults to `notify@<tem_sender_domain>` when empty."
+  type        = string
+  default     = ""
+}
+
+variable "tem_smtp_config_secret_name" {
+  description = "Name of the Scaleway secret base writes with SMTP credentials. App bundles default `smtp_secret_name` to `smtp-config` — override here only if you need a non-standard name."
+  type        = string
+  default     = "smtp-config"
+}

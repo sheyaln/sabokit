@@ -2,6 +2,40 @@
 
 All notable changes to sabokit go here. Versioning follows semver; major bumps signal breaking contract changes for consumers.
 
+## v2.8.0 — Scaleway TEM in base + new `platform/bootstrap/` tier (IMAP via protonmail-bridge)
+
+Two architectural additions.
+
+### Scaleway TEM in `platform/base/`
+
+Outbound SMTP for every app now ships with base. Adds `scaleway_tem_domain` + SPF/DKIM/DMARC DNS records + a dedicated TEM IAM application + the well-known `smtp-config` Scaleway secret. App bundles already reference `smtp_secret_name = "smtp-config"` by convention; once base is applied, apps get working outbound mail with no per-app config.
+
+New base TF vars:
+- `tem_enabled` (default `true` — flip to `false` only if managing SMTP out-of-band)
+- `tem_sender_domain` (default = `base_domain`)
+- `tem_from_email` (default `notify@<sender_domain>`)
+- `tem_smtp_config_secret_name` (default `smtp-config`)
+
+New base outputs: `scaleway.smtp_config_secret_id`, `scaleway.smtp_from_email`.
+
+### New `platform/bootstrap/` tier + protonmail-bridge bundle
+
+Sibling to `platform/base/`, `platform/identity/`, `platform/apps/`. Houses runtime-dependency services beyond what base provides. SMTP isn't bootstrap (it's in base — every app needs it + it's a managed Scaleway service); the tier exists for narrower shared dependencies.
+
+First bootstrap bundle: **`platform/bootstrap/protonmail-bridge/`** — IMAP gateway. Apps that need to FETCH mail (typically n8n workflows polling an inbox) consume the `imap-config` Scaleway secret this bundle writes.
+
+ARCHITECTURE.md gains a new "Tiers" section defining all four tiers, the 5-criteria bootstrap-vs-apps test, and why SMTP-via-TEM lives in base while protonmail-bridge lives in bootstrap.
+
+### Breaking changes
+
+`tem_enabled = true` by default. Consumers upgrading from v2.7.x who already manage `smtp-config` externally need to either:
+- Set `apps.<your-app>.smtp_secret_name` to a non-default name, OR
+- Set `tem_enabled = false` on the base module + keep their existing secret in place.
+
+The TEM DNS records (SPF/DKIM/DMARC) are appended to the consumer's `base_domain` zone. If the zone is managed outside Scaleway DNS, set `tem_enabled = false` and provision the records manually.
+
+---
+
 ## v2.7.2 — Wazuh dashboard native OIDC
 
 Replaced the v2.7.0 forward-auth gateway pattern with native OIDC on the Wazuh dashboard via opensearch-security's `openid` authc backend.

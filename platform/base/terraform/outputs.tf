@@ -20,6 +20,11 @@ output "scaleway" {
 
     object_storage_endpoint = "https://s3.${var.scaleway_region}.scw.cloud"
     secrets_namespace       = local.name_suffix
+
+    # Scaleway TEM outbound SMTP. Apps reference the smtp-config secret
+    # by name; these outputs are for diagnostics + consumer-template wiring.
+    smtp_config_secret_id = var.tem_enabled ? scaleway_secret.smtp_config[0].id : null
+    smtp_from_email       = var.tem_enabled ? local.tem_from_email_resolved : null
   }
 }
 
