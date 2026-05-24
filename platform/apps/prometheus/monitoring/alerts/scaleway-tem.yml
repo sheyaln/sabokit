@@ -1,0 +1,87 @@
+# Prometheus alert rules for Scaleway TEM (Transactional Email).
+# Rendered by the prometheus ansible role into /etc/prometheus/rules/ when
+# tem_exporter_enabled = true on the prometheus module call. Grafana picks
+# them up via the Prometheus datasource and fires through whichever contact
+# points (n8n grafana-alert-router webhook, etc.) are configured.
+#
+# Rates are computed off the rolling lookback window the exporter exposes;
+# the exporter resets per-scrape so these expressions read as point-in-time
+# percentages, not increase()-style.
+
+groups:
+  - name: scaleway-tem
+    interval: 60s
+    rules:
+      - alert: ScalewayTEMExporterDown
+        expr: time() - scaleway_tem_exporter_last_success_timestamp_seconds > 600
+        for: 5m
+        labels:
+          severity: warning
+          component: scaleway-tem
+        annotations:
+          summary: "Scaleway TEM exporter hasn't scraped successfully in 10+ minutes."
+          description: "Last successful poll was {{ humanizeDuration $value }} ago. Outbound email metrics are stale; alerts below will go silent."
+
+      - alert: ScalewayTEMHighBounceRate
+        # Hard bounces relative to total emails in the window. >5% sustained
+        # suggests a sender-reputation problem or a stale recipient list.
+        expr: |
+          (sum(scaleway_tem_window_flag_count{flag="hard_bounce"})
+            / clamp_min(sum(scaleway_tem_window_status_count), 1)) > 0.05
+        for: 10m
+        labels:
+          severity: warning
+          component: scaleway-tem
+        annotations:
+          summary: "TEM hard-bounce rate >5% over the last hour."
+          description: "{{ $value | humanizePercentage }} of emails in the rolling window hard-bounced. Investigate the sending domain's reputation + recipient list hygiene."
+
+      - alert: ScalewayTEMHighSpamComplaintRate
+        # Spam complaints >1% will trigger receiver-side throttling fast.
+        expr: |
+          (sum(scaleway_tem_window_flag_count{flag="spam"})
+            / clamp_min(sum(scaleway_tem_window_status_count), 1)) > 0.01
+        for: 10m
+        labels:
+          severity: critical
+          component: scaleway-tem
+        annotations:
+          summary: "TEM spam-complaint rate >1% over the last hour."
+          description: "{{ $value | humanizePercentage }} of emails flagged as spam by recipients. Receivers will start throttling; review outbound content + audience consent."
+
+      - alert: ScalewayTEMHighFailureRate
+        # Status=failed covers all final-state delivery failures (bounce
+        # categories the destination MTA already gave up on).
+        expr: |
+          (sum(scaleway_tem_window_status_count{status="failed"})
+            / clamp_min(sum(scaleway_tem_window_status_count), 1)) > 0.10
+        for: 15m
+        labels:
+          severity: warning
+          component: scaleway-tem
+        annotations:
+          summary: "TEM failure rate >10% over the last hour."
+          description: "{{ $value | humanizePercentage }} of emails entered a 'failed' final state. Something systemic — DKIM/SPF break, blocklist hit, or recipient-domain outage."
+
+      - alert: ScalewayTEMSendingBacklog
+        # Persistent 'sending' state count >50 suggests TEM-side queue stall.
+        expr: sum(scaleway_tem_window_status_count{status="sending"}) > 50
+        for: 15m
+        labels:
+          severity: warning
+          component: scaleway-tem
+        annotations:
+          summary: "TEM has >50 emails stuck in the 'sending' state."
+          description: "{{ $value }} emails have been transient for 15+ minutes. Check Scaleway TEM status page; deferred-retry behaviour is normal but sustained backlog is not."
+
+      - alert: ScalewayTEMNoTraffic
+        # Quiet-period check — catches the opposite failure mode where
+        # apps stopped sending mail entirely.
+        expr: sum(scaleway_tem_window_status_count) == 0
+        for: 60m
+        labels:
+          severity: info
+          component: scaleway-tem
+        annotations:
+          summary: "TEM has sent zero emails in the last hour."
+          description: "No outbound email activity. Either nothing's triggering mail (legitimate, e.g. overnight quiet) or every sending app's SMTP path is broken."

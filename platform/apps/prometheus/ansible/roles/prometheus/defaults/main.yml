@@ -28,3 +28,16 @@ prometheus_autoheal_enabled: true
 # Image tags for the optional sidecars (only used when exporters_enabled).
 prometheus_node_exporter_image_tag: "latest"
 prometheus_cadvisor_image_tag: "latest"
+
+# Scaleway TEM exporter sidecar — runs alongside prometheus when enabled,
+# polls Scaleway's TEM API, exposes /metrics on port 9111 (internal only).
+# Pairs with monitoring/dashboards/scaleway-tem.json + monitoring/alerts/scaleway-tem.yml.
+prometheus_tem_exporter_enabled: false
+prometheus_tem_exporter_image: "python"
+prometheus_tem_exporter_image_tag: "3.12-alpine"
+prometheus_tem_smtp_secret_id: ""
+prometheus_tem_scaleway_project_id: ""
+prometheus_tem_scaleway_region: "fr-par"
+prometheus_tem_exporter_poll_interval: 60
+prometheus_tem_exporter_lookback_minutes: 60
+prometheus_tem_exporter_port: 9111

@@ -61,6 +61,42 @@ variable "remote_write_enabled" {
   default     = true
 }
 
+variable "tem_exporter_enabled" {
+  description = "Deploy the bundled Scaleway TEM exporter sidecar (Python; polls Scaleway's TEM API and exposes /metrics on port 9111). Pair with the bundled `scaleway-tem` dashboard + alert rules. Requires `tem_smtp_secret_id` so the role can pull the TEM-scoped API key out of Scaleway Secret Manager (the SMTP password from base's smtp-config secret IS that key)."
+  type        = bool
+  default     = false
+}
+
+variable "tem_smtp_secret_id" {
+  description = "Scaleway secret ID for the smtp-config secret (typically `module.base.scaleway.smtp_config_secret_id`). Only consumed when `tem_exporter_enabled = true`. The exporter unwraps it and uses the `password` field as the TEM API key."
+  type        = string
+  default     = ""
+}
+
+variable "tem_scaleway_project_id" {
+  description = "Scaleway project ID scoping the TEM API queries (typically `var.base_scaleway_project_id`). Only consumed when `tem_exporter_enabled = true`."
+  type        = string
+  default     = ""
+}
+
+variable "tem_scaleway_region" {
+  description = "Scaleway region the TEM domain lives in. Only consumed when `tem_exporter_enabled = true`."
+  type        = string
+  default     = "fr-par"
+}
+
+variable "tem_exporter_poll_interval_seconds" {
+  description = "How often the TEM exporter polls Scaleway's API. Lower = fresher metrics + higher API quota usage."
+  type        = number
+  default     = 60
+}
+
+variable "tem_exporter_lookback_minutes" {
+  description = "Rolling window the TEM exporter uses for per-flag / per-status counts (drives bounce-rate, spam-rate etc.). Match this to the alert `for:` durations + Grafana panel time range."
+  type        = number
+  default     = 60
+}
+
 variable "private_ip_bind" {
   description = "Optional host private IP to bind Prometheus's port 9090 to. Empty = bind to 127.0.0.1 only (internal access via Grafana or SSH tunnel). Set to a private-network IP to let other hosts on the VPC scrape directly or push via remote-write."
   type        = string

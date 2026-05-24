@@ -2,6 +2,46 @@
 
 All notable changes to sabokit go here. Versioning follows semver; major bumps signal breaking contract changes for consumers.
 
+## v2.9.0 — Scaleway TEM observability reshape: Grafana dashboard + alerts + n8n alert router
+
+Outbound-email observability moves from a standalone n8n polling/alerting workflow to the Grafana stack already in the platform. Cleaner separation: Grafana owns thresholds + visualization, n8n owns notification routing.
+
+### What's new
+
+**Prometheus bundle (`platform/apps/prometheus/`)**
+- New opt-in TEM exporter sidecar (`tem_exporter_enabled = true`). Python script in `ansible/roles/prometheus/files/tem-exporter/` running in `python:3.12-alpine` with `pip install` on start — no custom registry image. Polls Scaleway's TEM REST API (`/statistics` + `/emails`) every minute, exposes per-status + per-flag counters on `:9111/metrics`.
+- New bundled dashboard `monitoring/dashboards/scaleway-tem.json` (bounce rate, spam complaint rate, failure rate, throughput by status, flag breakdown, exporter health).
+- New bundled alert rules `monitoring/alerts/scaleway-tem.yml`: hard-bounce rate >5%, spam-complaint rate >1% (critical), failure rate >10%, sending backlog >50, no-traffic-1h (info), exporter-down. The Ansible role copies these into `/etc/prometheus/rules/` when the exporter is enabled.
+- New TF vars: `tem_exporter_enabled`, `tem_smtp_secret_id`, `tem_scaleway_project_id`, `tem_scaleway_region`, `tem_exporter_poll_interval_seconds`, `tem_exporter_lookback_minutes`.
+- Credential reuse: the exporter's Scaleway API key is the TEM SMTP password already in `base.scaleway.smtp_config_secret_id` (Scaleway's TEM SMTP password IS an IAM key with `TransactionalEmailFullAccess`). No new secret to manage.
+
+**n8n bundle (`platform/apps/n8n/`)**
+- New workflow `grafana-alert-router.json`. Webhook receiver on `/webhook/grafana-alerts` consuming Grafana's standard alert payload (`alerts[]` with `status`/`labels`/`annotations`/`startsAt`/`generatorURL`/`silenceURL`). Routes by `labels.severity` (critical → Slack + email; warning → Slack; info → Slack one-liner). Configure as a Grafana webhook contact point.
+- Existing `tem-delivery-alerting.json` is **deprecated but retained** — it still works as a TEM SNS-webhook receiver for per-event alerts if that's wired. The README directs new deployments to the Grafana path.
+
+**Consumer-template (`consumer-template/modules/stack/apps.tf`)**
+- `module.prometheus` now wires the new TEM exporter inputs through from `var.apps.prometheus.*` and pulls the smtp-config secret ID + project + region from `local.base.scaleway.*` automatically.
+
+**Manifest (`consumer-template/apps-manifest.yaml`)**
+- Prometheus schema gains `tem_exporter_enabled`, `tem_exporter_poll_interval_seconds`, `tem_exporter_lookback_minutes` (all advanced UI).
+
+### Migration
+
+For consumers already on `tem-delivery-alerting.json`:
+
+1. Bump prometheus module to `?ref=v2.9.0`.
+2. Set `apps.prometheus.tem_exporter_enabled = true` in tfvars. Apply.
+3. Re-run the prometheus playbook (or `site.yml`). Sidecar starts; `/etc/prometheus/rules/scaleway-tem.yml` appears.
+4. Import `grafana-alert-router.json` in n8n. Activate it.
+5. In Grafana → Alerting → Contact points, create a webhook contact point at `https://<n8n hostname>/webhook/grafana-alerts`. Set it as the default for the `scaleway-tem` rule group's notification policy.
+6. The old `tem-delivery-alerting.json` workflow can be left in place (still works if your TEM SNS webhook is wired to its `/webhook/tem-delivery` path) or deactivated/deleted.
+
+### Non-breaking for consumers not using TEM
+
+The exporter is opt-in (`tem_exporter_enabled = false` default). Existing prometheus deployments are unaffected.
+
+---
+
 ## v2.8.1 — Fix: static graph cycle in platform/identity outpost output
 
 **Bug (existed since v2.4.0, reported v2.8.0 by dciww-consumer):** any consumer following the documented forward-auth wiring pattern hit a `terraform plan` cycle error:

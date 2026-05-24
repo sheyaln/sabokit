@@ -27,6 +27,16 @@ scrape_configs:
       - targets: ["cadvisor:8080"]
 {% endif %}
 
+{% if prometheus_tem_exporter_enabled %}
+  # Scaleway TEM exporter sidecar. Polls Scaleway's TEM API; exposes the
+  # bounce/spam/failed counters the scaleway-tem dashboard + alert rules
+  # consume.
+  - job_name: scaleway_tem
+    scrape_interval: 60s
+    static_configs:
+      - targets: ["tem_exporter:{{ prometheus_tem_exporter_port }}"]
+{% endif %}
+
 {# Consumer-aggregated scrape configs from each enabled app's monitoring output #}
 {% for cfg in prometheus_scrape_configs | default([]) %}
   - {{ cfg | to_nice_yaml(indent=2) | indent(4) }}

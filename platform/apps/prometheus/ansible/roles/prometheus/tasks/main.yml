@@ -21,6 +21,7 @@
     - "{{ prometheus_install_dir }}"
     - "{{ prometheus_install_dir }}/config"
     - "{{ prometheus_install_dir }}/rules"
+    - "{{ prometheus_install_dir }}/tem-exporter"
 
 # Create the shared monitoring network. Idempotent — Loki and Grafana
 # bundles do the same and the first one wins. Marked external in each
@@ -47,6 +48,72 @@
     owner: root
     group: root
   notify: Reload prometheus config
+
+# Static Scaleway TEM alert rules ship with the bundle (paired with the
+# tem-exporter sidecar). Only meaningful when tem_exporter_enabled = true,
+# but copying unconditionally is harmless — alerts on an absent metric just
+# never fire.
+- name: Copy bundled Scaleway TEM alert rules
+  ansible.builtin.copy:
+    src: "{{ role_path }}/../../../monitoring/alerts/scaleway-tem.yml"
+    dest: "{{ prometheus_install_dir }}/rules/scaleway-tem.yml"
+    mode: "0644"
+    owner: root
+    group: root
+  when: prometheus_tem_exporter_enabled | bool
+  notify: Reload prometheus config
+
+- name: Remove bundled TEM alert rules when exporter disabled
+  ansible.builtin.file:
+    path: "{{ prometheus_install_dir }}/rules/scaleway-tem.yml"
+    state: absent
+  when: not (prometheus_tem_exporter_enabled | bool)
+  notify: Reload prometheus config
+
+# Stage tem-exporter source so the sidecar's bind-mount has something to
+# read. The container does `pip install -r requirements.txt` then runs the
+# script on start — keeps the bundle dependency-light (no custom image).
+- name: Stage TEM exporter source
+  ansible.builtin.copy:
+    src: "{{ item }}"
+    dest: "{{ prometheus_install_dir }}/tem-exporter/{{ item | basename }}"
+    mode: "0644"
+    owner: root
+    group: root
+  loop:
+    - tem-exporter/tem_exporter.py
+    - tem-exporter/requirements.txt
+  when: prometheus_tem_exporter_enabled | bool
+  notify: Restart prometheus
+
+- name: Normalize TEM smtp-config secret ID
+  ansible.builtin.set_fact:
+    _prometheus_tem_secret_uuid: "{{ prometheus_tem_smtp_secret_id | regex_replace('^[^/]+/', '') }}"
+  when: prometheus_tem_exporter_enabled | bool
+
+- name: Look up TEM smtp-config secret from Scaleway
+  ansible.builtin.set_fact:
+    _prometheus_tem_smtp_bag: >-
+      {{ lookup('scaleway.scaleway.scaleway_secret', _prometheus_tem_secret_uuid) | b64decode | from_json }}
+  when: prometheus_tem_exporter_enabled | bool
+  no_log: true
+
+- name: Render TEM exporter env file
+  ansible.builtin.copy:
+    dest: "{{ prometheus_install_dir }}/tem-exporter/.env"
+    mode: "0600"
+    owner: root
+    group: root
+    content: |
+      SCW_SECRET_KEY={{ _prometheus_tem_smtp_bag.password }}
+      SCW_PROJECT_ID={{ prometheus_tem_scaleway_project_id }}
+      SCW_REGION={{ prometheus_tem_scaleway_region }}
+      POLL_INTERVAL_SECONDS={{ prometheus_tem_exporter_poll_interval }}
+      LOOKBACK_MINUTES={{ prometheus_tem_exporter_lookback_minutes }}
+      LISTEN_PORT={{ prometheus_tem_exporter_port }}
+  when: prometheus_tem_exporter_enabled | bool
+  no_log: true
+  notify: Restart prometheus
 
 - name: Render docker-compose.yml
   ansible.builtin.template:

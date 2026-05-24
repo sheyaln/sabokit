@@ -93,6 +93,38 @@ services:
 {% endif %}
 {% endif %}
 
+{% if prometheus_tem_exporter_enabled %}
+  # Scaleway TEM Prometheus exporter. Stock python image; installs deps on
+  # start (small, two-pip-package surface — keeps the bundle from needing a
+  # custom registry image per fork). Source bind-mounted from ./tem-exporter/.
+  tem_exporter:
+    image: "{{ prometheus_tem_exporter_image }}:{{ prometheus_tem_exporter_image_tag }}"
+    container_name: prometheus-tem-exporter
+    restart: unless-stopped
+    working_dir: /app
+    command: >-
+      sh -c "pip install --no-cache-dir -q -r /app/requirements.txt &&
+             exec python -u /app/tem_exporter.py"
+    volumes:
+      - ./tem-exporter:/app:ro
+    env_file:
+      - ./tem-exporter/.env
+    networks:
+      - "{{ prometheus_internal_network }}"
+    security_opt:
+      - no-new-privileges:true
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:{{ prometheus_tem_exporter_port }}/metrics"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    labels:
+{% if prometheus_autoheal_enabled | default(false) %}
+      - "autoheal=true"
+{% endif %}
+{% endif %}
+
 volumes:
   prometheus-data:
 

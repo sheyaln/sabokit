@@ -283,6 +283,16 @@ module "prometheus" {
   # + monitoring.alert_rules.
   scrape_configs = concat(local.aggregated_scrape_configs, try(var.apps.prometheus.scrape_configs, []))
   alert_rules    = concat(local.aggregated_alert_rules, try(var.apps.prometheus.alert_rules, []))
+
+  # Scaleway TEM exporter sidecar — pairs with the bundled scaleway-tem
+  # dashboard + alert rules. Reuses the smtp-config secret base writes
+  # (its `password` field IS a TEM-scoped Scaleway API key).
+  tem_exporter_enabled               = try(var.apps.prometheus.tem_exporter_enabled, false)
+  tem_smtp_secret_id                 = try(local.base.scaleway.smtp_config_secret_id, "")
+  tem_scaleway_project_id            = local.base.scaleway.project_id
+  tem_scaleway_region                = local.base.scaleway.region
+  tem_exporter_poll_interval_seconds = try(var.apps.prometheus.tem_exporter_poll_interval_seconds, 60)
+  tem_exporter_lookback_minutes      = try(var.apps.prometheus.tem_exporter_lookback_minutes, 60)
 }
 
 module "loki" {

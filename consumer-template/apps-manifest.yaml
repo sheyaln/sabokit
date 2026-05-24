@@ -1092,6 +1092,24 @@ apps:
           description: Optional private IP to bind 9090 to. Empty = 127.0.0.1 only.
           ui: advanced
 
+        tem_exporter_enabled:
+          type: bool
+          default: false
+          description: Deploy the Scaleway TEM exporter sidecar. Polls TEM's API + exposes outbound-email metrics for the bundled scaleway-tem dashboard + alert rules.
+          ui: advanced
+
+        tem_exporter_poll_interval_seconds:
+          type: number
+          default: 60
+          description: How often the TEM exporter polls Scaleway's API.
+          ui: advanced
+
+        tem_exporter_lookback_minutes:
+          type: number
+          default: 60
+          description: Rolling window the TEM exporter uses for per-flag / per-status counts (drives bounce-rate, spam-rate alerts).
+          ui: advanced
+
   # ── Loki ────────────────────────────────────────────────────────────────
   - id: loki
     display_name: Loki
