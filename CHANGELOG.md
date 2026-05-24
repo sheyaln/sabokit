@@ -2,6 +2,24 @@
 
 All notable changes to sabokit go here. Versioning follows semver; major bumps signal breaking contract changes for consumers.
 
+## v2.10.0 — Dynamic split-horizon DNS in base; multi-host topologies stop needing co-location
+
+Until now, multi-host consumers had no answer for cross-host hostname resolution. Prometheus + Loki + Grafana had to co-locate on one host (the documented workaround); anything else meant editing scrape configs with private IPs by hand. That gap closes.
+
+New plug-and-play primitive `split_dns_entries`. Every hostnamed bundle emits its `(hostname, private_ip)` pair. Consumer-template aggregates across enabled bundles into `split_dns_overrides`. New `platform/base/ansible/roles/split-dns/` runs on every host before docker — installs dnsmasq, tears down systemd-resolved's stub-listener cleanly, renders `/etc/dnsmasq.d/fc-split.conf` from the overrides map, points `/etc/resolv.conf` at dnsmasq. Cross-host requests for `loki.example.org` resolve to the management host's private IP instead of going out the public internet.
+
+Auto-disables when `length(base.compute.hosts) == 1` — single-host topologies don't need it. Existing single-host consumers get no behavior change.
+
+Bundles touched (each gained one new output): outline, steward, vikunja, bentopdf, notifuse, privacy-policy, nextcloud, decidim, jitsi, espocrm, n8n, backrest, grafana, wazuh. Nextcloud emits 3 entries (collabora + onlyoffice + talk-hpb hostnames). No input variables added anywhere.
+
+Two overridables on the role for non-standard topologies: `split_dns_docker_bridge_ip` (default `172.17.0.1`) for hosts running a custom docker `bip`, and `split_dns_allowed_cidr` (default `172.16.0.0/12`) for VPCs on 10.0/8 instead. UFW allow on port 53 from the configured CIDR.
+
+Grafana + prometheus READMEs softened: co-location is no longer the only option. ARCHITECTURE.md plug-and-play table picks up the new output.
+
+No contract breaks. Consumers on v2.9.3 jumping to v2.10.0 get split-DNS automatically on next bootstrap run, gated on host count.
+
+---
+
 ## v2.9.3 — Ansible-runner image, grafana picks up bundle dashboards, TF↔Ansible boundary doc
 
 Three landings, no contract breaks.
