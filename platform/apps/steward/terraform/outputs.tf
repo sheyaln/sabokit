@@ -51,3 +51,14 @@ output "service_account_token_secret_hint" {
   description = "Hint pointing to where the Authentik API token lives (inside the app_secret_id bag under AUTHENTIK_API_TOKEN). The token itself is not exported."
   value       = var.enabled ? "Inside ${scaleway_secret.app[0].name}, key AUTHENTIK_API_TOKEN" : null
 }
+
+output "backup_plan" {
+  description = "Backrest backup plan contribution. null when disabled or backup_enabled = false. Aggregated by consumer-template into backrest's backup_plans."
+  value = (var.enabled && var.backup_enabled) ? {
+    id        = local.slug
+    paths     = concat(["/backup-sources/opt/${local.slug}"], var.backup_extra_paths)
+    excludes  = []
+    schedule  = { cron = var.backup_schedule_cron }
+    retention = var.backup_retention
+  } : null
+}

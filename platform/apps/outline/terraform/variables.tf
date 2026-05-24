@@ -79,6 +79,41 @@ variable "storage_bucket_acl" {
   default     = "public-read"
 }
 
+variable "backup_enabled" {
+  description = "Whether the Backrest platform bundle (if deployed on the same host) backs up Outline's host-side state. Default true. Plan id = bundle slug; paths = `/backup-sources/opt/outline` plus any `backup_extra_paths`."
+  type        = bool
+  default     = true
+}
+
+variable "backup_extra_paths" {
+  description = "Additional restic paths beyond `/backup-sources/opt/outline`. Use for named docker volumes, e.g. `[\"/backup-sources/docker-volumes/outline_storage-data/_data\"]`."
+  type        = list(string)
+  default     = []
+}
+
+variable "backup_schedule_cron" {
+  description = "Backrest cron (6-field, seconds first) for Outline's plan. Default 02:00 UTC daily."
+  type        = string
+  default     = "0 0 2 * * *"
+}
+
+variable "backup_retention" {
+  description = "Restic retention policy for Outline's backup plan."
+  type = object({
+    hourly  = optional(number)
+    daily   = optional(number)
+    weekly  = optional(number)
+    monthly = optional(number)
+    yearly  = optional(number)
+  })
+  default = {
+    daily   = 7
+    weekly  = 4
+    monthly = 12
+    yearly  = 1
+  }
+}
+
 variable "auto_update_enabled" {
   description = "Whether the Watchtower platform bundle (if deployed on this host) auto-pulls newer Outline image versions. Default true — Outline has stable migration story for minor versions; majors are rare and pin-tag-safe via image_tag."
   type        = bool

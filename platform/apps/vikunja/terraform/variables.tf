@@ -85,6 +85,41 @@ variable "smtp_from_email" {
   default     = ""
 }
 
+variable "backup_enabled" {
+  description = "Whether the Backrest platform bundle (if deployed on the same host) backs up Vikunja's host-side state. Default true — Vikunja keeps attachments in `/opt/vikunja/files` which is not in S3 and would be lost on host loss without backrest."
+  type        = bool
+  default     = true
+}
+
+variable "backup_extra_paths" {
+  description = "Additional restic paths beyond `/backup-sources/opt/vikunja`. Use for named docker volumes."
+  type        = list(string)
+  default     = []
+}
+
+variable "backup_schedule_cron" {
+  description = "Backrest cron (6-field, seconds first). Default 02:00 UTC daily."
+  type        = string
+  default     = "0 0 2 * * *"
+}
+
+variable "backup_retention" {
+  description = "Restic retention policy."
+  type = object({
+    hourly  = optional(number)
+    daily   = optional(number)
+    weekly  = optional(number)
+    monthly = optional(number)
+    yearly  = optional(number)
+  })
+  default = {
+    daily   = 7
+    weekly  = 4
+    monthly = 12
+    yearly  = 1
+  }
+}
+
 variable "auto_update_enabled" {
   description = "Whether the Watchtower platform bundle (if deployed) auto-pulls newer Vikunja image versions. Default true — Vikunja has a simple migration story and a single container."
   type        = bool
