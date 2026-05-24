@@ -39,3 +39,11 @@ decidim_sidekiq_memory_limit: "1G"
 decidim_sidekiq_memory_reservation: "256M"
 decidim_sidekiq_cpu_limit: "0.5"
 decidim_sidekiq_cpu_reservation: "0.1"
+
+# Memcached cache server. `memory_mb` is the in-process ceiling memcached uses
+# internally (its `-m` flag); container resource limits sit above it.
+decidim_memcached_memory_mb: 128
+decidim_memcached_memory_limit: "256M"
+decidim_memcached_memory_reservation: "64M"
+decidim_memcached_cpu_limit: "0.25"
+decidim_memcached_cpu_reservation: "0.1"

@@ -27,6 +27,28 @@ services:
           memory: 64M
           cpus: '0.1'
 
+  # Memcached holds Rails fragment cache. Without it Decidim falls back to
+  # in-process caching, which works for a handful of users but loses every
+  # cache hit on `app`/`sidekiq` restart and never benefits from the second
+  # request to any view.
+  decidim-memcached:
+    image: memcached:1.6-alpine
+    container_name: decidim-memcached
+    restart: always
+    command: memcached -m {{ decidim_memcached_memory_mb }} -o modern
+    networks:
+      - decidim_network
+    security_opt:
+      - no-new-privileges:true
+    deploy:
+      resources:
+        limits:
+          memory: "{{ decidim_memcached_memory_limit }}"
+          cpus: "{{ decidim_memcached_cpu_limit }}"
+        reservations:
+          memory: "{{ decidim_memcached_memory_reservation }}"
+          cpus: "{{ decidim_memcached_cpu_reservation }}"
+
   # One-shot bootstrapper. Idempotent via the init-marker volume: the first
   # successful run writes /init/db_initialized; subsequent runs short-circuit.
   # On failure (e.g. transient DB connectivity), the next play retries.
@@ -133,6 +155,8 @@ services:
         condition: service_completed_successfully
       decidim-redis:
         condition: service_healthy
+      decidim-memcached:
+        condition: service_started
     volumes:
       - uploads-data:/code/public/uploads
       - logs-data:/code/log
@@ -180,6 +204,8 @@ services:
         condition: service_completed_successfully
       decidim-redis:
         condition: service_healthy
+      decidim-memcached:
+        condition: service_started
     volumes:
       - uploads-data:/code/public/uploads
       - logs-data:/code/log
