@@ -41,16 +41,20 @@ output "authentik" {
       source_enrollment_flow     = module.flows.source_enrollment_flow_uuid
     }
 
+    # Flat name → group ID. Backwards-compatible with existing app bundles
+    # that read base.authentik.groups[var.access_level]. The cascade module
+    # also exposes tier_cascade below for bundles that opt into the cascade.
     groups = merge(
-      {
-        (var.admin_group_name)  = authentik_group.admin.id,
-        (var.member_group_name) = authentik_group.member.id,
-      },
-      var.delegate_group_name != null ? {
-        (var.delegate_group_name) = authentik_group.delegate[0].id
-      } : {},
+      module.tier_cascade.groups,
       { for k, g in authentik_group.extra : k => g.id },
     )
+
+    # Map of tier-name → map(name → group_id) listing every tier at-or-above
+    # the key. Bundles with tier_cascade_enabled = true consume
+    # base.authentik.tier_cascade[var.tier_access_level] directly for their
+    # authorized_groups. See modules/authentik/tier-cascade/README.md.
+    tier_cascade = module.tier_cascade.tier_cascade
+    admin_tier   = module.tier_cascade.admin_tier
 
     sources = merge(
       var.enable_google_social_login ? { google = authentik_source_oauth.google[0].uuid } : {},

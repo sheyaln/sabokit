@@ -18,9 +18,17 @@ See [`ARCHITECTURE.md`](../../ARCHITECTURE.md) for the full base/app contract.
 - The standard flow set (authentication, source-auth, source-enrollment,
   manual enrollment, password reset, MFA reset, email-invitation, user
   unenrollment) — see `flows/`.
-- Base groups: `admin` (always), `member` (always), and `delegate` (optional,
-  with a paired RBAC role for user/group management). Plus any extras the
-  consumer adds via `var.extra_groups`.
+- A **tier cascade** of Authentik groups via `modules/authentik/tier-cascade`.
+  Default chain: `member → delegate → treasurer → admin`. Each tier inherits
+  all lower tiers (Authentik group nesting), so an app gated on `member`
+  admits everyone in `delegate`/`treasurer`/`admin` too. Tune via the
+  per-tier-name vars (`member_group_name`, `delegate_group_name`,
+  `treasurer_group_name`, `admin_group_name` — set any non-admin/member to
+  `null` to drop that tier) or replace the whole chain with
+  `tier_names_override`. The delegate tier carries the
+  user/group-management RBAC role wired in `roles.tf`. Extra non-cascade
+  groups (service accounts, app-integration groups) go through
+  `var.extra_groups`.
 - Optional Google and Apple OAuth social-login sources (each gated by a
   toggle and a Scaleway secret lookup).
 - A configured embedded outpost that binds whatever forward-auth provider IDs
@@ -64,7 +72,9 @@ output "authentik" = {
     source_authentication_flow = string  # UUID
     source_enrollment_flow     = string  # UUID
   }
-  groups               = map(string)  # "admin" | "member" | "delegate" | extras → group ID
+  groups               = map(string)  # "admin" | "member" | "delegate" | "treasurer" | extras → group ID
+  tier_cascade         = map(map(string))  # tier T → map(name → group_id) for every tier at-or-above T
+  admin_tier           = string       # name of the tier flagged is_superuser
   sources              = map(string)  # "google" | "apple" → source UUID (may be {})
   outpost_id           = string
   branding_assets_path = string       # filesystem path consumed by ansible
@@ -111,8 +121,8 @@ platform/identity/terraform/
 ├── locals.tf             # Derived values (notification target groups, etc.)
 ├── data.tf               # Scaleway secret lookups (SMTP + optional socials)
 ├── brand.tf              # Default brand resource
-├── user_groups.tf        # admin / member / extra groups
-├── roles.tf              # delegate RBAC role + group
+├── user_groups.tf        # tier-cascade module call + extra groups
+├── roles.tf              # delegate RBAC role (attached to cascade tier)
 ├── auth_sources.tf       # Google + Apple sources (toggle-gated)
 ├── flows.tf              # Calls the flows submodule
 ├── flows/                # The flow stages, prompts, and email stages

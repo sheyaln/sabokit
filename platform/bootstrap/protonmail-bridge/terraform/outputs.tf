@@ -24,15 +24,15 @@ output "ansible" {
     playbook   = "${path.module}/../ansible/playbook.yml"
     host_group = var.base.compute.hosts[var.deployment_host_key].ansible_group
     vars = {
-      protonmail_bridge_image                  = var.image
-      protonmail_bridge_image_tag              = var.image_tag
-      protonmail_bridge_timezone               = var.timezone
-      protonmail_bridge_memory_limit           = var.memory_limit
-      protonmail_bridge_memory_reservation     = var.memory_reservation
-      protonmail_bridge_cpu_limit              = var.cpu_limit
-      protonmail_bridge_cpu_reservation        = var.cpu_reservation
-      protonmail_bridge_auto_update_enabled    = var.auto_update_enabled
-      protonmail_bridge_autoheal_enabled       = var.autoheal_enabled
+      protonmail_bridge_image               = var.image
+      protonmail_bridge_image_tag           = var.image_tag
+      protonmail_bridge_timezone            = var.timezone
+      protonmail_bridge_memory_limit        = var.memory_limit
+      protonmail_bridge_memory_reservation  = var.memory_reservation
+      protonmail_bridge_cpu_limit           = var.cpu_limit
+      protonmail_bridge_cpu_reservation     = var.cpu_reservation
+      protonmail_bridge_auto_update_enabled = var.auto_update_enabled
+      protonmail_bridge_autoheal_enabled    = var.autoheal_enabled
     }
   } : null
 }

@@ -2,6 +2,47 @@
 
 All notable changes to sabokit go here. Versioning follows semver; major bumps signal breaking contract changes for consumers.
 
+## v2.9.0 — Tier cascade for Authentik access
+
+Single, declarative, batteries-included access model: a chain of Authentik groups (default `member → delegate → treasurer → admin`) where each tier inherits all lower tiers via Authentik group nesting. App bundles gate on a single tier; users in that tier or any higher one get in.
+
+### New shared module: `modules/authentik/tier-cascade`
+
+Builds the chain of `authentik_group` resources with `parents` wired so the highest-privilege tier sits at the bottom of the chain and cascades upward. Outputs:
+
+- `groups` — flat `name → id` map (merged into `base.authentik.groups`, backwards-compatible with existing app bundles).
+- `tier_cascade` — `map(tier → map(tier → group_id))` where `tier_cascade[T]` lists every tier at-or-above `T`. Bundle's `authorized_groups` is now a one-line indexed lookup.
+- `admin_tier` — echo of the resolved admin tier.
+
+Customise via the existing identity-tier vars (`admin_group_name`, `member_group_name`, `delegate_group_name`, plus the new `treasurer_group_name`) or rewrite the whole list with `tier_names_override`.
+
+`platform/identity/` now instantiates the cascade in place of the inline `authentik_group` resources it used to create. The delegate RBAC role still lives in `roles.tf`; it's attached to the cascade's delegate-tier group via the cascade's `tier_roles` input.
+
+### Per-bundle integration (opt-out)
+
+Every authentik-gated bundle (`outline`, `steward`, `vikunja`, `bentopdf`, `notifuse`, `nextcloud`, `decidim`, `jitsi`, `espocrm`, `n8n`, `grafana`, `wazuh`, `backrest`) gains two variables:
+
+- `tier_cascade_enabled` (default `true`) — derive `authorized_groups` from the cascade.
+- `tier_access_level` (default `"member"` for user-facing apps, `"admin"` for ops surfaces) — which cascade tier gates the app.
+
+When `tier_cascade_enabled = false`, the bundle falls back to the existing `access_level` + `extra_authorized_groups` primitive shape — unchanged from v2.8.x. Use this for apps with genuinely unusual gating (a single service-account group, no inheritance, etc.).
+
+Apps without an OIDC surface (`watchtower`, `autoheal`, `wazuh-agent`, `prometheus`, `loki`) and public apps (`privacy-policy`) are untouched.
+
+### Breaking changes
+
+None for consumers on the default cascade. Two edges to watch:
+
+- Consumers who previously created their own group named `treasurer` outside the identity module will collide with the new default tier. Either drop the external group, override `treasurer_group_name = null`, or rename via `tier_names_override`.
+- The platform `member`/`admin`/`delegate` groups are now created by the cascade module instead of inline in `user_groups.tf`. Terraform sees these as a resource move; `terraform state mv` from `authentik_group.admin` → `module.tier_cascade.authentik_group.tier["admin"]` (and similarly for `member`/`delegate`) avoids destroy/recreate. Without the move terraform will recreate them, which loses any UI-managed group attributes (but not user membership, since that's stored on the user side in Authentik).
+
+### Other
+
+- Consumer-template refs bumped `v2.8.1` → `v2.9.0`.
+- Manifest gains `tier_cascade_enabled` and `tier_access_level` entries for all 13 cascade-integrated bundles.
+
+---
+
 ## v2.8.1 — Fix: static graph cycle in platform/identity outpost output
 
 **Bug (existed since v2.4.0, reported v2.8.0 by dciww-consumer):** any consumer following the documented forward-auth wiring pattern hit a `terraform plan` cycle error:

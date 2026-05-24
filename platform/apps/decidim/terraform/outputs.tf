@@ -42,7 +42,7 @@ output "ansible" {
       decidim_max_upload_size_bytes    = var.max_upload_size_bytes
       # SMTP is opt-in: empty smtp_from_email means SMTP is off and the role
       # should skip the lookup entirely.
-      decidim_smtp_secret_name = var.smtp_from_email == "" ? "" : "smtp-config"
+      decidim_smtp_secret_name    = var.smtp_from_email == "" ? "" : "smtp-config"
       decidim_auto_update_enabled = var.auto_update_enabled
       decidim_autoheal_enabled    = var.autoheal_enabled
     }

@@ -41,6 +41,18 @@ variable "extra_authorized_groups" {
   default     = {}
 }
 
+variable "tier_cascade_enabled" {
+  description = "Whether to derive authorized_groups from the platform tier cascade (member→delegate→treasurer→admin; each tier inherits all lower tiers). Default true. Set false to use the primitive access_level + extra_authorized_groups path instead."
+  type        = bool
+  default     = true
+}
+
+variable "tier_access_level" {
+  description = "Cascade tier required for baseline access. Users in this tier and any higher tier are admitted. Only consulted when tier_cascade_enabled = true."
+  type        = string
+  default     = "admin"
+}
+
 variable "monitoring_enabled" {
   description = "If true and a monitoring app is enabled, Backrest's /metrics endpoint and log paths wire in. No effect when monitoring apps are disabled."
   type        = bool
