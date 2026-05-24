@@ -113,6 +113,12 @@ output "enabled_apps" {
       ansible_group = module.grafana.ansible.host_group
       monitoring    = module.grafana.monitoring
     } : null
+    wazuh = module.wazuh.enabled ? {
+      url           = module.wazuh.app_url
+      ansible_vars  = module.wazuh.ansible.vars
+      ansible_group = module.wazuh.ansible.host_group
+      monitoring    = module.wazuh.monitoring
+    } : null
     backrest_mgmt = module.backrest_mgmt.enabled ? {
       url           = module.backrest_mgmt.app_url
       ansible_vars  = module.backrest_mgmt.ansible.vars

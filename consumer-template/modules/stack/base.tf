@@ -1,5 +1,5 @@
 module "base" {
-  source = "git::https://github.com/sheyaln/sabokit.git//platform/base/terraform?ref=v2.6.0"
+  source = "git::https://github.com/sheyaln/sabokit.git//platform/base/terraform?ref=v2.7.0"
   providers = {
     scaleway     = scaleway
     scaleway.dns = scaleway.dns
@@ -28,5 +28,6 @@ module "base" {
   default_security_group_extra_inbound_rules = concat(
     module.jitsi.required_inbound_rules,
     module.nextcloud.required_inbound_rules,
+    module.wazuh.required_inbound_rules,
   )
 }

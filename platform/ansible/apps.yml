@@ -284,6 +284,24 @@
     watchtower_notifications_slack_webhook: "{{ enabled_apps.watchtower_apps.ansible_vars.watchtower_notifications_slack_webhook }}"
   when: enabled_apps.watchtower_apps is defined and enabled_apps.watchtower_apps is not none
   tags: [apps, watchtower_apps]
+- import_playbook: ../apps/wazuh/ansible/playbook.yml
+  vars:
+    wazuh_host_group: "{{ enabled_apps.wazuh.ansible_group }}"
+    wazuh_hostname: "{{ enabled_apps.wazuh.ansible_vars.wazuh_hostname }}"
+    wazuh_version: "{{ enabled_apps.wazuh.ansible_vars.wazuh_version }}"
+    wazuh_indexer_heap_size: "{{ enabled_apps.wazuh.ansible_vars.wazuh_indexer_heap_size }}"
+    wazuh_manager_agent_port: "{{ enabled_apps.wazuh.ansible_vars.wazuh_manager_agent_port }}"
+    wazuh_manager_enrollment_port: "{{ enabled_apps.wazuh.ansible_vars.wazuh_manager_enrollment_port }}"
+    wazuh_manager_syslog_port: "{{ enabled_apps.wazuh.ansible_vars.wazuh_manager_syslog_port }}"
+    wazuh_app_secret_id: "{{ enabled_apps.wazuh.ansible_vars.wazuh_app_secret_id }}"
+    wazuh_memory_limit: "{{ enabled_apps.wazuh.ansible_vars.wazuh_memory_limit }}"
+    wazuh_memory_reservation: "{{ enabled_apps.wazuh.ansible_vars.wazuh_memory_reservation }}"
+    wazuh_cpu_limit: "{{ enabled_apps.wazuh.ansible_vars.wazuh_cpu_limit }}"
+    wazuh_cpu_reservation: "{{ enabled_apps.wazuh.ansible_vars.wazuh_cpu_reservation }}"
+    wazuh_auto_update_enabled: "{{ enabled_apps.wazuh.ansible_vars.wazuh_auto_update_enabled }}"
+    wazuh_autoheal_enabled: "{{ enabled_apps.wazuh.ansible_vars.wazuh_autoheal_enabled }}"
+  when: enabled_apps.wazuh is defined and enabled_apps.wazuh is not none
+  tags: [apps, wazuh]
 - import_playbook: ../apps/autoheal/ansible/playbook.yml
   vars:
     autoheal_host_group: "{{ enabled_apps.autoheal_apps.ansible_group }}"

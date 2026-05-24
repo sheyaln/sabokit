@@ -55,6 +55,7 @@ BUNDLES = [
     ("loki",           "loki",            "loki"),
     ("grafana",        "grafana",         "grafana"),
     ("watchtower",     "watchtower_apps", "watchtower"),
+    ("wazuh",          "wazuh",           "wazuh"),
     ("autoheal",       "autoheal_apps",   "autoheal"),
 ]
 

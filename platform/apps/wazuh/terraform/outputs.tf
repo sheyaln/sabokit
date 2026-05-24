@@ -58,7 +58,7 @@ output "ansible" {
     host_group = var.base.compute.hosts[var.deployment_host_key].ansible_group
     vars = {
       wazuh_hostname                = var.hostname
-      wazuh_version                 = var.version
+      wazuh_version                 = var.release_version
       wazuh_indexer_heap_size       = var.indexer_heap_size
       wazuh_manager_agent_port      = var.manager_agent_port
       wazuh_manager_enrollment_port = var.manager_enrollment_port

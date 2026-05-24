@@ -55,7 +55,7 @@ variable "deployment_host_key" {
 
 # ── Wazuh-specific inputs ───────────────────────────────────────────────────
 
-variable "version" {
+variable "release_version" {
   description = "Wazuh release version (used for ALL three images: manager, indexer, dashboard, and the cert generator). The three images MUST run lockstep."
   type        = string
   default     = "4.9.0"
