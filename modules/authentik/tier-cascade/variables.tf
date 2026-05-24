@@ -4,8 +4,8 @@ variable "tier_names" {
   default     = ["member", "delegate", "treasurer", "admin"]
 
   validation {
-    condition     = length(var.tier_names) >= 2 && length(var.tier_names) <= 4
-    error_message = "tier_names must have 2-4 entries. The cascade is implemented as explicit per-slot resources (capped at 4) to avoid Terraform's for_each self-reference cycle. Consumers needing >4 tiers fork the module."
+    condition     = length(var.tier_names) >= 2 && length(var.tier_names) <= 12
+    error_message = "tier_names must have 2-12 entries. The cascade is implemented as explicit per-slot resources (capped at 12: 10 reasonable tiers + 2 extras for one-offs) to avoid Terraform's for_each self-reference cycle. Consumers needing >12 tiers fork the module — at that point group nesting is probably the wrong tool, RBAC roles likely fit better."
   }
 
   validation {
