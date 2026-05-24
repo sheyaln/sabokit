@@ -11,17 +11,10 @@ x-logging: &default-logging
 
 services:
   n8n:
-{% if n8n_build_from_source | bool %}
-    # Locally built image — Dockerfile in this directory adds python3 + pip.
-    build:
-      context: .
-      dockerfile: Dockerfile
-    image: "n8n-local:{{ n8n_image_tag }}"
-{% else %}
-    # Upstream image. hooks.js is bind-mounted from the host (see volumes).
+    # Upstream image. Python execution lives in the external runners container
+    # below; n8n itself stays on the hardened upstream image.
     image: "{{ n8n_image }}:{{ n8n_image_tag }}"
     pull_policy: missing
-{% endif %}
     container_name: n8n
     restart: unless-stopped
     # n8n is only reachable via Traefik. The container port is exposed to

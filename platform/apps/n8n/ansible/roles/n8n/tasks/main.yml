@@ -82,19 +82,6 @@
     group: root
   notify: Restart n8n
 
-# Only rendered when the consumer flips n8n_build_from_source. Layers python3
-# on top of the upstream image so the Execute Command node can shell out to
-# python; the default bind-mount path skips this entirely.
-- name: Render custom Dockerfile (build_from_source path)
-  ansible.builtin.template:
-    src: Dockerfile.j2
-    dest: "{{ n8n_install_dir }}/Dockerfile"
-    mode: "0644"
-    owner: root
-    group: root
-  when: n8n_build_from_source | bool
-  notify: Restart n8n
-
 - name: Render docker-compose.yml
   ansible.builtin.template:
     src: docker-compose.yml.j2
@@ -118,4 +105,4 @@
   community.docker.docker_compose_v2:
     project_src: "{{ n8n_install_dir }}"
     state: present
-    build: "{{ 'always' if n8n_build_from_source | bool else 'never' }}"
+    pull: missing

@@ -34,7 +34,6 @@ output "ansible" {
     vars = {
       n8n_hostname                 = var.hostname
       n8n_image_tag                = var.image_tag
-      n8n_build_from_source        = var.build_from_source
       n8n_timezone                 = var.timezone
       n8n_public_api_disabled      = var.public_api_disabled
       n8n_python_stdlib_allow      = var.python_stdlib_allow

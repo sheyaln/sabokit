@@ -5,11 +5,6 @@ n8n_hostname: ""                              # Required. The full hostname (e.g
 n8n_image: "docker.n8n.io/n8nio/n8n"
 n8n_image_tag: "latest"
 
-# When true, the role renders a Dockerfile and asks docker compose to build
-# a local image that adds python3 + pip on top of the upstream n8n image.
-# Default false: pull the upstream image and bind-mount hooks.js — simpler.
-n8n_build_from_source: false
-
 n8n_install_dir: "/opt/n8n"
 
 n8n_timezone: "UTC"

@@ -61,12 +61,6 @@ variable "image_tag" {
   default     = "latest"
 }
 
-variable "build_from_source" {
-  description = "If true, the Ansible role builds a custom image from a local Dockerfile that layers python3 + pip on top of the upstream n8n image (needed for the Execute Command node to run arbitrary system commands). Default false: pull the upstream image and bind-mount hooks.js — simpler, no build step on the host, faster updates. Most consumers never need this."
-  type        = bool
-  default     = false
-}
-
 variable "n8n_admin_group_name" {
   description = "Name of the Authentik group whose members the n8n hook promotes to n8n's `global:owner` role on first OIDC login. Members of other groups land as `global:member`. The first ever sign-in always becomes owner regardless of group (bootstrap). Must match a group claim emitted by the OIDC provider (Authentik's `groups` claim carries group names)."
   type        = string
