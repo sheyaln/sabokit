@@ -2,6 +2,32 @@
 
 All notable changes to sabokit go here. Versioning follows semver; major bumps signal breaking contract changes for consumers.
 
+## v2.8.1 — Fix: static graph cycle in platform/identity outpost output
+
+**Bug (existed since v2.4.0, reported v2.8.0 by dciww-consumer):** any consumer following the documented forward-auth wiring pattern hit a `terraform plan` cycle error:
+
+```
+module.identity.var.extra_forward_auth_provider_ids →
+  resource.authentik_outpost.embedded →
+  output.authentik (referenced authentik_outpost.embedded[0].id) →
+  local.base.authentik →
+  module.<forward-auth-app>.var.base →
+  module.<forward-auth-app>.authentik_provider_id →
+  module.identity.var.extra_forward_auth_provider_ids
+```
+
+The `length() > 0 ? resource : data` ternary on `outpost_id` looks runtime-conditional but terraform's graph analyzer sees both edges unconditionally.
+
+**Fix:** source `outpost_id` from `data.authentik_outpost.embedded.id` unconditionally. The data source and the managed resource point at the same singleton Authentik outpost (built-in "authentik Embedded Outpost"), so their UUIDs are equal — sourcing from the data source breaks the output→resource edge without losing functionality. The managed resource still exists, still attaches providers, terraform still applies it.
+
+Workaround (for consumers staying on v2.8.0 and earlier): set `extra_forward_auth_provider_ids = []` in your identity module call, accept that forward-auth-protected apps (bentopdf, backrest) are unprotected until you bump to v2.8.1.
+
+### Other
+
+- Consumer-template refs bumped `v2.8.0` → `v2.8.1`.
+
+---
+
 ## v2.8.0 — Scaleway TEM in base + new `platform/bootstrap/` tier (IMAP via protonmail-bridge)
 
 Two architectural additions.

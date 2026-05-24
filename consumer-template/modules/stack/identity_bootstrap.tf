@@ -8,7 +8,7 @@
 # own root-level dependency lets deploy.sh `-target=` it in an early phase.
 
 module "identity_bootstrap" {
-  source = "git::https://github.com/sheyaln/sabokit.git//platform/identity/bootstrap?ref=v2.8.0"
+  source = "git::https://github.com/sheyaln/sabokit.git//platform/identity/bootstrap?ref=v2.8.1"
 
   org_slug    = var.org_slug
   environment = var.environment
