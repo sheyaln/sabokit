@@ -273,6 +273,7 @@
     grafana_cpu_reservation: "{{ enabled_apps.grafana.ansible_vars.grafana_cpu_reservation }}"
     grafana_auto_update_enabled: "{{ enabled_apps.grafana.ansible_vars.grafana_auto_update_enabled }}"
     grafana_autoheal_enabled: "{{ enabled_apps.grafana.ansible_vars.grafana_autoheal_enabled }}"
+    grafana_dashboards: "{{ enabled_apps.grafana.ansible_vars.grafana_dashboards }}"
   when: enabled_apps.grafana is defined and enabled_apps.grafana is not none
   tags: [apps, grafana]
 - import_playbook: ../apps/watchtower/ansible/playbook.yml

@@ -46,6 +46,7 @@ output "ansible" {
       grafana_cpu_reservation            = var.cpu_reservation
       grafana_auto_update_enabled        = var.auto_update_enabled
       grafana_autoheal_enabled           = var.autoheal_enabled
+      grafana_dashboards                 = var.grafana_dashboards
     }
   } : null
 }

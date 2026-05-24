@@ -63,6 +63,17 @@
     mode: "0644"
   notify: Restart grafana
 
+# File provider polls every 30s (see dashboard-provider.yml.j2), so no
+# restart is needed when only the JSON contents change.
+- name: Provision aggregated dashboards
+  ansible.builtin.copy:
+    dest: "{{ grafana_install_dir }}/provisioning/dashboards/{{ item.filename }}"
+    content: "{{ item.contents }}"
+    mode: "0644"
+  loop: "{{ grafana_dashboards }}"
+  loop_control:
+    label: "{{ item.filename }}"
+
 - name: Render docker-compose.yml
   ansible.builtin.template:
     src: docker-compose.yml.j2

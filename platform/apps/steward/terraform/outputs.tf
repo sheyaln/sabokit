@@ -42,6 +42,11 @@ output "ansible" {
   } : null
 }
 
+output "monitoring" {
+  description = "Monitoring contribution. null when disabled or monitoring_enabled = false."
+  value       = local.monitoring_contribution
+}
+
 output "database_name" {
   description = "PostgreSQL database name. null when disabled."
   value       = var.enabled ? module.database[0].database_name : null

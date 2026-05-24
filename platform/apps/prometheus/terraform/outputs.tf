@@ -37,6 +37,11 @@ output "ansible" {
   } : null
 }
 
+output "monitoring" {
+  description = "Monitoring contribution. Currently surfaces the bundled Scaleway TEM dashboard when tem_exporter_enabled = true."
+  value       = local.monitoring_contribution
+}
+
 output "backup_plan" {
   description = "Backrest backup plan contribution. null when disabled or backup_enabled = false."
   value = (var.enabled && var.backup_enabled) ? {

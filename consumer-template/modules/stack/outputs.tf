@@ -102,6 +102,7 @@ output "enabled_apps" {
     prometheus = module.prometheus.enabled ? {
       ansible_vars  = module.prometheus.ansible.vars
       ansible_group = module.prometheus.ansible.host_group
+      monitoring    = module.prometheus.monitoring
     } : null
     loki = module.loki.enabled ? {
       ansible_vars  = module.loki.ansible.vars
