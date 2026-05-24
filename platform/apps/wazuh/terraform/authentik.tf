@@ -1,12 +1,11 @@
-# Wazuh dashboard's SSO config doesn't natively speak OIDC at the bundle
-# level (it's OpenSearch-based; full OIDC requires writing config.yml for
-# the opensearch-security plugin). We protect it via Authentik's forward-auth
-# at the gateway instead: authenticated users land inside on the dashboard's
-# built-in admin account. provider_id MUST be added to identity's
-# extra_forward_auth_provider_ids list.
+# Native OIDC. The Wazuh dashboard delegates SSO to the opensearch-security
+# plugin, which speaks OIDC when its config.yml authc block is set to type
+# `openid`. This is the "batteries included" shape: users hit the dashboard
+# and get redirected to Authentik directly — no forward-auth gateway
+# involvement, dashboard knows who's logged in.
 
 module "authentik" {
-  source = "../../../../modules/authentik/traefik-forward-auth"
+  source = "../../../../modules/authentik/oidc-app"
   count  = var.enabled ? 1 : 0
 
   application_name = "Wazuh"
@@ -14,10 +13,20 @@ module "authentik" {
   category_group   = var.category_group
   icon_url         = var.icon_url
   description      = "SIEM + endpoint detection"
-  external_host    = local.app_url
   launch_url       = local.app_url
 
+  redirect_uris = [{
+    matching_mode = "strict"
+    url           = local.oidc_callback_url
+  }]
+
   authorized_groups = local.authorized_groups
+
+  oidc_scopes = ["openid", "profile", "email", "groups", "offline_access"]
+  sub_mode    = "user_email"
+
+  access_token_validity  = "hours=1"
+  refresh_token_validity = "days=30"
 
   authentication_flow_uuid = var.base.authentik.flows.authentication_flow
   authorization_flow_uuid  = var.base.authentik.flows.authorization_flow

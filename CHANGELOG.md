@@ -2,6 +2,28 @@
 
 All notable changes to sabokit go here. Versioning follows semver; major bumps signal breaking contract changes for consumers.
 
+## v2.7.2 — Wazuh dashboard native OIDC
+
+Replaced the v2.7.0 forward-auth gateway pattern with native OIDC on the Wazuh dashboard via opensearch-security's `openid` authc backend.
+
+### Changes
+- `platform/apps/wazuh/terraform/authentik.tf`: switched from `authentik/traefik-forward-auth` to `authentik/oidc-app`. New OIDC scopes + redirect URI on `/auth/openid/login`.
+- `secrets.tf`: app-secrets bag now also carries `OIDC_CLIENT_ID` / `OIDC_CLIENT_SECRET` / `OIDC_DISCOVERY_URL` / `OIDC_BASE_REDIRECT_URL`.
+- `config.yml.j2`: opensearch-security's `authc` block now lists `oidc_auth_domain` (type `openid`) first, with the basic internal auth domain kept as fallback (the dashboard service account `kibanaserver` still uses HTTP basic).
+- `opensearch_dashboards.yml.j2`: `opensearch_security.auth.type: ["basicauth", "openid"]` + the OIDC config block (connect_url, client_id, client_secret, scope, base_redirect_url, logout_url) wired from env.
+- `roles_mapping.yml.j2`: maps the Authentik admin group (`oidc_admin_group` var, default `admin`) to `all_access`; all OIDC-authenticated users get baseline `kibana_user`.
+- New TF var: `oidc_admin_group` (default `admin`).
+- Consumer-template: removed `module.wazuh.authentik_provider_id` from `extra_forward_auth_provider_ids` in `identity.tf` (no longer forward-auth gated); added `oidc_admin_group` passthrough in the wazuh module block.
+
+### Breaking change
+
+Existing v2.7.0/v2.7.1 deployments transitioning to v2.7.2 will:
+- Lose the forward-auth gateway layer on the dashboard (Authentik no longer pre-gates; the dashboard handles auth directly).
+- Need to remove the wazuh `extra_forward_auth_provider_ids` entry in identity.tf (the v2.7.2 consumer-template already does this).
+- Get a fresh Authentik OIDC provider (the `oidc-app` module is a different resource type than `traefik-forward-auth`, so terraform will destroy/recreate the provider). User sessions are not affected — they were never persisted in Authentik forward-auth anyway.
+
+---
+
 ## v2.7.1 — Wazuh agent bundle
 
 Companion to the v2.7.0 server stack. Multi-instance — deploy once per monitored host.

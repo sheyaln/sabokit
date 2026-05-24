@@ -61,6 +61,12 @@ variable "release_version" {
   default     = "4.9.0"
 }
 
+variable "oidc_admin_group" {
+  description = "Authentik group whose members are mapped to opensearch's `all_access` role inside Wazuh. Matches against the OIDC `groups` claim."
+  type        = string
+  default     = "admin"
+}
+
 variable "indexer_heap_size" {
   description = "JVM heap size for the indexer (OpenSearch). Rule of thumb: 50%% of host RAM, max 31g. Bump for larger event volumes."
   type        = string

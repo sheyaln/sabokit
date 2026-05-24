@@ -1,7 +1,8 @@
 ---
 # {{ ansible_managed }}
-# Default mapping for the built-in internal users. Customize per-org by
-# editing the dashboard's Security UI after first deploy.
+# Maps OIDC `groups` claim values + internal backend roles to opensearch
+# roles. The Authentik admin group is mapped straight to all_access so
+# admins get the full dashboard.
 
 _meta:
   type: "rolesmapping"
@@ -12,7 +13,9 @@ all_access:
   hidden: false
   backend_roles:
     - "admin"
-  description: "Maps admin to all_access"
+  users:
+    - "{{ wazuh_oidc_admin_group }}"
+  description: "Maps internal admin + the OIDC admin group to all_access"
 
 own_index:
   reserved: false
@@ -26,7 +29,9 @@ kibana_user:
   hidden: false
   backend_roles:
     - "kibanauser"
-  description: "Maps kibanauser to kibana_user"
+  users:
+    - "*"
+  description: "All authenticated users get baseline kibana access"
 
 readall:
   reserved: true

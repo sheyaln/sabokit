@@ -12,6 +12,7 @@ wazuh_manager_enrollment_port: 1515
 wazuh_manager_syslog_port: 514
 
 wazuh_app_secret_id: ""
+wazuh_oidc_admin_group: "admin"
 
 wazuh_memory_limit: "2G"
 wazuh_memory_reservation: "512M"
