@@ -121,6 +121,15 @@ variable "prometheus_scrape_interval" {
   default     = "30s"
 }
 
+variable "grafana_dashboards" {
+  description = "Dashboards to provision into Grafana's file provider. The consumer reads each path from every enabled app's monitoring.grafana_dashboards (list(string) of file paths), turns it into {filename, contents}, and passes the union here. The role writes one file per entry under /etc/grafana/provisioning/dashboards/; Grafana's file provider auto-reloads (no restart needed)."
+  type = list(object({
+    filename = string
+    contents = string
+  }))
+  default = []
+}
+
 variable "memory_limit" {
   description = "Container memory ceiling."
   type        = string

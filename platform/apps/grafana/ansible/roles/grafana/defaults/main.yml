@@ -22,3 +22,8 @@ grafana_cpu_reservation: "0.1"
 
 grafana_auto_update_enabled: false
 grafana_autoheal_enabled: true
+
+# Dashboards provisioned via the file provider. Populated from the aggregated
+# union of every enabled app's monitoring.grafana_dashboards by the consumer.
+# Each entry: {filename: "foo.json", contents: "<rendered JSON>"}.
+grafana_dashboards: []

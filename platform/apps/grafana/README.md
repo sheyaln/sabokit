@@ -21,6 +21,7 @@ Grafana UI behind Authentik OIDC, with Prometheus + Loki datasources pre-provisi
 | `plugins` | `list(string)` | `[]` | Comma-joined into `GF_PLUGINS_PREINSTALL`. |
 | `oidc_admin_group` | `string` | `"admin"` | Authentik group mapped to Grafana `Admin` role. |
 | `oidc_editor_group` | `string` | `"manager"` | Authentik group mapped to Grafana `Editor` role. Everyone else lands on `Viewer`. |
+| `grafana_dashboards` | `list(object({filename, contents}))` | `[]` | Dashboards to provision via the file provider. Consumer aggregates every enabled app's `monitoring.grafana_dashboards` paths into this. File provider auto-reloads (30s poll), no restart. |
 | `prometheus_url` | `string` | `"http://prometheus:9090"` | Datasource URL. Works on the shared network. |
 | `loki_url` | `string` | `"http://loki:3100"` | Datasource URL. |
 | `prometheus_scrape_interval` | `string` | `"30s"` | Match the prometheus bundle's `global.scrape_interval`. |
@@ -48,4 +49,4 @@ Grafana UI behind Authentik OIDC, with Prometheus + Loki datasources pre-provisi
 - OIDC redirect URI: `https://<hostname>/login/generic_oauth`.
 - Role mapping uses Authentik's `groups` claim. Default mapping: members of `admin` group → Grafana `Admin`; members of `manager` group → `Editor`; everyone else → `Viewer`. Override via `oidc_admin_group` + `oidc_editor_group` to match your Authentik group naming.
 - SQLite + uploaded dashboards live in the `grafana_grafana-data` named volume. Default `backup_extra_paths` covers it.
-- Dashboards: drop JSON files into the host's `/opt/grafana/provisioning/dashboards/` (subfolders become Grafana folders). The role's file-provider config picks them up automatically.
+- Dashboards: app bundles ship dashboards via `monitoring.grafana_dashboards` (file paths); the consumer aggregates and passes them as `grafana_dashboards`. Operators can also drop JSON files into the host's `/opt/grafana/provisioning/dashboards/` out-of-band; both routes flow through the same file provider.
