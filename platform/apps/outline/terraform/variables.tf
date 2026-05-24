@@ -91,6 +91,18 @@ variable "storage_bucket_acl" {
   default     = "public-read"
 }
 
+variable "storage_class" {
+  description = "Scaleway storage class the attachments bucket transitions objects to. `STANDARD` (default) keeps everything Multi-AZ. `ONEZONE_IA` halves the storage cost at the price of single-AZ durability; sensible for outline attachments since the canonical doc body lives in postgres. `GLACIER` is wrong here — attachments load on every doc view, restore costs would dominate."
+  type        = string
+  default     = "STANDARD"
+}
+
+variable "storage_class_transition_days" {
+  description = "Days after upload before objects move to `storage_class`. Only consulted when storage_class != STANDARD."
+  type        = number
+  default     = 1
+}
+
 variable "backup_enabled" {
   description = "Whether the Backrest platform bundle (if deployed on the same host) backs up Outline's host-side state. Default true. Plan id = bundle slug; paths = `/backup-sources/opt/outline` plus any `backup_extra_paths`."
   type        = bool

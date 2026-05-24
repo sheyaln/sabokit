@@ -228,6 +228,18 @@ variable "talk_cpu_limit" {
   default     = "1.0"
 }
 
+variable "storage_class" {
+  description = "Scaleway storage class the primary-storage bucket transitions objects to. Default `STANDARD` (Multi-AZ) is correct for Nextcloud — every user file lives here and is read on every download. `ONEZONE_IA` saves storage cost at the price of single-AZ durability; sensible only for buckets dominated by archival uploads. `GLACIER` is wrong — read latency kills the UX."
+  type        = string
+  default     = "STANDARD"
+}
+
+variable "storage_class_transition_days" {
+  description = "Days after upload before objects move to `storage_class`. Only consulted when storage_class != STANDARD."
+  type        = number
+  default     = 1
+}
+
 variable "backup_enabled" {
   description = "Whether the Backrest platform bundle (if deployed on the same host) backs up this app's host-side state. Default true."
   type        = bool

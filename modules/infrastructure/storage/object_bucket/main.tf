@@ -18,6 +18,22 @@ resource "scaleway_object_bucket" "this" {
     }
   }
 
+  # When storage_class is non-STANDARD, create a lifecycle rule that
+  # transitions objects to that class after the configured day count.
+  # STANDARD bypasses — there's nothing to transition to, and Scaleway
+  # has no concept of a STANDARD lifecycle target.
+  dynamic "lifecycle_rule" {
+    for_each = var.storage_class == "STANDARD" ? [] : [1]
+    content {
+      id      = "transition-to-${lower(var.storage_class)}"
+      enabled = true
+      transition {
+        days          = var.storage_class_transition_days
+        storage_class = var.storage_class
+      }
+    }
+  }
+
   tags = var.tags
 }
 

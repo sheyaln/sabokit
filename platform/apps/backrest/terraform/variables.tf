@@ -29,6 +29,18 @@ variable "icon_url" {
   default     = null
 }
 
+variable "storage_class" {
+  description = "Scaleway storage class the restic-repository bucket transitions snapshots to. Default `GLACIER` — restic data is cold by definition, read only during restore drills. `STANDARD` (Multi-AZ) is ~6x more expensive for no operational benefit since restic verifies its own integrity. Override to STANDARD only if you actively run frequent restores and want lower latency on snapshot list/check operations."
+  type        = string
+  default     = "GLACIER"
+}
+
+variable "storage_class_transition_days" {
+  description = "Days after upload before snapshots move to `storage_class`. Default 1 — one day of STANDARD-rate storage per upload before cold transition. Setting to 0 is not supported by Scaleway; configuring restic itself to upload directly into the target class (via restic's S3 storage-class option) is the way to fully eliminate the warm window. Not wired in v2.10.3."
+  type        = number
+  default     = 1
+}
+
 variable "access_level" {
   description = "Key in base.authentik.groups granting baseline access. Defaults to \"admin\" — Backrest exposes raw filesystem paths and restore controls, treat it as ops-only."
   type        = string
