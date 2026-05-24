@@ -75,17 +75,42 @@ See `environments/_template/README.md` for the per-step checkpoints and re-deplo
 3. In each env's `terraform.tfvars`, add `apps.<name> = { enabled = true, hostname = "…" }`.
 4. Re-run `./configure.sh` to apply the new TF, then `ansible-playbook ... apps.yml` to deploy.
 
+## Ops payload (watchtower + autoheal + backrest)
+
+The template ships three platform host-services that together form the prod-default ops payload: **Watchtower** (auto-update opted-in containers), **Autoheal** (restart unhealthy containers), and **Backrest** (restic-based backups). They're plug-and-play — no per-app wiring needed.
+
+```hcl
+# In terraform.tfvars
+apps = {
+  watchtower_apps = { enabled = true }                              # one per host
+  autoheal_apps   = { enabled = true }
+  backrest_mgmt   = { enabled = true, hostname = "backup.example.org", instance_name = "mgmt" }
+  # ... your apps
+}
+```
+
+Per-app behaviour is controlled by knobs on every bundle (smart defaults shipped):
+
+- `auto_update_enabled` — render the Watchtower label. Defaults ON for stateless / safe-update apps (bentopdf, outline, vikunja, steward, notifuse, privacy-policy, backrest); OFF for breaking-change apps (nextcloud, decidim, espocrm, n8n, jitsi, authentik).
+- `autoheal_enabled` — render the Autoheal label. Default ON everywhere.
+- `backup_enabled` — emit a Backrest plan contribution for this app. Default ON for apps with host-side state.
+- `backup_extra_paths`, `backup_schedule_cron`, `backup_retention` — per-app overrides on the auto-generated plan.
+
+Backrest auto-aggregates every enabled app's `backup_plan` output — no need to hand-curate `backup_plans` lists unless you want extras. Each Backrest instance gets the full union; restic skips paths that don't exist on its host.
+
+Multi-host: instantiate `watchtower_apps`, `autoheal_apps`, `backrest_mgmt` once per host (copy the module block, swap the keys).
+
 ## Bumping sabokit
 
 ```bash
-./scripts/bump-version.sh v2.1.0
+./scripts/bump-version.sh v2.5.0
 for env in environments/*/; do
   [[ -d "$env" && "$env" != */"_template"/ ]] || continue
   (cd "$env" && terraform init -upgrade && terraform plan)
 done
 ```
 
-Major bumps may require `terraform state mv` — check the release notes.
+Major bumps may require `terraform state mv` — check `CHANGELOG.md` (root of sabokit) for the breaking-changes list per release.
 
 ## Secrets hygiene
 
