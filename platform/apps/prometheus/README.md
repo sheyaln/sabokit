@@ -43,7 +43,7 @@ Scrape configs and alert rules are aggregated by the consumer from each enabled 
 
 ## Notes
 
-- Shares the `monitoring_internal` docker network with `loki` and `grafana` so Grafana can reach Prometheus by hostname. Each of the three bundles creates the network with `state: present` (idempotent — first one wins).
+- Shares the `monitoring_internal` docker network with `loki` and `grafana` so Grafana can reach Prometheus by container hostname when co-located. Each of the three bundles creates the network with `state: present` (idempotent — first one wins). Cross-host topologies (Grafana on one VM, Prometheus on another) reach each other via the base `split-dns` role, which overrides the public hostnames to private VPC IPs.
 - `node_exporter` runs with `pid: host` and a read-only bind of `/`. `cadvisor` runs privileged with `/var/lib/docker` mounted RO. Both are standard for the metrics they collect; disable via `exporters_enabled = false` if you'd rather wire your own.
 - Reload-only config changes (scrape configs, alert rules) trigger Prometheus's `POST /-/reload` endpoint instead of a container restart.
 - TSDB lives in the named volume `prometheus_prometheus-data`. The default `backup_extra_paths` covers it.

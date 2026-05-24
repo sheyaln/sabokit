@@ -294,6 +294,34 @@ locals {
       contents = file(p)
     }
   ]
+
+  # Split-DNS overrides — each bundle declares its public hostname(s)
+  # alongside the private IP of its deployment host. The base split-dns
+  # ansible role consumes the rolled-up map and renders dnsmasq overrides
+  # on every host. Auto-disabled (empty map) for single-host topologies:
+  # one host means everything is either on the same docker network or
+  # 127.0.0.1, no split-horizon needed.
+  _split_dns_contribs = flatten([
+    module.outline.split_dns_entries,
+    module.steward.split_dns_entries,
+    module.vikunja.split_dns_entries,
+    module.bentopdf.split_dns_entries,
+    module.privacy_policy.split_dns_entries,
+    module.notifuse.split_dns_entries,
+    module.nextcloud.split_dns_entries,
+    module.decidim.split_dns_entries,
+    module.jitsi.split_dns_entries,
+    module.espocrm.split_dns_entries,
+    module.n8n.split_dns_entries,
+    module.backrest_mgmt.split_dns_entries,
+    module.grafana.split_dns_entries,
+    module.wazuh.split_dns_entries,
+  ])
+  split_dns_overrides = (
+    length(module.base.compute.hosts) > 1
+    ? { for e in local._split_dns_contribs : e.hostname => e.private_ip }
+    : {}
+  )
 }
 
 # ── Monitoring stack (typically all on the same host) ──────────────────────

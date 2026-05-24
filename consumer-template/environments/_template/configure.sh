@@ -101,6 +101,7 @@ jq '{
   authentik_gateway_domain:   .authentik_gateway_domain.value,
   identity_bootstrap:         .identity_bootstrap.value,
   traefik_acme_email:         .infra_email.value,
+  split_dns_overrides:        .split_dns_overrides.value,
 }' .tf-output.json > .ansible-vars.json
 
 c_phase "configure.sh done"

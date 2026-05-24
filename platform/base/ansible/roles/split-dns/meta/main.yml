@@ -1,0 +1,20 @@
+---
+galaxy_info:
+  role_name: split-dns
+  author: sabokit
+  description: >-
+    dnsmasq drop-in that overrides public app hostnames with private VPC IPs.
+    Bridges cross-host hostname references over the private network. No-ops
+    when split_dns_overrides is empty (single-host topologies).
+  license: MIT
+  min_ansible_version: "2.14"
+  platforms:
+    - name: Ubuntu
+      versions: [jammy, noble]
+    - name: Debian
+      versions: [bookworm]
+
+dependencies: []
+
+collections:
+  - community.general

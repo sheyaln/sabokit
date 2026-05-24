@@ -65,3 +65,7 @@ output "infra_email" {
 output "enabled_apps" {
   value = module.stack.enabled_apps
 }
+
+output "split_dns_overrides" {
+  value = module.stack.split_dns_overrides
+}

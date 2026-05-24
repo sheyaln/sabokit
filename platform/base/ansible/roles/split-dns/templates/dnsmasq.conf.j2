@@ -1,0 +1,24 @@
+# Managed by Ansible (split-dns role) -- do not edit manually.
+# Override map is dynamically built from terraform outputs at apply time.
+
+# Don't read /etc/resolv.conf (we manage upstream servers explicitly here).
+no-resolv
+
+{% for server in split_dns_upstream_servers %}
+server={{ server }}
+{% endfor %}
+
+# Listen on localhost + the docker bridge so containers resolve through us.
+listen-address=127.0.0.1
+listen-address={{ split_dns_docker_bridge_ip }}
+
+# bind-dynamic survives docker0 not existing yet (this role can run before
+# docker is installed). dnsmasq binds when the interface appears.
+bind-dynamic
+
+cache-size=1000
+
+# Override entries — public hostname → private VPC IP.
+{% for host, ip in split_dns_overrides | dictsort %}
+address=/{{ host }}/{{ ip }}
+{% endfor %}

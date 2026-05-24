@@ -366,21 +366,31 @@ output "backup_plan" {
     retention = { hourly = number, daily = number, weekly = number, monthly = number, yearly = number }
   } : null
 }
+
+output "split_dns_entries" {
+  description = "Public-hostname -> private-IP overrides for cross-host resolution. Aggregated by the consumer-template."
+  value = var.enabled ? [
+    { hostname = var.hostname, private_ip = var.base.compute.hosts[var.deployment_host_key].private_ip },
+  ] : []
+}
 ```
 
 The `null when disabled` pattern is load-bearing. Consumers and other apps use `coalesce(module.outline.monitoring, {})` patterns to drop disabled apps from aggregation.
 
 ### Plug-and-play platform contributions
 
-Three outputs follow the **bundles own their requirements, consumers just plumb** pattern:
+Four outputs follow the **bundles own their requirements, consumers just plumb** pattern:
 
 | Output | Aggregated into | Pattern |
 |--------|-----------------|---------|
 | `required_inbound_rules` | `base.default_security_group_extra_inbound_rules` | Each enabled app declares the SG ports it needs open; consumer concats. |
 | `backup_plan` | `backrest_<instance>.backup_plans` | Each enabled app declares a default backup plan; consumer collects all non-null and concats with consumer-supplied extras. Each backrest instance gets the full union; restic skips paths that don't exist on its host. |
 | `monitoring` | monitoring app's scrape/dashboard/log/alert lists | Each enabled app contributes its observability footprint; monitoring apps merge. |
+| `split_dns_entries` | `split_dns_overrides` ansible var (consumed by the base `split-dns` role on every host) | Each app declares the public hostname(s) it owns + the private IP of its deployment host; consumer rolls into one map; dnsmasq on every host overrides those names so cross-host references stay on the private network. Auto-disabled for single-host topologies. |
 
-When you add a new bundle that needs SG ports, host-side filesystem backups, or monitoring wiring: ship the output. When you add a new contributor pattern, document it here and apply it the same way.
+When you add a new bundle that needs SG ports, host-side filesystem backups, monitoring wiring, or a publicly-resolved hostname: ship the output. When you add a new contributor pattern, document it here and apply it the same way.
+
+The split-dns aggregation makes the monitoring stack truly host-independent: Grafana on the `management` host can reach `loki.example.org` (deployed on `apps`) by its public hostname without going through Let's Encrypt + the public ingress. Without it, multi-host topologies force co-locating Prometheus, Loki, and Grafana on the same host (or rolling consumer-side DNS).
 
 ---
 

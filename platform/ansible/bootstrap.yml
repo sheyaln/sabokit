@@ -13,6 +13,12 @@
     - role: log-management
     - role: unattended-upgrades
     - role: ufw
+    # split-dns must land before docker so dnsmasq owns :53 by the time
+    # the docker daemon starts binding its bridge. Role end_play's when
+    # split_dns_overrides is empty (single-host deployments).
+    - role: split-dns
+      vars:
+        split_dns_overrides: "{{ split_dns_overrides | default({}) }}"
     - role: docker
     - role: fail2ban
 
