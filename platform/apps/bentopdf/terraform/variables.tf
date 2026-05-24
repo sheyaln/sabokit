@@ -56,7 +56,7 @@ variable "deployment_host_key" {
 # ── BentoPDF-specific inputs ────────────────────────────────────────────────
 
 variable "image" {
-  description = "Full BentoPDF Docker image reference (repository + optional tag). Default points at github.com/alam00000/bentopdf-simple — the lightweight stateless PDF toolkit this bundle was designed around. `ghcr.io/digital-blueprint/bento-pdf` is a different project."
+  description = "Full BentoPDF Docker image reference (repository + optional tag). Default is the official image published by the upstream project at github.com/alam00000/bentopdf. `ghcr.io/digital-blueprint/bento-pdf` is an unrelated project from a different org."
   type        = string
-  default     = "ghcr.io/alam00000/bentopdf-simple:latest"
+  default     = "ghcr.io/alam00000/bentopdf:latest"
 }

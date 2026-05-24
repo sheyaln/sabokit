@@ -17,7 +17,7 @@ BentoPDF doesn't speak OIDC. It's protected via Authentik's embedded outpost usi
 | `extra_authorized_groups` | `map(string)` | `{}` | Extra Authentik group IDs. Keys must be static strings. |
 | `monitoring_enabled` | `bool` | `true` | Contribute to the monitoring aggregate. |
 | `deployment_host_key` | `string` | `"apps"` | Key in `base.compute.hosts` for the target VM. |
-| `image` | `string` | `"ghcr.io/alam00000/bentopdf-simple:latest"` | Full image reference (repo + tag). Default = the actual BentoPDF this bundle wraps. |
+| `image` | `string` | `"ghcr.io/alam00000/bentopdf:latest"` | Full image reference (repo + tag). Default = official BentoPDF image. |
 
 ## Outputs
 
