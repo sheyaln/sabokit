@@ -17,6 +17,13 @@ services:
     volumes:
       # Read-only access to host logs for filebeat/log monitoring.
       - /var/log:/var/log:ro
+{% if wazuh_agent_fim_enabled | default(true) %}
+      # Custom ossec.conf override — enables FIM (syscheck) + auditd ingest.
+      # Wazuh agent image picks up /wazuh-config-mount/etc/ossec.conf on boot.
+      - {{ wazuh_agent_install_dir }}/ossec.conf:/wazuh-config-mount/etc/ossec.conf:ro
+      # Host's auditd writes here; agent tails audit.log inside the container.
+      - /var/log/audit:/var/log/audit:ro
+{% endif %}
     labels:
 {% if wazuh_agent_auto_update_enabled | default(false) %}
       - "com.centurylinklabs.watchtower.enable=true"

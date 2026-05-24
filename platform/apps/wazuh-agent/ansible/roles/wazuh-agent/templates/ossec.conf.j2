@@ -1,0 +1,109 @@
+<!--
+  {{ ansible_managed }}
+  Mounted at /wazuh-config-mount/etc/ossec.conf inside the wazuh-agent
+  container — fully overrides the image's auto-generated config so FIM
+  + auditd integration ship enabled by default.
+
+  Notes for future maintainers:
+  - syscheck `realtime="yes"` is restricted to small config dirs. Putting
+    it on large trees (/usr, /opt) causes inotify exhaustion + agent OOM.
+  - rootcheck is intentionally OFF (history of false positives + load).
+  - syscollector runs a slow scan only; scan_on_start has crashed managers.
+-->
+<ossec_config>
+  <client>
+    <server>
+      <address>{{ wazuh_agent_manager_address }}</address>
+      <port>1514</port>
+      <protocol>tcp</protocol>
+    </server>
+    <notify_time>60</notify_time>
+    <time-reconnect>300</time-reconnect>
+    <auto_restart>yes</auto_restart>
+  </client>
+
+  <logging>
+    <log_format>plain</log_format>
+  </logging>
+
+  <!-- ─── File Integrity Monitoring ────────────────────────────────── -->
+{% if wazuh_agent_fim_enabled | default(true) %}
+  <syscheck>
+    <disabled>no</disabled>
+    <frequency>43200</frequency>  <!-- 12h baseline scan -->
+    <scan_on_start>yes</scan_on_start>
+    <alert_new_files>yes</alert_new_files>
+    <auto_ignore>no</auto_ignore>
+
+    <!-- Realtime on small, security-critical dirs only. -->
+    <directories realtime="yes" check_all="yes" report_changes="yes">/etc/ssh</directories>
+    <directories realtime="yes" check_all="yes" report_changes="yes">/etc/sudoers.d</directories>
+    <directories realtime="yes" check_all="yes" report_changes="yes">/etc/pam.d</directories>
+
+    <!-- Scheduled checks for broader sensitive paths. -->
+    <directories check_all="yes" report_changes="yes">/etc/passwd,/etc/shadow,/etc/group,/etc/gshadow,/etc/sudoers,/etc/hosts,/etc/resolv.conf,/etc/crontab</directories>
+    <directories check_all="yes">/etc/cron.d,/etc/cron.hourly,/etc/cron.daily,/etc/cron.weekly,/etc/cron.monthly</directories>
+    <directories check_all="yes">/etc/systemd/system,/lib/systemd/system</directories>
+    <directories check_all="yes">/root/.ssh</directories>
+    <directories check_all="yes">/boot</directories>
+    <directories check_all="yes">/usr/bin,/usr/sbin,/bin,/sbin</directories>
+{% for p in wazuh_agent_fim_extra_paths | default([]) %}
+    <directories check_all="yes">{{ p }}</directories>
+{% endfor %}
+
+    <!-- Default exclusions for noisy ephemeral files. -->
+    <ignore>/etc/mtab</ignore>
+    <ignore>/etc/hosts.deny</ignore>
+    <ignore>/etc/mail/statistics</ignore>
+    <ignore>/etc/random-seed</ignore>
+    <ignore>/etc/random.seed</ignore>
+    <ignore>/etc/adjtime</ignore>
+    <ignore>/etc/httpd/logs</ignore>
+    <ignore>/etc/utmpx</ignore>
+    <ignore>/etc/wtmpx</ignore>
+    <ignore>/etc/cups/certs</ignore>
+    <ignore>/etc/dumpdates</ignore>
+    <ignore>/etc/svc/volatile</ignore>
+{% for p in wazuh_agent_fim_extra_exclusions | default([]) %}
+    <ignore>{{ p }}</ignore>
+{% endfor %}
+
+    <nodiff>/etc/ssl/private.key</nodiff>
+  </syscheck>
+{% else %}
+  <syscheck>
+    <disabled>yes</disabled>
+  </syscheck>
+{% endif %}
+
+  <!-- Rootcheck intentionally disabled. -->
+  <rootcheck>
+    <disabled>yes</disabled>
+  </rootcheck>
+
+  <!-- ─── Log collection ──────────────────────────────────────────── -->
+  <localfile>
+    <log_format>syslog</log_format>
+    <location>/var/log/syslog</location>
+  </localfile>
+
+  <localfile>
+    <log_format>syslog</log_format>
+    <location>/var/log/auth.log</location>
+  </localfile>
+
+{% if wazuh_agent_fim_enabled | default(true) %}
+  <!-- auditd events: host's /var/log/audit/audit.log is bind-mounted in. -->
+  <localfile>
+    <log_format>audit</log_format>
+    <location>/var/log/audit/audit.log</location>
+  </localfile>
+{% endif %}
+
+  <localfile>
+    <log_format>command</log_format>
+    <command>df -P</command>
+    <frequency>360</frequency>
+  </localfile>
+
+</ossec_config>

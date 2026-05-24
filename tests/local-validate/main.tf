@@ -264,9 +264,12 @@ module "wazuh" {
 }
 
 module "wazuh_agent_apps" {
-  source              = "../../platform/apps/wazuh-agent/terraform"
-  enabled             = true
-  deployment_host_key = "apps"
-  manager_address     = "10.0.0.10"
-  base                = local.base
+  source               = "../../platform/apps/wazuh-agent/terraform"
+  enabled              = true
+  deployment_host_key  = "apps"
+  manager_address      = "10.0.0.10"
+  fim_enabled          = true
+  fim_extra_paths      = ["/opt/custom-app/conf"]
+  fim_extra_exclusions = ["/opt/custom-app/conf/cache"]
+  base                 = local.base
 }

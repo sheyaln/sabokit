@@ -16,6 +16,10 @@ output "ansible" {
       wazuh_agent_manager_address     = var.manager_address
       wazuh_agent_auto_update_enabled = var.auto_update_enabled
       wazuh_agent_autoheal_enabled    = var.autoheal_enabled
+
+      wazuh_agent_fim_enabled          = var.fim_enabled
+      wazuh_agent_fim_extra_paths      = var.fim_extra_paths
+      wazuh_agent_fim_extra_exclusions = var.fim_extra_exclusions
     }
   } : null
 }

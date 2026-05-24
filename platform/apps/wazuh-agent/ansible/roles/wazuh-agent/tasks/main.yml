@@ -22,6 +22,48 @@
     state: directory
     mode: "0755"
 
+# ── FIM: host-side auditd rules ─────────────────────────────────────────────
+# Wazuh's FIM ingests events from the host's auditd. The agent container
+# tails /var/log/audit/audit.log via bind-mount; the rules themselves must
+# be loaded into the HOST kernel (auditd is a host service, not container).
+- name: FIM — detect host auditd
+  ansible.builtin.stat:
+    path: /etc/audit/rules.d
+  register: wazuh_agent_auditd_dir
+  when: wazuh_agent_fim_enabled | default(true)
+
+- name: FIM — render audit rules
+  ansible.builtin.template:
+    src: audit.rules.j2
+    dest: /etc/audit/rules.d/wazuh.rules
+    owner: root
+    group: root
+    mode: "0640"
+  when:
+    - wazuh_agent_fim_enabled | default(true)
+    - wazuh_agent_auditd_dir.stat.exists | default(false)
+  notify: Reload auditd
+
+- name: FIM — render ossec.conf override
+  ansible.builtin.template:
+    src: ossec.conf.j2
+    dest: "{{ wazuh_agent_install_dir }}/ossec.conf"
+    mode: "0644"
+  when: wazuh_agent_fim_enabled | default(true)
+  notify: Restart wazuh-agent
+
+- name: FIM — warn when auditd is missing
+  ansible.builtin.debug:
+    msg: |
+      auditd not installed on this host (/etc/audit/rules.d missing).
+      Wazuh syscheck will still run, but auditd-sourced events
+      (-w … -p wa -k …) will not be generated. Install auditd to enable
+      full FIM: `apt-get install -y auditd`.
+  when:
+    - wazuh_agent_fim_enabled | default(true)
+    - not (wazuh_agent_auditd_dir.stat.exists | default(false))
+
+# ── Container ──────────────────────────────────────────────────────────────
 - name: Render docker-compose.yml
   ansible.builtin.template:
     src: docker-compose.yml.j2

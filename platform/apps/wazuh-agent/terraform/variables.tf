@@ -52,3 +52,23 @@ variable "autoheal_enabled" {
   type        = bool
   default     = true
 }
+
+# ── File Integrity Monitoring ───────────────────────────────────────────────
+
+variable "fim_enabled" {
+  description = "Master toggle for File Integrity Monitoring. Default TRUE — ships syscheck + auditd integration covering /etc, /root/.ssh, /boot, /usr/bin, /usr/sbin, /bin, /sbin and the standard config/cron/systemd paths. Disable only if you ship FIM another way."
+  type        = bool
+  default     = true
+}
+
+variable "fim_extra_paths" {
+  description = "Additional absolute paths to monitor on top of the standard set. Added to both the host auditd rules (-w … -p wa) and the agent's syscheck stanza."
+  type        = list(string)
+  default     = []
+}
+
+variable "fim_extra_exclusions" {
+  description = "Absolute paths or globs to exclude from syscheck reporting (added as <ignore> entries). Use to silence known-noisy files inside otherwise monitored directories."
+  type        = list(string)
+  default     = []
+}

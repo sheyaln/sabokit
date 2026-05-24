@@ -381,12 +381,15 @@ module "watchtower_apps" {
 module "wazuh_agent_apps" {
   source = "git::https://github.com/sheyaln/sabokit.git//platform/apps/wazuh-agent/terraform?ref=v2.8.1"
 
-  enabled             = try(var.apps.wazuh_agent_apps.enabled, false)
-  base                = local.base
-  deployment_host_key = try(var.apps.wazuh_agent_apps.deployment_host_key, "apps")
-  manager_address     = try(var.apps.wazuh_agent_apps.manager_address, "")
-  agent_name          = try(var.apps.wazuh_agent_apps.agent_name, "")
-  release_version     = try(var.apps.wazuh_agent_apps.release_version, "4.9.0")
+  enabled              = try(var.apps.wazuh_agent_apps.enabled, false)
+  base                 = local.base
+  deployment_host_key  = try(var.apps.wazuh_agent_apps.deployment_host_key, "apps")
+  manager_address      = try(var.apps.wazuh_agent_apps.manager_address, "")
+  agent_name           = try(var.apps.wazuh_agent_apps.agent_name, "")
+  release_version      = try(var.apps.wazuh_agent_apps.release_version, "4.9.0")
+  fim_enabled          = try(var.apps.wazuh_agent_apps.fim_enabled, true)
+  fim_extra_paths      = try(var.apps.wazuh_agent_apps.fim_extra_paths, [])
+  fim_extra_exclusions = try(var.apps.wazuh_agent_apps.fim_extra_exclusions, [])
 }
 
 module "autoheal_apps" {
