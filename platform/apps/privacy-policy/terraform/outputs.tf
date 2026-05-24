@@ -15,6 +15,19 @@ output "monitoring" {
   value       = local.monitoring_contribution
 }
 
+# Split-DNS contribution. Consumer-template merges every bundle's entries
+# into the split_dns_overrides ansible var so each host resolves this
+# hostname to the deployment host's private IP. Empty list when disabled.
+output "split_dns_entries" {
+  description = "Public-hostname -> private-IP overrides for cross-host resolution. Aggregated by the consumer-template."
+  value = (var.enabled && var.hostname != "") ? [
+    {
+      hostname   = var.hostname
+      private_ip = var.base.compute.hosts[var.deployment_host_key].private_ip
+    },
+  ] : []
+}
+
 output "ansible" {
   description = "Ansible deployment metadata. Consumed by the consumer's site.yml."
   value = var.enabled ? {

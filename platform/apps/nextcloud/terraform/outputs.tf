@@ -53,6 +53,28 @@ output "required_inbound_rules" {
   ] : []
 }
 
+# Split-DNS contribution. Nextcloud exposes up to three hostnames (main UI,
+# OnlyOffice editor, Talk HPB signaling) — emit one entry per non-empty
+# hostname so cross-host resolution covers all three. Consumer-template
+# merges into split_dns_overrides.
+output "split_dns_entries" {
+  description = "Public-hostname -> private-IP overrides for cross-host resolution. Aggregated by the consumer-template."
+  value = var.enabled ? concat(
+    [{
+      hostname   = var.hostname
+      private_ip = var.base.compute.hosts[var.deployment_host_key].private_ip
+    }],
+    var.onlyoffice_hostname == "" ? [] : [{
+      hostname   = var.onlyoffice_hostname
+      private_ip = var.base.compute.hosts[var.deployment_host_key].private_ip
+    }],
+    var.talk_hostname == "" ? [] : [{
+      hostname   = var.talk_hostname
+      private_ip = var.base.compute.hosts[var.deployment_host_key].private_ip
+    }],
+  ) : []
+}
+
 output "ansible" {
   description = "Ansible deployment metadata. Consumed by the consumer's site.yml."
   value = var.enabled ? {
