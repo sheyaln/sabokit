@@ -312,6 +312,9 @@
     wazuh_agent_manager_address: "{{ enabled_apps.wazuh_agent_apps.ansible_vars.wazuh_agent_manager_address }}"
     wazuh_agent_auto_update_enabled: "{{ enabled_apps.wazuh_agent_apps.ansible_vars.wazuh_agent_auto_update_enabled }}"
     wazuh_agent_autoheal_enabled: "{{ enabled_apps.wazuh_agent_apps.ansible_vars.wazuh_agent_autoheal_enabled }}"
+    wazuh_agent_fim_enabled: "{{ enabled_apps.wazuh_agent_apps.ansible_vars.wazuh_agent_fim_enabled }}"
+    wazuh_agent_fim_extra_paths: "{{ enabled_apps.wazuh_agent_apps.ansible_vars.wazuh_agent_fim_extra_paths }}"
+    wazuh_agent_fim_extra_exclusions: "{{ enabled_apps.wazuh_agent_apps.ansible_vars.wazuh_agent_fim_extra_exclusions }}"
   when: enabled_apps.wazuh_agent_apps is defined and enabled_apps.wazuh_agent_apps is not none
   tags: [apps, wazuh_agent_apps]
 - import_playbook: ../apps/autoheal/ansible/playbook.yml
