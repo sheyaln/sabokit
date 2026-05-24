@@ -232,3 +232,25 @@ module "autoheal_apps" {
   deployment_host_key = "apps"
   base                = local.base
 }
+
+module "prometheus" {
+  source              = "../../platform/apps/prometheus/terraform"
+  enabled             = true
+  deployment_host_key = "apps"
+  base                = local.base
+}
+
+module "loki" {
+  source              = "../../platform/apps/loki/terraform"
+  enabled             = true
+  deployment_host_key = "apps"
+  base                = local.base
+}
+
+module "grafana" {
+  source              = "../../platform/apps/grafana/terraform"
+  enabled             = true
+  hostname            = "grafana.example.org"
+  deployment_host_key = "apps"
+  base                = local.base
+}

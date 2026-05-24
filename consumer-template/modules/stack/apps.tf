@@ -2,7 +2,7 @@
 # Uncomment / enable in terraform.tfvars to turn an app on.
 
 module "outline" {
-  source = "git::https://github.com/sheyaln/sabokit.git//platform/apps/outline/terraform?ref=v2.5.0"
+  source = "git::https://github.com/sheyaln/sabokit.git//platform/apps/outline/terraform?ref=v2.6.0"
 
   enabled  = try(var.apps.outline.enabled, false)
   hostname = try(var.apps.outline.hostname, "")
@@ -17,7 +17,7 @@ module "outline" {
 }
 
 module "steward" {
-  source = "git::https://github.com/sheyaln/sabokit.git//platform/apps/steward/terraform?ref=v2.5.0"
+  source = "git::https://github.com/sheyaln/sabokit.git//platform/apps/steward/terraform?ref=v2.6.0"
 
   enabled  = try(var.apps.steward.enabled, false)
   hostname = try(var.apps.steward.hostname, "")
@@ -35,7 +35,7 @@ module "steward" {
 }
 
 module "vikunja" {
-  source = "git::https://github.com/sheyaln/sabokit.git//platform/apps/vikunja/terraform?ref=v2.5.0"
+  source = "git::https://github.com/sheyaln/sabokit.git//platform/apps/vikunja/terraform?ref=v2.6.0"
 
   enabled  = try(var.apps.vikunja.enabled, false)
   hostname = try(var.apps.vikunja.hostname, "")
@@ -56,7 +56,7 @@ module "vikunja" {
 # Forward-auth app (no OIDC). Its provider_id MUST also be added to the
 # identity module's extra_forward_auth_provider_ids list — see identity.tf.
 module "bentopdf" {
-  source = "git::https://github.com/sheyaln/sabokit.git//platform/apps/bentopdf/terraform?ref=v2.5.0"
+  source = "git::https://github.com/sheyaln/sabokit.git//platform/apps/bentopdf/terraform?ref=v2.6.0"
 
   enabled  = try(var.apps.bentopdf.enabled, false)
   hostname = try(var.apps.bentopdf.hostname, "")
@@ -72,7 +72,7 @@ module "bentopdf" {
 
 # Public — no auth integration. Privacy policies must be reachable without login.
 module "privacy_policy" {
-  source = "git::https://github.com/sheyaln/sabokit.git//platform/apps/privacy-policy/terraform?ref=v2.5.0"
+  source = "git::https://github.com/sheyaln/sabokit.git//platform/apps/privacy-policy/terraform?ref=v2.6.0"
 
   enabled  = try(var.apps.privacy_policy.enabled, false)
   hostname = try(var.apps.privacy_policy.hostname, "")
@@ -84,7 +84,7 @@ module "privacy_policy" {
 }
 
 module "notifuse" {
-  source = "git::https://github.com/sheyaln/sabokit.git//platform/apps/notifuse/terraform?ref=v2.5.0"
+  source = "git::https://github.com/sheyaln/sabokit.git//platform/apps/notifuse/terraform?ref=v2.6.0"
 
   enabled          = try(var.apps.notifuse.enabled, false)
   hostname         = try(var.apps.notifuse.hostname, "")
@@ -106,7 +106,7 @@ module "notifuse" {
 # top of the host firewall — extend default_security_group_extra_inbound_rules
 # in module.base accordingly.
 module "nextcloud" {
-  source = "git::https://github.com/sheyaln/sabokit.git//platform/apps/nextcloud/terraform?ref=v2.5.0"
+  source = "git::https://github.com/sheyaln/sabokit.git//platform/apps/nextcloud/terraform?ref=v2.6.0"
 
   enabled             = try(var.apps.nextcloud.enabled, false)
   hostname            = try(var.apps.nextcloud.hostname, "")
@@ -126,7 +126,7 @@ module "nextcloud" {
 }
 
 module "decidim" {
-  source = "git::https://github.com/sheyaln/sabokit.git//platform/apps/decidim/terraform?ref=v2.5.0"
+  source = "git::https://github.com/sheyaln/sabokit.git//platform/apps/decidim/terraform?ref=v2.6.0"
 
   enabled            = try(var.apps.decidim.enabled, false)
   hostname           = try(var.apps.decidim.hostname, "")
@@ -151,7 +151,7 @@ module "decidim" {
 # to extra_forward_auth_provider_ids below). The adapter brokers between
 # Authentik's OIDC dance and Jitsi's JWT room-token model.
 module "jitsi" {
-  source = "git::https://github.com/sheyaln/sabokit.git//platform/apps/jitsi/terraform?ref=v2.5.0"
+  source = "git::https://github.com/sheyaln/sabokit.git//platform/apps/jitsi/terraform?ref=v2.6.0"
 
   enabled  = try(var.apps.jitsi.enabled, false)
   hostname = try(var.apps.jitsi.hostname, "")
@@ -174,7 +174,7 @@ module "jitsi" {
 }
 
 module "espocrm" {
-  source = "git::https://github.com/sheyaln/sabokit.git//platform/apps/espocrm/terraform?ref=v2.5.0"
+  source = "git::https://github.com/sheyaln/sabokit.git//platform/apps/espocrm/terraform?ref=v2.6.0"
 
   enabled  = try(var.apps.espocrm.enabled, false)
   hostname = try(var.apps.espocrm.hostname, "")
@@ -197,7 +197,7 @@ module "espocrm" {
 }
 
 module "n8n" {
-  source = "git::https://github.com/sheyaln/sabokit.git//platform/apps/n8n/terraform?ref=v2.5.0"
+  source = "git::https://github.com/sheyaln/sabokit.git//platform/apps/n8n/terraform?ref=v2.6.0"
 
   enabled  = try(var.apps.n8n.enabled, false)
   hostname = try(var.apps.n8n.hostname, "")
@@ -231,7 +231,85 @@ locals {
     module.jitsi.backup_plan,
     module.espocrm.backup_plan,
     module.n8n.backup_plan,
+    module.prometheus.backup_plan,
+    module.loki.backup_plan,
+    module.grafana.backup_plan,
   ] : plan if plan != null]
+
+  # Each app's `monitoring` output carries scrape configs, dashboards, log
+  # paths, alert rules. Coalesce nulls then split by destination key for the
+  # prometheus + grafana + loki bundles to consume.
+  _monitoring_contribs = [for c in [
+    module.outline.monitoring,
+    module.steward.monitoring,
+    module.vikunja.monitoring,
+    module.bentopdf.monitoring,
+    module.privacy_policy.monitoring,
+    module.notifuse.monitoring,
+    module.nextcloud.monitoring,
+    module.decidim.monitoring,
+    module.jitsi.monitoring,
+    module.espocrm.monitoring,
+    module.n8n.monitoring,
+    module.grafana.monitoring,
+  ] : c if c != null]
+
+  aggregated_scrape_configs = flatten([
+    for c in local._monitoring_contribs : try(c.prometheus_scrape_configs, [])
+  ])
+  aggregated_alert_rules = flatten([
+    for c in local._monitoring_contribs : try(c.alert_rules, [])
+  ])
+}
+
+# ── Monitoring stack (typically all on the same host) ──────────────────────
+# Prometheus + Loki + Grafana share the monitoring_internal docker network
+# (each role creates it idempotently). Grafana's datasources point at
+# http://prometheus:9090 and http://loki:3100 by default.
+
+module "prometheus" {
+  source = "git::https://github.com/sheyaln/sabokit.git//platform/apps/prometheus/terraform?ref=v2.6.0"
+
+  enabled = try(var.apps.prometheus.enabled, false)
+  base    = local.base
+
+  deployment_host_key  = try(var.apps.prometheus.deployment_host_key, "management")
+  retention            = try(var.apps.prometheus.retention, "30d")
+  exporters_enabled    = try(var.apps.prometheus.exporters_enabled, true)
+  remote_write_enabled = try(var.apps.prometheus.remote_write_enabled, true)
+  private_ip_bind      = try(var.apps.prometheus.private_ip_bind, "")
+  # Auto-aggregated from every enabled app's monitoring.prometheus_scrape_configs
+  # + monitoring.alert_rules.
+  scrape_configs = concat(local.aggregated_scrape_configs, try(var.apps.prometheus.scrape_configs, []))
+  alert_rules    = concat(local.aggregated_alert_rules, try(var.apps.prometheus.alert_rules, []))
+}
+
+module "loki" {
+  source = "git::https://github.com/sheyaln/sabokit.git//platform/apps/loki/terraform?ref=v2.6.0"
+
+  enabled = try(var.apps.loki.enabled, false)
+  base    = local.base
+
+  deployment_host_key     = try(var.apps.loki.deployment_host_key, "management")
+  retention               = try(var.apps.loki.retention, "744h")
+  ingestion_rate_mb       = try(var.apps.loki.ingestion_rate_mb, 10)
+  ingestion_burst_size_mb = try(var.apps.loki.ingestion_burst_size_mb, 20)
+  private_ip_bind         = try(var.apps.loki.private_ip_bind, "")
+}
+
+module "grafana" {
+  source = "git::https://github.com/sheyaln/sabokit.git//platform/apps/grafana/terraform?ref=v2.6.0"
+
+  enabled  = try(var.apps.grafana.enabled, false)
+  hostname = try(var.apps.grafana.hostname, "")
+  base     = local.base
+
+  access_level            = try(var.apps.grafana.access_level, "admin")
+  extra_authorized_groups = try(var.apps.grafana.extra_authorized_groups, {})
+  deployment_host_key     = try(var.apps.grafana.deployment_host_key, "management")
+  plugins                 = try(var.apps.grafana.plugins, [])
+  oidc_admin_group        = try(var.apps.grafana.oidc_admin_group, "admin")
+  oidc_editor_group       = try(var.apps.grafana.oidc_editor_group, "manager")
 }
 
 # Backrest is multi-instance: each backed-up host gets its own module block,
@@ -239,7 +317,7 @@ locals {
 # be added to identity's extra_forward_auth_provider_ids list (see identity.tf).
 # Example: a single "mgmt" instance. Add more module blocks for each host.
 module "backrest_mgmt" {
-  source = "git::https://github.com/sheyaln/sabokit.git//platform/apps/backrest/terraform?ref=v2.5.0"
+  source = "git::https://github.com/sheyaln/sabokit.git//platform/apps/backrest/terraform?ref=v2.6.0"
 
   enabled       = try(var.apps.backrest_mgmt.enabled, false)
   hostname      = try(var.apps.backrest_mgmt.hostname, "")
@@ -270,7 +348,7 @@ module "backrest_mgmt" {
 # decide which containers are labelled for these to act on.
 
 module "watchtower_apps" {
-  source = "git::https://github.com/sheyaln/sabokit.git//platform/apps/watchtower/terraform?ref=v2.5.0"
+  source = "git::https://github.com/sheyaln/sabokit.git//platform/apps/watchtower/terraform?ref=v2.6.0"
 
   enabled = try(var.apps.watchtower_apps.enabled, false)
   base    = local.base
@@ -282,7 +360,7 @@ module "watchtower_apps" {
 }
 
 module "autoheal_apps" {
-  source = "git::https://github.com/sheyaln/sabokit.git//platform/apps/autoheal/terraform?ref=v2.5.0"
+  source = "git::https://github.com/sheyaln/sabokit.git//platform/apps/autoheal/terraform?ref=v2.6.0"
 
   enabled = try(var.apps.autoheal_apps.enabled, false)
   base    = local.base

@@ -99,6 +99,20 @@ output "enabled_apps" {
       ansible_group = module.n8n.ansible.host_group
       monitoring    = module.n8n.monitoring
     } : null
+    prometheus = module.prometheus.enabled ? {
+      ansible_vars  = module.prometheus.ansible.vars
+      ansible_group = module.prometheus.ansible.host_group
+    } : null
+    loki = module.loki.enabled ? {
+      ansible_vars  = module.loki.ansible.vars
+      ansible_group = module.loki.ansible.host_group
+    } : null
+    grafana = module.grafana.enabled ? {
+      url           = module.grafana.app_url
+      ansible_vars  = module.grafana.ansible.vars
+      ansible_group = module.grafana.ansible.host_group
+      monitoring    = module.grafana.monitoring
+    } : null
     backrest_mgmt = module.backrest_mgmt.enabled ? {
       url           = module.backrest_mgmt.app_url
       ansible_vars  = module.backrest_mgmt.ansible.vars
