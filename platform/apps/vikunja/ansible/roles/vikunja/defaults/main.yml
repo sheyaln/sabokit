@@ -10,6 +10,10 @@ vikunja_files_dir: "/opt/vikunja/files"
 
 vikunja_timezone: "UTC"
 
+# Day the week starts on in Vikunja calendar views. null = leave Vikunja's
+# built-in default in place. 0 = Sunday, 1 = Monday (ISO 8601).
+vikunja_default_week_start: null
+
 # Vikunja's own auth knobs. Defaults: registration off, local password off — OIDC is the only sign-in path.
 vikunja_enable_registration: false
 vikunja_enable_local_auth: false

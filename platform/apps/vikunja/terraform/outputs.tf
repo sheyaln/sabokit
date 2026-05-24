@@ -40,6 +40,7 @@ output "ansible" {
       vikunja_app_secret_id            = scaleway_secret.app[0].id
       vikunja_db_credentials_secret_id = module.database[0].secret_id
       vikunja_smtp_secret_name         = var.smtp_from_email == "" ? "" : "smtp-config"
+      vikunja_default_week_start       = var.default_week_start
     }
   } : null
 }

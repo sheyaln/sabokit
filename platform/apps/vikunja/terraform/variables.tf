@@ -85,6 +85,16 @@ variable "smtp_from_email" {
   default     = ""
 }
 
+variable "default_week_start" {
+  description = "Day the week starts on in Vikunja's calendar views. `0` = Sunday, `1` = Monday. Leave null to let Vikunja use its built-in default (per-user, no global override)."
+  type        = number
+  default     = null
+  validation {
+    condition     = var.default_week_start == null || (var.default_week_start >= 0 && var.default_week_start <= 6)
+    error_message = "default_week_start must be null or an integer in [0, 6]."
+  }
+}
+
 variable "oidc_groups_scope_name" {
   description = "Custom OIDC scope name the Authentik provider attaches a `vikunja_groups` claim under. Vikunja uses this claim to auto-assign team memberships. Default matches the Authentik scope convention for this app."
   type        = string
