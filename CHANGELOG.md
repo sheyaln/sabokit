@@ -2,6 +2,14 @@
 
 All notable changes to sabokit go here. Versioning follows semver; major bumps signal breaking contract changes for consumers.
 
+## v2.10.2 — `tier_names` cap raised from 4 to 12
+
+The v2.10.1 refactor of `modules/authentik/tier-cascade/` capped `tier_names` at 4 entries (matched the default — the previous for_each implementation was unbounded above 2). Cap raised to 12 (10 reasonable tiers + 2 extras for one-offs). Additive: consumers with `tier_names.length <= 4` see zero diff; new tier_4..tier_11 slots have `count = 0` for them. No state migration, no plan churn for existing consumers. Validation loosened to 2-12.
+
+Consumers actually wanting >4 tiers can now just extend `tier_names` past 4 entries. Anyone wanting >12 should be using RBAC roles, not nested groups.
+
+---
+
 ## v2.10.1 — 5 peer-reported bug fixes
 
 All five surfaced by the first consumer to exercise the v2.8+ stack end-to-end. No new features.
