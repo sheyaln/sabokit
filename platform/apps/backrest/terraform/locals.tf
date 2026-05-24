@@ -6,9 +6,13 @@ locals {
   # on S3 bucket names, IAM application names, Authentik slugs, etc.
   qualified_slug = "${local.slug}-${var.instance_name}"
 
-  authorized_groups = var.enabled ? merge(
-    { (var.access_level) = var.base.authentik.groups[var.access_level] },
-    var.extra_authorized_groups,
+  authorized_groups = var.enabled ? (
+    var.tier_cascade_enabled
+    ? var.base.authentik.tier_cascade[var.tier_access_level]
+    : merge(
+      { (var.access_level) = var.base.authentik.groups[var.access_level] },
+      var.extra_authorized_groups,
+    )
   ) : {}
 
   app_url = "https://${var.hostname}"

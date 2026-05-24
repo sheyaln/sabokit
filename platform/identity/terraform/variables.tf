@@ -68,6 +68,18 @@ variable "delegate_group_name" {
   default     = "delegate"
 }
 
+variable "treasurer_group_name" {
+  description = "Name of the financial/operations tier between delegate and admin (e.g. \"treasurer\", \"finance\", \"ops\"). Sits in the tier cascade above delegate and below admin. Set to null to drop this tier — the cascade collapses to member→delegate→admin."
+  type        = string
+  default     = "treasurer"
+}
+
+variable "tier_names_override" {
+  description = "Optional full override of the cascade tier order. When non-empty, this list is used verbatim (lowest-privilege first) and admin/member/delegate/treasurer name variables are ignored for cascade construction. Use when an org's tier naming doesn't fit the default four-tier shape."
+  type        = list(string)
+  default     = []
+}
+
 variable "delegate_role_name" {
   description = "Name of the RBAC role bound to the delegate group. Only used when delegate_group_name is non-null."
   type        = string

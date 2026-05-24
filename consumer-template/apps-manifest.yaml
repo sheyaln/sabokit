@@ -76,6 +76,18 @@ apps:
           description: Authentik group key granting baseline access.
           ui: advanced
 
+        tier_cascade_enabled:
+          type: bool
+          default: true
+          description: Derive authorized groups from the platform tier cascade (member→delegate→treasurer→admin; each tier inherits all lower). Set false to fall back to access_level + extra_authorized_groups.
+          ui: advanced
+
+        tier_access_level:
+          type: string
+          default: member
+          description: Cascade tier required for baseline access. Users in this tier and any higher are admitted. Only consulted when tier_cascade_enabled = true.
+          ui: advanced
+
         smtp_from_email:
           type: string
           default: ''
@@ -153,6 +165,18 @@ apps:
           type: string
           default: admin
           description: Authentik group key granting baseline access (admin by default — Steward is itself an admin surface).
+          ui: advanced
+
+        tier_cascade_enabled:
+          type: bool
+          default: true
+          description: Derive authorized groups from the platform tier cascade (member→delegate→treasurer→admin; each tier inherits all lower). Set false to fall back to access_level + extra_authorized_groups.
+          ui: advanced
+
+        tier_access_level:
+          type: string
+          default: admin
+          description: Cascade tier required for baseline access. Users in this tier and any higher are admitted. Only consulted when tier_cascade_enabled = true.
           ui: advanced
 
         monitoring_enabled:
@@ -246,6 +270,18 @@ apps:
           description: Authentik group key granting baseline access.
           ui: advanced
 
+        tier_cascade_enabled:
+          type: bool
+          default: true
+          description: Derive authorized groups from the platform tier cascade (member→delegate→treasurer→admin; each tier inherits all lower). Set false to fall back to access_level + extra_authorized_groups.
+          ui: advanced
+
+        tier_access_level:
+          type: string
+          default: member
+          description: Cascade tier required for baseline access. Users in this tier and any higher are admitted. Only consulted when tier_cascade_enabled = true.
+          ui: advanced
+
         monitoring_enabled:
           type: bool
           default: true
@@ -302,6 +338,18 @@ apps:
           type: string
           default: member
           description: Authentik group key granting baseline access.
+          ui: advanced
+
+        tier_cascade_enabled:
+          type: bool
+          default: true
+          description: Derive authorized groups from the platform tier cascade (member→delegate→treasurer→admin; each tier inherits all lower). Set false to fall back to access_level + extra_authorized_groups.
+          ui: advanced
+
+        tier_access_level:
+          type: string
+          default: member
+          description: Cascade tier required for baseline access. Users in this tier and any higher are admitted. Only consulted when tier_cascade_enabled = true.
           ui: advanced
 
         monitoring_enabled:
@@ -386,6 +434,18 @@ apps:
           type: string
           default: admin
           description: Authentik group key granting baseline access. Default admin-only (Notifuse is an operator tool).
+          ui: advanced
+
+        tier_cascade_enabled:
+          type: bool
+          default: true
+          description: Derive authorized groups from the platform tier cascade (member→delegate→treasurer→admin; each tier inherits all lower). Set false to fall back to access_level + extra_authorized_groups.
+          ui: advanced
+
+        tier_access_level:
+          type: string
+          default: admin
+          description: Cascade tier required for baseline access. Users in this tier and any higher are admitted. Only consulted when tier_cascade_enabled = true.
           ui: advanced
 
         monitoring_enabled:
@@ -541,6 +601,18 @@ apps:
           description: Authentik group key granting baseline access.
           ui: advanced
 
+        tier_cascade_enabled:
+          type: bool
+          default: true
+          description: Derive authorized groups from the platform tier cascade (member→delegate→treasurer→admin; each tier inherits all lower). Set false to fall back to access_level + extra_authorized_groups.
+          ui: advanced
+
+        tier_access_level:
+          type: string
+          default: member
+          description: Cascade tier required for baseline access. Users in this tier and any higher are admitted. Only consulted when tier_cascade_enabled = true.
+          ui: advanced
+
         monitoring_enabled:
           type: bool
           default: true
@@ -628,6 +700,18 @@ apps:
           type: string
           default: member
           description: Authentik group key granting baseline access.
+          ui: advanced
+
+        tier_cascade_enabled:
+          type: bool
+          default: true
+          description: Derive authorized groups from the platform tier cascade (member→delegate→treasurer→admin; each tier inherits all lower). Set false to fall back to access_level + extra_authorized_groups.
+          ui: advanced
+
+        tier_access_level:
+          type: string
+          default: member
+          description: Cascade tier required for baseline access. Users in this tier and any higher are admitted. Only consulted when tier_cascade_enabled = true.
           ui: advanced
 
         monitoring_enabled:
@@ -718,6 +802,18 @@ apps:
           description: Authentik group key granting baseline access (relevant when the OIDC adapter gates room creation).
           ui: advanced
 
+        tier_cascade_enabled:
+          type: bool
+          default: true
+          description: Derive authorized groups from the platform tier cascade (member→delegate→treasurer→admin; each tier inherits all lower). Set false to fall back to access_level + extra_authorized_groups.
+          ui: advanced
+
+        tier_access_level:
+          type: string
+          default: member
+          description: Cascade tier required for baseline access. Users in this tier and any higher are admitted. Only consulted when tier_cascade_enabled = true.
+          ui: advanced
+
         monitoring_enabled:
           type: bool
           default: true
@@ -799,6 +895,18 @@ apps:
           description: Authentik group key granting baseline access.
           ui: advanced
 
+        tier_cascade_enabled:
+          type: bool
+          default: true
+          description: Derive authorized groups from the platform tier cascade (member→delegate→treasurer→admin; each tier inherits all lower). Set false to fall back to access_level + extra_authorized_groups.
+          ui: advanced
+
+        tier_access_level:
+          type: string
+          default: member
+          description: Cascade tier required for baseline access. Users in this tier and any higher are admitted. Only consulted when tier_cascade_enabled = true.
+          ui: advanced
+
         monitoring_enabled:
           type: bool
           default: true
@@ -874,6 +982,18 @@ apps:
           description: Authentik group key granting baseline access.
           ui: advanced
 
+        tier_cascade_enabled:
+          type: bool
+          default: true
+          description: Derive authorized groups from the platform tier cascade (member→delegate→treasurer→admin; each tier inherits all lower). Set false to fall back to access_level + extra_authorized_groups.
+          ui: advanced
+
+        tier_access_level:
+          type: string
+          default: admin
+          description: Cascade tier required for baseline access. Users in this tier and any higher are admitted. Only consulted when tier_cascade_enabled = true.
+          ui: advanced
+
         monitoring_enabled:
           type: bool
           default: true
@@ -938,6 +1058,18 @@ apps:
           type: string
           default: admin
           description: Authentik group key granting baseline access. Default admin — Backrest exposes raw paths and a restore UI.
+          ui: advanced
+
+        tier_cascade_enabled:
+          type: bool
+          default: true
+          description: Derive authorized groups from the platform tier cascade (member→delegate→treasurer→admin; each tier inherits all lower). Set false to fall back to access_level + extra_authorized_groups.
+          ui: advanced
+
+        tier_access_level:
+          type: string
+          default: admin
+          description: Cascade tier required for baseline access. Users in this tier and any higher are admitted. Only consulted when tier_cascade_enabled = true.
           ui: advanced
 
         monitoring_enabled:
@@ -1173,6 +1305,18 @@ apps:
           description: Authentik group key for baseline access (defaults to admin — Grafana is ops).
           ui: advanced
 
+        tier_cascade_enabled:
+          type: bool
+          default: true
+          description: Derive authorized groups from the platform tier cascade (member→delegate→treasurer→admin; each tier inherits all lower). Set false to fall back to access_level + extra_authorized_groups.
+          ui: advanced
+
+        tier_access_level:
+          type: string
+          default: admin
+          description: Cascade tier required for baseline access. Users in this tier and any higher are admitted. Only consulted when tier_cascade_enabled = true.
+          ui: advanced
+
         oidc_admin_group:
           type: string
           default: admin
@@ -1243,6 +1387,18 @@ apps:
           type: string
           default: admin
           description: Authentik group key for baseline access (Wazuh defaults admin-only).
+          ui: advanced
+
+        tier_cascade_enabled:
+          type: bool
+          default: true
+          description: Derive authorized groups from the platform tier cascade (member→delegate→treasurer→admin; each tier inherits all lower). Set false to fall back to access_level + extra_authorized_groups.
+          ui: advanced
+
+        tier_access_level:
+          type: string
+          default: admin
+          description: Cascade tier required for baseline access. Users in this tier and any higher are admitted. Only consulted when tier_cascade_enabled = true.
           ui: advanced
 
         release_version:

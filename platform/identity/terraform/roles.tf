@@ -1,13 +1,15 @@
-# Delegate RBAC role + group.
+# Delegate RBAC role.
 #
 # The delegate tier is the "elevated but not admin" role: can activate users,
 # reset passwords, manage group membership, but cannot edit brand/applications.
-# Whole stack is gated on var.delegate_group_name being non-null so consumers
-# can opt out of the tier entirely.
-
-locals {
-  delegate_enabled = var.delegate_group_name != null
-}
+# The role is defined here; the underlying group is created by the tier-cascade
+# module in user_groups.tf and inherits this role via tier_roles. Whole stack
+# is gated on var.delegate_group_name being non-null so consumers can opt out
+# of the tier entirely.
+#
+# local.delegate_enabled (the gating boolean) is also defined in user_groups.tf
+# because the cascade module needs to know whether to wire the role in; both
+# files reference the same local so changing one is enough.
 
 # Permission lookups (cheap, evaluated even when delegate is disabled).
 data "authentik_rbac_permission" "access_admin_interface" {
@@ -106,25 +108,5 @@ resource "authentik_rbac_permission_role" "delegate_view_application" {
   permission = "${data.authentik_rbac_permission.view_application.app}.${data.authentik_rbac_permission.view_application.codename}"
 }
 
-resource "authentik_group" "delegate" {
-  count        = local.delegate_enabled ? 1 : 0
-  name         = var.delegate_group_name
-  is_superuser = false
-  roles        = [authentik_rbac_role.delegate[0].id]
-
-  attributes = jsonencode({
-    description = "Delegates with elevated access (user/group management, no app/brand edit)"
-    settings = {
-      enabledFeatures = {
-        apiDrawer          = false
-        applicationEdit    = false
-        notificationDrawer = true
-        search             = true
-        settings           = true
-      }
-      navbar = {
-        userDisplay = "username"
-      }
-    }
-  })
-}
+# Note: the delegate group itself is created by module.tier_cascade in
+# user_groups.tf — the role above is attached to it via tier_roles.
