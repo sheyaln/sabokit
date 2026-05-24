@@ -68,9 +68,9 @@ variable "image_tag" {
 }
 
 variable "build_from_source" {
-  description = "Build the Notifuse image on the deployment host from a cloned git repo instead of pulling. Needed if the desired feature set (e.g. OIDC) lives only on an unpublished branch. When true, `image_source_repo` + `image_source_ref` define the checkout; the resulting image is tagged `notifuse-local:latest` on the host and `image`/`image_tag` are ignored."
+  description = "Build the Notifuse image on the deployment host from a cloned git repo instead of pulling. Default `true` so OIDC works out of the box (stock `notifuse/notifuse:latest` lacks OIDC; the patches live on the sheyaln fork). When true, `image_source_repo` + `image_source_ref` define the checkout; the resulting image is tagged `notifuse-local:latest` on the host and `image`/`image_tag` are ignored. Flip to `false` to pull a published image instead (only useful once a fork-built image is hosted)."
   type        = bool
-  default     = false
+  default     = true
 }
 
 variable "image_source_repo" {
