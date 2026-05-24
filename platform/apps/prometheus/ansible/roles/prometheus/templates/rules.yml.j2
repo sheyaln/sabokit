@@ -1,0 +1,11 @@
+# {{ ansible_managed }}
+# Aggregated alert rules from each enabled app's monitoring.alert_rules output.
+
+groups:
+{% if prometheus_alert_rules | default([]) | length == 0 %}
+  []
+{% else %}
+{% for group in prometheus_alert_rules %}
+  - {{ group | to_nice_yaml(indent=2) | indent(4) }}
+{% endfor %}
+{% endif %}

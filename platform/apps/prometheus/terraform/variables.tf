@@ -1,0 +1,145 @@
+# ── Contract inputs ─────────────────────────────────────────────────────────
+
+variable "enabled" {
+  description = "Master toggle. When false the bundle provisions zero resources."
+  type        = bool
+  default     = false
+}
+
+variable "base" {
+  description = "Outputs from module \"base\". Prometheus only consumes the deployment_host_key target; the full base object is taken for shape parity."
+  type        = any
+}
+
+variable "deployment_host_key" {
+  description = "Key in base.compute.hosts identifying the VM this Prometheus instance runs on. Typically your `management` or `monitoring` host."
+  type        = string
+  default     = "management"
+}
+
+# ── Prometheus-specific inputs ──────────────────────────────────────────────
+
+variable "image" {
+  description = "Prometheus Docker image (without tag)."
+  type        = string
+  default     = "prom/prometheus"
+}
+
+variable "image_tag" {
+  description = "Prometheus Docker image tag. Pin in production."
+  type        = string
+  default     = "latest"
+}
+
+variable "retention" {
+  description = "TSDB retention window. Accepts Prometheus duration syntax (15d, 90d, 1y). Storage scales linearly with this and the sample rate."
+  type        = string
+  default     = "30d"
+}
+
+variable "scrape_configs" {
+  description = "Additional scrape_configs entries to merge into prometheus.yml beyond the bundle's defaults (prometheus self-scrape + node-exporter if `exporters_enabled = true`). Consumer-template aggregates each app bundle's `monitoring.prometheus_scrape_configs` into this. Pass as a list of objects matching Prometheus's scrape_config schema."
+  type        = list(any)
+  default     = []
+}
+
+variable "alert_rules" {
+  description = "List of alerting rules to render into Prometheus's rules.yml. Consumer-template aggregates each app's `monitoring.alert_rules` into this. Pass as a list of groups, each `{ name = string, rules = list({...}) }`."
+  type        = list(any)
+  default     = []
+}
+
+variable "exporters_enabled" {
+  description = "Whether to deploy node_exporter + cadvisor alongside Prometheus on the same host as default scrape targets. Default true — almost every consumer wants host + container metrics."
+  type        = bool
+  default     = true
+}
+
+variable "remote_write_enabled" {
+  description = "Whether to enable Prometheus's remote-write receiver endpoint (POST /api/v1/write). Useful when external services push metrics into Prometheus instead of being scraped. Default true."
+  type        = bool
+  default     = true
+}
+
+variable "private_ip_bind" {
+  description = "Optional host private IP to bind Prometheus's port 9090 to. Empty = bind to 127.0.0.1 only (internal access via Grafana or SSH tunnel). Set to a private-network IP to let other hosts on the VPC scrape directly or push via remote-write."
+  type        = string
+  default     = ""
+}
+
+variable "memory_limit" {
+  description = "Container memory ceiling. Prometheus's working set scales with active series count + retention; default fits ~100k series at 30d."
+  type        = string
+  default     = "2G"
+}
+
+variable "memory_reservation" {
+  description = "Container memory reservation."
+  type        = string
+  default     = "512M"
+}
+
+variable "cpu_limit" {
+  description = "Container CPU ceiling."
+  type        = string
+  default     = "2.0"
+}
+
+variable "cpu_reservation" {
+  description = "Container CPU reservation."
+  type        = string
+  default     = "0.5"
+}
+
+variable "timezone" {
+  description = "IANA timezone for the container (log timestamps)."
+  type        = string
+  default     = "UTC"
+}
+
+variable "auto_update_enabled" {
+  description = "Whether the Watchtower platform bundle (if deployed) auto-pulls newer Prometheus image versions. Default FALSE — Prometheus has migration steps for major versions and TSDB compatibility quirks; let Ansible drive bumps."
+  type        = bool
+  default     = false
+}
+
+variable "autoheal_enabled" {
+  description = "Whether the Autoheal platform bundle (if deployed) restarts Prometheus when its healthcheck fails. Default true."
+  type        = bool
+  default     = true
+}
+
+variable "backup_enabled" {
+  description = "Whether the Backrest platform bundle (if deployed) backs up Prometheus's TSDB. Default true — losing the TSDB means losing all historical metrics."
+  type        = bool
+  default     = true
+}
+
+variable "backup_extra_paths" {
+  description = "Additional restic paths beyond `/backup-sources/opt/prometheus`. The TSDB lives in the named volume `prometheus_prometheus-data` — by default the volume is included via `/backup-sources/docker-volumes/prometheus_prometheus-data/_data`."
+  type        = list(string)
+  default     = ["/backup-sources/docker-volumes/prometheus_prometheus-data/_data"]
+}
+
+variable "backup_schedule_cron" {
+  description = "Backrest cron (6-field). Default 02:00 UTC daily."
+  type        = string
+  default     = "0 0 2 * * *"
+}
+
+variable "backup_retention" {
+  description = "Restic retention policy."
+  type = object({
+    hourly  = optional(number)
+    daily   = optional(number)
+    weekly  = optional(number)
+    monthly = optional(number)
+    yearly  = optional(number)
+  })
+  default = {
+    daily   = 7
+    weekly  = 4
+    monthly = 12
+    yearly  = 1
+  }
+}

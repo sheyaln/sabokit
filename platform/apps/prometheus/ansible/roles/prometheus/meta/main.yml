@@ -1,0 +1,6 @@
+---
+galaxy_info:
+  role_name: prometheus
+  description: Prometheus + (optional) node_exporter + cadvisor on one host
+  min_ansible_version: "2.14"
+dependencies: []
