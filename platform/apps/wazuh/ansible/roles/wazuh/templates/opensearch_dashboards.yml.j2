@@ -14,3 +14,15 @@ server.ssl.enabled: false
 opensearch.ssl.certificateAuthorities: ["/usr/share/wazuh-dashboard/certs/root-ca.pem"]
 
 uiSettings.overrides.defaultRoute: /app/wazuh
+
+# Native OIDC. Users hit the dashboard, get redirected to Authentik, return
+# with a JWT, opensearch-security's openid backend (configured in
+# config.yml's authc) validates the discovery URL and the `groups` claim
+# becomes opensearch backend roles via roles_mapping.yml.
+opensearch_security.auth.type: ["basicauth", "openid"]
+opensearch_security.openid.connect_url: "${OIDC_DISCOVERY_URL}"
+opensearch_security.openid.client_id: "${OIDC_CLIENT_ID}"
+opensearch_security.openid.client_secret: "${OIDC_CLIENT_SECRET}"
+opensearch_security.openid.scope: "openid profile email groups"
+opensearch_security.openid.base_redirect_url: "${OIDC_BASE_REDIRECT_URL}"
+opensearch_security.openid.logout_url: "${OIDC_BASE_REDIRECT_URL}/auth/logout"

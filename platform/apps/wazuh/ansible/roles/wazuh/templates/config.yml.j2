@@ -1,8 +1,8 @@
 ---
 # {{ ansible_managed }}
-# opensearch-security authentication config. Basic-auth via the indexer's
-# internal_users.yml. Authentik OIDC happens at the gateway (forward-auth)
-# — see authentik.tf in the bundle's terraform.
+# opensearch-security authentication config. Native OIDC against Authentik
+# (dashboard delegates SSO to opensearch-security), with HTTP Basic against
+# internal_users kept as fallback for the kibanaserver service account.
 
 _meta:
   type: "config"
@@ -13,13 +13,27 @@ config:
     http:
       anonymous_auth_enabled: false
     authc:
+      oidc_auth_domain:
+        description: "OIDC via Authentik"
+        http_enabled: true
+        transport_enabled: true
+        order: 0
+        http_authenticator:
+          type: openid
+          challenge: false
+          config:
+            subject_key: preferred_username
+            roles_key: groups
+            openid_connect_url: "{{ wazuh_app_secrets.OIDC_DISCOVERY_URL }}"
+        authentication_backend:
+          type: noop
       basic_internal_auth_domain:
-        description: "Authenticate via HTTP Basic against the internal users database"
+        description: "HTTP Basic against the internal users database (kibanaserver + admin fallback)"
         http_enabled: true
         transport_enabled: true
         order: 1
         http_authenticator:
           type: basic
-          challenge: true
+          challenge: false
         authentication_backend:
           type: intern

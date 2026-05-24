@@ -1,5 +1,5 @@
 module "identity" {
-  source = "git::https://github.com/sheyaln/sabokit.git//platform/identity/terraform?ref=v2.7.1"
+  source = "git::https://github.com/sheyaln/sabokit.git//platform/identity/terraform?ref=v2.7.2"
 
   gateway_domain = module.base.domains.gateway_domain
   base_domain    = module.base.domains.base_domain
@@ -21,7 +21,6 @@ module "identity" {
   extra_forward_auth_provider_ids = compact([
     module.bentopdf.authentik_provider_id,
     module.backrest_mgmt.authentik_provider_id,
-    module.wazuh.authentik_provider_id,
   ])
 }
 

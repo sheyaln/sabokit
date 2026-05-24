@@ -37,6 +37,10 @@ resource "scaleway_secret_version" "app" {
     WAZUH_INDEXER_PASSWORD   = random_password.indexer_admin[0].result
     WAZUH_API_PASSWORD       = random_password.api[0].result
     WAZUH_DASHBOARD_PASSWORD = random_password.dashboard[0].result
+    OIDC_CLIENT_ID           = module.authentik[0].client_id
+    OIDC_CLIENT_SECRET       = module.authentik[0].client_secret
+    OIDC_DISCOVERY_URL       = local.oidc_discovery_url
+    OIDC_BASE_REDIRECT_URL   = local.app_url
   })
 
   lifecycle {
