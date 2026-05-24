@@ -7,6 +7,7 @@ If you are adding a new app bundle, building a new base sub-module, or writing a
 ## Table of contents
 
 - [Layered model](#layered-model)
+- [Terraform vs Ansible](#terraform-vs-ansible)
 - [The base ↔ app contract](#the-base--app-contract)
   - [What `base/` outputs](#what-base-outputs)
   - [What every app bundle consumes](#what-every-app-bundle-consumes)
@@ -74,6 +75,91 @@ consumer-template/   # The starter a new org copies. Calls base/ once and
 **Dependency direction**: `consumer-template` → `base` and `apps/*`. `apps/*` → `base` (via consumer-passed outputs) and `modules/*`. `base` → `modules/*`. `modules/*` depends on nothing in this tree.
 
 Apps never depend on each other directly. Cross-app coupling lives in `platform/apps/<name>/integrations/<other-app>.tf` and is gated by a toggle that only fires if both apps are enabled.
+
+---
+
+## Terraform vs Ansible
+
+**The rule:** Terraform owns cloud + API state. Ansible owns convergent host-side execution. Every bundle has both halves; neither half reaches across the line.
+
+### What lives on each side
+
+**Terraform** owns anything with an identity in an external system you reconcile against:
+
+- Scaleway primitives — instances, RDB databases, VPC, security groups, DNS records, Secret Manager secrets, IAM apps + API keys, object buckets, TEM domains.
+- Authentik objects — providers, applications, groups, flows, sources, outposts, brand.
+- Generated values that must exist before Ansible runs — random passwords stashed in Scaleway secrets, OIDC client IDs/secrets, hostnames, image tags.
+- Anything `terraform destroy` should clean up.
+
+**Ansible** owns anything that mutates state inside a host TF already provisioned:
+
+- Rendering `docker-compose.yml.j2` and `env.j2` with the hostnames, image tags, and secret IDs TF produced.
+- Pulling secret payloads at deploy time via `lookup('scaleway.scaleway.scaleway_secret', <id>)`.
+- Running `docker_compose_v2` to converge containers, creating docker networks, dropping config files (`ossec.conf`, Grafana provisioning, Prometheus rules), running idempotent host tasks.
+
+### The bridge: `output "ansible"`
+
+Every bundle's TF emits one map describing how Ansible should deploy it. Example from `platform/apps/outline/terraform/outputs.tf`:
+
+```hcl
+output "ansible" {
+  value = var.enabled ? {
+    role_path  = "${path.module}/../ansible/role"
+    playbook   = "${path.module}/../ansible/playbook.yml"
+    host_group = var.base.compute.hosts[var.deployment_host_key].ansible_group
+    vars = {
+      outline_hostname                 = var.hostname
+      outline_image_tag                = var.image_tag
+      outline_app_secret_id            = scaleway_secret.app[0].id
+      outline_db_credentials_secret_id = module.database[0].secret_id
+      # ...
+    }
+  } : null
+}
+```
+
+The consumer rolls these up into `enabled_apps`, dumps it, and feeds it to Ansible:
+
+```bash
+terraform output -json enabled_apps > .enabled_apps.json
+ansible-playbook platform/ansible/site.yml -i inventory.ini -e @.enabled_apps.json
+```
+
+That map is the entire contract. TF says "here's the role, here's the host group, here are the vars." Ansible runs it. Neither side knows more about the other than what's in the map.
+
+### Deciding where a new thing belongs
+
+When you don't know which side something goes on, ask in this order:
+
+1. Does it need an identity in an external system to reconcile against (Scaleway, Authentik, DNS)? → **TF.**
+2. Does it mutate state inside an already-provisioned host (compose files, container state, on-disk config)? → **Ansible.**
+3. Does it need to exist *before* the other side runs? → **TF.** Ansible reads TF output; the reverse never holds.
+
+### The asymmetry, and what breaks when you cross it
+
+TF runs once per environment against a global state file. Ansible runs idempotently per-host against the host's filesystem. They are not interchangeable.
+
+- **Managing docker-compose files in TF** (e.g. with `local_file` or `null_resource` + `remote-exec`): every consumer apply now requires SSH access from wherever TF runs, the host has to be reachable at plan time, and a single host being down breaks the plan for every other host. Compose belongs in Ansible.
+- **Managing Scaleway resources in Ansible** (e.g. via `scaleway.scaleway` modules in a role): no central state, no `terraform destroy`, no plan diff, no drift detection. Recreating a deleted bucket means writing imperative discovery logic that TF gives you for free. Scaleway belongs in TF.
+
+### Edge case: Scaleway Secret Manager
+
+Secrets have a deliberate split. TF *writes* the secret — creates the `scaleway_secret` resource and a `scaleway_secret_version` with the initial payload. Ansible *reads* it at deploy time via the `scaleway.scaleway.scaleway_secret` lookup. The payload never appears in TF state diffs after creation, and Ansible never holds the secret long enough to log it. Pattern in any bundle (Outline shown):
+
+```hcl
+# terraform/secrets.tf
+resource "scaleway_secret_version" "app" {
+  secret_id = scaleway_secret.app[0].id
+  data      = jsonencode({ SECRET_KEY = random_id.secret_key[0].hex, ... })
+}
+```
+
+```yaml
+# ansible/roles/outline/tasks/main.yml
+outline_app_secrets: "{{ lookup('scaleway.scaleway.scaleway_secret', _outline_app_secret_uuid) | b64decode | from_json }}"
+```
+
+TF passes the *secret ID* to Ansible (in the `ansible` output map). Ansible resolves the ID to the payload at deploy time.
 
 ---
 
