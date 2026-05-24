@@ -2,6 +2,21 @@
 
 All notable changes to sabokit go here. Versioning follows semver; major bumps signal breaking contract changes for consumers.
 
+## v2.10.1 — 5 peer-reported bug fixes
+
+All five surfaced by the first consumer to exercise the v2.8+ stack end-to-end. No new features.
+
+- **`platform/identity/terraform/outpost.tf`** — outpost resource was gated on `count = length(var.extra_forward_auth_provider_ids) > 0 ? 1 : 0`. When the list contained `(known after apply)` refs from compact()-ing yet-to-be-created bundle outputs (e.g., fresh-adding bentopdf + backrest_mgmt), terraform errored at plan with "Invalid count argument." Made unconditional — outpost is a singleton, no reason to gate.
+- **`platform/apps/vikunja/terraform/variables.tf`** — default `oidc_groups_scope_name = "vikunja_scope"` isn't in Authentik's accepted scope vocabulary. Fresh vikunja deploys errored. Changed default to `"groups"` (Authentik's stock scope).
+- **`platform/base/terraform/tem.tf`** — two bugs blocked `tem_enabled = true` (the default since v2.8.0):
+  - `tem_subdomain_label = "@"` for zone apex. Scaleway DNS API rejects `@` and wants an empty string. SPF + DKIM + DMARC all hit it. Fixed via new `tem_subdomain_suffix` local that handles apex collapse.
+  - SMTP port jsonencoded as integer. Scaleway secret schema validates as string end-to-end. Stringified to `"2587"`.
+- **`modules/authentik/tier-cascade/`** — `authentik_group.tier` (for_each) with `parents = [authentik_group.tier[parent].id]` tripped Terraform's cycle detector. Refactored to 4 explicit `tier_0..tier_3` resources, count-gated by `tier_names` length. **Contract regression:** `tier_names` is now capped at 4 (was unbounded above 2). Consumers needing >4 tiers fork the module — the default's design intent was 4 from the start.
+
+Consumers on v2.10.0 jumping to v2.10.1 get all five automatically. The tier-cascade refactor uses the same underlying Authentik group names, so existing state imports stay valid — but terraform will re-plan the cascade resources (different addresses internally). Expect a one-time apply that destroys + recreates the cascade groups under their new addresses. **If your existing cascade groups have UI-managed users you don't want lost, set `admin_user_pks` / `tier_extra_users` from terraform first, then bump.**
+
+---
+
 ## v2.10.0 — Dynamic split-horizon DNS in base; multi-host topologies stop needing co-location
 
 Until now, multi-host consumers had no answer for cross-host hostname resolution. Prometheus + Loki + Grafana had to co-locate on one host (the documented workaround); anything else meant editing scrape configs with private IPs by hand. That gap closes.
