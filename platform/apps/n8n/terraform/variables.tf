@@ -175,6 +175,12 @@ variable "webhook_rate_limit_period" {
   default     = "1m"
 }
 
+variable "extra_env_vars" {
+  description = "Extra environment variables rendered into the n8n container's .env. Map of KEY → value. The consumer-template aggregates contributions from other bundles (broadsheet, espocrm, identity Slack channels, etc.) so workflow JSONs in platform/identity/n8n-workflows/ stay org-agnostic and reference them via `$env.KEY`. Empty default; bundles never read each other directly."
+  type        = map(string)
+  default     = {}
+}
+
 variable "backup_enabled" {
   description = "Whether the Backrest platform bundle (if deployed on the same host) backs up this app's host-side state. Default true."
   type        = bool

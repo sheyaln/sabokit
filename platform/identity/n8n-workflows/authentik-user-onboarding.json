@@ -1,0 +1,423 @@
+{
+  "name": "Authentik User Onboarding",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "authentik-user-onboarding",
+        "responseMode": "lastNode",
+        "options": {}
+      },
+      "id": "webhook",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [220, 400]
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": { "caseSensitive": true, "typeValidation": "strict", "version": 2 },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.body.event }}",
+                    "rightValue": "user_signup",
+                    "operator": { "type": "string", "operation": "equals" }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "signup"
+            },
+            {
+              "conditions": {
+                "options": { "caseSensitive": true, "typeValidation": "strict", "version": 2 },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.body.event }}",
+                    "rightValue": "user_activation",
+                    "operator": { "type": "string", "operation": "equals" }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "activation"
+            },
+            {
+              "conditions": {
+                "options": { "caseSensitive": true, "typeValidation": "strict", "version": 2 },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.body.event }}",
+                    "rightValue": "user_update",
+                    "operator": { "type": "string", "operation": "equals" }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "update"
+            },
+            {
+              "conditions": {
+                "options": { "caseSensitive": true, "typeValidation": "strict", "version": 2 },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.body.event }}",
+                    "rightValue": "user_deactivate",
+                    "operator": { "type": "string", "operation": "equals" }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "deactivate"
+            }
+          ]
+        },
+        "options": {
+          "fallbackOutput": "extra",
+          "renameFallbackOutput": true,
+          "fallbackOutputName": "silent"
+        }
+      },
+      "id": "event-switch",
+      "name": "Route By Event",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [460, 400]
+    },
+    {
+      "parameters": {
+        "select": "channel",
+        "channelId": {
+          "__rl": true,
+          "value": "={{ $env.SLACK_CHANNEL_NEW_SIGNUPS }}",
+          "mode": "name"
+        },
+        "messageType": "block",
+        "blocksUi": "={\n  \"blocks\": [\n    {\n      \"type\": \"header\",\n      \"text\": {\n        \"type\": \"plain_text\",\n        \"text\": \"🆕 New User Enrollment\",\n        \"emoji\": true\n      }\n    },\n    {\n      \"type\": \"section\",\n      \"fields\": [\n        { \"type\": \"mrkdwn\", \"text\": \"*Name:*\\n{{ $('Webhook').item.json.body.user.name }}\" },\n        { \"type\": \"mrkdwn\", \"text\": \"*Email:*\\n{{ $('Webhook').item.json.body.user.email }}\" },\n        { \"type\": \"mrkdwn\", \"text\": \"*Signup Method:*\\n{{ $('Webhook').item.json.body.user.signup_method }}\" },\n        { \"type\": \"mrkdwn\", \"text\": \"*Status:*\\n{{ $('Webhook').item.json.body.user.status }}\" }\n      ]\n    },\n    {\n      \"type\": \"section\",\n      \"text\": {\n        \"type\": \"mrkdwn\",\n        \"text\": \"{{ $('Webhook').item.json.body.user.needs_activation ? ':warning: *Action required:* review and activate this account only if you have verified the user is a legitimate member of your organisation.' : ':white_check_mark: User is already active \\u2014 no action needed.' }}\"\n      }\n    },\n    {\n      \"type\": \"actions\",\n      \"elements\": [\n        {\n          \"type\": \"button\",\n          \"style\": \"primary\",\n          \"text\": { \"type\": \"plain_text\", \"text\": \"Manage Users\", \"emoji\": true },\n          \"url\": \"{{ $('Webhook').item.json.body.gateway_url }}/if/admin/#/identity/users\"\n        }\n      ]\n    }\n  ]\n}\n",
+        "text": "=",
+        "otherOptions": {}
+      },
+      "id": "slack-signup",
+      "name": "Slack Signup",
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.4,
+      "position": [720, 120],
+      "credentials": {
+        "slackApi": { "name": "Slack account" }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Persist the signup Slack message ts keyed by user email so the later\n// activation notification can post as a thread reply.\nconst webhookItems = $('Webhook').all();\nif (!webhookItems.length) throw new Error('No data from Webhook node');\nconst email = webhookItems[0].json.body?.user?.email;\nif (!email) throw new Error('No user.email in webhook data');\n\nconst slackResponse = $input.first().json;\nconst threadTs = slackResponse.message?.ts || slackResponse.ts || slackResponse.message_timestamp;\nif (!threadTs) throw new Error('No thread_ts found in Slack response');\n\nlet threads = $getWorkflowStaticData('global').threads || {};\nthreads[email] = { ts: threadTs, timestamp: Date.now() };\n\n// Evict entries older than 30 days so the static data bag stays small.\nconst thirtyDaysAgo = Date.now() - (30 * 24 * 60 * 60 * 1000);\nthreads = Object.fromEntries(\n  Object.entries(threads).filter(([_, v]) => v.timestamp > thirtyDaysAgo)\n);\n$getWorkflowStaticData('global').threads = threads;\n\nreturn [{ json: { email, threadTs, success: true } }];"
+      },
+      "id": "store-thread",
+      "name": "Store Thread TS",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [940, 120]
+    },
+    {
+      "parameters": {
+        "source": "database",
+        "workflowId": {
+          "__rl": true,
+          "value": "={{ $env.WORKFLOW_ID_BROADSHEET_SUBSCRIBE }}",
+          "mode": "id"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "email": "={{ $('Webhook').item.json.body.user.email }}",
+            "firstName": "={{ ($('Webhook').item.json.body.user.name || '').split(' ').slice(0, -1).join(' ') || ($('Webhook').item.json.body.user.name || '').split(' ')[0] || '' }}",
+            "lastName": "={{ ($('Webhook').item.json.body.user.name || '').split(' ').length > 1 ? ($('Webhook').item.json.body.user.name || '').split(' ').slice(-1)[0] : '' }}"
+          },
+          "matchingColumns": [],
+          "schema": [],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "options": {}
+      },
+      "id": "exec-notifuse-signup",
+      "name": "Subscribe (Signup)",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.2,
+      "position": [1160, 120]
+    },
+    {
+      "parameters": {},
+      "id": "signup-done",
+      "name": "Signup Done",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [1380, 120]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Resolve the signup thread_ts for this email so the activation notice\n// posts as a reply in the original signup thread. Falls back to no thread\n// (plain top-level post) if neither source has it.\nconst inputData = $input.first().json;\nconst email = inputData.body?.user?.email;\nif (!email) {\n  return [{ json: { threadTs: '', found: false, error: 'No email in payload', ...inputData } }];\n}\n\n// 1. Authentik may forward the original signup correlation id.\nconst payloadThreadTs = inputData.body?.user?.signup_correlation_id;\nif (payloadThreadTs) {\n  return [{ json: { threadTs: payloadThreadTs, found: true, source: 'authentik', ...inputData } }];\n}\n\n// 2. Fallback: look it up in workflow static data populated by the signup branch.\nconst threads = $getWorkflowStaticData('global').threads || {};\nconst thread = threads[email];\nif (thread && thread.ts) {\n  return [{ json: { threadTs: thread.ts, found: true, source: 'static_data', ...inputData } }];\n}\nreturn [{ json: { threadTs: '', found: false, ...inputData } }];"
+      },
+      "id": "get-thread",
+      "name": "Get Thread TS",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [720, 360]
+    },
+    {
+      "parameters": {
+        "select": "channel",
+        "channelId": {
+          "__rl": true,
+          "value": "={{ $env.SLACK_CHANNEL_NEW_SIGNUPS }}",
+          "mode": "name"
+        },
+        "messageType": "block",
+        "blocksUi": "={\n  \"blocks\": [\n    {\n      \"type\": \"section\",\n      \"text\": {\n        \"type\": \"mrkdwn\",\n        \"text\": \":white_check_mark: *User Activated*\\n*{{ $('Webhook').item.json.body.user.name }}* ({{ $('Webhook').item.json.body.user.email }}) has been activated by {{ $('Webhook').item.json.body.user.activated_by }}.\\nSignup method: {{ $('Webhook').item.json.body.user.signup_method }}\"\n      }\n    }\n  ]\n}\n",
+        "text": "=",
+        "otherOptions": {
+          "thread_ts": {
+            "replyValues": {
+              "thread_ts": "={{ $json.threadTs }}"
+            }
+          }
+        }
+      },
+      "id": "slack-activation",
+      "name": "Slack Activation",
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.4,
+      "position": [940, 360],
+      "credentials": {
+        "slackApi": { "name": "Slack account" }
+      }
+    },
+    {
+      "parameters": {
+        "source": "database",
+        "workflowId": {
+          "__rl": true,
+          "value": "={{ $env.WORKFLOW_ID_ESPOCRM_UPSERT }}",
+          "mode": "id"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "email": "={{ $('Webhook').item.json.body.user.email }}",
+            "name": "={{ $('Webhook').item.json.body.user.name }}",
+            "firstName": "={{ ($('Webhook').item.json.body.user.name || '').split(' ').slice(0, -1).join(' ') || ($('Webhook').item.json.body.user.name || '').split(' ')[0] || '' }}",
+            "lastName": "={{ ($('Webhook').item.json.body.user.name || '').split(' ').length > 1 ? ($('Webhook').item.json.body.user.name || '').split(' ').slice(-1)[0] : '' }}",
+            "attributes": "={{ $('Webhook').item.json.body.user.attributes || {} }}"
+          },
+          "matchingColumns": [],
+          "schema": [],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "options": {}
+      },
+      "id": "exec-espocrm-activate",
+      "name": "Upsert EspoCRM (Activation)",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.2,
+      "position": [1160, 280]
+    },
+    {
+      "parameters": {
+        "source": "database",
+        "workflowId": {
+          "__rl": true,
+          "value": "={{ $env.WORKFLOW_ID_SLACK_INVITE_STUB }}",
+          "mode": "id"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "email": "={{ $('Webhook').item.json.body.user.email }}",
+            "name": "={{ $('Webhook').item.json.body.user.name }}"
+          },
+          "matchingColumns": [],
+          "schema": [],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "options": {}
+      },
+      "id": "exec-slack-invite-activate",
+      "name": "Invite to Slack Workspace",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.2,
+      "position": [1160, 380]
+    },
+    {
+      "parameters": {
+        "source": "database",
+        "workflowId": {
+          "__rl": true,
+          "value": "={{ $env.WORKFLOW_ID_BROADSHEET_SUBSCRIBE }}",
+          "mode": "id"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "email": "={{ $('Webhook').item.json.body.user.email }}",
+            "firstName": "={{ ($('Webhook').item.json.body.user.name || '').split(' ').slice(0, -1).join(' ') || ($('Webhook').item.json.body.user.name || '').split(' ')[0] || '' }}",
+            "lastName": "={{ ($('Webhook').item.json.body.user.name || '').split(' ').length > 1 ? ($('Webhook').item.json.body.user.name || '').split(' ').slice(-1)[0] : '' }}"
+          },
+          "matchingColumns": [],
+          "schema": [],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "options": {}
+      },
+      "id": "exec-notifuse-activate",
+      "name": "Subscribe (Activation)",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.2,
+      "position": [1160, 480]
+    },
+    {
+      "parameters": {},
+      "id": "activation-done",
+      "name": "Activation Done",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [1380, 380]
+    },
+    {
+      "parameters": {
+        "source": "database",
+        "workflowId": {
+          "__rl": true,
+          "value": "={{ $env.WORKFLOW_ID_ESPOCRM_UPSERT }}",
+          "mode": "id"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "email": "={{ $('Webhook').item.json.body.user.email }}",
+            "name": "={{ $('Webhook').item.json.body.user.name }}",
+            "firstName": "={{ ($('Webhook').item.json.body.user.name || '').split(' ').slice(0, -1).join(' ') || ($('Webhook').item.json.body.user.name || '').split(' ')[0] || '' }}",
+            "lastName": "={{ ($('Webhook').item.json.body.user.name || '').split(' ').length > 1 ? ($('Webhook').item.json.body.user.name || '').split(' ').slice(-1)[0] : '' }}",
+            "attributes": "={{ $('Webhook').item.json.body.user.attributes || {} }}"
+          },
+          "matchingColumns": [],
+          "schema": [],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "options": {}
+      },
+      "id": "exec-espocrm-silent",
+      "name": "Upsert EspoCRM (Silent)",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.2,
+      "position": [940, 620]
+    },
+    {
+      "parameters": {
+        "source": "database",
+        "workflowId": {
+          "__rl": true,
+          "value": "={{ $env.WORKFLOW_ID_BROADSHEET_SUBSCRIBE }}",
+          "mode": "id"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "email": "={{ $('Webhook').item.json.body.user.email }}",
+            "firstName": "={{ ($('Webhook').item.json.body.user.name || '').split(' ').slice(0, -1).join(' ') || ($('Webhook').item.json.body.user.name || '').split(' ')[0] || '' }}",
+            "lastName": "={{ ($('Webhook').item.json.body.user.name || '').split(' ').length > 1 ? ($('Webhook').item.json.body.user.name || '').split(' ').slice(-1)[0] : '' }}"
+          },
+          "matchingColumns": [],
+          "schema": [],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "options": {}
+      },
+      "id": "exec-notifuse-silent",
+      "name": "Subscribe (Silent)",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.2,
+      "position": [940, 720]
+    },
+    {
+      "parameters": {},
+      "id": "silent-done",
+      "name": "Silent Done",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [1160, 670]
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [[{ "node": "Route By Event", "type": "main", "index": 0 }]]
+    },
+    "Route By Event": {
+      "main": [
+        [{ "node": "Slack Signup", "type": "main", "index": 0 }],
+        [{ "node": "Get Thread TS", "type": "main", "index": 0 }],
+        [
+          { "node": "Upsert EspoCRM (Silent)", "type": "main", "index": 0 },
+          { "node": "Subscribe (Silent)", "type": "main", "index": 0 }
+        ],
+        [
+          { "node": "Upsert EspoCRM (Silent)", "type": "main", "index": 0 },
+          { "node": "Subscribe (Silent)", "type": "main", "index": 0 }
+        ],
+        [
+          { "node": "Upsert EspoCRM (Silent)", "type": "main", "index": 0 },
+          { "node": "Subscribe (Silent)", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "Slack Signup": {
+      "main": [[{ "node": "Store Thread TS", "type": "main", "index": 0 }]]
+    },
+    "Store Thread TS": {
+      "main": [[{ "node": "Subscribe (Signup)", "type": "main", "index": 0 }]]
+    },
+    "Subscribe (Signup)": {
+      "main": [[{ "node": "Signup Done", "type": "main", "index": 0 }]]
+    },
+    "Get Thread TS": {
+      "main": [[{ "node": "Slack Activation", "type": "main", "index": 0 }]]
+    },
+    "Slack Activation": {
+      "main": [
+        [
+          { "node": "Upsert EspoCRM (Activation)", "type": "main", "index": 0 },
+          { "node": "Invite to Slack Workspace", "type": "main", "index": 0 },
+          { "node": "Subscribe (Activation)", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "Upsert EspoCRM (Activation)": {
+      "main": [[{ "node": "Activation Done", "type": "main", "index": 0 }]]
+    },
+    "Invite to Slack Workspace": {
+      "main": [[{ "node": "Activation Done", "type": "main", "index": 0 }]]
+    },
+    "Subscribe (Activation)": {
+      "main": [[{ "node": "Activation Done", "type": "main", "index": 0 }]]
+    },
+    "Upsert EspoCRM (Silent)": {
+      "main": [[{ "node": "Silent Done", "type": "main", "index": 0 }]]
+    },
+    "Subscribe (Silent)": {
+      "main": [[{ "node": "Silent Done", "type": "main", "index": 0 }]]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

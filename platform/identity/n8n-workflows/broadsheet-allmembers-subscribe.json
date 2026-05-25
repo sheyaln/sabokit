@@ -1,0 +1,168 @@
+{
+  "name": "Broadsheet All Members Subscribe",
+  "nodes": [
+    {
+      "parameters": {
+        "inputSource": "passthrough"
+      },
+      "id": "trigger",
+      "name": "When Called by Parent",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [240, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Pull inputs + resolve config from env. Bail early on missing email or\n// missing required env so we don't pollute Broadsheet with empty contacts\n// or hit a never-resolving hostname.\nconst parent = $input.first().json;\nconst email = (parent.email || '').trim().toLowerCase();\nif (!email) throw new Error('email is required');\n\nconst baseUrl     = $env.BROADSHEET_BASE_URL;\nconst workspaceId = $env.BROADSHEET_WORKSPACE_ID;\nif (!baseUrl)     throw new Error('BROADSHEET_BASE_URL env var is not set');\nif (!workspaceId) throw new Error('BROADSHEET_WORKSPACE_ID env var is not set');\n\nreturn [{ json: {\n  baseUrl,\n  workspaceId,\n  listId:    $env.BROADSHEET_ALL_MEMBERS_LIST_ID   || 'allmembers',\n  listName:  $env.BROADSHEET_ALL_MEMBERS_LIST_NAME || 'All Members',\n  email,\n  firstName: (parent.firstName || '').trim(),\n  lastName:  (parent.lastName  || '').trim(),\n} }];\n"
+      },
+      "id": "resolve-config",
+      "name": "Resolve Config",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [460, 300]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "={{ $json.baseUrl }}/api/lists.list",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            { "name": "workspace_id", "value": "={{ $json.workspaceId }}" }
+          ]
+        },
+        "options": {}
+      },
+      "id": "list-lists",
+      "name": "List Lists",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [680, 300],
+      "credentials": {
+        "httpHeaderAuth": { "name": "Broadsheet API" }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "loose", "version": 3 },
+          "conditions": [
+            {
+              "id": "list-id-match",
+              "leftValue": "={{ ($json.lists || []).some(l => l.id === $('Resolve Config').first().json.listId) }}",
+              "rightValue": true,
+              "operator": { "type": "boolean", "operation": "true", "singleValue": true }
+            }
+          ],
+          "combinator": "and"
+        },
+        "looseTypeValidation": "={{ true }}",
+        "options": {}
+      },
+      "id": "list-exists",
+      "name": "All Members Exists?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [900, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $('Resolve Config').first().json.baseUrl }}/api/lists.create",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({\n  workspace_id: $('Resolve Config').first().json.workspaceId,\n  id:           $('Resolve Config').first().json.listId,\n  name:         $('Resolve Config').first().json.listName,\n  is_double_optin: false,\n  is_public:       false\n}) }}",
+        "options": {}
+      },
+      "id": "create-list",
+      "name": "Create All Members List",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1120, 420],
+      "credentials": {
+        "httpHeaderAuth": { "name": "Broadsheet API" }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $('Resolve Config').first().json.baseUrl }}/api/contacts.upsert",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({\n  workspace_id: $('Resolve Config').first().json.workspaceId,\n  contact: Object.assign(\n    { email: $('Resolve Config').first().json.email },\n    $('Resolve Config').first().json.firstName ? { first_name: $('Resolve Config').first().json.firstName } : {},\n    $('Resolve Config').first().json.lastName  ? { last_name:  $('Resolve Config').first().json.lastName  } : {}\n  )\n}) }}",
+        "options": {}
+      },
+      "id": "upsert-contact",
+      "name": "Upsert Contact",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1340, 300],
+      "credentials": {
+        "httpHeaderAuth": { "name": "Broadsheet API" }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $('Resolve Config').first().json.baseUrl }}/api/lists.subscribe",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({\n  workspace_id: $('Resolve Config').first().json.workspaceId,\n  contact:  { email: $('Resolve Config').first().json.email },\n  list_ids: [ $('Resolve Config').first().json.listId ]\n}) }}",
+        "options": {}
+      },
+      "id": "subscribe",
+      "name": "Subscribe to All Members",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1560, 300],
+      "credentials": {
+        "httpHeaderAuth": { "name": "Broadsheet API" }
+      }
+    },
+    {
+      "parameters": {},
+      "id": "done",
+      "name": "Done",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [1780, 300]
+    }
+  ],
+  "connections": {
+    "When Called by Parent": {
+      "main": [[{ "node": "Resolve Config", "type": "main", "index": 0 }]]
+    },
+    "Resolve Config": {
+      "main": [[{ "node": "List Lists", "type": "main", "index": 0 }]]
+    },
+    "List Lists": {
+      "main": [[{ "node": "All Members Exists?", "type": "main", "index": 0 }]]
+    },
+    "All Members Exists?": {
+      "main": [
+        [{ "node": "Upsert Contact", "type": "main", "index": 0 }],
+        [{ "node": "Create All Members List", "type": "main", "index": 0 }]
+      ]
+    },
+    "Create All Members List": {
+      "main": [[{ "node": "Upsert Contact", "type": "main", "index": 0 }]]
+    },
+    "Upsert Contact": {
+      "main": [[{ "node": "Subscribe to All Members", "type": "main", "index": 0 }]]
+    },
+    "Subscribe to All Members": {
+      "main": [[{ "node": "Done", "type": "main", "index": 0 }]]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}
