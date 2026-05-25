@@ -37,8 +37,11 @@ resource "scaleway_rdb_instance" "this" {
   }
 
   lifecycle {
+    # password is ignored as defence-in-depth: a stale plan must not trigger
+    # an UpdatePassword API call against an imported instance.
     ignore_changes = [
       private_network[0].enable_ipam,
+      password,
     ]
   }
 }

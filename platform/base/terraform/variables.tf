@@ -188,6 +188,12 @@ variable "postgres_backup_schedule_retention_days" {
   default     = 7
 }
 
+variable "postgres_credentials_preserve" {
+  description = "In-place legacy cutover support. When true, the shared postgres module skips generating new admin + per-database credentials and reads existing values from the pre-existing `<secrets_namespace>-postgres-admin-credentials` and per-database bags via data sources. Drop the flag on next apply once cutover is verified. Short-lived knob, removal slated for v4.x. Matches the same shape as per-app credentials_preserve."
+  type        = bool
+  default     = false
+}
+
 # ── Scaleway TEM (outbound SMTP) ────────────────────────────────────────────
 # Every app sends transactional mail through Scaleway TEM. Base owns the
 # domain registration, DNS records (SPF/DKIM/DMARC), API key, and the
