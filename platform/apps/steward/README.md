@@ -34,11 +34,11 @@
 | `authentik_application_group_id` | Per-app group `app-steward`. |
 | `ansible` | `{role_path, playbook, host_group, vars}`. |
 | `database_name` | PostgreSQL database name. |
-| `service_account_token_secret_hint` | Pointer to where the Authentik API token lives in the app-secrets bag. |
+| `service_steward_token_secret_hint` | Pointer to where the Authentik API token lives in the app-secrets bag. |
 
 ## Notes
 
 - Default `access_level` is `"admin"` because Steward is itself an admin surface.
-- The service-account user lands in Authentik's built-in `authentik Admins` group — broader than Steward strictly needs. A future iteration should narrow this to a custom role.
+- Service account: `authentik_user.service_steward` with username + email `svc-steward@<base_domain>` (platform convention: resource name `service_<thing>`, username/email `svc-<thing>`). Lands in Authentik's built-in `authentik Admins` group — broader than Steward strictly needs. A future iteration should narrow this to a custom role.
 - Database migrations run on every `web` container start; the `qcluster` sidecar opts out.
 - Break-glass: `docker exec -it steward-web python manage.py createsuperuser`, then `/admin/`. OIDC is the normal entry point.
