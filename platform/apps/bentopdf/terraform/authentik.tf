@@ -10,7 +10,7 @@ module "authentik" {
   application_name = var.application_name
   application_slug = local.application_slug
   category_group   = var.category_group
-  icon_url         = var.icon_url
+  icon_url         = local.effective_icon_url
   description      = "Browser-based PDF toolkit"
   external_host    = local.app_url
   launch_url       = local.app_url

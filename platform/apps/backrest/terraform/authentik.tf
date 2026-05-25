@@ -10,7 +10,7 @@ module "authentik" {
   application_name = var.application_name != "" ? var.application_name : "Backrest (${var.instance_name})"
   application_slug = local.qualified_slug
   category_group   = var.category_group
-  icon_url         = var.icon_url
+  icon_url         = local.effective_icon_url
   description      = "Restic backups for ${var.instance_name}"
   external_host    = local.app_url
   launch_url       = local.app_url

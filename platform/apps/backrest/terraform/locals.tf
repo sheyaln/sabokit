@@ -26,4 +26,11 @@ locals {
   # stripped — restic expects `s3:host/bucket`, not `s3:https://host/bucket`.
   s3_endpoint_host = replace(var.base.scaleway.object_storage_endpoint, "/^https?:\\/\\//", "")
   restic_repo_uri  = var.enabled ? "s3:${local.s3_endpoint_host}/${module.bucket[0].name}" : ""
+
+  # Full URL wins; else compose from platform icon_base_url + filename; else empty.
+  effective_icon_url = (
+    var.icon_url != "" ? var.icon_url :
+    var.icon_filename != "" ? "${var.base.authentik.icon_base_url}/${var.icon_filename}" :
+    ""
+  )
 }
