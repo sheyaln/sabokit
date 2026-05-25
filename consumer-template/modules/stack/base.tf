@@ -24,6 +24,8 @@ module "base" {
 
   custom_dns_records = var.custom_dns_records
 
+  postgres_credentials_preserve = try(var.base.postgres_credentials_preserve, false)
+
   # App bundles export their own SG rule requirements as
   # required_inbound_rules. Aggregate here so enabling an app
   # automatically opens its ports; disabling closes them.

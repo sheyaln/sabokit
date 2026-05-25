@@ -93,6 +93,12 @@ variable "apps" {
   default     = {}
 }
 
+variable "base" {
+  description = "Base-layer overrides (postgres, network, etc). Currently exposes `postgres_credentials_preserve` (bool) for in-place legacy cutover. See platform/base/terraform/variables.tf."
+  type        = any
+  default     = {}
+}
+
 variable "identity" {
   description = "Identity-bundle inputs. Required fields: `tier_slots = list(object({ name, peers = map(string) }))` — the org's authority hierarchy as a DAG (lowest slot first, each peer_name → group_name). Optional fields: `extra_groups = map(object({ is_superuser, description }))` — additional Authentik groups beyond the tier_slots DAG; `icon_base_url` — where app icons are fetched from."
   type        = any
