@@ -53,7 +53,7 @@ locals {
   _preserved          = (var.enabled && var.credentials_preserve) ? jsondecode(base64decode(data.scaleway_secret_version.preserved[0].data)) : {}
   encryption_key      = var.enabled ? (var.credentials_preserve ? local._preserved.N8N_ENCRYPTION_KEY : random_password.encryption_key[0].result) : ""
   runners_auth_token  = var.enabled ? (var.credentials_preserve ? local._preserved.N8N_RUNNERS_AUTH_TOKEN : random_password.runners_auth_token[0].result) : ""
-  authentik_api_token = var.enabled ? (var.credentials_preserve ? local._preserved.AUTHENTIK_API_TOKEN : authentik_token.service_n8n[0].key) : ""
+  authentik_api_token = var.enabled ? authentik_token.service_n8n[0].key : ""
 }
 
 resource "scaleway_secret_version" "app" {

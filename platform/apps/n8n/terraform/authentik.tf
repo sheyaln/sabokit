@@ -63,10 +63,7 @@ resource "authentik_user" "service_n8n" {
 }
 
 resource "authentik_token" "service_n8n" {
-  # Skipped during credentials_preserve cutover — the live token value is
-  # read from the n8n-app-secrets bag in secrets.tf instead, so the existing
-  # token in Authentik continues to authenticate without rotation.
-  count = var.enabled && !var.credentials_preserve ? 1 : 0
+  count = var.enabled ? 1 : 0
 
   identifier   = "${local.slug}-api-token"
   intent       = "api"
@@ -74,4 +71,8 @@ resource "authentik_token" "service_n8n" {
   expiring     = false
   retrieve_key = true
   description  = "Server-to-server API token for the n8n workflow engine."
+
+  lifecycle {
+    ignore_changes = [key]
+  }
 }

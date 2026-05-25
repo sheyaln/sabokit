@@ -32,7 +32,7 @@ data "scaleway_secret_version" "preserved" {
 locals {
   _preserved          = (var.enabled && var.credentials_preserve) ? jsondecode(base64decode(data.scaleway_secret_version.preserved[0].data)) : {}
   django_secret_key   = var.enabled ? (var.credentials_preserve ? local._preserved.DJANGO_SECRET_KEY : random_id.django_secret_key[0].b64_url) : ""
-  authentik_api_token = var.enabled ? (var.credentials_preserve ? local._preserved.AUTHENTIK_API_TOKEN : authentik_token.service_steward[0].key) : ""
+  authentik_api_token = var.enabled ? authentik_token.service_steward[0].key : ""
 }
 
 resource "scaleway_secret_version" "app" {
