@@ -9,10 +9,10 @@ output "admin_tier" {
 }
 
 output "tier_cascade" {
-  description = "Map of tier-name → map(tier-name → Authentik group ID) listing every tier at-or-above the key tier. Apps gate on tier T by binding a policy to each group in tier_cascade[T]; the per-tier nesting in Authentik also covers the cascade implicitly, so binding only T works too. The map shape matches what app bundles' authorized_groups for_each expects."
+  description = "Map of tier-key → map(group-name → Authentik group ID) listing every tier at-or-above the key tier. Outer keys are the LOGICAL tier identifiers from var.tier_keys (e.g. \"member\"), not the display names — bundles' var.tier_access_level matches these stable keys regardless of how consumers rebrand tier_names. Inner map keys are the display names (the actual Authentik group names) which apps' for_each iterates to build authorized_groups."
   value = {
-    for tier, members in local.cascade_groups : tier => {
-      for m in members : m => local.group_ids[m]
+    for i, name in var.tier_names : local.effective_tier_keys[i] => {
+      for m in local.cascade_groups[name] : m => local.group_ids[m]
     }
   }
 }
