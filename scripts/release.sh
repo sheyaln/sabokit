@@ -58,18 +58,23 @@ if ! grep -q "^## ${NEW} " "${REPO_ROOT}/CHANGELOG.md"; then
   exit 1
 fi
 
-# Find every ?ref= currently in consumer-template/modules/stack/.
+# Find every ?ref= currently in consumer-template/modules/stack/*.tf.
+# Only scan .tf files (README/markdown in the same dir can mention literal
+# `?ref=...` in documentation without proper quoting and the loose regex
+# would pick those up). Tight regex — only alphanumeric/dot/dash/underscore
+# tokens count as refs.
+#
 # Multiple distinct refs is fine — each gets bumped independently. The
 # common case is one per file family (base.tf, identity.tf, identity_bootstrap.tf,
 # apps.tf can each pin different tags depending on how recently each layer
 # shipped).
-declare -A REF_COUNTS
-while IFS= read -r ref; do
-  REF_COUNTS["$ref"]=$((${REF_COUNTS[$ref]:-0} + 1))
-done < <(grep -rEho '\?ref=[^"]+' "${STACK_DIR}" | sort -u | sed 's/^?ref=//')
+#
+# Bash 3.2 (macOS default) lacks associative arrays — using sorted-unique
+# plain text instead.
+DISTINCT_REFS=$(grep -hEo '\?ref=[a-zA-Z0-9._-]+' "${STACK_DIR}"/*.tf 2>/dev/null | sort -u | sed 's/^?ref=//')
 
-if [[ ${#REF_COUNTS[@]} -eq 0 ]]; then
-  echo "ERROR: no ?ref= pins found in $STACK_DIR. Wrong dir?"
+if [[ -z "$DISTINCT_REFS" ]]; then
+  echo "ERROR: no ?ref= pins found in $STACK_DIR/*.tf. Wrong dir?"
   exit 1
 fi
 
@@ -79,19 +84,27 @@ case "$(uname)" in
   *)      SED_INPLACE=(sed -i) ;;
 esac
 
-for OLD in "${!REF_COUNTS[@]}"; do
+while IFS= read -r OLD; do
+  [[ -z "$OLD" ]] && continue
+  # Defensive — refuse to sed anything that doesn't look like a tag.
+  if ! [[ "$OLD" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+    echo "  $OLD: skipped (doesn't look like a vX.Y.Z tag)"
+    continue
+  fi
   if [[ "$OLD" == "$NEW" ]]; then
     echo "  $OLD: already on $NEW (skipped)"
     continue
   fi
+  count=0
   while IFS= read -r f; do
     "${SED_INPLACE[@]}" "s|?ref=${OLD}|?ref=${NEW}|g" "$f"
-  done < <(grep -rl "?ref=${OLD}" "${STACK_DIR}")
-  echo "  $OLD → $NEW (${REF_COUNTS[$OLD]} pin(s))"
-done
+    count=$((count + 1))
+  done < <(grep -l "?ref=${OLD}" "${STACK_DIR}"/*.tf)
+  echo "  $OLD → $NEW (${count} file(s))"
+done <<< "$DISTINCT_REFS"
 
-# Verify the bump landed.
-RESIDUAL=$(grep -rEho '\?ref=[^"]+' "${STACK_DIR}" | sort -u | grep -v "?ref=${NEW}" || true)
+# Verify the bump landed — same tight regex + .tf-only as the discovery.
+RESIDUAL=$(grep -hEo '\?ref=[a-zA-Z0-9._-]+' "${STACK_DIR}"/*.tf 2>/dev/null | sort -u | grep -v "?ref=${NEW}" || true)
 if [[ -n "$RESIDUAL" ]]; then
   echo "ERROR: residual non-$NEW refs after bump:"
   echo "$RESIDUAL"

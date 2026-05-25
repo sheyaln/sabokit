@@ -2,6 +2,27 @@
 
 All notable changes to sabokit go here. Versioning follows semver; major bumps signal breaking contract changes for consumers.
 
+## v2.15.2 — Manual enrollment MFA-before-terminal + release automation
+
+**Bug fix — manual enrollment forced MFA into a dead path.** `flow_manual_enrollment.tf` bound the welcome message at order 35 and MFA setup at order 40 — MFA fired AFTER the terminal screen. Worse: the welcome HTML's JS submit-interceptor (`preventDefault()` → `window.location='/'`) made the welcome a terminal stage even after order swap. Active users (re-entering the enrollment flow post-activation) would get bounced to `/` before ever reaching MFA setup or `user_login`.
+
+Fix:
+- swapped binding orders — `manual_enrollment_mfa_setup_binding` now at 35, `manual_enrollment_welcome_binding` at 40.
+- gated welcome on `shared_inactive_user_gate` (same policy v2.15.0 added to the auth flows). Active users skip the stage entirely and proceed to user_login at 100. Inactive users still hit the welcome, then JS bounces them to `/` (correct terminal behavior for accounts pending delegate activation).
+
+No state migration — the binding-order changes are in-place updates, no resource renames. New `authentik_policy_binding.manual_enrollment_welcome_inactive_gate_binding` resource gets created on first apply.
+
+**Release automation: `scripts/release.sh`.** Replaces the manual `perl -pi -e` + `git tag` + `git push` dance every recent patch has done. Validates pre-conditions (on master, tag doesn't already exist, CHANGELOG has an entry for the tag), bumps every `?ref=` in `consumer-template/modules/stack/`, commits a `chore(consumer-template): bump refs to <tag>` commit, tags master tip with the CHANGELOG entry title, pushes master + the tag. Doesn't write the CHANGELOG (that's the release author's job before invoking) and doesn't touch `consumer-template/scripts/bump-version.sh` (that's the consumer-side tool, different concern).
+
+Usage:
+```
+./scripts/release.sh v2.15.3
+```
+
+Fails loudly if on the wrong branch, the tag exists, the CHANGELOG entry is missing, or residual non-target refs remain in the stack module.
+
+---
+
 ## v2.15.1 — Service-account naming convention
 
 Platform convention for service accounts going forward:
