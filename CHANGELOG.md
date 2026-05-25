@@ -2,6 +2,14 @@
 
 All notable changes to sabokit go here. Versioning follows semver; major bumps signal breaking contract changes for consumers.
 
+## v2.18.1 — 2026-05-25
+
+Two staging-stand-up UX fixes peer flagged from a fresh DEV1-M cutover.
+
+### Fixed
+- **Authentik health-poll window widened from 5min → 15min.** `authentik_health_retries` default raised 30 → 90 (10s delay unchanged). First-boot Postgres migrations on smaller Authentik tiers (DEV1-M) take ~6-7min; the prior 5min window expired before health pass, ansible failed, and `authentik-worker` never started. Steady-state restarts still return in <30s; the wider window only matters for cold first-boot.
+- **`configure.sh` terraform apply defaults to `-parallelism=3`** (was terraform's default 10). Small Authentik tiers can't keep up with 10 concurrent API calls during the initial flows/bindings/stages create — cascade of 503/502 and ~30+ resource failures. Override for beefier deployments: `TF_PARALLELISM=10 ./configure.sh`.
+
 ## v2.18.0 — 2026-05-25
 
 Tier model now expresses a partial-order DAG instead of a linear cascade. Replaces `tier_names` / `tier_keys` with `tier_slots`.

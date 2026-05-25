@@ -89,7 +89,11 @@ fi
 c_phase "3/3  Terraform apply (identity config + app infra)"
 
 # -var beats both TF_VAR_* and any value lingering in terraform.tfvars.
+# -parallelism=3 default keeps a fresh Authentik (small tier, still warming
+# caches + indexing blueprints) from collapsing under 10 concurrent API calls.
+# Override via env for beefier deployments: TF_PARALLELISM=10 ./configure.sh.
 terraform apply -auto-approve -input=false \
+  -parallelism="${TF_PARALLELISM:-3}" \
   -var "authentik_admin_token=$ADMIN_TOKEN"
 c_ok "Apply complete"
 
