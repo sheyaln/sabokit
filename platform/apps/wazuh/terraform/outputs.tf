@@ -89,12 +89,29 @@ output "ansible" {
 }
 
 output "backup_plan" {
-  description = "Backrest backup plan contribution. null when disabled or backup_enabled = false."
+  description = "Backrest backup plan contribution. null when disabled or backup_enabled = false. Indexer is the SIEM event store; `wazuh_etc` / `wazuh_api_configuration` carry the manager's rules, decoders, agent registry; queues + active-response + wodles + filebeat state survive restarts. `wazuh_logs` is excluded — those are also shipped to Loki."
   value = (var.enabled && var.backup_enabled) ? {
-    id        = local.slug
-    paths     = concat(["/backup-sources/opt/${local.slug}"], var.backup_extra_paths)
-    excludes  = []
-    schedule  = { cron = var.backup_schedule_cron }
-    retention = var.backup_retention
+    id      = local.slug
+    paths   = ["/backup-sources/opt/${local.slug}"] # legacy field; kept populated for belt-and-suspenders backward compat
+    opt_dir = true
+    volumes = [
+      "wazuh-indexer-data",
+      "wazuh_api_configuration",
+      "wazuh_etc",
+      "wazuh_queue",
+      "wazuh_var_multigroups",
+      "wazuh_active_response",
+      "wazuh_wodles",
+      "filebeat_etc",
+      "filebeat_var",
+      "wazuh-dashboard-custom",
+    ]
+    excluded_volumes = ["wazuh_logs"]
+    extra_paths      = var.backup_extra_paths
+    pre_hooks        = []
+    post_hooks       = []
+    excludes         = []
+    schedule         = { cron = var.backup_schedule_cron }
+    retention        = var.backup_retention
   } : null
 }

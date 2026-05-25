@@ -54,12 +54,18 @@ output "ansible" {
 }
 
 output "backup_plan" {
-  description = "Backrest backup plan contribution. null when disabled or backup_enabled = false. Aggregated by consumer-template into backrest's backup_plans."
+  description = "Backrest backup plan contribution. null when disabled or backup_enabled = false. Aggregated by consumer-template into backrest's backup_plans. Bentopdf is stateless — opt_dir only captures the rendered compose + .env so a host rebuild is faster, no real user data."
   value = (var.enabled && var.backup_enabled) ? {
-    id        = local.slug
-    paths     = concat(["/backup-sources/opt/${local.slug}"], var.backup_extra_paths)
-    excludes  = []
-    schedule  = { cron = var.backup_schedule_cron }
-    retention = var.backup_retention
+    id               = local.slug
+    paths            = ["/backup-sources/opt/${local.slug}"] # legacy field; kept populated for belt-and-suspenders backward compat
+    opt_dir          = true
+    volumes          = []
+    excluded_volumes = []
+    extra_paths      = var.backup_extra_paths
+    pre_hooks        = []
+    post_hooks       = []
+    excludes         = []
+    schedule         = { cron = var.backup_schedule_cron }
+    retention        = var.backup_retention
   } : null
 }

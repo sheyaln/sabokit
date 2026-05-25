@@ -28,12 +28,34 @@
   ],
   "plans": [
 {% for plan in backrest_backup_plans %}
+{#
+  Effective paths = union of legacy `paths` and the content-aware additions
+  (opt_dir, volumes, extra_paths). Restic skips missing paths on a host, so a
+  plan emitted for a different host's data is a no-op rather than an error —
+  same plug-and-play model as required_inbound_rules.
+#}
+{% set _opt_path = ['/backup-sources/opt/' ~ plan.id] if plan.opt_dir | default(false) else [] %}
+{% set _vol_paths = [] %}
+{% for v in plan.volumes | default([]) %}{{ _vol_paths.append('/backup-sources/docker-volumes/' ~ v ~ '/_data') or '' }}{% endfor %}
+{# union over legacy + content-aware; dedupe so the belt-and-suspenders `paths` copy doesn't double up with opt_dir-derived path. #}
+{% set _eff_paths = ((plan.paths | default([])) + _opt_path + _vol_paths + (plan.extra_paths | default([]))) | unique | list %}
+{% set _pre_hooks = plan.pre_hooks | default([]) %}
+{% set _post_hooks = plan.post_hooks | default([]) %}
     {
       "id": "{{ plan.id }}",
       "repo": "primary",
-      "paths": {{ plan.paths | to_json }},
+      "paths": {{ _eff_paths | to_json }},
 {% if plan.excludes is defined and plan.excludes | length > 0 %}
       "excludes": {{ plan.excludes | to_json }},
+{% endif %}
+{% if _pre_hooks | length > 0 or _post_hooks | length > 0 %}
+      "hooks": [
+{% set _hooks = [] %}
+{% for cmd in _pre_hooks %}{{ _hooks.append({'conditions': ['CONDITION_SNAPSHOT_START'], 'onError': 'ON_ERROR_CANCEL', 'actionCommand': {'command': cmd}}) or '' }}{% endfor %}
+{% for cmd in _post_hooks %}{{ _hooks.append({'conditions': ['CONDITION_SNAPSHOT_END'], 'onError': 'ON_ERROR_IGNORE', 'actionCommand': {'command': cmd}}) or '' }}{% endfor %}
+{% for h in _hooks %}        {{ h | to_json }}{{ '' if loop.last else ',' }}
+{% endfor %}
+      ],
 {% endif %}
       "schedule": {"cron": "{{ plan.schedule.cron }}"},
       "retention": {

@@ -80,12 +80,18 @@ output "system_admin_email" {
 }
 
 output "backup_plan" {
-  description = "Backrest backup plan contribution. null when disabled or backup_enabled = false. Aggregated by consumer-template into backrest's backup_plans."
+  description = "Backrest backup plan contribution. null when disabled or backup_enabled = false. Aggregated by consumer-template into backrest's backup_plans. `uploads-data` is user content; RDB postgres handles its own backups. Logs/redis-cache/init-marker are excluded."
   value = (var.enabled && var.backup_enabled) ? {
-    id        = local.slug
-    paths     = concat(["/backup-sources/opt/${local.slug}"], var.backup_extra_paths)
-    excludes  = []
-    schedule  = { cron = var.backup_schedule_cron }
-    retention = var.backup_retention
+    id               = local.slug
+    paths            = ["/backup-sources/opt/${local.slug}"] # legacy field; kept populated for belt-and-suspenders backward compat
+    opt_dir          = true
+    volumes          = ["uploads-data"]
+    excluded_volumes = ["logs-data", "redis-data", "init-marker"]
+    extra_paths      = var.backup_extra_paths
+    pre_hooks        = []
+    post_hooks       = []
+    excludes         = []
+    schedule         = { cron = var.backup_schedule_cron }
+    retention        = var.backup_retention
   } : null
 }

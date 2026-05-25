@@ -284,9 +284,9 @@ locals {
     module.n8n.monitoring,
     module.prometheus.monitoring,
     module.grafana.monitoring,
-    module.wazuh.monitoring,        # blackbox_targets — peer-flagged drop
+    module.wazuh.monitoring,         # blackbox_targets — peer-flagged drop
     module.backrest_mgmt.monitoring, # prometheus_scrape_configs (backrest /metrics)
-    module.diun_mgmt.monitoring,    # loki_log_paths
+    module.diun_mgmt.monitoring,     # loki_log_paths
   ] : c if c != null]
 
   aggregated_scrape_configs = flatten([

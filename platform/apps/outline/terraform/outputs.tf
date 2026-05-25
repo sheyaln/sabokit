@@ -59,13 +59,19 @@ output "ansible" {
 }
 
 output "backup_plan" {
-  description = "Backrest backup plan contribution. null when disabled or backup_enabled = false. Consumer-template aggregates contributions across all apps and passes the list to the backrest module call (same shape as `required_inbound_rules` for SG rules — bundles own their backup story, consumer just plumbs)."
+  description = "Backrest backup plan contribution. null when disabled or backup_enabled = false. Consumer-template aggregates contributions across all apps and passes the list to the backrest module call (same shape as `required_inbound_rules` for SG rules — bundles own their backup story, consumer just plumbs). Attachments + storage live in Scaleway S3 (backed at the cloud layer); redis is a cache."
   value = (var.enabled && var.backup_enabled) ? {
-    id        = local.slug
-    paths     = concat(["/backup-sources/opt/${local.slug}"], var.backup_extra_paths)
-    excludes  = []
-    schedule  = { cron = var.backup_schedule_cron }
-    retention = var.backup_retention
+    id               = local.slug
+    paths            = ["/backup-sources/opt/${local.slug}"] # legacy field; kept populated for belt-and-suspenders backward compat
+    opt_dir          = true
+    volumes          = []
+    excluded_volumes = ["redis-data", "storage-data"]
+    extra_paths      = var.backup_extra_paths
+    pre_hooks        = []
+    post_hooks       = []
+    excludes         = []
+    schedule         = { cron = var.backup_schedule_cron }
+    retention        = var.backup_retention
   } : null
 }
 
