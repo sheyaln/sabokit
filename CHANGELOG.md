@@ -2,6 +2,30 @@
 
 All notable changes to sabokit go here. Versioning follows semver; major bumps signal breaking contract changes for consumers.
 
+## v2.15.1 — Service-account naming convention
+
+Platform convention for service accounts going forward:
+- **TF resource name**: `service_<thing>` (snake_case)
+- **Username + email**: `svc-<thing>` (kebab-case)
+
+Not the opposite of either.
+
+**Steward** (only Authentik service account fc ships today):
+- `authentik_user.service_account` → `authentik_user.service_steward`
+- `authentik_token.service_account` → `authentik_token.service_steward`
+- username + email: `steward-svc` → `svc-steward`
+- `moved {}` blocks on both resources — existing consumers' state migrates in-place. No destroy+recreate, the API token stays valid, the username/email flip happens as an in-state attribute update.
+- output renamed: `service_account_token_secret_hint` → `service_steward_token_secret_hint`. Anyone reading the old output name in tfvars or downstream automation bumps the reference.
+
+**n8n** (no Authentik service account in fc TF — only the Authentik group):
+- README's Nextcloud-admin credential row now documents the manual `svc-n8n` Nextcloud user setup the `nextcloud-form-edit-access-notifier` workflow expects. Nextcloud users aren't fc-TF-managed, so this is a consumer setup step — flagged so it isn't a surprise on first form-submit.
+
+No other service accounts in the tree as of v2.15.1. Future ones follow the same convention.
+
+**Drive-by ref pin fix**: `consumer-template/modules/stack/base.tf` had its source ref pinned at `v2.8.1` since the cycle-bug ship — same pre-existing wiring gap that v2.14.2 fixed for `identity.tf`/`identity_bootstrap.tf`. Bumped to `v2.15.1`. Consumers now pick up the v2.10.1 TEM DNS apex + SMTP port-stringify fixes + v2.10.0 split-dns role + v2.8.0 TEM domain creation. All these were already on master but invisible to consumers who only bumped the apps.tf refs.
+
+---
+
 ## v2.15.0 — Authentik identity UX: four enrollment + edit-info + inactive-user changes
 
 Four additive identity-bundle changes. Bundle output shape unchanged — `base.authentik.flows.user_settings_flow` still a UUID string, every other flow UUID/group key/sources entry untouched. OIDC + forward-auth providers see no contract diff. The custom user-settings flow's UUID is a new value (replacing Authentik's built-in `default-user-settings-flow` UUID), so any consumer that pinned the old default-flow UUID outside `var.base.authentik` needs to bump its reference — none of the in-tree bundles do.
