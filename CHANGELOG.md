@@ -2,6 +2,16 @@
 
 All notable changes to sabokit go here. Versioning follows semver; major bumps signal breaking contract changes for consumers.
 
+## v2.15.5 — n8n env.j2 propagation gap for AUTHENTIK_API_URL/TOKEN
+
+v2.15.3 added `AUTHENTIK_API_URL` + `AUTHENTIK_API_TOKEN` to the n8n app secret bag in `secrets.tf` but missed the propagation step — `env.j2` never read them. Result: keys sat in Scaleway Secret Manager but the n8n container had nothing in `process.env` for workflows that talk to Authentik. Peer caught it during v2.15.3 consumption audit.
+
+Fix: two lines added to `platform/apps/n8n/ansible/roles/n8n/templates/env.j2` next to the existing OIDC block. Defensive `| default('')` so pre-v2.15.3 secret bags (which won't have the keys) don't break the template render — useful for consumers who haven't tainted `scaleway_secret_version.app[0]` yet to pick up the new bag shape.
+
+Steward's `env.j2` was already correct (the original v2.13.x scaffolding propagated those keys end-to-end). The gap was n8n-only.
+
+---
+
 ## v2.15.4 — `application_slug` override across 12 bundles
 
 **Additive override for the Authentik application's slug.** Legacy consumers cutting over to fc bundles can't carry their existing Authentik state forward without this: bundles hardcoded the application slug to the bundle's stock name (`outline`, `nextcloud`, ...), and renaming the slug live breaks Authentik's `issuer_mode = per_provider` OIDC discovery URL — the URL embeds the slug, every connected app reauths. New `application_slug` knob lets the consumer pin the slug to the legacy value at import time.
