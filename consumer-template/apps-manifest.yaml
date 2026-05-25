@@ -1560,6 +1560,64 @@ apps:
           description: When both n8n and broadsheet are deployed, automatically add n8n's service account to broadsheet's per-app Authentik group so n8n workflows can authenticate to broadsheet. Set false to opt out.
           ui: advanced
 
+        # ── Identity-pipeline workflow env ──
+        # Consumed by the workflows at platform/identity/n8n-workflows/.
+        # Rendered into n8n's container .env via the n8n bundle's
+        # extra_env_vars input. See identity/n8n-workflows/README.md.
+        slack_channel_new_signups:
+          type: string
+          default: ""
+          description: Slack channel name where the parent dispatcher posts new-signup + activation messages (e.g. "#new-signups"). Empty disables.
+          ui: advanced
+
+        slack_channel_admin_alerts:
+          type: string
+          default: ""
+          description: Slack channel name for admin-only alerts from subworkflows (e.g. EspoCRM duplicate-member warnings). Empty disables.
+          ui: advanced
+
+        broadsheet_workspace_id:
+          type: string
+          default: ""
+          description: Broadsheet workspace ID the All Members list lives in. Required if Broadsheet is enabled. Typically the org slug.
+          ui: advanced
+
+        broadsheet_all_members_list_id:
+          type: string
+          default: allmembers
+          description: Broadsheet list ID for the All Members mailing list (alphanumeric, ≤32 chars). Created on first signup if missing.
+          ui: advanced
+
+        broadsheet_all_members_list_name:
+          type: string
+          default: All Members
+          description: Human-readable name for the All Members list when auto-created.
+          ui: advanced
+
+        workflow_id_broadsheet_subscribe:
+          type: string
+          default: ""
+          description: n8n workflow ID of the imported broadsheet-allmembers-subscribe subworkflow. Capture from the n8n UI URL after first import, then re-apply.
+          ui: advanced
+
+        workflow_id_espocrm_upsert:
+          type: string
+          default: ""
+          description: n8n workflow ID of the imported espocrm-member-upsert subworkflow. Capture from the n8n UI URL after first import, then re-apply.
+          ui: advanced
+
+        workflow_id_slack_invite_stub:
+          type: string
+          default: ""
+          description: n8n workflow ID of the imported slack-invite-stub subworkflow. Capture from the n8n UI URL after first import, then re-apply.
+          ui: advanced
+
+        extra_env_vars:
+          type: map(string)
+          default: {}
+          description: Ad-hoc env vars merged into n8n's container .env. Merged AFTER the platform-wired vars above, so consumer entries with the same key win.
+          ui: advanced
+
   # ── Backrest ────────────────────────────────────────────────────────────
   # Restic-based backups per host (each host = its own instance + bucket).
   # Forward-auth via the embedded outpost. Multi-instance: consumers

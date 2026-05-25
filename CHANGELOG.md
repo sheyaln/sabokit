@@ -2,6 +2,16 @@
 
 All notable changes to sabokit go here. Versioning follows semver; major bumps signal breaking contract changes for consumers.
 
+## [Unreleased]
+
+Non-downstream-requested improvements, accumulating until the next downstream-driven patch folds them in.
+
+### Added
+- **`extra_env_vars` wiring in consumer-template's n8n module call + 9 new `apps-manifest.yaml` entries** under `apps.n8n`. The consumer-template now merges per-app context (Slack channels, Broadsheet workspace/list IDs, captured workflow IDs, plus auto-derived `BROADSHEET_BASE_URL` and `ESPOCRM_BASE_URL` when those bundles are enabled) into n8n's container `.env`. Lets the bundled workflows under `platform/identity/n8n-workflows/` stay org-agnostic and reference everything via `$env.KEY`. Workflow IDs are captured AFTER first import (operator reads them from the n8n UI URL and re-applies); the platform-wired keys lose to any consumer-supplied `extra_env_vars` of the same name.
+
+### Fixed
+- **EspoCRM upsert workflow `executeWorkflowTrigger` needs `inputSource: passthrough`.** Without it live n8n refuses to activate the workflow ("Trigger node has no input schema"). Set on `platform/identity/n8n-workflows/espocrm-member-upsert.json`'s entry node so a freshly imported workflow goes straight to active on first apply.
+
 ## v3.1.4 — 2026-05-25
 
 Two more credentials_preserve extensions to surrounding layers — base postgres + identity_bootstrap.

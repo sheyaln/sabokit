@@ -340,6 +340,23 @@ module "n8n" {
   deployment_host_key = try(var.apps.n8n.deployment_host_key, "apps")
   dns_zone_override   = try(var.apps.n8n.dns_zone_override, "")
 
+  # Workflow IDs are populated AFTER first import — capture from n8n UI then re-apply.
+  extra_env_vars = merge(
+    {
+      SLACK_CHANNEL_NEW_SIGNUPS        = try(var.apps.n8n.slack_channel_new_signups, "")
+      SLACK_CHANNEL_ADMIN_ALERTS       = try(var.apps.n8n.slack_channel_admin_alerts, "")
+      BROADSHEET_WORKSPACE_ID          = try(var.apps.n8n.broadsheet_workspace_id, "")
+      BROADSHEET_ALL_MEMBERS_LIST_ID   = try(var.apps.n8n.broadsheet_all_members_list_id, "allmembers")
+      BROADSHEET_ALL_MEMBERS_LIST_NAME = try(var.apps.n8n.broadsheet_all_members_list_name, "All Members")
+      WORKFLOW_ID_BROADSHEET_SUBSCRIBE = try(var.apps.n8n.workflow_id_broadsheet_subscribe, "")
+      WORKFLOW_ID_ESPOCRM_UPSERT       = try(var.apps.n8n.workflow_id_espocrm_upsert, "")
+      WORKFLOW_ID_SLACK_INVITE_STUB    = try(var.apps.n8n.workflow_id_slack_invite_stub, "")
+    },
+    module.broadsheet.enabled ? { BROADSHEET_BASE_URL = module.broadsheet.app_url } : {},
+    module.espocrm.enabled ? { ESPOCRM_BASE_URL = module.espocrm.app_url } : {},
+    try(var.apps.n8n.extra_env_vars, {}),
+  )
+
   credentials_preserve = try(var.apps.n8n.credentials_preserve, false)
 }
 
