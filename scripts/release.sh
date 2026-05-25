@@ -118,7 +118,7 @@ git add "${STACK_DIR}"
 if git diff --cached --quiet; then
   echo "No ref changes to commit (everything was already on $NEW)."
 else
-  git commit -m "chore(consumer-template): bump refs to $NEW"
+  git commit -m "Bumped consumer-template refs to $NEW"
 fi
 
 # Tag the current master tip.
