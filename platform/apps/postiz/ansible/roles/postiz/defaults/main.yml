@@ -1,0 +1,47 @@
+---
+# Set by the consumer via the values that come out of platform/apps/postiz/terraform's ansible.vars output.
+
+postiz_hostname: ""                            # Required. Full hostname (e.g. "social.example.org").
+postiz_image: "ghcr.io/gitroomhq/postiz-app"
+postiz_image_tag: "latest"
+
+postiz_install_dir: "/opt/postiz"
+postiz_uploads_dir: "/uploads"                 # Path inside the container.
+
+postiz_timezone: "UTC"
+postiz_disable_registration: true
+
+# Scaleway secret IDs (set by Terraform; passed in via ansible.vars).
+postiz_app_secret_id: ""                       # Single Scaleway secret with JWT + OIDC + temporal-pg + social-platform bag.
+postiz_db_credentials_secret_id: ""            # Scaleway secret with {dbname, username, password, host, port}.
+
+# SMTP — Postiz reads the From-address from the app secret; the SMTP creds
+# come from a separate Scaleway secret. Empty = SMTP off, role short-circuits.
+postiz_smtp_secret_name: ""
+
+# Temporal stack pinning. Postiz docker-compose 2026-05 pins these versions;
+# bump only after verifying upstream compose still matches.
+postiz_temporal_image_tag: "1.28.1"
+postiz_temporal_elasticsearch_image_tag: "7.17.27"
+postiz_temporal_postgres_image_tag: "16"
+
+# Docker networks the postiz container joins.
+postiz_traefik_docker_network: "traefik"
+
+# Ops-bundle opt-in labels.
+postiz_auto_update_enabled: true
+postiz_autoheal_enabled: true
+
+# Resource limits — postiz container itself (NextJS + NestJS combined image).
+postiz_memory_limit: "1G"
+postiz_memory_reservation: "512M"
+postiz_cpu_limit: "1.0"
+postiz_cpu_reservation: "0.25"
+
+# Resource limits — sidecars. ES is the heaviest; keep heap small unless
+# workflow volume justifies more.
+postiz_es_heap_size: "256m"
+postiz_es_memory_limit: "1G"
+postiz_redis_memory_limit: "256M"
+postiz_temporal_memory_limit: "512M"
+postiz_temporal_pg_memory_limit: "256M"

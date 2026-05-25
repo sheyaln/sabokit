@@ -233,6 +233,31 @@ module "n8n" {
   deployment_host_key     = try(var.apps.n8n.deployment_host_key, "apps")
 }
 
+# Postiz — social media scheduling. Heavy stack (~3GB RAM) because of the
+# bundled temporal + elasticsearch sidecars. Don't co-locate with nextcloud
+# or decidim on a small host. social_platform_credentials = nested map of
+# per-platform OAuth env vars; consumer obtains each set from the respective
+# platform's developer console. Empty default = no platforms wired.
+module "postiz" {
+  source = "git::https://github.com/sheyaln/sabokit.git//platform/apps/postiz/terraform?ref=v2.10.3"
+
+  enabled  = try(var.apps.postiz.enabled, false)
+  hostname = try(var.apps.postiz.hostname, "")
+  base     = local.base
+
+  access_level                = try(var.apps.postiz.access_level, "delegate")
+  extra_authorized_groups     = try(var.apps.postiz.extra_authorized_groups, {})
+  tier_cascade_enabled        = try(var.apps.postiz.tier_cascade_enabled, true)
+  tier_access_level           = try(var.apps.postiz.tier_access_level, "delegate")
+  image_tag                   = try(var.apps.postiz.image_tag, "latest")
+  timezone                    = try(var.apps.postiz.timezone, "UTC")
+  smtp_from_email             = try(var.apps.postiz.smtp_from_email, "")
+  social_platform_credentials = try(var.apps.postiz.social_platform_credentials, {})
+  disable_registration        = try(var.apps.postiz.disable_registration, true)
+  monitoring_enabled          = try(var.apps.postiz.monitoring_enabled, true)
+  deployment_host_key         = try(var.apps.postiz.deployment_host_key, "apps")
+}
+
 # App bundles export their backup contribution as `backup_plan` (null when
 # disabled or backup_enabled=false). Aggregate and pass to every backrest
 # instance — same plug-and-play pattern as required_inbound_rules for SG.
@@ -251,6 +276,7 @@ locals {
     module.jitsi.backup_plan,
     module.espocrm.backup_plan,
     module.n8n.backup_plan,
+    module.postiz.backup_plan,
     module.prometheus.backup_plan,
     module.loki.backup_plan,
     module.grafana.backup_plan,
@@ -272,6 +298,7 @@ locals {
     module.jitsi.monitoring,
     module.espocrm.monitoring,
     module.n8n.monitoring,
+    module.postiz.monitoring,
     module.prometheus.monitoring,
     module.grafana.monitoring,
   ] : c if c != null]
@@ -313,6 +340,7 @@ locals {
     module.jitsi.split_dns_entries,
     module.espocrm.split_dns_entries,
     module.n8n.split_dns_entries,
+    module.postiz.split_dns_entries,
     module.backrest_mgmt.split_dns_entries,
     module.grafana.split_dns_entries,
     module.wazuh.split_dns_entries,
