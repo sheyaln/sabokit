@@ -27,7 +27,7 @@ resource "scaleway_secret_version" "app" {
     OIDC_AUTH_URL          = "https://${var.base.authentik.gateway_domain}/application/o/authorize/"
     OIDC_TOKEN_URL         = "https://${var.base.authentik.gateway_domain}/application/o/token/"
     OIDC_API_URL           = "https://${var.base.authentik.gateway_domain}/application/o/userinfo/"
-    OIDC_SIGNOUT_URL       = "https://${var.base.authentik.gateway_domain}/application/o/${local.slug}/end-session/"
+    OIDC_SIGNOUT_URL       = "https://${var.base.authentik.gateway_domain}/application/o/${local.application_slug}/end-session/"
   })
 
   lifecycle {

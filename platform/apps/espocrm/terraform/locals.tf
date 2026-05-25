@@ -1,5 +1,6 @@
 locals {
-  slug = "espocrm"
+  slug             = "espocrm"
+  application_slug = var.application_slug != "" ? var.application_slug : local.slug
 
   authorized_groups = var.enabled ? (
     var.tier_cascade_enabled
@@ -13,6 +14,6 @@ locals {
   # EspoCRM's OIDC redirect URI is the site root — Espo intercepts the
   # /?action=oauthCallback pattern internally rather than exposing a dedicated path.
   oidc_callback_url = "https://${var.hostname}/oauth-callback.php"
-  oidc_logout_url   = "https://${var.base.authentik.gateway_domain}/application/o/${local.slug}/end-session/"
+  oidc_logout_url   = "https://${var.base.authentik.gateway_domain}/application/o/${local.application_slug}/end-session/"
   app_url           = "https://${var.hostname}"
 }

@@ -69,7 +69,7 @@ resource "scaleway_secret_version" "app" {
 
     JITSI_OIDC_CLIENT_ID     = module.authentik[0].client_id
     JITSI_OIDC_CLIENT_SECRET = module.authentik[0].client_secret
-    JITSI_OIDC_DISCOVERY_URL = "https://${var.base.authentik.gateway_domain}/application/o/${local.slug}/.well-known/openid-configuration"
+    JITSI_OIDC_DISCOVERY_URL = "https://${var.base.authentik.gateway_domain}/application/o/${local.application_slug}/.well-known/openid-configuration"
   })
 
   lifecycle {

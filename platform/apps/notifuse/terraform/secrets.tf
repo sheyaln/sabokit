@@ -46,7 +46,7 @@ resource "scaleway_secret_version" "app" {
     ROOT_ADMIN_PASSWORD = random_password.root_admin[0].result
 
     OIDC_ENABLED          = "true"
-    OIDC_ISSUER_URL       = "https://${var.base.authentik.gateway_domain}/application/o/${local.slug}/"
+    OIDC_ISSUER_URL       = "https://${var.base.authentik.gateway_domain}/application/o/${local.application_slug}/"
     OIDC_CLIENT_ID        = module.authentik[0].client_id
     OIDC_CLIENT_SECRET    = module.authentik[0].client_secret
     OIDC_AUTO_PROVISION   = tostring(var.oidc_auto_provision)

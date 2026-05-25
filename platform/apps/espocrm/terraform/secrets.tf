@@ -34,7 +34,7 @@ resource "scaleway_secret_version" "app" {
     OIDC_AUTHORIZATION_ENDPOINT = "https://${var.base.authentik.gateway_domain}/application/o/authorize/"
     OIDC_TOKEN_ENDPOINT         = "https://${var.base.authentik.gateway_domain}/application/o/token/"
     OIDC_USERINFO_ENDPOINT      = "https://${var.base.authentik.gateway_domain}/application/o/userinfo/"
-    OIDC_JWKS_ENDPOINT          = "https://${var.base.authentik.gateway_domain}/application/o/${local.slug}/jwks/"
+    OIDC_JWKS_ENDPOINT          = "https://${var.base.authentik.gateway_domain}/application/o/${local.application_slug}/jwks/"
     OIDC_REDIRECT_URI           = local.oidc_callback_url
     OIDC_LOGOUT_URL             = local.oidc_logout_url
 

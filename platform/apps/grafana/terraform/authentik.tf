@@ -3,7 +3,7 @@ module "authentik" {
   count  = var.enabled ? 1 : 0
 
   application_name = var.application_name
-  application_slug = local.slug
+  application_slug = local.application_slug
   category_group   = var.category_group
   icon_url         = var.icon_url
   description      = "Metrics + logs + alerting dashboard"
