@@ -2,6 +2,33 @@
 
 All notable changes to sabokit go here. Versioning follows semver; major bumps signal breaking contract changes for consumers.
 
+## v2.13.0 — New bundle: Diun (notify-on-new-image) + watchtower deprecation
+
+**New app bundle**: `platform/apps/diun/` — [crazy-max/diun](https://github.com/crazy-max/diun), pinned `4.31.0`. One container per host; watches the local Docker daemon, polls each container's image registry on a schedule, fires a notification when a tag's digest changes. Multi-instance — example consumer-template block is `diun_mgmt` on the management host. Bundle count: 19 → 20.
+
+**Behaviour shift vs Watchtower**: Diun notifies, it does NOT pull or restart. That's the point — control + visibility over surprise restarts. Operator (or automation) decides whether and when to act on each notification. The two bundles ship side-by-side on purpose, not as a replacement.
+
+**Notifier surface**: `notification_targets = list(any)`, each entry `{ type = "<notifier>", config = { ... } }`. Type ∈ amqp, discord, gotify, mail, matrix, mqtt, ntfy, opsgenie, pushover, rocketchat, script, slack, teams, telegram, twilio, webhook. `config` passed verbatim to Diun's `diun.yml` — option names + shapes preserved, so https://crazymax.dev/diun/notif/ is the schema reference. Empty default = stdout/logs-only (Loki still picks it up via the bundle's `loki_log_paths`).
+
+**Recommended integration**: one `webhook` target pointing at the n8n bundle's new `diun-notification-router.json` workflow (`POST /webhook/diun-new-image`), then fan out from n8n to Slack / email / JSM. Mirrors the `grafana-alert-router` pattern. Workflow ships in `platform/apps/n8n/ansible/roles/n8n/files/workflows/`; consumers adapt the routing rules to their image namespace + severity preferences.
+
+**Defaults**:
+- `watch_schedule = "0 0 6 * * *"` — daily at 06:00 UTC, offset from backrest 02:00 and watchtower 04:00.
+- `watch_by_default = true` — Diun watches every container on the host without per-container opt-in label, matching the plug-and-play philosophy. Flip false to require `diun.enable=true` labels.
+- `default_watch_repo = false` — Diun only watches the exact tag in use, not every new tag ever pushed. "Tell me when MY tag has an update," not "tell me about every new tag."
+- `watch_first_check_notif = false` — suppress the first-boot flood where every running container looks "new".
+- `auto_update_enabled = false` on this bundle specifically. Auto-updating the tool whose job is to gate updates defeats the point.
+
+**No Prometheus scrape** in v1. Diun doesn't expose `/metrics` natively — `crazy-max/diun-exporter` exists upstream but is experimental, not wired. `monitoring.prometheus_scrape_configs = []`; loki log paths only.
+
+**No backup / no inbound / no public hostname / no Authentik**. Pure outbound-only host-service; local digest cache is rebuildable from a single registry sweep, not worth backing up.
+
+**Watchtower deprecation**: Watchtower upstream is archived (last release Nov 2023, repo marked Maintenance Notice Dec 2025). Watchtower stays in fc for one more v2.x cycle — bundle untouched, consumer-template entry untouched, only the README gains a deprecation banner. v3.0.0 will drop watchtower. Consumers can migrate to diun (notify-only) or keep watchtower running until then — both ship in v2.13.0.
+
+Bumped every `consumer-template/modules/stack/apps.tf` source ref from `v2.12.1` to `v2.13.0`. Regenerated `platform/ansible/apps.yml` (19 → 20 bundles).
+
+---
+
 ## v2.12.1 — Remove postiz bundle
 
 Postiz shipped briefly in v2.11.0 (~hours, before any consumer adopted it) and is removed per user direction: too AI-heavy. Mechanical reversal — bundle dir deleted, consumer-template module + aggregations dropped, apps-manifest entry removed, gen_apps_yml.py BUNDLES list trimmed. Bundle count: 19.

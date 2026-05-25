@@ -1,0 +1,37 @@
+# {{ ansible_managed }}
+# Managed by sabokit apps/diun/ansible/role.
+# Do not edit by hand — regenerated on every ansible-playbook run.
+#
+# Diun config reference: https://crazymax.dev/diun/config/
+
+db:
+  path: /data/diun.db
+
+watch:
+  workers: {{ diun_watch_workers }}
+  schedule: "{{ diun_watch_schedule }}"
+  firstCheckNotif: {{ diun_watch_first_check_notif | string | lower }}
+
+providers:
+  docker:
+    endpoint: "unix:///var/run/docker.sock"
+    watchByDefault: {{ diun_watch_by_default | string | lower }}
+    watchStopped: false
+{% if diun_include_swarm_services %}
+  swarm:
+    watchByDefault: true
+{% endif %}
+
+defaults:
+  watchRepo: {{ diun_default_watch_repo | string | lower }}
+  notifyOn:
+    - new
+    - update
+
+{% if diun_notification_targets | length > 0 %}
+notif:
+{% for target in diun_notification_targets %}
+  {{ target.type }}:
+{{ target.config | to_nice_yaml(indent=2, width=4096) | indent(width=4, first=True) }}
+{% endfor %}
+{% endif %}

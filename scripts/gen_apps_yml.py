@@ -55,6 +55,7 @@ BUNDLES = [
     ("loki",           "loki",            "loki"),
     ("grafana",        "grafana",         "grafana"),
     ("watchtower",     "watchtower_apps", "watchtower"),
+    ("diun",           "diun_mgmt",       "diun"),
     ("wazuh",          "wazuh",           "wazuh"),
     ("wazuh-agent",    "wazuh_agent_apps","wazuh_agent"),
     ("autoheal",       "autoheal_apps",   "autoheal"),

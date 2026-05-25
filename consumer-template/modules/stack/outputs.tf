@@ -135,6 +135,11 @@ output "enabled_apps" {
       ansible_vars  = module.watchtower_apps.ansible.vars
       ansible_group = module.watchtower_apps.ansible.host_group
     } : null
+    diun_mgmt = module.diun_mgmt.enabled ? {
+      ansible_vars  = module.diun_mgmt.ansible.vars
+      ansible_group = module.diun_mgmt.ansible.host_group
+      monitoring    = module.diun_mgmt.monitoring
+    } : null
     wazuh_agent_apps = module.wazuh_agent_apps.enabled ? {
       ansible_vars  = module.wazuh_agent_apps.ansible.vars
       ansible_group = module.wazuh_agent_apps.ansible.host_group
