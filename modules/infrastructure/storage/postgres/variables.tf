@@ -93,3 +93,9 @@ variable "prevent_destroy_db_users" {
   type        = bool
   default     = true
 }
+
+variable "credentials_preserve" {
+  description = "In-place legacy cutover support. When true, skips `random_password` generation for every user managed by this module and reads each user's existing password from the live `<instance_name>-admin-credentials` (admin) and `postgres-<dbname>-credentials` (per-db) bags via data sources. Drop the flag after cutover; short-lived knob, removal slated for v4.x."
+  type        = bool
+  default     = false
+}
