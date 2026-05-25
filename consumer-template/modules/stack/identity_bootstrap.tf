@@ -17,4 +17,6 @@ module "identity_bootstrap" {
   postgres_instance_id = module.base.scaleway.postgres_instance_id
   postgres_endpoint    = module.base.scaleway.postgres_endpoint
   postgres_engine      = module.base.scaleway.postgres_engine
+
+  credentials_preserve = try(var.identity.bootstrap_credentials_preserve, false)
 }
