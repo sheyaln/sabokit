@@ -2,6 +2,14 @@
 
 All notable changes to sabokit go here. Versioning follows semver; major bumps signal breaking contract changes for consumers.
 
+## v2.14.2 — Close stale identity ref pin in consumer-template
+
+`consumer-template/modules/stack/{identity.tf,identity_bootstrap.tf}` had their source refs pinned at `v2.8.1` since that tag's cycle-bug ship — never bumped along with subsequent identity work. v2.14.1 was supposed to bump them; the perl edit landed after the branch commit and missed the merge. Shipping as a one-line patch.
+
+Consumers bumping consumer-template ref from `v2.14.1` (or earlier) to `v2.14.2` now pick up every v2.9+ identity change: v2.10.1's tier-cascade refactor + outpost count-unknown fix, v2.14.1's activation race + webhook attr filter.
+
+---
+
 ## v2.14.1 — Identity policy fixes: activation race + webhook attr filter
 
 Two policy-template fixes that were sitting as WIP in the working tree all session — taken to ship.
