@@ -36,7 +36,7 @@ resource "scaleway_secret_version" "app" {
     OIDC_RP_SCOPES                 = "openid profile email groups"
 
     AUTHENTIK_API_URL     = local.authentik_api_url
-    AUTHENTIK_API_TOKEN   = authentik_token.service_account[0].key
+    AUTHENTIK_API_TOKEN   = authentik_token.service_steward[0].key
     AUTHENTIK_ADMIN_GROUP = var.admin_group_name
     AUTHENTIK_INVITE_FLOW = var.invite_flow_slug
   })

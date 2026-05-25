@@ -65,8 +65,8 @@ output "database_name" {
   value       = var.enabled ? module.database[0].database_name : null
 }
 
-output "service_account_token_secret_hint" {
-  description = "Hint pointing to where the Authentik API token lives (inside the app_secret_id bag under AUTHENTIK_API_TOKEN). The token itself is not exported."
+output "service_steward_token_secret_hint" {
+  description = "Hint pointing to where the Authentik API token lives (inside the app_secret_id bag under AUTHENTIK_API_TOKEN). The token itself is not exported. Renamed from service_account_token_secret_hint in v2.15.1 to match the platform service-account naming convention (`service_<thing>` / `svc-<thing>`)."
   value       = var.enabled ? "Inside ${scaleway_secret.app[0].name}, key AUTHENTIK_API_TOKEN" : null
 }
 

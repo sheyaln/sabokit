@@ -37,25 +37,40 @@ data "authentik_group" "admins" {
   name  = "authentik Admins"
 }
 
-resource "authentik_user" "service_account" {
+resource "authentik_user" "service_steward" {
   count = var.enabled ? 1 : 0
 
-  username  = "${local.slug}-svc"
+  username  = "svc-${local.slug}"
   name      = "Steward service account"
-  email     = "${local.slug}-svc@${var.base.domains.base_domain}"
+  email     = "svc-${local.slug}@${var.base.domains.base_domain}"
   type      = "service_account"
   is_active = true
   path      = "service-accounts"
   groups    = [data.authentik_group.admins[0].id]
 }
 
-resource "authentik_token" "service_account" {
+resource "authentik_token" "service_steward" {
   count = var.enabled ? 1 : 0
 
   identifier   = "${local.slug}-api-token"
   intent       = "api"
-  user         = authentik_user.service_account[0].id
+  user         = authentik_user.service_steward[0].id
   expiring     = false
   retrieve_key = true
   description  = "Server-to-server API token for the Steward web app."
+}
+
+# State migration from the v2.15.0 names. Existing consumers' terraform state
+# refers to authentik_user.service_account / authentik_token.service_account.
+# `moved {}` redirects the addresses without destroy+recreate — the token
+# stays valid and the username/email flip happens in-place via the in-state
+# resource's attribute change.
+moved {
+  from = authentik_user.service_account
+  to   = authentik_user.service_steward
+}
+
+moved {
+  from = authentik_token.service_account
+  to   = authentik_token.service_steward
 }

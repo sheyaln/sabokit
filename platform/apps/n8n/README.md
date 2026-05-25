@@ -145,7 +145,7 @@ All workflows ship as `"active": false` — review and activate manually after i
 | `Slack account` | Slack API (Bot token, `xoxb-…`) | every notifier | Bot scopes: `chat:write`, `channels:read`. |
 | `EspoCRM API` | HTTP Header Auth | EspoCRM workflows | Header `X-Api-Key`, value from a CRM API User. `allowedDomains` must include the CRM base URL. |
 | `Scaleway` | HTTP Header Auth | billing-forecast, tem-delivery | Header `X-Auth-Token`, value = a Scaleway API key with billing + TEM read scopes. |
-| `Nextcloud admin` | HTTP Basic Auth | nextcloud form notifiers | Admin username + password from `terraform output`. |
+| `Nextcloud admin` | HTTP Basic Auth | nextcloud form notifiers | Admin username + password from `terraform output`. The nextcloud-form-edit-access-notifier workflow also assumes a Nextcloud-side service user named **`svc-n8n`** exists with the right form-share permissions; create manually in Nextcloud (`Users → New user`) as part of n8n setup. Not managed by fc TF — Nextcloud users aren't TF-managed. Platform service-account naming convention: `svc-<thing>` (kebab) — same as the Authentik convention. |
 | `SMTP` | SMTP | nextcloud form notifiers, anything sending email | Same SMTP creds shared across platform. |
 | `JotForm account` | JotForm API | jotform-submission-notifier | API key from your JotForm account's `Settings → API`. |
 
