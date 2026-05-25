@@ -1,16 +1,16 @@
 #!/usr/bin/env bash
-# fc-runner — consumer-facing wrapper around the sabokit ansible
+# sabokit-runner — consumer-facing wrapper around the sabokit ansible
 # runner image (ghcr.io/sheyaln/sabokit-runner). Hides the docker
 # invocation behind friendly flags so consumers don't need to remember the
 # mount + ssh-agent dance every time.
 #
 # The image is pinned to a tag matching this wrapper's version by default
-# (so a consumer running fc-runner v2.17.0 gets the v2.17.0 image). Override
+# (so a consumer running sabokit-runner v3.0.0 gets the v3.0.0 image). Override
 # with --image to pull a different tag (e.g. while testing pre-release).
 #
 # Install: drop on $PATH and chmod +x. Or curl-install one-shot:
-#   curl -fsSL https://raw.githubusercontent.com/sheyaln/sabokit/v2.17.0/scripts/fc-runner.sh \
-#     -o /usr/local/bin/fc-runner && chmod +x /usr/local/bin/fc-runner
+#   curl -fsSL https://raw.githubusercontent.com/sheyaln/sabokit/v3.0.0/scripts/sabokit-runner.sh \
+#     -o /usr/local/bin/sabokit-runner && chmod +x /usr/local/bin/sabokit-runner
 #
 # Bash 3.2 compatible (macOS default).
 
@@ -18,14 +18,14 @@ set -euo pipefail
 
 # Version the wrapper ships at. release.sh's ref-bump should not touch this —
 # it's hand-bumped at the start of a release cycle.
-FC_RUNNER_VERSION="v2.17.0"
+SABOKIT_RUNNER_VERSION="v3.0.0"
 
 print_help() {
   cat <<'EOF'
-fc-runner — deploy sabokit via the published runner image
+sabokit-runner — deploy sabokit via the published runner image
 
 Usage:
-  fc-runner [OPTIONS]
+  sabokit-runner [OPTIONS]
 
 Targeting (combinable):
   -a, --apps LIST         comma-sep app slugs (e.g. outline,n8n)
@@ -52,15 +52,15 @@ Paths:
   -h, --help              this message
 
 Examples:
-  fc-runner                                            # full deploy
-  fc-runner --apps outline                             # redeploy one app
-  fc-runner --apps outline,n8n --no-base               # fast multi-app redeploy
-  fc-runner --servers tools-prod                       # reprovision one host
-  fc-runner --base --servers authentik-prod            # base only, one host
-  fc-runner --rotate-secrets                           # rotate all secrets, all hosts
-  fc-runner --rotate-secrets --servers tools-prod      # rotate secrets, one host
-  fc-runner --apps outline --check                     # plan a single app
-  fc-runner --overlay ansible-local                    # with consumer extensions
+  sabokit-runner                                            # full deploy
+  sabokit-runner --apps outline                             # redeploy one app
+  sabokit-runner --apps outline,n8n --no-base               # fast multi-app redeploy
+  sabokit-runner --servers tools-prod                       # reprovision one host
+  sabokit-runner --base --servers authentik-prod            # base only, one host
+  sabokit-runner --rotate-secrets                           # rotate all secrets, all hosts
+  sabokit-runner --rotate-secrets --servers tools-prod      # rotate secrets, one host
+  sabokit-runner --apps outline --check                     # plan a single app
+  sabokit-runner --overlay ansible-local                    # with consumer extensions
 
 Raw docker invocation (what the wrapper builds): see docker/runner/README.md
 EOF
@@ -129,36 +129,36 @@ while [[ $# -gt 0 ]]; do
     --image=*)         IMAGE_TAG="${1#*=}"; shift ;;
 
     --) shift; break ;;  # everything after -- passes through to ansible-playbook untouched
-    -*) echo "fc-runner: unknown flag: $1" >&2; echo "Run 'fc-runner --help' for usage." >&2; exit 2 ;;
-    *)  echo "fc-runner: unexpected positional: $1" >&2; exit 2 ;;
+    -*) echo "sabokit-runner: unknown flag: $1" >&2; echo "Run 'sabokit-runner --help' for usage." >&2; exit 2 ;;
+    *)  echo "sabokit-runner: unexpected positional: $1" >&2; exit 2 ;;
   esac
 done
 
 # Mutex sanity checks — combinations that are silently broken under ansible's
 # tag union semantics deserve an explicit error here.
 if [[ $BASE_ONLY -eq 1 && $NO_BASE -eq 1 ]]; then
-  echo "fc-runner: --base and --no-base are mutually exclusive." >&2; exit 2
+  echo "sabokit-runner: --base and --no-base are mutually exclusive." >&2; exit 2
 fi
 if [[ $BASE_ONLY -eq 1 && $ROTATE_SECRETS -eq 1 ]]; then
-  echo "fc-runner: --base and --rotate-secrets are mutually exclusive (base layer doesn't fetch app secrets — for base credential rotation, just re-run --base)." >&2; exit 2
+  echo "sabokit-runner: --base and --rotate-secrets are mutually exclusive (base layer doesn't fetch app secrets — for base credential rotation, just re-run --base)." >&2; exit 2
 fi
 if [[ $BASE_ONLY -eq 1 && -n "$APPS" ]]; then
-  echo "fc-runner: --base and --apps are mutually exclusive." >&2; exit 2
+  echo "sabokit-runner: --base and --apps are mutually exclusive." >&2; exit 2
 fi
 
 # Resolve image tag.
 if [[ -z "$IMAGE_TAG" ]]; then
-  IMAGE_TAG="$FC_RUNNER_VERSION"
+  IMAGE_TAG="$SABOKIT_RUNNER_VERSION"
 fi
 IMAGE="ghcr.io/sheyaln/sabokit-runner:${IMAGE_TAG}"
 
 # Resolve env dir to absolute path so the docker mount works regardless of cwd.
 if [[ ! -d "$ENV_DIR" ]]; then
-  echo "fc-runner: --env directory not found: $ENV_DIR" >&2; exit 2
+  echo "sabokit-runner: --env directory not found: $ENV_DIR" >&2; exit 2
 fi
 ENV_ABS="$(cd "$ENV_DIR" && pwd)"
 if [[ ! -f "$ENV_ABS/$INVENTORY_FILE" ]]; then
-  echo "fc-runner: inventory not found at $ENV_ABS/$INVENTORY_FILE" >&2; exit 2
+  echo "sabokit-runner: inventory not found at $ENV_ABS/$INVENTORY_FILE" >&2; exit 2
 fi
 
 # Build ansible flag list. Bash 3.2 — no arrays for portability across older
@@ -205,7 +205,7 @@ PLAYBOOKS=("/opt/sabokit/platform/ansible/site.yml")
 OVERLAY_ABS=""
 if [[ -n "$OVERLAY_DIR" ]]; then
   if [[ ! -d "$OVERLAY_DIR" ]]; then
-    echo "fc-runner: --overlay directory not found: $OVERLAY_DIR" >&2; exit 2
+    echo "sabokit-runner: --overlay directory not found: $OVERLAY_DIR" >&2; exit 2
   fi
   OVERLAY_ABS="$(cd "$OVERLAY_DIR" && pwd)"
   if [[ -f "$OVERLAY_ABS/extensions.yml" ]]; then
