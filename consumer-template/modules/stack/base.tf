@@ -1,5 +1,5 @@
 module "base" {
-  source = "git::https://github.com/sheyaln/sabokit.git//platform/base/terraform?ref=v2.15.5"
+  source = "git::https://github.com/sheyaln/sabokit.git//platform/base/terraform?ref=v2.15.6"
   providers = {
     scaleway     = scaleway
     scaleway.dns = scaleway.dns
