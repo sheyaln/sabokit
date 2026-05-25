@@ -71,6 +71,12 @@ variable "monitoring_enabled" {
   default     = true
 }
 
+variable "service_account_extra_groups" {
+  description = "Authentik group names (must exist in var.base.authentik.groups — typically created via identity's var.extra_groups) that the n8n service account is added to alongside `authentik Admins`. Use for org-specific scopes (e.g. \"union-automation\", \"coop-ops\") consumed by workflow logic. Empty default; consumer-template surfaces via apps.n8n.service_account_extra_groups."
+  type        = list(string)
+  default     = []
+}
+
 variable "deployment_host_key" {
   description = "Key in base.compute.hosts identifying the VM this app deploys to (e.g. \"apps\", \"tools\"). The Ansible playbook targets this host's ansible_group."
   type        = string

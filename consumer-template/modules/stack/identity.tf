@@ -22,6 +22,12 @@ module "identity" {
     module.bentopdf.authentik_provider_id,
     module.backrest_mgmt.authentik_provider_id,
   ])
+
+  # Extra Authentik groups beyond the tier cascade (service-account scopes,
+  # org-specific roles, etc.). Each entry produces an `authentik_group`
+  # surfaced via `var.base.authentik.groups[<name>]`. Apps with service
+  # accounts (n8n, steward) consume by name via `service_account_extra_groups`.
+  extra_groups = try(var.identity.extra_groups, {})
 }
 
 # The merged "base" object app bundles consume. Apps reference
