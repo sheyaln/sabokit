@@ -2,6 +2,14 @@
 
 All notable changes to sabokit go here. Versioning follows semver; major bumps signal breaking contract changes for consumers.
 
+## v2.16.1 — 2026-05-25
+
+Two consumer step-3 blockers, both terraform-locals errors before any imports/refresh.
+
+### Fixed
+- **`tier_cascade` decoupled from group display names.** Output is now keyed by stable logical identifiers (`tier_keys`), not `tier_names`. Any consumer overriding `*_group_name` (or `tier_names_override`) was hitting `Invalid index` on `tier_cascade[var.tier_access_level]` across every hardcoded-tier bundle. Default consumers unaffected — `tier_keys` defaults to `tier_names`. Identity layer auto-derives logical keys from the four named knobs (`member_group_name` → `"member"`, etc.). Consumers using `tier_names_override` should also set the new `tier_keys_override` if their bundles' `tier_access_level` expects logical keys.
+- **`prometheus` scrape_configs aggregation normalizes per-bundle entries.** Bundles can omit `scheme` / `metrics_path` / per-target `labels`; the consumer-template aggregator defaults them and casts labels to `map(string)`. Fixes `all list elements must have the same type` when 2+ bundles with prometheus_scrape_configs are enabled together. New bundles using non-static-SD scrape entries (file_sd, dns_sd) will need aggregator updates — none currently do.
+
 ## v2.16.0 — 2026-05-25
 
 ### Added
