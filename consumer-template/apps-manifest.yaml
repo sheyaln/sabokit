@@ -119,6 +119,18 @@ apps:
           description: Override the Authentik application slug. Default empty = use the bundle's stock slug (`outline`). Set to a legacy slug to enable in-place import without force-replace.
           ui: advanced
 
+        bucket_name_override:
+          type: string
+          default: ""
+          description: Override the Scaleway object bucket name. Use to import a legacy bucket without force-replace. Drop once data is migrated to the canonical naming pattern.
+          ui: advanced
+
+        dns_zone_override:
+          type: string
+          default: ""
+          description: Override the DNS zone for this app's A record. Default empty derives from hostname suffix matching against base.domains.zones. Set only for edge cases.
+          ui: advanced
+
         icon_filename:
           type: string
           default: outline-icon.png
@@ -225,6 +237,12 @@ apps:
           type: string
           default: ""
           description: Override the Authentik application slug. Default empty = use the bundle's stock slug (`steward`). Set to a legacy slug to enable in-place import without force-replace.
+          ui: advanced
+
+        dns_zone_override:
+          type: string
+          default: ""
+          description: Override the DNS zone for this app's A record. Default empty derives from hostname suffix matching against base.domains.zones. Set only for edge cases.
           ui: advanced
 
         icon_filename:
@@ -354,6 +372,12 @@ apps:
           description: Override the Authentik application slug. Default empty = use the bundle's stock slug (`vikunja`). Set to a legacy slug to enable in-place import without force-replace.
           ui: advanced
 
+        dns_zone_override:
+          type: string
+          default: ""
+          description: Override the DNS zone for this app's A record. Default empty derives from hostname suffix matching against base.domains.zones. Set only for edge cases.
+          ui: advanced
+
         icon_filename:
           type: string
           default: vikunja-icon.png
@@ -446,6 +470,12 @@ apps:
           type: string
           default: ""
           description: Override the Authentik application slug. Default empty = use the bundle's stock slug (`bentopdf`). Set to a legacy slug to enable in-place import without force-replace.
+          ui: advanced
+
+        dns_zone_override:
+          type: string
+          default: ""
+          description: Override the DNS zone for this app's A record. Default empty derives from hostname suffix matching against base.domains.zones. Set only for edge cases.
           ui: advanced
 
         icon_filename:
@@ -566,6 +596,18 @@ apps:
           type: string
           default: ""
           description: Override the Authentik application slug. Default empty = use the bundle's stock slug (`notifuse`). Set to a legacy slug to enable in-place import without force-replace.
+          ui: advanced
+
+        bucket_name_override:
+          type: string
+          default: ""
+          description: Override the Scaleway object bucket name. Use to import a legacy bucket without force-replace. Drop once data is migrated to the canonical naming pattern.
+          ui: advanced
+
+        dns_zone_override:
+          type: string
+          default: ""
+          description: Override the DNS zone for this app's A record. Default empty derives from hostname suffix matching against base.domains.zones. Set only for edge cases.
           ui: advanced
 
         icon_filename:
@@ -690,6 +732,18 @@ apps:
           description: Override the Authentik application slug. Default empty = use the bundle's stock slug (`broadsheet`). Set to a legacy slug to enable in-place import without force-replace.
           ui: advanced
 
+        bucket_name_override:
+          type: string
+          default: ""
+          description: Override the Scaleway object bucket name. Use to import a legacy bucket without force-replace. Drop once data is migrated to the canonical naming pattern.
+          ui: advanced
+
+        dns_zone_override:
+          type: string
+          default: ""
+          description: Override the DNS zone for this app's A record. Default empty derives from hostname suffix matching against base.domains.zones. Set only for edge cases.
+          ui: advanced
+
         icon_filename:
           type: string
           default: broadsheet-icon.png
@@ -768,6 +822,12 @@ apps:
           type: bool
           default: true
           description: Wire access log paths into the monitoring stack.
+          ui: advanced
+
+        dns_zone_override:
+          type: string
+          default: ""
+          description: Override the DNS zone for this app's A record. Default empty derives from hostname suffix matching against base.domains.zones. Set only for edge cases.
           ui: advanced
 
   # ── Nextcloud ───────────────────────────────────────────────────────────
@@ -897,6 +957,18 @@ apps:
           description: Override the Authentik application slug. Default empty = use the bundle's stock slug (`nextcloud`). Set to a legacy slug to enable in-place import without force-replace.
           ui: advanced
 
+        bucket_name_override:
+          type: string
+          default: ""
+          description: Override the Scaleway object bucket name. Use to import a legacy bucket without force-replace. Drop once data is migrated to the canonical naming pattern.
+          ui: advanced
+
+        dns_zone_override:
+          type: string
+          default: ""
+          description: Override the DNS zone for all three Nextcloud A records (nextcloud, onlyoffice, talk). Default empty derives each independently from its hostname by suffix matching against base.domains.zones. Set only for edge cases.
+          ui: advanced
+
         icon_filename:
           type: string
           default: ""
@@ -1020,6 +1092,18 @@ apps:
           type: string
           default: ""
           description: Override the Authentik application slug. Default empty = use the bundle's stock slug (`decidim`). Set to a legacy slug to enable in-place import without force-replace.
+          ui: advanced
+
+        bucket_name_override:
+          type: string
+          default: ""
+          description: Override the Scaleway object bucket name. Use to import a legacy bucket without force-replace. Drop once data is migrated to the canonical naming pattern.
+          ui: advanced
+
+        dns_zone_override:
+          type: string
+          default: ""
+          description: Override the DNS zone for this app's A record. Default empty derives from hostname suffix matching against base.domains.zones. Set only for edge cases.
           ui: advanced
 
         icon_filename:
@@ -1146,6 +1230,12 @@ apps:
           description: Override the Authentik application slug. Default empty = use the bundle's stock slug (`jitsi`). Set to a legacy slug to enable in-place import without force-replace.
           ui: advanced
 
+        dns_zone_override:
+          type: string
+          default: ""
+          description: Override the DNS zone for this app's A record. Default empty derives from hostname suffix matching against base.domains.zones. Set only for edge cases.
+          ui: advanced
+
         icon_filename:
           type: string
           default: ""
@@ -1263,6 +1353,12 @@ apps:
           description: Override the Authentik application slug. Default empty = use the bundle's stock slug (`espocrm`). Set to a legacy slug to enable in-place import without force-replace.
           ui: advanced
 
+        dns_zone_override:
+          type: string
+          default: ""
+          description: Override the DNS zone for this app's A record. Default empty derives from hostname suffix matching against base.domains.zones. Set only for edge cases.
+          ui: advanced
+
         icon_filename:
           type: string
           default: espocrm-icon.png
@@ -1374,6 +1470,12 @@ apps:
           description: Override the Authentik application slug. Default empty = use the bundle's stock slug (`n8n`). Set to a legacy slug to enable in-place import without force-replace.
           ui: advanced
 
+        dns_zone_override:
+          type: string
+          default: ""
+          description: Override the DNS zone for this app's A record. Default empty derives from hostname suffix matching against base.domains.zones. Set only for edge cases.
+          ui: advanced
+
         icon_filename:
           type: string
           default: n8n-icon.png
@@ -1480,6 +1582,18 @@ apps:
           type: string
           default: ""
           description: Full icon URL override. When set, used verbatim and icon_filename is ignored.
+          ui: advanced
+
+        bucket_name_override:
+          type: string
+          default: ""
+          description: Override the Scaleway object bucket name. Use to import a legacy bucket without force-replace. Drop once data is migrated to the canonical naming pattern.
+          ui: advanced
+
+        dns_zone_override:
+          type: string
+          default: ""
+          description: Override the DNS zone for this app's A record. Default empty derives from hostname suffix matching against base.domains.zones. Set only for edge cases.
           ui: advanced
 
   # ── Watchtower ──────────────────────────────────────────────────────────
@@ -1866,6 +1980,12 @@ apps:
           description: Override the Authentik application slug. Default empty = use the bundle's stock slug (`grafana`). Set to a legacy slug to enable in-place import without force-replace.
           ui: advanced
 
+        dns_zone_override:
+          type: string
+          default: ""
+          description: Override the DNS zone for this app's A record. Default empty derives from hostname suffix matching against base.domains.zones. Set only for edge cases.
+          ui: advanced
+
         icon_filename:
           type: string
           default: grafana-icon.png
@@ -1966,6 +2086,12 @@ apps:
           type: string
           default: ""
           description: Override the Authentik application slug. Default empty = use the bundle's stock slug (`wazuh`). Set to a legacy slug to enable in-place import without force-replace.
+          ui: advanced
+
+        dns_zone_override:
+          type: string
+          default: ""
+          description: Override the DNS zone for this app's A record. Default empty derives from hostname suffix matching against base.domains.zones. Set only for edge cases.
           ui: advanced
 
         icon_filename:
