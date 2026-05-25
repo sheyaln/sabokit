@@ -2,6 +2,20 @@
 
 All notable changes to sabokit go here. Versioning follows semver; major bumps signal breaking contract changes for consumers.
 
+## v2.13.1 — Fix dropped monitoring contributions from wazuh, backrest, diun
+
+Peer-flagged during prod cutover audit: `consumer-template/modules/stack/apps.tf`'s `_monitoring_contribs` list was missing three bundles with non-empty `monitoring` outputs:
+
+- **`module.wazuh.monitoring`** — wazuh's `blackbox_targets = ["https://${var.hostname}/"]` was silently dropped. Despite v2.12.0 wiring blackbox-exporter, wazuh's public UI wasn't actually being probed. **Real liveness gap closed.**
+- **`module.backrest_mgmt.monitoring`** — backrest exposes `/metrics` on port 9898; its `prometheus_scrape_configs` wasn't reaching prometheus.
+- **`module.diun_mgmt.monitoring`** — diun's `loki_log_paths` were being missed by loki (v2.13.0 ship gap — diun is brand new and was wired with the watchtower/autoheal precedent which also skipped aggregation; for diun the loki paths matter).
+
+Three-line additive fix in `consumer-template/modules/stack/apps.tf`. No bundle-side changes. Existing consumers on v2.13.0 bumping to v2.13.1 immediately get wazuh blackbox alerts, backrest scrape metrics, and diun logs flowing through the monitoring stack.
+
+Watchtower / autoheal / wazuh-agent remain absent from aggregation — they have no `monitoring.tf` to contribute.
+
+---
+
 ## v2.13.0 — New bundle: Diun (notify-on-new-image) + watchtower deprecation
 
 **New app bundle**: `platform/apps/diun/` — [crazy-max/diun](https://github.com/crazy-max/diun), pinned `4.31.0`. One container per host; watches the local Docker daemon, polls each container's image registry on a schedule, fires a notification when a tag's digest changes. Multi-instance — example consumer-template block is `diun_mgmt` on the management host. Bundle count: 19 → 20.
