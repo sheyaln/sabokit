@@ -116,6 +116,14 @@ variable "notification_webhook_url" {
   default     = ""
 }
 
+# ENROLLMENT PROMPT LABELS
+
+variable "member_id_label" {
+  description = "Display label for the optional member-id prompt field on the social enrollment flow. Attribute key remains \"member_id\" so downstream automations stay stable across consumers."
+  type        = string
+  default     = "Member ID"
+}
+
 # DERIVED LOCALS
 
 locals {

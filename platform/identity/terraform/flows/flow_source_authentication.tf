@@ -21,6 +21,26 @@ resource "authentik_flow" "source_authentication" {
 
 # FLOW STAGE BINDINGS
 
+# Inactive-user message — shown when a returning social user has been
+# deactivated. Gated by policy-shared-inactive-user-gate; active users
+# skip the stage and proceed directly to user_login.
+resource "authentik_flow_stage_binding" "source_authentication_inactive_user_message" {
+  target               = authentik_flow.source_authentication.uuid
+  stage                = authentik_stage_prompt.shared_inactive_user.id
+  order                = 5
+  evaluate_on_plan     = true
+  re_evaluate_policies = true
+  policy_engine_mode   = "all"
+}
+
+resource "authentik_policy_binding" "source_authentication_inactive_user_gate_binding" {
+  target  = authentik_flow_stage_binding.source_authentication_inactive_user_message.id
+  policy  = authentik_policy_expression.shared_inactive_user_gate.id
+  order   = 0
+  enabled = true
+  timeout = 30
+}
+
 # Direct login binding - social users go straight to login (using shared stage)
 resource "authentik_flow_stage_binding" "source_authentication_login" {
   target               = authentik_flow.source_authentication.uuid

@@ -2,6 +2,41 @@
 
 All notable changes to sabokit go here. Versioning follows semver; major bumps signal breaking contract changes for consumers.
 
+## v2.15.0 — Authentik identity UX: four enrollment + edit-info + inactive-user changes
+
+Four additive identity-bundle changes. Bundle output shape unchanged — `base.authentik.flows.user_settings_flow` still a UUID string, every other flow UUID/group key/sources entry untouched. OIDC + forward-auth providers see no contract diff. The custom user-settings flow's UUID is a new value (replacing Authentik's built-in `default-user-settings-flow` UUID), so any consumer that pinned the old default-flow UUID outside `var.base.authentik` needs to bump its reference — none of the in-tree bundles do.
+
+**1. Email-only user-settings flow.** New `authentik_flow.user_settings` (slug `user-settings`) replaces Authentik's built-in default. Edit-info screen shows only the email field — username is hidden because change 2 makes it equal to email anyway, and exposing it would let users break that invariant. The flow's UUID flows out via the new `module.flows.user_settings_flow_uuid` output; `brand.tf:24` and `outputs.tf:38` both point at it. The bundle's `default_user_settings_flow_id` data-source output is kept for back-compat (nothing currently references it).
+
+**2. Username locked to email on edit-info.** The user-settings flow's user_write stage binds a new `policy-user-settings-sync-username-to-email` policy that copies `prompt_data['email']` into `prompt_data['username']` pre-write. Same shape as the existing `policy-manual-enrollment-set-username-from-email` policy on the manual enrollment flow — atomic write, both fields persisted together.
+
+**3. Social enrollment prompts for given_name (required) + member_id (optional).** New stage `authentik_stage_prompt.source_enrollment_profile` binds between AUP and user_write on the source-enrollment flow (order 7). Two fields: `given_name` (required text) and `member_id` (optional text, label overridable via new bundle var `member_id_label`, default `"Member ID"` — attribute key stays `member_id` always so downstream automations don't break per-consumer). The `policy-source-enrollment-user-setup` expression drops the old `user_email.split('@')[0]` username derivation: username is now `user_email` unconditionally, `user.name` comes from the prompt's `given_name` (concatenated with OAuth-provided `family_name` if present), and `member_id` flows through prompt_data so user_write stores it in `user.attributes['member_id']` (only when the user filled the field — empty strings get stripped pre-write so we don't persist `""`).
+
+**4. Inactive-user gets a full-page message instead of a silent failure.** New shared static prompt stage `authentik_stage_prompt.shared_inactive_user` carries an HTML message (`assets/inactive-user-message.html.tpl` — adapted from the enrollment welcome template, different framing: "reach out to a delegate to reactivate" vs the enrollment "reach out to a delegate to activate"). Bound on both auth flows that can reach `user_login`:
+
+- `authentication_flow_username_and_passkey` — order 35, between MFA validate (30) and user_login (40)
+- `source_authentication` — order 5, before user_login (10)
+
+A new policy `policy-shared-inactive-user-gate` gates both bindings — returns True (show the stage) only when `pending_user.is_active == False`. Active users skip the stage entirely. After the message, the existing user_login stage runs and refuses to log an inactive user in — natural login failure, but the user saw the message first.
+
+**New bundle variable:** `member_id_label = string` (default `"Member ID"`) — display label for the optional member-id field on the social enrollment flow. Attribute key not affected.
+
+**Internal files touched:**
+- `platform/identity/terraform/variables.tf` — add `member_id_label`
+- `platform/identity/terraform/flows.tf` — pass `member_id_label` through
+- `platform/identity/terraform/flows/variables.tf` — accept `member_id_label`
+- `platform/identity/terraform/flows/flow_user_settings.tf` (new) — custom user-settings flow + email→username policy
+- `platform/identity/terraform/flows/flow_source_enrollment.tf` — profile prompt stage + binding + reworked user-setup policy
+- `platform/identity/terraform/flows/flow_authentication_username_and_passkey.tf` — inactive-user binding at order 35
+- `platform/identity/terraform/flows/flow_source_authentication.tf` — inactive-user binding at order 5
+- `platform/identity/terraform/flows/shared_prompts.tf` — shared inactive-user static prompt + gate policy
+- `platform/identity/terraform/flows/outputs.tf` — new `user_settings_flow_uuid` output
+- `platform/identity/terraform/brand.tf` — point `flow_user_settings` at the new UUID
+- `platform/identity/terraform/outputs.tf` — point `flows.user_settings_flow` at the new UUID
+- `platform/identity/terraform/assets/inactive-user-message.html.tpl` (new)
+
+---
+
 ## v2.14.2 — Close stale identity ref pin in consumer-template
 
 `consumer-template/modules/stack/{identity.tf,identity_bootstrap.tf}` had their source refs pinned at `v2.8.1` since that tag's cycle-bug ship — never bumped along with subsequent identity work. v2.14.1 was supposed to bump them; the perl edit landed after the branch commit and missed the merge. Shipping as a one-line patch.

@@ -64,6 +64,29 @@ resource "authentik_flow_stage_binding" "username_passkey_mfa" {
   re_evaluate_policies    = true
 }
 
+# Inactive-user message — shown to users who pass password + MFA but whose
+# account is is_active = False. Gated by policy-shared-inactive-user-gate so
+# active users skip the stage entirely. After the stage user_login still
+# fires below; Authentik's own user_login will refuse to log an inactive
+# user in, so the net effect is "message, then natural login failure."
+resource "authentik_flow_stage_binding" "username_passkey_inactive_user_message" {
+  target = authentik_flow.authentication_flow_username_and_passkey.uuid
+  stage  = authentik_stage_prompt.shared_inactive_user.id
+  order  = 35
+
+  policy_engine_mode      = "any"
+  invalid_response_action = "retry"
+  re_evaluate_policies    = true
+}
+
+resource "authentik_policy_binding" "username_passkey_inactive_user_gate_binding" {
+  target  = authentik_flow_stage_binding.username_passkey_inactive_user_message.id
+  policy  = authentik_policy_expression.shared_inactive_user_gate.id
+  order   = 0
+  enabled = true
+  timeout = 30
+}
+
 # Login Completion (final step for all authentication paths)
 resource "authentik_flow_stage_binding" "username_passkey_login_completion" {
   target = authentik_flow.authentication_flow_username_and_passkey.uuid

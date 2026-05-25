@@ -21,7 +21,7 @@ resource "authentik_brand" "default" {
 
   flow_authentication = module.flows.authentication_flow_login
   flow_invalidation   = module.flows.default_invalidation_flow_id
-  flow_user_settings  = module.flows.default_user_settings_flow_id
+  flow_user_settings  = module.flows.user_settings_flow_uuid
   flow_recovery       = module.flows.password_reset_flow_uuid
   flow_unenrollment   = module.flows.default_unenrollment_flow_uuid
 
