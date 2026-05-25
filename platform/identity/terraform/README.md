@@ -18,17 +18,25 @@ See [`ARCHITECTURE.md`](../../ARCHITECTURE.md) for the full base/app contract.
 - The standard flow set (authentication, source-auth, source-enrollment,
   manual enrollment, password reset, MFA reset, email-invitation, user
   unenrollment) — see `flows/`.
-- A **tier cascade** of Authentik groups via `modules/authentik/tier-cascade`.
-  Default chain: `member → delegate → treasurer → admin`. Each tier inherits
-  all lower tiers (Authentik group nesting), so an app gated on `member`
-  admits everyone in `delegate`/`treasurer`/`admin` too. Tune via the
-  per-tier-name vars (`member_group_name`, `delegate_group_name`,
-  `treasurer_group_name`, `admin_group_name` — set any non-admin/member to
-  `null` to drop that tier) or replace the whole chain with
-  `tier_names_override`. The delegate tier carries the
-  user/group-management RBAC role wired in `roles.tf`. Extra non-cascade
-  groups (service accounts, app-integration groups) go through
-  `var.extra_groups`.
+- A **tier DAG** of Authentik groups defined by `var.tier_slots`. Each slot
+  is a row in the org's authority hierarchy (lowest slot first); each peer
+  within a slot is an independent role at that rank. Peers in slot S+1 nest
+  under every peer in slot S, so Authentik's group-nesting evaluator
+  transitively gives higher-slot users membership in every group below them.
+  In-slot peers do NOT bridge — an app scoped to peer P in slot S binds P's
+  own group plus every group in every strictly-higher slot, but NOT P's
+  sibling peers. The `delegate_group_name` group (if non-null and present
+  in tier_slots) carries the user/group-management RBAC role wired in
+  `roles.tf`. Extra non-DAG groups (service accounts, app-integration
+  groups) go through `var.extra_groups`.
+
+  Worked example for `tier_slots = [{ l1, { member = "member" }}, { l2, { delegate = "delegate" }}, { l3, { treasurer = "treasurer", comms = "comms-officer" }}, { l4, { admin = "admin", st = "secretary-treasurer" }}]`:
+  - `tier_cascade["member"]    = { member, delegate, treasurer, comms-officer, admin, secretary-treasurer }`
+  - `tier_cascade["delegate"]  = { delegate, treasurer, comms-officer, admin, secretary-treasurer }`
+  - `tier_cascade["treasurer"] = { treasurer, admin, secretary-treasurer }`
+  - `tier_cascade["comms"]     = { comms-officer, admin, secretary-treasurer }`
+  - `tier_cascade["st"]        = { secretary-treasurer }`
+  - `tier_cascade["admin"]     = { admin }`
 - Optional Google and Apple OAuth social-login sources (each gated by a
   toggle and a Scaleway secret lookup).
 - A configured embedded outpost that binds whatever forward-auth provider IDs
@@ -48,6 +56,7 @@ The full input set is documented in `variables.tf`. The minimum required is:
 | `org_name`       | Organization display name                            |
 | `org_slug`       | URL-safe slug                                        |
 | `infra_email`    | Operations contact email                             |
+| `tier_slots`     | Authority hierarchy as a DAG (see "tier DAG" above)  |
 
 Everything else has a sensible default. To use social login, set
 `enable_google_social_login = true` and/or `enable_apple_social_login = true`
@@ -72,9 +81,9 @@ output "authentik" = {
     source_authentication_flow = string  # UUID
     source_enrollment_flow     = string  # UUID
   }
-  groups               = map(string)  # "admin" | "member" | "delegate" | "treasurer" | extras → group ID
-  tier_cascade         = map(map(string))  # tier T → map(name → group_id) for every tier at-or-above T
-  admin_tier           = string       # name of the tier flagged is_superuser
+  groups               = map(string)  # group_name → group ID (every peer + extra)
+  tier_cascade         = map(map(string))  # peer_name → map(group_name → group_id) for the peer's own group + every group in strictly-higher slots
+  admin_tier           = string       # group_name flagged is_superuser (= var.admin_group_name)
   sources              = map(string)  # "google" | "apple" → source UUID (may be {})
   outpost_id           = string
   branding_assets_path = string       # filesystem path consumed by ansible
@@ -121,8 +130,8 @@ platform/identity/terraform/
 ├── locals.tf             # Derived values (notification target groups, etc.)
 ├── data.tf               # Scaleway secret lookups (SMTP + optional socials)
 ├── brand.tf              # Default brand resource
-├── user_groups.tf        # tier-cascade module call + extra groups
-├── roles.tf              # delegate RBAC role (attached to cascade tier)
+├── user_groups.tf        # tier_slots DAG resources + extra groups
+├── roles.tf              # delegate RBAC role (attached to delegate group)
 ├── auth_sources.tf       # Google + Apple sources (toggle-gated)
 ├── flows.tf              # Calls the flows submodule
 ├── flows/                # The flow stages, prompts, and email stages

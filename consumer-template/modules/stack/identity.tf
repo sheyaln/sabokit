@@ -23,7 +23,13 @@ module "identity" {
     module.backrest_mgmt.authentik_provider_id,
   ])
 
-  # Extra Authentik groups beyond the tier cascade (service-account scopes,
+  # Tier DAG. Required input — the consumer declares their authority
+  # hierarchy as a list of slots, each holding a map of peer_name → group_name.
+  # See terraform.tfvars.example for the shape and platform/identity/terraform/
+  # README.md for the cascade-up semantics.
+  tier_slots = var.identity.tier_slots
+
+  # Extra Authentik groups beyond the tier_slots DAG (service-account scopes,
   # org-specific roles, etc.). Each entry produces an `authentik_group`
   # surfaced via `var.base.authentik.groups[<name>]`. Apps with service
   # accounts (n8n, steward) consume by name via `service_account_extra_groups`.

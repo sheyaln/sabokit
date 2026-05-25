@@ -6,8 +6,9 @@ module "flows" {
   google_social_login_uuid = var.enable_google_social_login ? authentik_source_oauth.google[0].uuid : ""
   apple_social_login_uuid  = var.enable_apple_social_login ? authentik_source_oauth.apple[0].uuid : ""
 
-  # Enrolling users land in the standard-member group (lowest tier in the cascade).
-  member_group_id = module.tier_cascade.groups[var.member_group_name]
+  # Enrolling users land in the member_group_name group. Resolved against the
+  # flat slot_group_ids map (populated from tier_slots in user_groups.tf).
+  member_group_id = local.slot_group_ids[var.member_group_name]
 
   # SMTP for email-bearing flows (password reset, MFA reset, invitations).
   # When smtp_enabled is false the stages are still created but flip to

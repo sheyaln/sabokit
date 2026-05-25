@@ -94,9 +94,8 @@ variable "apps" {
 }
 
 variable "identity" {
-  description = "Identity-bundle overrides. Notable fields: `extra_groups = map(object({ is_superuser, description }))` — additional Authentik groups beyond the tier cascade, surfaced through `var.base.authentik.groups[<name>]` so apps can reference them via `service_account_extra_groups` etc. Empty map by default."
+  description = "Identity-bundle inputs. Required fields: `tier_slots = list(object({ name, peers = map(string) }))` — the org's authority hierarchy as a DAG (lowest slot first, each peer_name → group_name). Optional fields: `extra_groups = map(object({ is_superuser, description }))` — additional Authentik groups beyond the tier_slots DAG; `icon_base_url` — where app icons are fetched from."
   type        = any
-  default     = {}
 }
 
 variable "smtp_secret_name" {

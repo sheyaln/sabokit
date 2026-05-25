@@ -41,6 +41,32 @@ infra_email    = "ops@example.org"
 #     }
 #   }
 
+# Tier DAG (required). Models the org's authority hierarchy as a list of
+# slots, each holding one or more peer roles at that rank. peer_name is the
+# stable token bundles' tier_access_level matches against; group_name is the
+# underlying Authentik group's display name.
+#
+# Cascade-up semantics: an app scoped to peer P in slot S admits P's own
+# group + every group in every strictly-higher slot. Peers in the same slot
+# do NOT see each other through the cascade — they are equal-rank but
+# independent.
+#
+# Below is a generic L1-L4 example with a single peer per slot. Add more
+# peers in any slot for parallel roles (e.g. multiple L3 officers each
+# owning their own scope).
+identity = {
+  tier_slots = [
+    # Slot 1 (lowest privilege)
+    { name = "l1", peers = { member = "member" } },
+    # Slot 2
+    { name = "l2", peers = { delegate = "delegate" } },
+    # Slot 3 — add parallel peers here for parallel officer roles
+    { name = "l3", peers = { treasurer = "treasurer" } },
+    # Slot 4 (highest) — admin must exist as a peer in some slot
+    { name = "l4", peers = { admin = "admin" } },
+  ]
+}
+
 apps = {
   outline = {
     enabled  = true
