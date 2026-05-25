@@ -42,8 +42,10 @@ authentik_traefik_docker_network: "traefik"
 authentik_traefik_cert_resolver: "le"
 
 # ── Health / probe ──────────────────────────────────────────────────────────
+# 90 × 10s = 15min — covers slow first-boot Postgres migrations on smaller
+# Authentik tiers (DEV1-M takes ~6-7min). Steady-state restarts return in <30s.
 authentik_health_path: "/api/v3/root/config/"
-authentik_health_retries: 30
+authentik_health_retries: 90
 authentik_health_delay: 10
 authentik_health_local_port: 9000
 
