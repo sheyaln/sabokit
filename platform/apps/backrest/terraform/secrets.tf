@@ -4,7 +4,7 @@
 # must taint this resource AND run `restic key add` against the live repo
 # before re-applying, otherwise existing snapshots become unreadable.
 resource "random_password" "restic" {
-  count   = var.enabled ? 1 : 0
+  count   = var.enabled && !var.credentials_preserve ? 1 : 0
   length  = 48
   special = false
 
@@ -22,12 +22,31 @@ resource "scaleway_secret" "app" {
   type        = "key_value"
 }
 
+# In-place cutover: read the live bag and pin RESTIC_PASSWORD. Loss of this
+# password makes every snapshot in the repo unrecoverable, so preserving it
+# is non-negotiable.
+data "scaleway_secret" "preserved" {
+  count = var.enabled && var.credentials_preserve ? 1 : 0
+  name  = "${local.qualified_slug}-app-secrets"
+}
+
+data "scaleway_secret_version" "preserved" {
+  count     = var.enabled && var.credentials_preserve ? 1 : 0
+  secret_id = data.scaleway_secret.preserved[0].id
+  revision  = "latest"
+}
+
+locals {
+  _preserved      = (var.enabled && var.credentials_preserve) ? jsondecode(base64decode(data.scaleway_secret_version.preserved[0].data)) : {}
+  restic_password = var.enabled ? (var.credentials_preserve ? local._preserved.RESTIC_PASSWORD : random_password.restic[0].result) : ""
+}
+
 resource "scaleway_secret_version" "app" {
   count = var.enabled ? 1 : 0
 
   secret_id = scaleway_secret.app[0].id
   data = jsonencode({
-    RESTIC_PASSWORD       = random_password.restic[0].result
+    RESTIC_PASSWORD       = local.restic_password
     AWS_ACCESS_KEY_ID     = scaleway_iam_api_key.storage[0].access_key
     AWS_SECRET_ACCESS_KEY = scaleway_iam_api_key.storage[0].secret_key
     S3_ENDPOINT           = var.base.scaleway.object_storage_endpoint

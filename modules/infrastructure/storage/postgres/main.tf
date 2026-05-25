@@ -9,7 +9,7 @@ resource "scaleway_rdb_instance" "this" {
   engine             = var.database_engine
   is_ha_cluster      = var.high_availability
   user_name          = var.psql_default_user
-  password           = random_password.db_passwords[var.psql_default_user].result
+  password           = local.user_passwords[var.psql_default_user]
   encryption_at_rest = true
 
   backup_same_region        = var.backup_same_region
@@ -55,21 +55,59 @@ resource "scaleway_rdb_database" "dbs" {
 }
 
 resource "random_password" "db_passwords" {
-  for_each         = toset(local.users)
+  for_each         = var.credentials_preserve ? toset([]) : toset(local.users)
   length           = 32
   special          = true
   override_special = "!@+=:,._-"
   min_numeric      = 1
 
   lifecycle {
-    ignore_changes = [override_special, min_numeric]
+    ignore_changes = [override_special, min_numeric, length]
+  }
+}
+
+# Read live credential bags during in-place cutover. Admin lives in
+# `<instance_name>-admin-credentials`; each per-db user lives in
+# `postgres-<dbname>-credentials`.
+data "scaleway_secret" "preserved_admin" {
+  count = var.credentials_preserve ? 1 : 0
+  name  = "${var.instance_name}-admin-credentials"
+}
+
+data "scaleway_secret_version" "preserved_admin" {
+  count     = var.credentials_preserve ? 1 : 0
+  secret_id = data.scaleway_secret.preserved_admin[0].id
+  revision  = "latest"
+}
+
+data "scaleway_secret" "preserved_db" {
+  for_each = var.credentials_preserve ? toset(local.dbs) : toset([])
+  name     = "postgres-${each.value}-credentials"
+}
+
+data "scaleway_secret_version" "preserved_db" {
+  for_each  = var.credentials_preserve ? toset(local.dbs) : toset([])
+  secret_id = data.scaleway_secret.preserved_db[each.value].id
+  revision  = "latest"
+}
+
+locals {
+  _preserved_admin = var.credentials_preserve ? jsondecode(base64decode(data.scaleway_secret_version.preserved_admin[0].data)) : {}
+  _preserved_dbs = var.credentials_preserve ? {
+    for db in local.dbs : db => jsondecode(base64decode(data.scaleway_secret_version.preserved_db[db].data))
+  } : {}
+  user_passwords = var.credentials_preserve ? merge(
+    { (var.psql_default_user) = local._preserved_admin.password },
+    { for db in local.dbs : db => local._preserved_dbs[db].password },
+    ) : {
+    for u in local.users : u => random_password.db_passwords[u].result
   }
 }
 
 resource "scaleway_rdb_user" "users" {
   for_each    = toset(local.dbs)
   name        = each.value
-  password    = random_password.db_passwords[each.key].result
+  password    = local.user_passwords[each.value]
   is_admin    = contains(var.admin_databases, each.value)
   instance_id = scaleway_rdb_instance.this.id
 
@@ -91,7 +129,7 @@ resource "scaleway_secret_version" "admin_credentials" {
     engine   = var.database_engine
     dbname   = "postgres"
     username = var.psql_default_user
-    password = random_password.db_passwords[var.psql_default_user].result
+    password = local.user_passwords[var.psql_default_user]
     host     = scaleway_rdb_instance.this.private_network[0].ip
     port     = tostring(scaleway_rdb_instance.this.private_network[0].port)
   })
@@ -130,7 +168,7 @@ resource "scaleway_secret_version" "db_credentials" {
     dbname   = each.value
     engine   = var.database_engine
     username = scaleway_rdb_user.users[each.value].name
-    password = random_password.db_passwords[each.value].result
+    password = local.user_passwords[each.value]
     host     = scaleway_rdb_instance.this.private_network[0].ip
     port     = tostring(scaleway_rdb_instance.this.private_network[0].port)
   })
@@ -149,8 +187,9 @@ output "database_credentials_secrets" {
 }
 
 output "database_passwords" {
-  value       = random_password.db_passwords
-  description = "Random passwords generated for databases"
+  value       = { for u in local.users : u => local.user_passwords[u] }
+  description = "Passwords used for databases (generated or preserved)"
+  sensitive   = true
 }
 
 output "instance_id" {
@@ -174,7 +213,7 @@ output "admin_user" {
 
 output "admin_password" {
   description = "Admin password for the RDB instance. Prefer reading from admin_credentials_secret_id."
-  value       = random_password.db_passwords[var.psql_default_user].result
+  value       = local.user_passwords[var.psql_default_user]
   sensitive   = true
 }
 

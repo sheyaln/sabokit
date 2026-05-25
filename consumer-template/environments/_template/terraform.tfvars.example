@@ -75,6 +75,17 @@ apps = {
     # deployment_host_key must be a key in compute_hosts above. Defaults to
     # "apps". Override when your topology renames hosts:
     # deployment_host_key = "tools"
+
+    # credentials_preserve = true        # In-place legacy cutover only. When
+                                         # true, the bundle skips random_*
+                                         # generation and reads existing
+                                         # secrets from the live
+                                         # outline-app-secrets bag. Set per
+                                         # bundle when applying v3 against a
+                                         # legacy stack (prevents rotating
+                                         # SECRET_KEY/UTILS_SECRET etc.).
+                                         # Drop on the next apply once
+                                         # cutover is verified.
   }
 
   # Steward: simplified Authentik admin UI for non-technical org admins.

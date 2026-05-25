@@ -3,7 +3,7 @@
 # the postgres_database module (Steward reads both at deploy time).
 
 resource "random_id" "django_secret_key" {
-  count       = var.enabled ? 1 : 0
+  count       = var.enabled && !var.credentials_preserve ? 1 : 0
   byte_length = 50
 }
 
@@ -16,12 +16,31 @@ resource "scaleway_secret" "app" {
   type        = "key_value"
 }
 
+# In-place cutover: read the live bag and pin DJANGO_SECRET_KEY + the
+# Authentik service-account API token to the existing values.
+data "scaleway_secret" "preserved" {
+  count = var.enabled && var.credentials_preserve ? 1 : 0
+  name  = "${local.slug}-app-secrets"
+}
+
+data "scaleway_secret_version" "preserved" {
+  count     = var.enabled && var.credentials_preserve ? 1 : 0
+  secret_id = data.scaleway_secret.preserved[0].id
+  revision  = "latest"
+}
+
+locals {
+  _preserved          = (var.enabled && var.credentials_preserve) ? jsondecode(base64decode(data.scaleway_secret_version.preserved[0].data)) : {}
+  django_secret_key   = var.enabled ? (var.credentials_preserve ? local._preserved.DJANGO_SECRET_KEY : random_id.django_secret_key[0].b64_url) : ""
+  authentik_api_token = var.enabled ? (var.credentials_preserve ? local._preserved.AUTHENTIK_API_TOKEN : authentik_token.service_steward[0].key) : ""
+}
+
 resource "scaleway_secret_version" "app" {
   count = var.enabled ? 1 : 0
 
   secret_id = scaleway_secret.app[0].id
   data = jsonencode({
-    DJANGO_SECRET_KEY    = random_id.django_secret_key[0].b64_url
+    DJANGO_SECRET_KEY    = local.django_secret_key
     DJANGO_ALLOWED_HOSTS = var.hostname
 
     APP_URL = local.app_url
@@ -36,7 +55,7 @@ resource "scaleway_secret_version" "app" {
     OIDC_RP_SCOPES                 = "openid profile email groups"
 
     AUTHENTIK_API_URL     = local.authentik_api_url
-    AUTHENTIK_API_TOKEN   = authentik_token.service_steward[0].key
+    AUTHENTIK_API_TOKEN   = local.authentik_api_token
     AUTHENTIK_ADMIN_GROUP = var.admin_group_name
     AUTHENTIK_INVITE_FLOW = var.invite_flow_slug
   })

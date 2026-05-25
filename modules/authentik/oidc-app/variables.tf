@@ -116,6 +116,12 @@ variable "generate_rsa_signing_key" {
   default     = false
 }
 
+variable "credentials_preserve" {
+  description = "In-place legacy cutover support. When true, the module skips generating new OIDC client credentials (client_id, client_secret) and reads the existing values from the live `authentik-app-<application_slug>` secret bag via a data source. Drop the flag on the next apply once the cutover is verified; short-lived knob, removal slated for v4.x."
+  type        = bool
+  default     = false
+}
+
 variable "signing_key_subject" {
   description = "Subject for the RSA signing certificate when generate_rsa_signing_key is true. Object with common_name and organization."
   type = object({

@@ -180,6 +180,12 @@ variable "autoheal_enabled" {
   default     = true
 }
 
+variable "credentials_preserve" {
+  description = "In-place legacy cutover support. When true, the bundle skips `random_*` generation for app-level secrets (SECRET_KEY, UTILS_SECRET) and reads them from the live `outline-app-secrets` bag via a data source; the flag is also passed through to the OIDC and database submodules so their credentials are preserved end-to-end. Drop on the next apply after cutover verification; short-lived, removal slated for v4.x."
+  type        = bool
+  default     = false
+}
+
 variable "oidc_username_claim" {
   description = "OIDC claim Outline reads as the username. Authentik exposes both `preferred_username` (usually the email-local part or AK username) and `sub` (the stable UUID). Default matches Outline's documented expectation; switch to `sub` for installs where usernames change."
   type        = string

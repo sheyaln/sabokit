@@ -6,6 +6,12 @@ variable "enabled" {
   default     = false
 }
 
+variable "credentials_preserve" {
+  description = "In-place legacy cutover support. When true, the bundle skips `random_password` generation for all five Jitsi component credentials (JWT app secret, Jicofo + JVB + Jibri-XMPP + Jibri-recorder XMPP passwords) and reads them from the live `jitsi-app-secrets` bag via a single data source. Rotating any of these forces a stack restart and drops every active meeting. Also passed through to the OIDC submodule. Drop after cutover; short-lived, removal slated for v4.x."
+  type        = bool
+  default     = false
+}
+
 variable "base" {
   description = "Outputs from module \"base\". Apps consume { scaleway, authentik, compute, domains } from this. Shape documented in /ARCHITECTURE.md (\"What base/ outputs\")."
   type        = any

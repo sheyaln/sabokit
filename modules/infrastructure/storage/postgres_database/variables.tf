@@ -44,3 +44,9 @@ variable "tags" {
   type        = list(string)
   default     = []
 }
+
+variable "credentials_preserve" {
+  description = "In-place legacy cutover support. When true, skips `random_password` generation and reads the existing user password from the live `postgres-<database_name>-credentials` bag via a data source. Drop the flag after cutover; short-lived knob, removal slated for v4.x."
+  type        = bool
+  default     = false
+}

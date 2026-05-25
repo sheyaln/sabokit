@@ -22,6 +22,8 @@ module "outline" {
   deployment_host_key     = try(var.apps.outline.deployment_host_key, "apps")
   bucket_name_override    = try(var.apps.outline.bucket_name_override, "")
   dns_zone_override       = try(var.apps.outline.dns_zone_override, "")
+
+  credentials_preserve = try(var.apps.outline.credentials_preserve, false)
 }
 
 module "steward" {
@@ -48,6 +50,8 @@ module "steward" {
   monitoring_enabled           = try(var.apps.steward.monitoring_enabled, true)
   deployment_host_key          = try(var.apps.steward.deployment_host_key, "apps")
   dns_zone_override            = try(var.apps.steward.dns_zone_override, "")
+
+  credentials_preserve = try(var.apps.steward.credentials_preserve, false)
 }
 
 module "vikunja" {
@@ -74,6 +78,8 @@ module "vikunja" {
   monitoring_enabled      = try(var.apps.vikunja.monitoring_enabled, true)
   deployment_host_key     = try(var.apps.vikunja.deployment_host_key, "apps")
   dns_zone_override       = try(var.apps.vikunja.dns_zone_override, "")
+
+  credentials_preserve = try(var.apps.vikunja.credentials_preserve, false)
 }
 
 # Forward-auth app (no OIDC). Its provider_id MUST also be added to the
@@ -137,6 +143,8 @@ module "notifuse" {
   deployment_host_key     = try(var.apps.notifuse.deployment_host_key, "apps")
   bucket_name_override    = try(var.apps.notifuse.bucket_name_override, "")
   dns_zone_override       = try(var.apps.notifuse.dns_zone_override, "")
+
+  credentials_preserve = try(var.apps.notifuse.credentials_preserve, false)
 }
 
 # Broadsheet — sabokit-broadsheet fork of notifuse. Replaces notifuse going
@@ -164,6 +172,8 @@ module "broadsheet" {
   deployment_host_key     = try(var.apps.broadsheet.deployment_host_key, "apps")
   bucket_name_override    = try(var.apps.broadsheet.bucket_name_override, "")
   dns_zone_override       = try(var.apps.broadsheet.dns_zone_override, "")
+
+  credentials_preserve = try(var.apps.broadsheet.credentials_preserve, false)
 }
 
 # Nextcloud + OnlyOffice + Talk HPB ship as one stack — three hostnames
@@ -197,6 +207,8 @@ module "nextcloud" {
   deployment_host_key     = try(var.apps.nextcloud.deployment_host_key, "apps")
   bucket_name_override    = try(var.apps.nextcloud.bucket_name_override, "")
   dns_zone_override       = try(var.apps.nextcloud.dns_zone_override, "")
+
+  credentials_preserve = try(var.apps.nextcloud.credentials_preserve, false)
 }
 
 module "decidim" {
@@ -227,6 +239,8 @@ module "decidim" {
   deployment_host_key           = try(var.apps.decidim.deployment_host_key, "apps")
   bucket_name_override          = try(var.apps.decidim.bucket_name_override, "")
   dns_zone_override             = try(var.apps.decidim.dns_zone_override, "")
+
+  credentials_preserve = try(var.apps.decidim.credentials_preserve, false)
 }
 
 # OIDC via an adapter (NOT forward-auth — don't add jitsi.authentik_provider_id
@@ -260,6 +274,8 @@ module "jitsi" {
   monitoring_enabled         = try(var.apps.jitsi.monitoring_enabled, true)
   deployment_host_key        = try(var.apps.jitsi.deployment_host_key, "apps")
   dns_zone_override          = try(var.apps.jitsi.dns_zone_override, "")
+
+  credentials_preserve = try(var.apps.jitsi.credentials_preserve, false)
 }
 
 module "espocrm" {
@@ -290,6 +306,8 @@ module "espocrm" {
   monitoring_enabled             = try(var.apps.espocrm.monitoring_enabled, true)
   deployment_host_key            = try(var.apps.espocrm.deployment_host_key, "apps")
   dns_zone_override              = try(var.apps.espocrm.dns_zone_override, "")
+
+  credentials_preserve = try(var.apps.espocrm.credentials_preserve, false)
 }
 
 module "n8n" {
@@ -315,6 +333,8 @@ module "n8n" {
   monitoring_enabled           = try(var.apps.n8n.monitoring_enabled, true)
   deployment_host_key          = try(var.apps.n8n.deployment_host_key, "apps")
   dns_zone_override            = try(var.apps.n8n.dns_zone_override, "")
+
+  credentials_preserve = try(var.apps.n8n.credentials_preserve, false)
 }
 
 # App bundles export their backup contribution as `backup_plan` (null when
@@ -511,6 +531,8 @@ module "wazuh" {
   icon_url                = try(var.apps.wazuh.icon_url, "")
   icon_filename           = try(var.apps.wazuh.icon_filename, "")
   dns_zone_override       = try(var.apps.wazuh.dns_zone_override, "")
+
+  credentials_preserve = try(var.apps.wazuh.credentials_preserve, false)
 }
 
 module "grafana" {
@@ -540,6 +562,8 @@ module "grafana" {
   )
 
   dns_zone_override = try(var.apps.grafana.dns_zone_override, "")
+
+  credentials_preserve = try(var.apps.grafana.credentials_preserve, false)
 }
 
 # Backrest is multi-instance: each backed-up host gets its own module block,
@@ -576,6 +600,8 @@ module "backrest_mgmt" {
   deployment_host_key                   = try(var.apps.backrest_mgmt.deployment_host_key, "apps")
   bucket_name_override                  = try(var.apps.backrest_mgmt.bucket_name_override, "")
   dns_zone_override                     = try(var.apps.backrest_mgmt.dns_zone_override, "")
+
+  credentials_preserve = try(var.apps.backrest_mgmt.credentials_preserve, false)
 }
 
 # ── Platform host-services (one container per host) ─────────────────────────

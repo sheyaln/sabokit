@@ -9,8 +9,8 @@ output "user_name" {
 }
 
 output "password" {
-  description = "Generated password for the user. Prefer reading from secret_id."
-  value       = random_password.this.result
+  description = "Password for the user (generated or preserved). Prefer reading from secret_id."
+  value       = local.password
   sensitive   = true
 }
 

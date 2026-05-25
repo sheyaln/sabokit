@@ -6,6 +6,12 @@ variable "enabled" {
   default     = false
 }
 
+variable "credentials_preserve" {
+  description = "In-place legacy cutover support. When true, the bundle skips `random_id.django_secret_key` and skips creating the Authentik service-account token (`authentik_token.service_steward`), reading both values from the live `steward-app-secrets` bag via a data source. Rotating Django's SECRET_KEY invalidates every session and signed cookie; the service-account token is a long-lived API credential trusted by Authentik. Also passed through to OIDC and database submodules. Drop after cutover; short-lived, removal slated for v4.x."
+  type        = bool
+  default     = false
+}
+
 variable "base" {
   description = "Outputs from module \"base\". Apps consume { scaleway, authentik, compute, domains } from this. Shape documented in /ARCHITECTURE.md (\"What base/ outputs\")."
   type        = any

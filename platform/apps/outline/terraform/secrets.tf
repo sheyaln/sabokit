@@ -2,12 +2,12 @@
 # Stored in Scaleway Secret Manager so the Ansible role can pull them.
 
 resource "random_id" "secret_key" {
-  count       = var.enabled ? 1 : 0
+  count       = var.enabled && !var.credentials_preserve ? 1 : 0
   byte_length = 32
 }
 
 resource "random_id" "utils_secret" {
-  count       = var.enabled ? 1 : 0
+  count       = var.enabled && !var.credentials_preserve ? 1 : 0
   byte_length = 32
 }
 
@@ -20,13 +20,32 @@ resource "scaleway_secret" "app" {
   type        = "key_value"
 }
 
+# In-place cutover: read the live bag and reuse the existing SECRET_KEY +
+# UTILS_SECRET so encrypted DB columns remain readable.
+data "scaleway_secret" "preserved" {
+  count = var.enabled && var.credentials_preserve ? 1 : 0
+  name  = "${local.slug}-app-secrets"
+}
+
+data "scaleway_secret_version" "preserved" {
+  count     = var.enabled && var.credentials_preserve ? 1 : 0
+  secret_id = data.scaleway_secret.preserved[0].id
+  revision  = "latest"
+}
+
+locals {
+  _preserved   = (var.enabled && var.credentials_preserve) ? jsondecode(base64decode(data.scaleway_secret_version.preserved[0].data)) : {}
+  secret_key   = var.enabled ? (var.credentials_preserve ? local._preserved.SECRET_KEY : random_id.secret_key[0].hex) : ""
+  utils_secret = var.enabled ? (var.credentials_preserve ? local._preserved.UTILS_SECRET : random_id.utils_secret[0].hex) : ""
+}
+
 resource "scaleway_secret_version" "app" {
   count = var.enabled ? 1 : 0
 
   secret_id = scaleway_secret.app[0].id
   data = jsonencode({
-    SECRET_KEY     = random_id.secret_key[0].hex
-    UTILS_SECRET   = random_id.utils_secret[0].hex
+    SECRET_KEY     = local.secret_key
+    UTILS_SECRET   = local.utils_secret
     OUTLINE_URL    = local.app_url
     OIDC_CLIENT_ID = module.authentik[0].client_id
     # OIDC_CLIENT_SECRET is also available at scaleway secret module.authentik[0].scaleway_secret_id;

@@ -3,7 +3,7 @@
 # the generated value for the lifetime of the deployment — to truly rotate,
 # operators must taint this resource AND export-then-reimport every workspace.
 resource "random_password" "secret_key" {
-  count   = var.enabled ? 1 : 0
+  count   = var.enabled && !var.credentials_preserve ? 1 : 0
   length  = 64
   special = false
 
@@ -16,7 +16,7 @@ resource "random_password" "secret_key" {
 # Once Broadsheet boots and the root user exists, rotating here doesn't change
 # the in-DB password — same ignore_changes treatment.
 resource "random_password" "root_admin" {
-  count   = var.enabled ? 1 : 0
+  count   = var.enabled && !var.credentials_preserve ? 1 : 0
   length  = 32
   special = true
 
@@ -34,16 +34,34 @@ resource "scaleway_secret" "app" {
   type        = "key_value"
 }
 
+# In-place cutover: read the live bag and pin SECRET_KEY + ROOT_ADMIN_PASSWORD.
+data "scaleway_secret" "preserved" {
+  count = var.enabled && var.credentials_preserve ? 1 : 0
+  name  = "${local.slug}-app-secrets"
+}
+
+data "scaleway_secret_version" "preserved" {
+  count     = var.enabled && var.credentials_preserve ? 1 : 0
+  secret_id = data.scaleway_secret.preserved[0].id
+  revision  = "latest"
+}
+
+locals {
+  _preserved          = (var.enabled && var.credentials_preserve) ? jsondecode(base64decode(data.scaleway_secret_version.preserved[0].data)) : {}
+  secret_key          = var.enabled ? (var.credentials_preserve ? local._preserved.SECRET_KEY : random_password.secret_key[0].result) : ""
+  root_admin_password = var.enabled ? (var.credentials_preserve ? local._preserved.ROOT_ADMIN_PASSWORD : random_password.root_admin[0].result) : ""
+}
+
 resource "scaleway_secret_version" "app" {
   count = var.enabled ? 1 : 0
 
   secret_id = scaleway_secret.app[0].id
   data = jsonencode({
-    SECRET_KEY          = random_password.secret_key[0].result
+    SECRET_KEY          = local.secret_key
     API_ENDPOINT        = local.api_endpoint
     ROOT_EMAIL          = var.root_admin_email
     ROOT_ADMIN_EMAIL    = var.root_admin_email
-    ROOT_ADMIN_PASSWORD = random_password.root_admin[0].result
+    ROOT_ADMIN_PASSWORD = local.root_admin_password
 
     OIDC_ENABLED          = "true"
     OIDC_ISSUER_URL       = "https://${var.base.authentik.gateway_domain}/application/o/${local.application_slug}/"

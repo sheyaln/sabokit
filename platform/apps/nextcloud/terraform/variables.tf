@@ -6,6 +6,12 @@ variable "enabled" {
   default     = false
 }
 
+variable "credentials_preserve" {
+  description = "In-place legacy cutover support. When true, the bundle skips `random_password` generation for every secret in the `nextcloud-app-secrets` bag (admin bootstrap password, Redis password, OnlyOffice JWT + secure link, Talk turn/signaling/internal secrets) and reads each value from the live bag via a data source. Also passed through to OIDC and database submodules. Drop after cutover; short-lived, removal slated for v4.x."
+  type        = bool
+  default     = false
+}
+
 variable "base" {
   description = "Outputs from module \"base\". Apps consume { scaleway, authentik, compute, domains } from this. Shape documented in /ARCHITECTURE.md (\"What base/ outputs\")."
   type        = any
