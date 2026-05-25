@@ -580,6 +580,146 @@ apps:
           description: Full icon URL override. When set, used verbatim and icon_filename is ignored.
           ui: advanced
 
+  # ── Broadsheet ──────────────────────────────────────────────────────────
+  # Newsletters + transactional email (sabokit-broadsheet fork of notifuse).
+  # OIDC via Authentik. Stateful: SECRET_KEY is immutable after first apply
+  # (encrypts every workspace secret). Defaults to admin-only access.
+  # See platform/apps/broadsheet/.
+  - id: broadsheet
+    display_name: Broadsheet
+    category: productivity
+    description_short: Newsletters + transactional email (sabokit-broadsheet fork)
+    description: |
+      Self-hosted newsletters + transactional email manager. Sabokit-broadsheet
+      is a maintained fork of notifuse carrying OIDC patches and rebranded UI;
+      same SendGrid/Mailjet-class delivery engine. Federated SSO via Authentik
+      with magic-link fallback.
+    icon: icons/broadsheet.svg
+    upstream_url: https://github.com/sheyaln/sabokit-broadsheet
+
+    tfvars:
+      key: broadsheet
+      schema:
+        enabled:
+          type: bool
+          default: true
+          description: Whether Broadsheet is deployed in this environment.
+          ui: hidden
+
+        hostname:
+          type: string
+          required: true
+          description: Public hostname Broadsheet is served at.
+          example: email.example.org
+          subdomain_default: email
+          ui: text
+          validation:
+            pattern: ^[a-z0-9.-]+\.[a-z]{2,}$
+
+        root_admin_email:
+          type: string
+          required: true
+          description: Email for the initial root admin. Used both as ROOT_EMAIL identity and ROOT_ADMIN_EMAIL bootstrap login. Password is auto-generated and stored in the app-secrets bag.
+          example: ops@example.org
+          ui: text
+
+        smtp_from_email:
+          type: string
+          default: ''
+          description: From-address for outbound mail. Empty disables SMTP (Broadsheet won't be able to send).
+          example: notify@example.org
+          ui: text
+
+        oidc_auto_provision:
+          type: bool
+          default: true
+          description: Auto-create a Broadsheet user on first OIDC login.
+          ui: advanced
+
+        oidc_allow_magic_code:
+          type: bool
+          default: true
+          description: Allow magic-link login fallback alongside OIDC. Recommended on so admins can recover if OIDC breaks.
+          ui: advanced
+
+        deployment_host_key:
+          type: string
+          default: apps
+          description: Which host (key in compute_hosts) Broadsheet runs on.
+          ui: advanced
+
+        access_level:
+          type: string
+          default: admin
+          description: Authentik group key granting baseline access. Default admin-only (Broadsheet is an operator tool).
+          ui: advanced
+
+        tier_cascade_enabled:
+          type: bool
+          default: true
+          description: Derive authorized groups from the platform tier cascade (member→delegate→treasurer→admin; each tier inherits all lower). Set false to fall back to access_level + extra_authorized_groups.
+          ui: advanced
+
+        tier_access_level:
+          type: string
+          default: admin
+          description: Cascade tier required for baseline access. Users in this tier and any higher are admitted. Only consulted when tier_cascade_enabled = true.
+          ui: advanced
+
+        monitoring_enabled:
+          type: bool
+          default: true
+          description: Wire Broadsheet log paths into the monitoring stack.
+          ui: advanced
+
+        category_group:
+          type: string
+          default: Productivity
+          description: Section the app appears under in the Authentik portal.
+          ui: advanced
+
+        application_name:
+          type: string
+          default: Broadsheet
+          description: Display name for the Authentik portal entry. Override for branded portals.
+          ui: advanced
+
+        application_slug:
+          type: string
+          default: ""
+          description: Override the Authentik application slug. Default empty = use the bundle's stock slug (`broadsheet`). Set to a legacy slug to enable in-place import without force-replace.
+          ui: advanced
+
+        icon_filename:
+          type: string
+          default: broadsheet-icon.png
+          description: Icon filename to fetch from base.authentik.icon_base_url. Empty = no icon. Overridden by icon_url (full URL).
+          ui: advanced
+
+        icon_url:
+          type: string
+          default: ""
+          description: Full icon URL override. When set, used verbatim and icon_filename is ignored.
+          ui: advanced
+
+        build_from_source:
+          type: bool
+          default: true
+          description: Build the broadsheet image on the host from image_source_repo. Default true — sabokit-broadsheet's published image stream isn't always current.
+          ui: advanced
+
+        image_source_repo:
+          type: string
+          default: https://github.com/sheyaln/sabokit-broadsheet.git
+          description: Git URL cloned when building from source.
+          ui: advanced
+
+        image_source_ref:
+          type: string
+          default: main
+          description: Git ref (branch, tag, or SHA) checked out when building from source. Pin to a tag/SHA for reproducibility.
+          ui: advanced
+
   # ── Privacy policy ──────────────────────────────────────────────────────
   # Public static page. No Authentik integration — privacy policies must be
   # reachable without login. Consumer provides HTML + logo via the Ansible
