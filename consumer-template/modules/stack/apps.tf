@@ -14,6 +14,7 @@ module "outline" {
   tier_cascade_enabled    = try(var.apps.outline.tier_cascade_enabled, true)
   tier_access_level       = try(var.apps.outline.tier_access_level, "member")
   smtp_from_email         = try(var.apps.outline.smtp_from_email, "")
+  application_name        = try(var.apps.outline.application_name, "Wiki (Outline)")
   monitoring_enabled      = try(var.apps.outline.monitoring_enabled, true)
   deployment_host_key     = try(var.apps.outline.deployment_host_key, "apps")
 }
@@ -34,6 +35,7 @@ module "steward" {
   invite_flow_slug        = try(var.apps.steward.invite_flow_slug, "")
   image_repository        = try(var.apps.steward.image_repository, "ghcr.io/sheyaln/sabokit-steward")
   image_tag               = try(var.apps.steward.image_tag, "latest")
+  application_name        = try(var.apps.steward.application_name, "Steward")
   monitoring_enabled      = try(var.apps.steward.monitoring_enabled, true)
   deployment_host_key     = try(var.apps.steward.deployment_host_key, "apps")
 }
@@ -55,6 +57,7 @@ module "vikunja" {
   enable_local_auth       = try(var.apps.vikunja.enable_local_auth, false)
   smtp_from_email         = try(var.apps.vikunja.smtp_from_email, "")
   oidc_groups_scope_name  = try(var.apps.vikunja.oidc_groups_scope_name, "vikunja_scope")
+  application_name        = try(var.apps.vikunja.application_name, "Tasks (Vikunja)")
   monitoring_enabled      = try(var.apps.vikunja.monitoring_enabled, true)
   deployment_host_key     = try(var.apps.vikunja.deployment_host_key, "apps")
 }
@@ -74,6 +77,7 @@ module "bentopdf" {
   tier_cascade_enabled    = try(var.apps.bentopdf.tier_cascade_enabled, true)
   tier_access_level       = try(var.apps.bentopdf.tier_access_level, "member")
   image                   = try(var.apps.bentopdf.image, "ghcr.io/digital-blueprint/bento-pdf:latest")
+  application_name        = try(var.apps.bentopdf.application_name, "PDF Tools (BentoPDF)")
   monitoring_enabled      = try(var.apps.bentopdf.monitoring_enabled, true)
   deployment_host_key     = try(var.apps.bentopdf.deployment_host_key, "apps")
 }
@@ -106,6 +110,7 @@ module "notifuse" {
   smtp_from_email         = try(var.apps.notifuse.smtp_from_email, "")
   oidc_auto_provision     = try(var.apps.notifuse.oidc_auto_provision, true)
   oidc_allow_magic_code   = try(var.apps.notifuse.oidc_allow_magic_code, true)
+  application_name        = try(var.apps.notifuse.application_name, "Notifuse")
   monitoring_enabled      = try(var.apps.notifuse.monitoring_enabled, true)
   deployment_host_key     = try(var.apps.notifuse.deployment_host_key, "apps")
 }
@@ -133,6 +138,7 @@ module "nextcloud" {
   default_phone_region    = try(var.apps.nextcloud.default_phone_region, "US")
   max_upload_size_bytes   = try(var.apps.nextcloud.max_upload_size_bytes, 2147483648)
   smtp_from_email         = try(var.apps.nextcloud.smtp_from_email, "")
+  application_name        = try(var.apps.nextcloud.application_name, "Nextcloud")
   monitoring_enabled      = try(var.apps.nextcloud.monitoring_enabled, true)
   deployment_host_key     = try(var.apps.nextcloud.deployment_host_key, "apps")
 }
@@ -157,6 +163,7 @@ module "decidim" {
   organization_admin_email      = try(var.apps.decidim.organization_admin_email, "")
   smtp_from_email               = try(var.apps.decidim.smtp_from_email, "")
   sidekiq_concurrency           = try(var.apps.decidim.sidekiq_concurrency, 5)
+  application_name              = try(var.apps.decidim.application_name, "Decidim")
   monitoring_enabled            = try(var.apps.decidim.monitoring_enabled, true)
   deployment_host_key           = try(var.apps.decidim.deployment_host_key, "apps")
 }
@@ -185,6 +192,7 @@ module "jitsi" {
   oidc_adapter_image_repo    = try(var.apps.jitsi.oidc_adapter_image_repo, "https://github.com/sabokit/jitsi-oidc-adapter.git")
   oidc_adapter_image_version = try(var.apps.jitsi.oidc_adapter_image_version, "main")
   oidc_log_level             = try(var.apps.jitsi.oidc_log_level, "INFO")
+  application_name           = try(var.apps.jitsi.application_name, "Video Meetings (Jitsi)")
   monitoring_enabled         = try(var.apps.jitsi.monitoring_enabled, true)
   deployment_host_key        = try(var.apps.jitsi.deployment_host_key, "apps")
 }
@@ -210,6 +218,7 @@ module "espocrm" {
   oidc_group_role_mapping        = try(var.apps.espocrm.oidc_group_role_mapping, {})
   enable_member_entity_bootstrap = try(var.apps.espocrm.enable_member_entity_bootstrap, false)
   member_entity_webhooks         = try(var.apps.espocrm.member_entity_webhooks, [])
+  application_name               = try(var.apps.espocrm.application_name, "CRM (EspoCRM)")
   monitoring_enabled             = try(var.apps.espocrm.monitoring_enabled, true)
   deployment_host_key            = try(var.apps.espocrm.deployment_host_key, "apps")
 }
@@ -229,6 +238,7 @@ module "n8n" {
   n8n_admin_group_name    = try(var.apps.n8n.n8n_admin_group_name, "admin")
   timezone                = try(var.apps.n8n.timezone, "UTC")
   public_api_disabled     = try(var.apps.n8n.public_api_disabled, true)
+  application_name        = try(var.apps.n8n.application_name, "Workflows (n8n)")
   monitoring_enabled      = try(var.apps.n8n.monitoring_enabled, true)
   deployment_host_key     = try(var.apps.n8n.deployment_host_key, "apps")
 }
@@ -392,6 +402,7 @@ module "wazuh" {
   release_version         = try(var.apps.wazuh.release_version, "4.9.0")
   indexer_heap_size       = try(var.apps.wazuh.indexer_heap_size, "1g")
   oidc_admin_group        = try(var.apps.wazuh.oidc_admin_group, "admin")
+  application_name        = try(var.apps.wazuh.application_name, "Wazuh")
 }
 
 module "grafana" {
@@ -409,6 +420,7 @@ module "grafana" {
   plugins                 = try(var.apps.grafana.plugins, [])
   oidc_admin_group        = try(var.apps.grafana.oidc_admin_group, "admin")
   oidc_editor_group       = try(var.apps.grafana.oidc_editor_group, "manager")
+  application_name        = try(var.apps.grafana.application_name, "Grafana")
   # Auto-aggregated from every enabled app's monitoring.grafana_dashboards
   # plus any consumer-supplied extras.
   grafana_dashboards = concat(
@@ -444,6 +456,7 @@ module "backrest_mgmt" {
   restic_prune_max_frequency_days       = try(var.apps.backrest_mgmt.restic_prune_max_frequency_days, 7)
   restic_check_max_frequency_days       = try(var.apps.backrest_mgmt.restic_check_max_frequency_days, 30)
   restic_check_read_data_subset_percent = try(var.apps.backrest_mgmt.restic_check_read_data_subset_percent, 5)
+  application_name                      = try(var.apps.backrest_mgmt.application_name, "")
   monitoring_enabled                    = try(var.apps.backrest_mgmt.monitoring_enabled, true)
   deployment_host_key                   = try(var.apps.backrest_mgmt.deployment_host_key, "apps")
 }

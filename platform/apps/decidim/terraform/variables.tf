@@ -23,6 +23,12 @@ variable "category_group" {
   default     = "Participation"
 }
 
+variable "application_name" {
+  description = "Display name for the bundle's Authentik application (shown in the portal + admin UI). Default matches the bundle's stock name; override per-consumer for branded portal entries (e.g. \"Sabo Cloud Provider\" instead of \"Nextcloud\")."
+  type        = string
+  default     = "Decidim"
+}
+
 variable "icon_url" {
   description = "Optional icon path in Authentik media (e.g. \"decidim-icon.png\")."
   type        = string

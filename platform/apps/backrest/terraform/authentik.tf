@@ -7,7 +7,7 @@ module "authentik" {
   source = "../../../../modules/authentik/traefik-forward-auth"
   count  = var.enabled ? 1 : 0
 
-  application_name = "Backrest (${var.instance_name})"
+  application_name = var.application_name != "" ? var.application_name : "Backrest (${var.instance_name})"
   application_slug = local.qualified_slug
   category_group   = var.category_group
   icon_url         = var.icon_url
