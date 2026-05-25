@@ -2,6 +2,16 @@
 
 All notable changes to sabokit go here. Versioning follows semver; major bumps signal breaking contract changes for consumers.
 
+## v2.18.2 — 2026-05-25
+
+Critical safety fix for state-import flows. Without this, importing existing `scaleway_secret_version` resources triggers a destroy+recreate on next apply because the Scaleway API doesn't return the `data` attribute on read — every refreshed `random_password` ends up looking like a forces_replacement diff.
+
+### Fixed
+- **`lifecycle { ignore_changes = [data] }` added to every `scaleway_secret_version` that writes computed values.** Covers oidc-app credentials, saml-app credentials, every per-app database secret (postgres / postgres_database modules), identity_bootstrap database secret, TEM credentials, and every app-bundle secret_version. Side effect: rotating the underlying `random_password` no longer auto-rolls the secret_version on apply — taint the resource explicitly to rotate.
+
+### Migration
+- Consumers mid-state-import: this fix lets `terraform plan` stop showing force-replace on imported secret_versions. Re-plan after the bump; expect the destroys to disappear.
+
 ## v2.18.1 — 2026-05-25
 
 Two staging-stand-up UX fixes peer flagged from a fresh DEV1-M cutover.

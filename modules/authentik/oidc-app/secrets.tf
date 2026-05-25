@@ -37,6 +37,14 @@ resource "scaleway_secret_version" "oidc_credentials" {
 
     sub_mode = var.sub_mode
   })
+
+  lifecycle {
+    # Scaleway's API does not return secret values on read; after a
+    # `terraform import` the refreshed `data` is null and the rendered
+    # jsonencode looks like a forces_replacement diff. Locking the version
+    # keeps imported secrets intact. Rotate by tainting this resource.
+    ignore_changes = [data]
+  }
 }
 
 # ── Local values for use in main.tf ──────────────────────────────────────────

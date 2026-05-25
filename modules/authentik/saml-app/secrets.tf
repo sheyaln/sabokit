@@ -25,4 +25,12 @@ resource "scaleway_secret_version" "saml_credentials" {
     signature_algorithm = var.saml_signature_algorithm
     default_relay_state = var.saml_default_relay_state != null ? var.saml_default_relay_state : ""
   })
+
+  lifecycle {
+    # Scaleway's API doesn't return secret values on read; after `terraform
+    # import` the refreshed `data` is null and re-render looks like a
+    # forces_replacement diff. Locking the version keeps imported secrets
+    # intact. Rotate by tainting this resource.
+    ignore_changes = [data]
+  }
 }

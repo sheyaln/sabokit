@@ -119,4 +119,12 @@ resource "scaleway_secret_version" "smtp_config" {
     domain     = local.tem_sender_domain_resolved
     from_email = local.tem_from_email_resolved
   })
+
+  lifecycle {
+    # Scaleway's API doesn't return secret values on read; after `terraform
+    # import` the refreshed `data` is null and re-render looks like a
+    # forces_replacement diff. Lock the version. Rotate the TEM key by
+    # tainting scaleway_iam_api_key.tem AND this resource together.
+    ignore_changes = [data]
+  }
 }

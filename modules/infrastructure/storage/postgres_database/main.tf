@@ -56,4 +56,12 @@ resource "scaleway_secret_version" "this" {
     port     = tostring(var.instance_endpoint.port)
   })
   description = "Database credentials for ${var.database_name}"
+
+  lifecycle {
+    # Scaleway's API doesn't return secret values on read; after `terraform
+    # import` the refreshed `data` is null and re-render looks like a
+    # forces_replacement diff — destroying live DB creds. Lock the version.
+    # Rotate by tainting this resource.
+    ignore_changes = [data]
+  }
 }

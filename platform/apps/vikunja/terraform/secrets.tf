@@ -31,4 +31,12 @@ resource "scaleway_secret_version" "app" {
     # when smtp_secret_name is non-empty).
     VIKUNJA_MAILER_FROMEMAIL = var.smtp_from_email
   })
+
+  lifecycle {
+    # Scaleway's API doesn't return secret values on read; after `terraform
+    # import` the refreshed `data` is null and re-render forces replacement,
+    # rotating VIKUNJA_SERVICE_JWTSECRET and invalidating every issued token.
+    # Lock the version. Rotate by tainting this resource.
+    ignore_changes = [data]
+  }
 }

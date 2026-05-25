@@ -96,6 +96,14 @@ resource "scaleway_secret_version" "admin_credentials" {
     port     = tostring(scaleway_rdb_instance.this.private_network[0].port)
   })
   description = "Admin credentials for ${var.instance_name}."
+
+  lifecycle {
+    # Scaleway's API doesn't return secret values on read; after `terraform
+    # import` the refreshed `data` is null and re-render looks like a
+    # forces_replacement diff — destroying admin creds in-flight. Lock the
+    # version. Rotate by tainting this resource.
+    ignore_changes = [data]
+  }
 }
 
 resource "scaleway_rdb_privilege" "privileges" {
@@ -127,6 +135,12 @@ resource "scaleway_secret_version" "db_credentials" {
     port     = tostring(scaleway_rdb_instance.this.private_network[0].port)
   })
   description = "Database credentials for ${each.value}"
+
+  lifecycle {
+    # See admin_credentials lifecycle: API-on-read returns null so re-render
+    # forces replacement on imported secrets, dropping every app's DB creds.
+    ignore_changes = [data]
+  }
 }
 
 output "database_credentials_secrets" {

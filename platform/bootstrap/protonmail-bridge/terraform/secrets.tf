@@ -35,4 +35,11 @@ resource "scaleway_secret_version" "imap_config" {
     password = data.scaleway_secret_version.bridge_login[0].data
     use_tls  = "starttls"
   })
+
+  lifecycle {
+    # Scaleway's API doesn't return secret values on read; after `terraform
+    # import` the refreshed `data` is null and re-render forces replacement.
+    # Lock the version. Rotate by tainting this resource.
+    ignore_changes = [data]
+  }
 }

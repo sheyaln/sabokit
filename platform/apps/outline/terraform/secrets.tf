@@ -51,4 +51,12 @@ resource "scaleway_secret_version" "app" {
 
     SMTP_FROM_EMAIL = var.smtp_from_email
   })
+
+  lifecycle {
+    # Scaleway's API doesn't return secret values on read; after `terraform
+    # import` the refreshed `data` is null and re-render forces replacement,
+    # rotating SECRET_KEY/UTILS_SECRET and breaking every encrypted column
+    # in the DB. Lock the version. Rotate by tainting this resource.
+    ignore_changes = [data]
+  }
 }
