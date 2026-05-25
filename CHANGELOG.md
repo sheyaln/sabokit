@@ -2,6 +2,16 @@
 
 All notable changes to sabokit go here. Versioning follows semver; major bumps signal breaking contract changes for consumers.
 
+## v2.12.1 — Remove postiz bundle
+
+Postiz shipped briefly in v2.11.0 (~hours, before any consumer adopted it) and is removed per user direction: too AI-heavy. Mechanical reversal — bundle dir deleted, consumer-template module + aggregations dropped, apps-manifest entry removed, gen_apps_yml.py BUNDLES list trimmed. Bundle count: 19.
+
+If you set `apps.postiz.enabled = true` in v2.11.0 tfvars (window was <1 hour), remove the block before bumping or terraform will error on the missing module. No state to migrate — postiz was never `apply`-ed in any documented consumer environment.
+
+Postiz won't be re-pitched as a bundle. Consumers wanting social-media scheduling self-host outside fc.
+
+---
+
 ## v2.12.0 — Full zabbix substitution: blackbox active probing + JSM contact point
 
 Two pieces that closed the gap left when zabbix was dropped:
