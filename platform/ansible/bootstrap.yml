@@ -15,10 +15,13 @@
     - role: ufw
     # split-dns must land before docker so dnsmasq owns :53 by the time
     # the docker daemon starts binding its bridge. Role end_play's when
-    # split_dns_overrides is empty (single-host deployments).
+    # split_dns_overrides is empty (single-host deployments). The role's
+    # defaults/main.yml has `split_dns_overrides: {}` — extra-vars or
+    # play vars override it via Ansible's normal precedence chain. A
+    # passthrough block `vars: { split_dns_overrides: "{{ split_dns_overrides | default({}) }}" }`
+    # here would self-recurse through jinja when extra-vars don't supply
+    # the key.
     - role: split-dns
-      vars:
-        split_dns_overrides: "{{ split_dns_overrides | default({}) }}"
     - role: docker
     - role: fail2ban
 
