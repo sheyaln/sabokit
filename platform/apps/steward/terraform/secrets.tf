@@ -40,4 +40,11 @@ resource "scaleway_secret_version" "app" {
     AUTHENTIK_ADMIN_GROUP = var.admin_group_name
     AUTHENTIK_INVITE_FLOW = var.invite_flow_slug
   })
+
+  lifecycle {
+    # Scaleway's API doesn't return secret values on read; after `terraform
+    # import` the refreshed `data` is null and re-render forces replacement.
+    # Lock the version. Rotate by tainting this resource.
+    ignore_changes = [data]
+  }
 }
