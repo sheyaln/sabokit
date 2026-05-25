@@ -107,6 +107,12 @@ apps:
           description: Section the app appears under in the Authentik portal.
           ui: advanced
 
+        application_name:
+          type: string
+          default: Wiki (Outline)
+          description: Display name for the Authentik portal entry. Override for branded portals.
+          ui: advanced
+
   # ── Steward ─────────────────────────────────────────────────────────────
   # Simplified Authentik admin UI for non-technical org admins. Members of
   # `admin_group_name` (matched against the OIDC `groups` claim) can sign in
@@ -189,6 +195,12 @@ apps:
           type: string
           default: Administration
           description: Section the app appears under in the Authentik portal.
+          ui: advanced
+
+        application_name:
+          type: string
+          default: Steward
+          description: Display name for the Authentik portal entry. Override for branded portals.
           ui: advanced
 
   # ── Vikunja ─────────────────────────────────────────────────────────────
@@ -294,6 +306,12 @@ apps:
           description: Section the app appears under in the Authentik portal.
           ui: advanced
 
+        application_name:
+          type: string
+          default: Tasks (Vikunja)
+          description: Display name for the Authentik portal entry. Override for branded portals.
+          ui: advanced
+
   # ── BentoPDF ────────────────────────────────────────────────────────────
   # Browser-based PDF toolkit (merge, split, OCR, redact). Stateless — no
   # DB, no storage. Authenticated via Authentik forward-auth (the embedded
@@ -362,6 +380,12 @@ apps:
           type: string
           default: Tools
           description: Section the app appears under in the Authentik portal.
+          ui: advanced
+
+        application_name:
+          type: string
+          default: PDF Tools (BentoPDF)
+          description: Display name for the Authentik portal entry. Override for branded portals.
           ui: advanced
 
   # ── Notifuse ────────────────────────────────────────────────────────────
@@ -458,6 +482,12 @@ apps:
           type: string
           default: Productivity
           description: Section the app appears under in the Authentik portal.
+          ui: advanced
+
+        application_name:
+          type: string
+          default: Notifuse
+          description: Display name for the Authentik portal entry. Override for branded portals.
           ui: advanced
 
   # ── Privacy policy ──────────────────────────────────────────────────────
@@ -625,6 +655,12 @@ apps:
           description: Section the app appears under in the Authentik portal.
           ui: advanced
 
+        application_name:
+          type: string
+          default: Nextcloud
+          description: Display name for the Authentik portal entry. Override for branded portals.
+          ui: advanced
+
   # ── Decidim ─────────────────────────────────────────────────────────────
   # Participatory democracy platform. Multi-container (web + sidekiq),
   # postgres + S3, OIDC.
@@ -724,6 +760,12 @@ apps:
           type: string
           default: Knowledge
           description: Section the app appears under in the Authentik portal.
+          ui: advanced
+
+        application_name:
+          type: string
+          default: Decidim
+          description: Display name for the Authentik portal entry. Override for branded portals.
           ui: advanced
 
   # ── Jitsi ───────────────────────────────────────────────────────────────
@@ -826,6 +868,12 @@ apps:
           description: Section the app appears under in the Authentik portal.
           ui: advanced
 
+        application_name:
+          type: string
+          default: Video Meetings (Jitsi)
+          description: Display name for the Authentik portal entry. Override for branded portals.
+          ui: advanced
+
   # ── EspoCRM ─────────────────────────────────────────────────────────────
   # PHP CRM with OIDC. Member-entity bootstrap is opt-in (sets up
   # constituent/dues tracking on top of the generic CRM).
@@ -919,6 +967,12 @@ apps:
           description: Section the app appears under in the Authentik portal.
           ui: advanced
 
+        application_name:
+          type: string
+          default: CRM (EspoCRM)
+          description: Display name for the Authentik portal entry. Override for branded portals.
+          ui: advanced
+
   # ── n8n ─────────────────────────────────────────────────────────────────
   # Workflow automation. OIDC via Authentik; a bundled hooks.js promotes
   # members of n8n_admin_group_name to n8n's owner role.
@@ -1006,6 +1060,12 @@ apps:
           description: Section the app appears under in the Authentik portal.
           ui: advanced
 
+        application_name:
+          type: string
+          default: Workflows (n8n)
+          description: Display name for the Authentik portal entry. Override for branded portals.
+          ui: advanced
+
   # ── Backrest ────────────────────────────────────────────────────────────
   # Restic-based backups per host (each host = its own instance + bucket).
   # Forward-auth via the embedded outpost. Multi-instance: consumers
@@ -1082,6 +1142,12 @@ apps:
           type: string
           default: Operations
           description: Section the app appears under in the Authentik portal.
+          ui: advanced
+
+        application_name:
+          type: string
+          default: ""
+          description: Display name for the Authentik portal entry. Empty default keeps the per-instance shape `Backrest (<instance_name>)`; set to a literal string for branded portals.
           ui: advanced
 
   # ── Watchtower ──────────────────────────────────────────────────────────
@@ -1456,6 +1522,12 @@ apps:
           description: Authentik portal category.
           ui: advanced
 
+        application_name:
+          type: string
+          default: Grafana
+          description: Display name for the Authentik portal entry. Override for branded portals.
+          ui: advanced
+
   # ── Wazuh ───────────────────────────────────────────────────────────────
   # SIEM server stack: manager + indexer (OpenSearch) + dashboard. UI fronted
   # via Authentik forward-auth at the gateway (the dashboard's native SSO is
@@ -1532,6 +1604,12 @@ apps:
           type: string
           default: Security
           description: Authentik portal category.
+          ui: advanced
+
+        application_name:
+          type: string
+          default: Wazuh
+          description: Display name for the Authentik portal entry. Override for branded portals.
           ui: advanced
 
   # ── Wazuh Agent ─────────────────────────────────────────────────────────

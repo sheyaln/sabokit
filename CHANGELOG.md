@@ -2,6 +2,16 @@
 
 All notable changes to sabokit go here. Versioning follows semver; major bumps signal breaking contract changes for consumers.
 
+## v2.13.2 — `application_name` knob on every authentik-integrated bundle
+
+Adds an `application_name` input to the 13 bundles that hardcoded their Authentik portal display name: outline, steward, vikunja, bentopdf, notifuse, nextcloud, decidim, jitsi, espocrm, n8n, grafana, wazuh, backrest. Default on each matches the previous hardcoded string — zero diff for existing consumers on apply. Backrest's default is empty string, preserving the per-instance shape `Backrest (<instance_name>)` until a consumer sets a literal override.
+
+Use case: consumers branding the portal for their org-facing identity ("Sabo Cloud Provider" instead of "Nextcloud", "Local 123 Wiki" instead of "Wiki (Outline)", etc.) without forking the bundle. Set via `apps.<bundle>.application_name` in tfvars.
+
+Consumer-template `apps.tf` surfaces the knob as a `try(var.apps.<bundle>.application_name, "<stock>")` passthrough — same pattern as every other optional override on the bundles. Manifest entries added next to each bundle's `category_group` schema slot, `ui: advanced`.
+
+---
+
 ## v2.13.1 — Fix dropped monitoring contributions from wazuh, backrest, diun
 
 Peer-flagged during prod cutover audit: `consumer-template/modules/stack/apps.tf`'s `_monitoring_contribs` list was missing three bundles with non-empty `monitoring` outputs:

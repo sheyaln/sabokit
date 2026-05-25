@@ -23,6 +23,12 @@ variable "category_group" {
   default     = "Knowledge"
 }
 
+variable "application_name" {
+  description = "Display name for the bundle's Authentik application (shown in the portal + admin UI). Default matches the bundle's stock name; override per-consumer for branded portal entries (e.g. \"Sabo Cloud Provider\" instead of \"Nextcloud\")."
+  type        = string
+  default     = "Wiki (Outline)"
+}
+
 variable "icon_url" {
   description = "Optional icon path in Authentik media (e.g. \"outline-icon.png\")."
   type        = string
