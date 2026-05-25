@@ -22,6 +22,7 @@ locals {
     loki_log_paths = [
       "/var/log/containers/backrest-${var.instance_name}-*.log",
     ]
-    alert_rules = []
+    alert_rules      = []
+    blackbox_targets = var.hostname != "" ? ["https://${var.hostname}/"] : []
   } : null
 }

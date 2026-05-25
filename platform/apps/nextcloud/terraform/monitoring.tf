@@ -14,5 +14,12 @@ locals {
       "/var/log/containers/nextcloud-talk-*.log",
     ]
     alert_rules = []
+    # Three public hostnames — main UI, OnlyOffice editor, Talk HPB signaling.
+    # Probe each; any one down breaks a different bit of the user experience.
+    blackbox_targets = compact([
+      var.hostname != "" ? "https://${var.hostname}/status.php" : "",
+      var.onlyoffice_hostname != "" ? "https://${var.onlyoffice_hostname}/healthcheck" : "",
+      var.talk_hostname != "" ? "https://${var.talk_hostname}/api/v1/welcome" : "",
+    ])
   } : null
 }

@@ -9,6 +9,7 @@ locals {
       "/var/log/containers/espocrm-*.log",
       "/var/log/containers/espocrm-daemon-*.log",
     ]
-    alert_rules = []
+    alert_rules      = []
+    blackbox_targets = var.hostname != "" ? ["https://${var.hostname}/"] : []
   } : null
 }

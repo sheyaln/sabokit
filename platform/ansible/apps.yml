@@ -250,6 +250,9 @@
     prometheus_timezone: "{{ enabled_apps.prometheus.ansible_vars.prometheus_timezone }}"
     prometheus_auto_update_enabled: "{{ enabled_apps.prometheus.ansible_vars.prometheus_auto_update_enabled }}"
     prometheus_autoheal_enabled: "{{ enabled_apps.prometheus.ansible_vars.prometheus_autoheal_enabled }}"
+    prometheus_blackbox_exporter_enabled: "{{ enabled_apps.prometheus.ansible_vars.prometheus_blackbox_exporter_enabled }}"
+    prometheus_blackbox_exporter_image_tag: "{{ enabled_apps.prometheus.ansible_vars.prometheus_blackbox_exporter_image_tag }}"
+    prometheus_blackbox_targets: "{{ enabled_apps.prometheus.ansible_vars.prometheus_blackbox_targets }}"
     prometheus_tem_exporter_enabled: "{{ enabled_apps.prometheus.ansible_vars.prometheus_tem_exporter_enabled }}"
     prometheus_tem_smtp_secret_id: "{{ enabled_apps.prometheus.ansible_vars.prometheus_tem_smtp_secret_id }}"
     prometheus_tem_scaleway_project_id: "{{ enabled_apps.prometheus.ansible_vars.prometheus_tem_scaleway_project_id }}"
@@ -296,6 +299,10 @@
     grafana_auto_update_enabled: "{{ enabled_apps.grafana.ansible_vars.grafana_auto_update_enabled }}"
     grafana_autoheal_enabled: "{{ enabled_apps.grafana.ansible_vars.grafana_autoheal_enabled }}"
     grafana_dashboards: "{{ enabled_apps.grafana.ansible_vars.grafana_dashboards }}"
+    grafana_jsm_api_key_secret_id: "{{ enabled_apps.grafana.ansible_vars.grafana_jsm_api_key_secret_id }}"
+    grafana_jsm_api_region: "{{ enabled_apps.grafana.ansible_vars.grafana_jsm_api_region }}"
+    grafana_jsm_priority_mapping: "{{ enabled_apps.grafana.ansible_vars.grafana_jsm_priority_mapping }}"
+    grafana_jsm_alert_tags: "{{ enabled_apps.grafana.ansible_vars.grafana_jsm_alert_tags }}"
   when: enabled_apps.grafana is defined and enabled_apps.grafana is not none
   tags: [apps, grafana]
 - import_playbook: ../apps/watchtower/ansible/playbook.yml

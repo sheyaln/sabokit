@@ -60,6 +60,10 @@ output "ansible" {
       grafana_auto_update_enabled        = var.auto_update_enabled
       grafana_autoheal_enabled           = var.autoheal_enabled
       grafana_dashboards                 = var.grafana_dashboards
+      grafana_jsm_api_key_secret_id      = var.jsm_api_key_secret_id
+      grafana_jsm_api_region             = var.jsm_api_region
+      grafana_jsm_priority_mapping       = var.jsm_priority_mapping
+      grafana_jsm_alert_tags             = var.jsm_alert_tags
     }
   } : null
 }

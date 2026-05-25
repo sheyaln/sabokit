@@ -13,6 +13,7 @@ locals {
       "/var/log/containers/postiz-redis-*.log",
       "/var/log/containers/temporal-*.log",
     ]
-    alert_rules = []
+    alert_rules      = []
+    blackbox_targets = var.hostname != "" ? ["https://${var.hostname}/"] : []
   } : null
 }

@@ -61,6 +61,24 @@ variable "remote_write_enabled" {
   default     = true
 }
 
+variable "blackbox_exporter_enabled" {
+  description = "Deploy the bundled Prometheus Blackbox Exporter sidecar — actively probes URLs over HTTP(S)/TCP/ICMP and exposes probe_success, probe_http_status_code, probe_ssl_earliest_cert_expiry, probe_duration_seconds. Default true; opt-out. Consumer-aggregated `blackbox_targets` from every enabled bundle plus this module's `blackbox_targets` input are rendered into a Prometheus file_sd target list. Sidecar is internal-only (monitoring_internal network, port 9115)."
+  type        = bool
+  default     = true
+}
+
+variable "blackbox_exporter_image_tag" {
+  description = "blackbox_exporter image tag. Pin in production."
+  type        = string
+  default     = "v0.28.0"
+}
+
+variable "blackbox_targets" {
+  description = "Extra probe targets beyond the consumer-aggregated set (e.g. probe an external dependency you care about). Each entry is a full URL. Default empty."
+  type        = list(string)
+  default     = []
+}
+
 variable "tem_exporter_enabled" {
   description = "Deploy the bundled Scaleway TEM exporter sidecar (Python; polls Scaleway's TEM API and exposes /metrics on port 9111). Pair with the bundled `scaleway-tem` dashboard + alert rules. Requires `tem_smtp_secret_id` so the role can pull the TEM-scoped API key out of Scaleway Secret Manager (the SMTP password from base's smtp-config secret IS that key)."
   type        = bool

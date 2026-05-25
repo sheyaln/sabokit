@@ -29,6 +29,16 @@ prometheus_autoheal_enabled: true
 prometheus_node_exporter_image_tag: "latest"
 prometheus_cadvisor_image_tag: "latest"
 
+# Blackbox exporter sidecar — actively probes URLs over HTTP(S)/TCP/ICMP.
+# Pairs with monitoring/dashboards/blackbox.json + monitoring/alerts/blackbox.yml.
+# Targets are the consumer-aggregated probe URLs from every enabled bundle.
+prometheus_blackbox_exporter_enabled: true
+prometheus_blackbox_exporter_image: "prom/blackbox-exporter"
+prometheus_blackbox_exporter_image_tag: "v0.28.0"
+prometheus_blackbox_exporter_port: 9115
+prometheus_blackbox_targets: []
+prometheus_blackbox_scrape_interval: "60s"
+
 # Scaleway TEM exporter sidecar — runs alongside prometheus when enabled,
 # polls Scaleway's TEM API, exposes /metrics on port 9111 (internal only).
 # Pairs with monitoring/dashboards/scaleway-tem.json + monitoring/alerts/scaleway-tem.yml.

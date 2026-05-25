@@ -8,6 +8,7 @@ locals {
     loki_log_paths = [
       "/var/log/containers/steward-*.log",
     ]
-    alert_rules = []
+    alert_rules      = []
+    blackbox_targets = var.hostname != "" ? ["https://${var.hostname}/"] : []
   } : null
 }

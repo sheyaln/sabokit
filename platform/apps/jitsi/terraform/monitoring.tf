@@ -15,6 +15,7 @@ locals {
       "/var/log/containers/jitsi-jvb-*.log",
       "/var/log/containers/jitsi-oidc-adapter-*.log",
     ]
-    alert_rules = []
+    alert_rules      = []
+    blackbox_targets = var.hostname != "" ? ["https://${var.hostname}/"] : []
   } : null
 }

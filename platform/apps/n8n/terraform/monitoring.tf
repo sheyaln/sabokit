@@ -13,6 +13,7 @@ locals {
       "/var/log/containers/n8n-*.log",
       "/var/log/containers/n8n-runners-*.log",
     ]
-    alert_rules = []
+    alert_rules      = []
+    blackbox_targets = var.hostname != "" ? ["https://${var.hostname}/"] : []
   } : null
 }

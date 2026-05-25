@@ -121,6 +121,34 @@ variable "prometheus_scrape_interval" {
   default     = "30s"
 }
 
+variable "jsm_api_key_secret_id" {
+  description = "Scaleway secret ID holding the JSM Operations (heritage Opsgenie) API integration key, JSON-encoded as `{ \"api_key\": \"...\" }`. Empty disables JSM provisioning entirely (default). When set, Grafana provisions a `jsm-default` contact point and routes the root notification policy to it — i.e. every firing alert pages JSM unless a child policy overrides. Existing v2.11.0 consumers stay unaffected until they fill this in."
+  type        = string
+  default     = ""
+}
+
+variable "jsm_api_region" {
+  description = "JSM API region: `us` (default, https://api.atlassian.com/jsm/ops) or `eu` (https://api.eu.atlassian.com/jsm/ops). Pick the one your Atlassian site is in. The heritage Opsgenie URLs (api.opsgenie.com / api.eu.opsgenie.com) still work too but Atlassian recommends the jsm/ops path."
+  type        = string
+  default     = "us"
+  validation {
+    condition     = contains(["us", "eu"], var.jsm_api_region)
+    error_message = "jsm_api_region must be \"us\" or \"eu\"."
+  }
+}
+
+variable "jsm_priority_mapping" {
+  description = "Map of Grafana alert `severity` label value -> JSM priority (P1-P5). Default maps critical/warning/info to P1/P3/P5. Override per your on-call runbook (e.g. all-P1 if you don't run severity tiers)."
+  type        = map(string)
+  default     = { critical = "P1", warning = "P3", info = "P5" }
+}
+
+variable "jsm_alert_tags" {
+  description = "Tags attached to every alert sent to JSM. Useful for routing rules in JSM's notification policies. Default tags the alert as originating from sabokit."
+  type        = list(string)
+  default     = ["sabokit"]
+}
+
 variable "grafana_dashboards" {
   description = "Dashboards to provision into Grafana's file provider. The consumer reads each path from every enabled app's monitoring.grafana_dashboards (list(string) of file paths), turns it into {filename, contents}, and passes the union here. The role writes one file per entry under /etc/grafana/provisioning/dashboards/; Grafana's file provider auto-reloads (no restart needed)."
   type = list(object({

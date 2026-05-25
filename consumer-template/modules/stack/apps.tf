@@ -309,6 +309,9 @@ locals {
   aggregated_alert_rules = flatten([
     for c in local._monitoring_contribs : try(c.alert_rules, [])
   ])
+  aggregated_blackbox_targets = distinct(flatten([
+    for c in local._monitoring_contribs : try(c.blackbox_targets, [])
+  ]))
   # Each entry in monitoring.grafana_dashboards is an absolute path to a JSON
   # file in the consumer's .terraform module cache. Read contents here so the
   # grafana role can write the files with no ansible-side path juggling.
@@ -369,9 +372,14 @@ module "prometheus" {
   remote_write_enabled = try(var.apps.prometheus.remote_write_enabled, true)
   private_ip_bind      = try(var.apps.prometheus.private_ip_bind, "")
   # Auto-aggregated from every enabled app's monitoring.prometheus_scrape_configs
-  # + monitoring.alert_rules.
-  scrape_configs = concat(local.aggregated_scrape_configs, try(var.apps.prometheus.scrape_configs, []))
-  alert_rules    = concat(local.aggregated_alert_rules, try(var.apps.prometheus.alert_rules, []))
+  # + monitoring.alert_rules + monitoring.blackbox_targets.
+  scrape_configs   = concat(local.aggregated_scrape_configs, try(var.apps.prometheus.scrape_configs, []))
+  alert_rules      = concat(local.aggregated_alert_rules, try(var.apps.prometheus.alert_rules, []))
+  blackbox_targets = concat(local.aggregated_blackbox_targets, try(var.apps.prometheus.blackbox_targets, []))
+
+  # Blackbox exporter sidecar — actively probes every public hostname on the
+  # platform. Opt-out per the plug-and-play-owns-networking philosophy.
+  blackbox_exporter_enabled = try(var.apps.prometheus.blackbox_exporter_enabled, true)
 
   # Scaleway TEM exporter sidecar — pairs with the bundled scaleway-tem
   # dashboard + alert rules. Reuses the smtp-config secret base writes
