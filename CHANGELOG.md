@@ -2,6 +2,31 @@
 
 All notable changes to sabokit go here. Versioning follows semver; major bumps signal breaking contract changes for consumers.
 
+## v2.11.0 — New bundle: Postiz (social media scheduling) + wazuh output doc fix
+
+**New app bundle**: `platform/apps/postiz/` — social media scheduling + content management (https://github.com/gitroomhq/postiz-app, MIT). 5-container stack inside the bundle: postiz (web+api), redis, temporal, temporal-postgresql, temporal-elasticsearch. Postiz's main app DB lives on Scaleway RDB (the standard fc pattern); temporal's metadata DB stays bundled in-stack to avoid fighting Scaleway RDB's lifecycle for a glorified workflow store.
+
+**Heavy footprint** — elasticsearch alone wants ~1GB RAM. Plan for ~3GB minimum allocated to the bundle. Not a fit for the smallest staging instances; document this when deciding `deployment_host_key` placement.
+
+**Auth**: native OIDC via Postiz's generic-OAuth env vars (`POSTIZ_OAUTH_*`) → Authentik. Not forward-auth — Postiz has its own login UI that consumes OIDC tokens directly. Default `tier_access_level = "delegate"` — scheduling org social media is sensitive enough that the lowest tier shouldn't have access by default.
+
+**Storage**: local filesystem only for v1 of this bundle. Postiz's generic-S3 PR (gitroomhq/postiz-app#1124) is still open upstream — only Cloudflare R2 + local are natively supported, and fc is Scaleway-only. Uploads live in the `postiz-uploads` docker volume; backed up by backrest. When Postiz adds S3 support, a follow-up wires it into Scaleway Object Storage with the standard `storage_class` toggle.
+
+**Social-platform OAuth** (X, LinkedIn, Reddit, GitHub, Threads, Facebook, YouTube, TikTok, Pinterest, Dribbble, Discord, Slack, Mastodon, BeeBiive): 14 platforms supported via the `social_platform_credentials` bundle var. Consumer obtains keys from each platform's developer console out-of-band; bundle plumbs them through as scaleway secrets. Empty by default — Postiz silently omits unconfigured platforms. Per-platform env-var naming is upstream-inconsistent (X uses `X_API_KEY/X_API_SECRET`, BEEHIIV is spelled `BEEHIIVE_*` upstream, Discord has an extra `DISCORD_BOT_TOKEN_ID`) — bundle preserves the verbatim upstream spelling.
+
+**Caveats**:
+- Postiz exposes no native `/metrics` endpoint (verified). `monitoring.prometheus_scrape_configs = []` for v1.
+- Healthcheck is a wget probe against the web port (Postiz's compose ships no native healthcheck); 120s `start_period` grace to avoid autoheal thrash during cold start.
+- Temporal UI + spotlight/sentry sidecars from upstream's docker-compose are intentionally dropped — debug/admin convenience, not required.
+
+Standard contracts implemented: `ansible`, `monitoring`, `backup_plan`, `split_dns_entries`, `required_inbound_rules`, `authentik_provider_id`.
+
+---
+
+**Drive-by fix**: `platform/apps/wazuh/terraform/outputs.tf` — `authentik_provider_id` output description was stale from before the v2.7.2 native-OIDC migration. Said "proxy-provider" + "Consumer MUST include in identity's extra_forward_auth_provider_ids" — both wrong. Wazuh uses native OIDC via opensearch-security; adding it to the forward-auth list would tell the embedded outpost to bind an OIDC provider it can't use. Behavior was already correct; only the doc misled.
+
+---
+
 ## v2.10.3 — Bundle-level `storage_class` toggle on every bucket-creating bundle
 
 Until now every Scaleway object bucket fc spins up was Standard Multi-AZ (€0.0146/GB/mo). For backrest specifically — a restic repository that's cold by definition — that was 6x too expensive vs the right tier.
