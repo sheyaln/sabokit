@@ -141,7 +141,7 @@ resource "authentik_application" "application" {
   meta_launch_url  = var.launch_url
   meta_description = var.description
   open_in_new_tab  = true
-  meta_icon        = var.icon_url != null ? var.icon_url : "default-logo.png"
+  meta_icon        = var.icon_url != "" ? var.icon_url : "default-logo.png"
 
   policy_engine_mode = "any"
 }

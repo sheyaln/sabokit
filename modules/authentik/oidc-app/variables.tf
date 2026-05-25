@@ -34,9 +34,9 @@ variable "launch_url" {
 }
 
 variable "icon_url" {
-  description = "Optional icon path (relative to Authentik media, e.g. 'outline-icon.png') or full URL."
+  description = "Optional icon — full URL or Authentik-media-relative path. Empty falls back to `default-logo.png`."
   type        = string
-  default     = null
+  default     = ""
 }
 
 variable "description" {
