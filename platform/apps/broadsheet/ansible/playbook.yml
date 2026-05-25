@@ -1,0 +1,6 @@
+---
+- name: Deploy Broadsheet
+  hosts: "{{ broadsheet_host_group | default('apps') }}"
+  become: true
+  roles:
+    - role: broadsheet
