@@ -2,6 +2,23 @@
 
 All notable changes to sabokit go here. Versioning follows semver; major bumps signal breaking contract changes for consumers.
 
+## v3.0.0 — 2026-05-25 — Rebrand to sabokit
+
+sabokit is now sabokit. Same blueprint, new name, expanded runner image.
+
+### Breaking
+- **Repo renamed: `github.com/sheyaln/sabokit` → `github.com/sheyaln/sabokit`.** GitHub redirects clones automatically. Consumers must update terraform module sources from `git::https://github.com/sheyaln/sabokit.git//...` to `git::https://github.com/sheyaln/sabokit.git//...` and rerun `terraform init`.
+- **Runner image renamed: `ghcr.io/sheyaln/sabokit-runner` → `ghcr.io/sheyaln/sabokit-runner`.** Old image stream is no longer published from v3.0.0 onwards. v2.x tags of the old image stay available on GHCR for the duration of any v2.x migration window.
+- **`scripts/fc-runner.sh` renamed to `scripts/sabokit-runner.sh`.** Behavior unchanged; consumers update their invocations.
+- **All `/opt/sabokit/...` paths inside containers + ansible role defaults moved to `/opt/sabokit/...`.** Affects custom volume mounts and any operator scripts that referenced the old path.
+
+### Added
+- **Terraform CLI baked into the sabokit-runner image** (pinned via `TERRAFORM_VERSION` build arg, default 1.10.5). The runner can now invoke `terraform <subcommand>` as well as `ansible-playbook`. Scaleway state-backend creds passed via `SCW_*` env vars.
+- **`platform/ansible/down.yml`** — per-app teardown playbook. Tagged `[down, <app-slug>]` mirroring `apps.yml`. Volumes preserved by default; future sabokit CLI `--purge` flag handles volume removal.
+
+### History rewrite (separate operation)
+A follow-on force-push will rewrite history in place to strip any residual Co-Authored-By trailers and squash half-assed commits. All v* tags (v0.x through v2.18.2) will be re-pointed to the rewritten ancestors. **Consumers should re-clone after the rewrite lands.** Watch for a separate v3.0.1 or v3.1.0 announcement.
+
 ## v2.18.2 — 2026-05-25
 
 Critical safety fix for state-import flows. Without this, importing existing `scaleway_secret_version` resources triggers a destroy+recreate on next apply because the Scaleway API doesn't return the `data` attribute on read — every refreshed `random_password` ends up looking like a forces_replacement diff.
@@ -54,8 +71,8 @@ Set `var.identity.tier_slots` in your root tfvars — the variable is required, 
 Consumer-facing wrapper around the runner image + a working secret-rotation path. Stop telling consumers to clone the repo.
 
 ### Added
-- **`scripts/fc-runner.sh`** — friendly bash wrapper around `ghcr.io/sheyaln/sabokit-runner`. Flags: `--apps`, `--servers` (alias `--hosts`), `--base`, `--no-base`, `--rotate-secrets`, `--check`, `--overlay`, `--inventory`, `--enabled-apps`, `--env`, `--image`, `--dry-run`, `--verbose`. Bash 3.2 compatible. Image tag defaults to the wrapper's own version; pin via `--image`. Recipe table front-and-center in `docker/runner/README.md` + raw `docker run` equivalent below for transparency.
-- **`[secrets]` tag across 14 app roles** (backrest, broadsheet, decidim, espocrm, grafana, jitsi, n8n, nextcloud, notifuse, outline, prometheus, steward, vikunja, wazuh). 70 tasks tagged in total — Scaleway secret-ID normalization, `lookup()` fetches, SMTP-config defaults, env-file renders, secret-bearing config renders. `fc-runner --rotate-secrets` (or `ansible-playbook --tags secrets`) re-runs the secret path only; restart handlers fire when env content changes. Convention documented in `platform/ansible/README.md`.
+- **`scripts/sabokit-runner.sh`** — friendly bash wrapper around `ghcr.io/sheyaln/sabokit-runner`. Flags: `--apps`, `--servers` (alias `--hosts`), `--base`, `--no-base`, `--rotate-secrets`, `--check`, `--overlay`, `--inventory`, `--enabled-apps`, `--env`, `--image`, `--dry-run`, `--verbose`. Bash 3.2 compatible. Image tag defaults to the wrapper's own version; pin via `--image`. Recipe table front-and-center in `docker/runner/README.md` + raw `docker run` equivalent below for transparency.
+- **`[secrets]` tag across 14 app roles** (backrest, broadsheet, decidim, espocrm, grafana, jitsi, n8n, nextcloud, notifuse, outline, prometheus, steward, vikunja, wazuh). 70 tasks tagged in total — Scaleway secret-ID normalization, `lookup()` fetches, SMTP-config defaults, env-file renders, secret-bearing config renders. `sabokit-runner --rotate-secrets` (or `ansible-playbook --tags secrets`) re-runs the secret path only; restart handlers fire when env content changes. Convention documented in `platform/ansible/README.md`.
 
 ### Notes
 - Per-app secret rotation via `--rotate-secrets --apps X` is union semantics, not intersection — runs both all-secrets AND all-of-X. For genuine per-app rotation, run `--apps X` directly: the full role is idempotent and re-fetches secrets along the way (seconds-fast).

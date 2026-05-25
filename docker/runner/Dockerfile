@@ -18,11 +18,12 @@
 FROM python:3.12-slim
 
 ARG ANSIBLE_CORE_VERSION=2.18.1
-ARG FEDERATED_COMMONS_VERSION=dev
+ARG SABOKIT_VERSION=dev
+ARG TERRAFORM_VERSION=1.10.5
 
 LABEL org.opencontainers.image.source="https://github.com/sheyaln/sabokit"
-LABEL org.opencontainers.image.description="Ansible runner for sabokit. Ansible + collections + every bundle's role baked in at the matching repo tag."
-LABEL org.opencontainers.image.version="${FEDERATED_COMMONS_VERSION}"
+LABEL org.opencontainers.image.description="Ansible + Terraform runner for sabokit. Ansible-core + collections + Terraform CLI + every bundle's role baked in at the matching repo tag."
+LABEL org.opencontainers.image.version="${SABOKIT_VERSION}"
 LABEL org.opencontainers.image.licenses="MIT"
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -32,6 +33,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
       curl \
       jq \
       sshpass \
+      unzip \
     && rm -rf /var/lib/apt/lists/*
 
 RUN pip install --no-cache-dir \
@@ -48,9 +50,20 @@ RUN ansible-galaxy collection install --force \
       scaleway.scaleway \
     && rm -rf /root/.ansible/tmp
 
+# Terraform CLI. Pinned via TERRAFORM_VERSION build arg. Bumped per sabokit
+# release; consumers override with --build-arg TERRAFORM_VERSION=X.Y.Z.
+RUN curl -fsSL https://releases.hashicorp.com/terraform/${TERRAFORM_VERSION}/terraform_${TERRAFORM_VERSION}_linux_amd64.zip \
+      -o /tmp/tf.zip \
+    && unzip /tmp/tf.zip -d /usr/local/bin \
+    && rm /tmp/tf.zip \
+    && terraform -version
+
 COPY platform/ /opt/sabokit/platform/
 COPY scripts/  /opt/sabokit/scripts/
 
+# Default WORKDIR is the ansible tree (most invocations are ansible-playbook).
+# For terraform invocations the sabokit CLI sets its own workdir and mounts the
+# consumer's TF tree at /project.
 WORKDIR /opt/sabokit/platform/ansible
 
 ENTRYPOINT ["ansible-playbook"]

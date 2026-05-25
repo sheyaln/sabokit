@@ -1,31 +1,31 @@
-# Ansible runner image + fc-runner wrapper
+# sabokit-runner image + sabokit-runner wrapper
 
-The runner image is `ghcr.io/sheyaln/sabokit-runner:<tag>`. It bundles ansible-core + four collections + the entire `platform/` tree at the matching repo tag. Published on every `v*` tag push by `.github/workflows/runner-publish.yml`.
+The runner image is `ghcr.io/sheyaln/sabokit-runner:<tag>`. It bundles ansible-core + four collections + the Terraform CLI + the entire `platform/` tree at the matching repo tag. Published on every `v*` tag push by `.github/workflows/runner-publish.yml`.
 
-`scripts/fc-runner.sh` is the consumer-facing wrapper. Hides the docker invocation behind friendly flags.
+`scripts/sabokit-runner.sh` is the consumer-facing wrapper for the ansible side. Hides the docker invocation behind friendly flags.
 
 ## Install
 
 ```
-curl -fsSL https://raw.githubusercontent.com/sheyaln/sabokit/v2.17.0/scripts/fc-runner.sh \
-  -o /usr/local/bin/fc-runner && chmod +x /usr/local/bin/fc-runner
+curl -fsSL https://raw.githubusercontent.com/sheyaln/sabokit/v3.0.0/scripts/sabokit-runner.sh \
+  -o /usr/local/bin/sabokit-runner && chmod +x /usr/local/bin/sabokit-runner
 ```
 
-Image tag tracks the wrapper version. `fc-runner --image v2.16.2` pulls a different tag (testing pre-release / pinning a known-good).
+Image tag tracks the wrapper version. `sabokit-runner --image v2.16.2` pulls a different tag (testing pre-release / pinning a known-good).
 
 ## Recipes
 
 | intent | command |
 | --- | --- |
-| full deploy | `fc-runner` |
-| redeploy one app | `fc-runner --apps outline` |
-| redeploy several apps | `fc-runner --apps outline,n8n` |
-| fast (skip base layer) | `fc-runner --apps outline --no-base` |
-| reprovision one server | `fc-runner --servers tools-prod` |
-| base only, one host | `fc-runner --base --servers authentik-prod` |
-| rotate secrets, all hosts | `fc-runner --rotate-secrets` |
-| rotate secrets, one host | `fc-runner --rotate-secrets --servers tools-prod` |
-| rotate secrets for one app | `fc-runner --apps outline` (see note) |
+| full deploy | `sabokit-runner` |
+| redeploy one app | `sabokit-runner --apps outline` |
+| redeploy several apps | `sabokit-runner --apps outline,n8n` |
+| fast (skip base layer) | `sabokit-runner --apps outline --no-base` |
+| reprovision one server | `sabokit-runner --servers tools-prod` |
+| base only, one host | `sabokit-runner --base --servers authentik-prod` |
+| rotate secrets, all hosts | `sabokit-runner --rotate-secrets` |
+| rotate secrets, one host | `sabokit-runner --rotate-secrets --servers tools-prod` |
+| rotate secrets for one app | `sabokit-runner --apps outline` (see note) |
 | dry-run any of the above | append `--check` |
 | inspect the docker invocation | append `--dry-run` |
 | with consumer overlay | prepend `--overlay ansible-local` |
@@ -74,17 +74,50 @@ docker run --rm -it \
   -i /env/inventory.ini -e @/env/enabled_apps.json
 ```
 
-`fc-runner --dry-run [flags...]` prints the exact docker invocation it would run — useful for porting to CI/CD or one-off debugging.
+`sabokit-runner --dry-run [flags...]` prints the exact docker invocation it would run — useful for porting to CI/CD or one-off debugging.
 
-## Image scope
+## What's in the image
 
-Built on `python:3.12-slim`. Contains:
+Built on `python:3.12-slim`.
 
-- ansible-core (pinned via `ANSIBLE_CORE_VERSION` build arg)
-- collections: `community.docker`, `community.general`, `ansible.posix`, `scaleway.scaleway`
-- python deps: `requests`, `jmespath`, `passlib`, `docker`
-- the full `platform/` tree at the matching repo tag (apps, base, identity, bootstrap)
+| component | pin | source |
+| --- | --- | --- |
+| ansible-core | `ANSIBLE_CORE_VERSION` build arg (default 2.18.1) | pip |
+| terraform CLI | `TERRAFORM_VERSION` build arg (default 1.10.5) | hashicorp release zip |
+| ansible collections | locked by ansible-core resolution at build | `community.docker`, `community.general`, `ansible.posix`, `scaleway.scaleway` |
+| python deps | unpinned (rebuilt per tag) | `requests`, `jmespath`, `passlib`, `docker` |
+| OS pkgs | apt baseline | `openssh-client`, `git`, `ca-certificates`, `curl`, `jq`, `sshpass`, `unzip` |
+| platform/ tree | matches the image tag | baked from the repo at build time |
 
-Not in the image: terraform, consumer-template, secrets, TF state. State stays on the consumer side.
+Not in the image: consumer-template, secrets, TF state. State stays on the consumer side.
 
-Entrypoint: `ansible-playbook`. Workdir: `/opt/sabokit/platform/ansible`. Image is also what `sabokit-manager` (Go+Wails deploy wizard) shells out to.
+## Workdir + entrypoint
+
+Entrypoint: `ansible-playbook`. Default WORKDIR: `/opt/sabokit/platform/ansible` (ansible-only invocations).
+
+For terraform invocations, override the entrypoint and set workdir to the consumer's TF tree. Convention: mount it at `/project`:
+
+```
+docker run --rm -it \
+  --entrypoint terraform \
+  -v "$PWD/terraform:/project" -w /project \
+  -e SCW_ACCESS_KEY -e SCW_SECRET_KEY \
+  -e SCW_DEFAULT_ORGANIZATION_ID -e SCW_DEFAULT_PROJECT_ID \
+  ghcr.io/sheyaln/sabokit-runner:vX.Y.Z \
+  apply
+```
+
+The sabokit CLI (Go+Wails deploy wizard) wraps this and sets the workdir itself.
+
+## Scaleway state-backend credentials
+
+Terraform reads Scaleway creds from env. Pass via `-e` or `--env-file`:
+
+| env var | purpose |
+| --- | --- |
+| `SCW_ACCESS_KEY` | API key for state R/W + resource ops |
+| `SCW_SECRET_KEY` | matching secret |
+| `SCW_DEFAULT_ORGANIZATION_ID` | org for default provider |
+| `SCW_DEFAULT_PROJECT_ID` | project for default provider |
+
+Image is also what `sabokit-manager` (Go+Wails deploy wizard) shells out to.
