@@ -126,5 +126,10 @@ resource "authentik_policy_binding" "authorized" {
 
   target = authentik_application.application.uuid
   group  = each.value
-  order  = 10
+  # Authentik's API enforces uniqueness on (policy, target, order) for UPDATE.
+  # A hardcoded order=10 across all bindings means the 2nd binding onward
+  # fails with HTTP 400 — and you can't reverse out of a partial apply
+  # because the pre-check rejects both directions. Stagger via lex-ordered
+  # key index so each binding lands in a distinct slot.
+  order = 10 + index(keys(var.authorized_groups), each.key)
 }
