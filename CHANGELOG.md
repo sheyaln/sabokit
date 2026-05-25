@@ -2,6 +2,16 @@
 
 All notable changes to sabokit go here. Versioning follows semver; major bumps signal breaking contract changes for consumers.
 
+## v2.14.3 — Stagger authentik policy_binding order to avoid API uniqueness collision
+
+Peer-reported correctness bug surfaced during DCIWW prod cutover. Four `modules/authentik/` helper modules — `bookmark`, `oidc-app`, `saml-app`, `traefik-forward-auth` — hardcoded `order = 10` on their `for_each` `authentik_policy_binding "authorized"` resources. Authentik's API enforces uniqueness on `(policy, target, order)` for UPDATE; the second binding onward errors with `HTTP 400 "The fields policy, target, order must make a unique set"` once `authorized_groups` has more than one entry. Worse: the API rejects roll-back from the partial-apply state because the same constraint blocks both directions.
+
+Fix: `order = 10 + index(keys(var.authorized_groups), each.key)` — lex-ordered key index gives each binding a distinct slot. Deterministic across applies; no migration. Existing consumers whose `authorized_groups` only had one entry see no diff.
+
+Affects every consumer using >1 `authorized_groups` on any of the four helper modules. Most existing fc app bundles pass cascade-derived authorized_groups via the tier-cascade module, which can produce 2-12 entries depending on `tier_access_level`.
+
+---
+
 ## v2.14.2 — Close stale identity ref pin in consumer-template
 
 `consumer-template/modules/stack/{identity.tf,identity_bootstrap.tf}` had their source refs pinned at `v2.8.1` since that tag's cycle-bug ship — never bumped along with subsequent identity work. v2.14.1 was supposed to bump them; the perl edit landed after the branch commit and missed the merge. Shipping as a one-line patch.
