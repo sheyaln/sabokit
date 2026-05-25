@@ -110,3 +110,8 @@ variable "gateway_compute_host_key" {
   type    = string
   default = null
 }
+
+variable "custom_dns_records" {
+  type    = any
+  default = {}
+}

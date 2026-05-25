@@ -217,6 +217,20 @@ apps = {
   # }
 }
 
+# Custom DNS records — MX for inbound mail, additional TXT verifications,
+# SRV records, etc. Each key must match a zone in base.domains.zones
+# (currently {base_domain, mgmt_domain}); records for unknown zones are
+# dropped silently. Co-exists with TEM's auto-managed SPF/DKIM/DMARC.
+#
+# custom_dns_records = {
+#   "example.org" = [
+#     { subdomain = "@", type = "MX",  target = "10 mail.protonmail.ch.",    ttl = 3600 },
+#     { subdomain = "@", type = "MX",  target = "20 mailsec.protonmail.ch.", ttl = 3600 },
+#     { subdomain = "@", type = "TXT", target = "v=spf1 include:_spf.protonmail.ch -all" },
+#     { subdomain = "protonmail._domainkey", type = "TXT", target = "v=DKIM1; k=rsa; p=..." },
+#   ]
+# }
+
 # SMTP is OPTIONAL. Empty (the default) means the identity flows still
 # apply but every email step no-ops at runtime — useful for first cold-start.
 # To enable outbound email later: create a Scaleway secret with a JSON
