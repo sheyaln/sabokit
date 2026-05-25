@@ -50,7 +50,7 @@ variable "alert_rules" {
 }
 
 variable "exporters_enabled" {
-  description = "Whether to deploy node_exporter + cadvisor alongside Prometheus on the same host as default scrape targets. Default true — almost every consumer wants host + container metrics."
+  description = "Whether to deploy node_exporter + cadvisor alongside Prometheus on the same host as default scrape targets. Default true — host + container metrics are the common scrape baseline."
   type        = bool
   default     = true
 }

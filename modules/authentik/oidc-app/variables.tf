@@ -72,7 +72,7 @@ variable "oidc_scopes" {
 }
 
 variable "additional_property_mapping_ids" {
-  description = "IDs of property mappings the consumer wants attached to the provider in addition to the built-in scope mappings. Use this to inject app-specific custom scopes."
+  description = "IDs of property mappings to attach to the provider in addition to the built-in scope mappings. Inject app-specific custom scopes here."
   type        = list(string)
   default     = []
 }
