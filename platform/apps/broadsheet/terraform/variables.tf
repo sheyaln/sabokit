@@ -86,25 +86,25 @@ variable "deployment_host_key" {
 # ── Broadsheet-specific inputs ──────────────────────────────────────────────
 
 variable "image" {
-  description = "Broadsheet Docker image repository (without tag). Only consulted when `build_from_source = false`. Default deploy builds from source on the host (see `build_from_source`)."
+  description = "Broadsheet Docker image repository (without tag). The default pulls the published sabokit-broadsheet image — flip `build_from_source = true` to build from a git checkout on the host instead."
   type        = string
-  default     = "ghcr.io/sheyaln/sabokit-broadsheet"
+  default     = "ghcr.io/sheyaln/broadsheet"
 }
 
 variable "image_tag" {
-  description = "Broadsheet Docker image tag. Pin in production. Only consulted when `build_from_source = false`."
+  description = "Broadsheet Docker image tag. Pin in production."
   type        = string
   default     = "latest"
 }
 
 variable "build_from_source" {
-  description = "Build the Broadsheet image on the deployment host from a cloned git repo instead of pulling. Default `true` — sabokit-broadsheet is a fork carrying patches (OIDC, branding) and the published image stream isn't always current. When true, `image_source_repo` + `image_source_ref` define the checkout; the resulting image is tagged `broadsheet-local:latest` on the host and `image`/`image_tag` are ignored."
+  description = "Opt-in: build the Broadsheet image on the deployment host from a cloned git repo instead of pulling. Default `false` — published images are the supported path. Set true only when you need an unreleased patch on the fork; when true, `image_source_repo` + `image_source_ref` define the checkout, the resulting image is tagged `broadsheet-local:latest` on the host, and `image`/`image_tag` are ignored."
   type        = bool
-  default     = true
+  default     = false
 }
 
 variable "image_source_repo" {
-  description = "Git URL the host clones when `build_from_source = true`. Defaults to the sabokit-broadsheet fork (https://github.com/sheyaln/sabokit-broadsheet)."
+  description = "Git URL the host clones when `build_from_source = true`. Defaults to the sabokit-broadsheet fork."
   type        = string
   default     = "https://github.com/sheyaln/sabokit-broadsheet.git"
 }
@@ -116,7 +116,7 @@ variable "image_source_ref" {
 }
 
 variable "auto_update_enabled" {
-  description = "Whether the Watchtower platform bundle (if deployed) auto-pulls newer Broadsheet image versions. Default true — bug-fix releases are routine. NOTE: when build_from_source = true, Watchtower can't update the locally-built image; this knob only takes effect for pull-mode deploys."
+  description = "Whether the Watchtower platform bundle (if deployed) auto-pulls newer Broadsheet image versions. Default true. Only takes effect for pull-mode deploys — Watchtower can't update a locally-built image when `build_from_source = true`."
   type        = bool
   default     = true
 }
