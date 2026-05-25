@@ -2,6 +2,43 @@
 
 All notable changes to sabokit go here. Versioning follows semver; major bumps signal breaking contract changes for consumers.
 
+## v2.15.7 — `icon_base_url` platform default + per-bundle `icon_filename`
+
+App icons stop being a per-consumer plumbing problem. New `identity.var.icon_base_url` (default `https://raw.githubusercontent.com/sheyaln/sabokit-assets/v1.0.0/application-icons`) surfaces on `var.base.authentik.icon_base_url`. Every bundle composes `${icon_base_url}/${icon_filename}` when no full URL override is set.
+
+**Per-bundle resolution:**
+1. `var.icon_url` non-empty → used verbatim (full URL override).
+2. else `var.icon_filename` non-empty → `${base.authentik.icon_base_url}/${icon_filename}`.
+3. else empty (no icon — lower modules then substitute `default-logo.png`).
+
+**13 bundles get `icon_filename`** (bentopdf, decidim, espocrm, grafana, jitsi, n8n, nextcloud, notifuse, outline, steward, vikunja, wazuh, backrest). `icon_url` semantic shifts from "Authentik media path" to "full URL override"; default `""` (was `null` for most).
+
+Defaults match canonical filenames in sabokit-assets v1.0.0 where available:
+
+| bundle | `icon_filename` default |
+|---|---|
+| bentopdf | `bentopdf-icon.png` |
+| decidim | `decidim-icon.png` |
+| espocrm | `espocrm-icon.png` |
+| grafana | `grafana-icon.png` |
+| n8n | `n8n-icon.png` |
+| outline | `outline-icon.png` |
+| steward | `steward-icon.png` |
+| vikunja | `vikunja-icon.png` |
+| jitsi, nextcloud, notifuse, wazuh, backrest | `""` (no canonical asset; opt in by overriding) |
+
+**Behaviour shift on bump.** Bundles with a non-empty default (bentopdf, decidim, espocrm, grafana, n8n, outline, steward, vikunja) gain an icon by default where previously they had none. Authentik plan will show `meta_icon` flipping from `default-logo.png` to the sabokit-assets URL. Cosmetic-only, but visible in the plan diff for these 8 bundles. To silence: pin `apps.<bundle>.icon_filename = ""`.
+
+**Bookmark module** (`modules/authentik/bookmark/`) gains the same shape: `icon_url` + `icon_filename` + new `icon_base_url` input. Callers pass `var.base.authentik.icon_base_url` through.
+
+**OnlyOffice (nextcloud sub-component).** Skipped — OnlyOffice has no separate authentik application/bookmark, it's a backend service Nextcloud talks to. Same for Talk HPB. No icon surface to set.
+
+**Consumer overrides.** Per-app: `apps.<bundle>.icon_filename = "custom.png"` or `apps.<bundle>.icon_url = "https://my-cdn/app.svg"`. Whole platform: `identity.icon_base_url = "https://icons.internal.example.org/v2"` retargets every default-filename lookup at your own CDN / internal mirror in one shot.
+
+Consumer-template `apps.tf` + `apps-manifest.yaml` updated alongside. `terraform fmt -recursive` clean, all bundles + identity + bookmark `terraform validate` clean, `python3 scripts/gen_apps_yml.py --check` clean. No state migration beyond the cosmetic `meta_icon` shift on the 8 bundles above.
+
+---
+
 ## v2.15.6 — Service-account extra-groups via generic identity.extra_groups
 
 Peer asked for hardcoded `union-automation` + `union-cloud-admin` groups in upstream + default n8n service-account membership in those groups. fc target audience is broader than unions (cooperatives, mutual aid networks, decentralized political orgs, faith-based commons) — `union-*` lexicon excludes them. Counter-shipped as a fully generic primitive.

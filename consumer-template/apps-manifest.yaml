@@ -119,6 +119,18 @@ apps:
           description: Override the Authentik application slug. Default empty = use the bundle's stock slug (`outline`). Set to a legacy slug to enable in-place import without force-replace.
           ui: advanced
 
+        icon_filename:
+          type: string
+          default: outline-icon.png
+          description: Icon filename to fetch from base.authentik.icon_base_url. Empty = no icon. Overridden by icon_url (full URL).
+          ui: advanced
+
+        icon_url:
+          type: string
+          default: ""
+          description: Full icon URL override. When set, used verbatim and icon_filename is ignored.
+          ui: advanced
+
   # ── Steward ─────────────────────────────────────────────────────────────
   # Simplified Authentik admin UI for non-technical org admins. Members of
   # `admin_group_name` (matched against the OIDC `groups` claim) can sign in
@@ -213,6 +225,18 @@ apps:
           type: string
           default: ""
           description: Override the Authentik application slug. Default empty = use the bundle's stock slug (`steward`). Set to a legacy slug to enable in-place import without force-replace.
+          ui: advanced
+
+        icon_filename:
+          type: string
+          default: steward-icon.png
+          description: Icon filename to fetch from base.authentik.icon_base_url. Empty = no icon. Overridden by icon_url (full URL).
+          ui: advanced
+
+        icon_url:
+          type: string
+          default: ""
+          description: Full icon URL override. When set, used verbatim and icon_filename is ignored.
           ui: advanced
 
   # ── Vikunja ─────────────────────────────────────────────────────────────
@@ -330,6 +354,18 @@ apps:
           description: Override the Authentik application slug. Default empty = use the bundle's stock slug (`vikunja`). Set to a legacy slug to enable in-place import without force-replace.
           ui: advanced
 
+        icon_filename:
+          type: string
+          default: vikunja-icon.png
+          description: Icon filename to fetch from base.authentik.icon_base_url. Empty = no icon. Overridden by icon_url (full URL).
+          ui: advanced
+
+        icon_url:
+          type: string
+          default: ""
+          description: Full icon URL override. When set, used verbatim and icon_filename is ignored.
+          ui: advanced
+
   # ── BentoPDF ────────────────────────────────────────────────────────────
   # Browser-based PDF toolkit (merge, split, OCR, redact). Stateless — no
   # DB, no storage. Authenticated via Authentik forward-auth (the embedded
@@ -410,6 +446,18 @@ apps:
           type: string
           default: ""
           description: Override the Authentik application slug. Default empty = use the bundle's stock slug (`bentopdf`). Set to a legacy slug to enable in-place import without force-replace.
+          ui: advanced
+
+        icon_filename:
+          type: string
+          default: bentopdf-icon.png
+          description: Icon filename to fetch from base.authentik.icon_base_url. Empty = no icon. Overridden by icon_url (full URL).
+          ui: advanced
+
+        icon_url:
+          type: string
+          default: ""
+          description: Full icon URL override. When set, used verbatim and icon_filename is ignored.
           ui: advanced
 
   # ── Notifuse ────────────────────────────────────────────────────────────
@@ -518,6 +566,18 @@ apps:
           type: string
           default: ""
           description: Override the Authentik application slug. Default empty = use the bundle's stock slug (`notifuse`). Set to a legacy slug to enable in-place import without force-replace.
+          ui: advanced
+
+        icon_filename:
+          type: string
+          default: ""
+          description: Icon filename to fetch from base.authentik.icon_base_url. Empty = no icon. Overridden by icon_url (full URL).
+          ui: advanced
+
+        icon_url:
+          type: string
+          default: ""
+          description: Full icon URL override. When set, used verbatim and icon_filename is ignored.
           ui: advanced
 
   # ── Privacy policy ──────────────────────────────────────────────────────
@@ -697,6 +757,18 @@ apps:
           description: Override the Authentik application slug. Default empty = use the bundle's stock slug (`nextcloud`). Set to a legacy slug to enable in-place import without force-replace.
           ui: advanced
 
+        icon_filename:
+          type: string
+          default: ""
+          description: Icon filename to fetch from base.authentik.icon_base_url. Empty = no icon. Overridden by icon_url (full URL).
+          ui: advanced
+
+        icon_url:
+          type: string
+          default: ""
+          description: Full icon URL override. When set, used verbatim and icon_filename is ignored.
+          ui: advanced
+
   # ── Decidim ─────────────────────────────────────────────────────────────
   # Participatory democracy platform. Multi-container (web + sidekiq),
   # postgres + S3, OIDC.
@@ -808,6 +880,18 @@ apps:
           type: string
           default: ""
           description: Override the Authentik application slug. Default empty = use the bundle's stock slug (`decidim`). Set to a legacy slug to enable in-place import without force-replace.
+          ui: advanced
+
+        icon_filename:
+          type: string
+          default: decidim-icon.png
+          description: Icon filename to fetch from base.authentik.icon_base_url. Empty = no icon. Overridden by icon_url (full URL).
+          ui: advanced
+
+        icon_url:
+          type: string
+          default: ""
+          description: Full icon URL override. When set, used verbatim and icon_filename is ignored.
           ui: advanced
 
   # ── Jitsi ───────────────────────────────────────────────────────────────
@@ -922,6 +1006,18 @@ apps:
           description: Override the Authentik application slug. Default empty = use the bundle's stock slug (`jitsi`). Set to a legacy slug to enable in-place import without force-replace.
           ui: advanced
 
+        icon_filename:
+          type: string
+          default: ""
+          description: Icon filename to fetch from base.authentik.icon_base_url. Empty = no icon. Overridden by icon_url (full URL).
+          ui: advanced
+
+        icon_url:
+          type: string
+          default: ""
+          description: Full icon URL override. When set, used verbatim and icon_filename is ignored.
+          ui: advanced
+
   # ── EspoCRM ─────────────────────────────────────────────────────────────
   # PHP CRM with OIDC. Member-entity bootstrap is opt-in (sets up
   # constituent/dues tracking on top of the generic CRM).
@@ -1027,6 +1123,18 @@ apps:
           description: Override the Authentik application slug. Default empty = use the bundle's stock slug (`espocrm`). Set to a legacy slug to enable in-place import without force-replace.
           ui: advanced
 
+        icon_filename:
+          type: string
+          default: espocrm-icon.png
+          description: Icon filename to fetch from base.authentik.icon_base_url. Empty = no icon. Overridden by icon_url (full URL).
+          ui: advanced
+
+        icon_url:
+          type: string
+          default: ""
+          description: Full icon URL override. When set, used verbatim and icon_filename is ignored.
+          ui: advanced
+
   # ── n8n ─────────────────────────────────────────────────────────────────
   # Workflow automation. OIDC via Authentik; a bundled hooks.js promotes
   # members of n8n_admin_group_name to n8n's owner role.
@@ -1126,6 +1234,18 @@ apps:
           description: Override the Authentik application slug. Default empty = use the bundle's stock slug (`n8n`). Set to a legacy slug to enable in-place import without force-replace.
           ui: advanced
 
+        icon_filename:
+          type: string
+          default: n8n-icon.png
+          description: Icon filename to fetch from base.authentik.icon_base_url. Empty = no icon. Overridden by icon_url (full URL).
+          ui: advanced
+
+        icon_url:
+          type: string
+          default: ""
+          description: Full icon URL override. When set, used verbatim and icon_filename is ignored.
+          ui: advanced
+
   # ── Backrest ────────────────────────────────────────────────────────────
   # Restic-based backups per host (each host = its own instance + bucket).
   # Forward-auth via the embedded outpost. Multi-instance: consumers
@@ -1208,6 +1328,18 @@ apps:
           type: string
           default: ""
           description: Display name for the Authentik portal entry. Empty default keeps the per-instance shape `Backrest (<instance_name>)`; set to a literal string for branded portals.
+          ui: advanced
+
+        icon_filename:
+          type: string
+          default: ""
+          description: Icon filename to fetch from base.authentik.icon_base_url. Empty = no icon. Overridden by icon_url (full URL).
+          ui: advanced
+
+        icon_url:
+          type: string
+          default: ""
+          description: Full icon URL override. When set, used verbatim and icon_filename is ignored.
           ui: advanced
 
   # ── Watchtower ──────────────────────────────────────────────────────────
@@ -1594,6 +1726,18 @@ apps:
           description: Override the Authentik application slug. Default empty = use the bundle's stock slug (`grafana`). Set to a legacy slug to enable in-place import without force-replace.
           ui: advanced
 
+        icon_filename:
+          type: string
+          default: grafana-icon.png
+          description: Icon filename to fetch from base.authentik.icon_base_url. Empty = no icon. Overridden by icon_url (full URL).
+          ui: advanced
+
+        icon_url:
+          type: string
+          default: ""
+          description: Full icon URL override. When set, used verbatim and icon_filename is ignored.
+          ui: advanced
+
   # ── Wazuh ───────────────────────────────────────────────────────────────
   # SIEM server stack: manager + indexer (OpenSearch) + dashboard. UI fronted
   # via Authentik forward-auth at the gateway (the dashboard's native SSO is
@@ -1682,6 +1826,18 @@ apps:
           type: string
           default: ""
           description: Override the Authentik application slug. Default empty = use the bundle's stock slug (`wazuh`). Set to a legacy slug to enable in-place import without force-replace.
+          ui: advanced
+
+        icon_filename:
+          type: string
+          default: ""
+          description: Icon filename to fetch from base.authentik.icon_base_url. Empty = no icon. Overridden by icon_url (full URL).
+          ui: advanced
+
+        icon_url:
+          type: string
+          default: ""
+          description: Full icon URL override. When set, used verbatim and icon_filename is ignored.
           ui: advanced
 
   # ── Wazuh Agent ─────────────────────────────────────────────────────────

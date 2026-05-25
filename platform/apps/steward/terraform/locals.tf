@@ -26,4 +26,11 @@ locals {
   oidc_userinfo_endpt = "${local.authentik_base}/application/o/userinfo/"
   oidc_jwks_endpoint  = "${local.authentik_base}/application/o/${local.application_slug}/jwks/"
   authentik_api_url   = local.authentik_base
+
+  # Full URL wins; else compose from platform icon_base_url + filename; else empty.
+  effective_icon_url = (
+    var.icon_url != "" ? var.icon_url :
+    var.icon_filename != "" ? "${var.base.authentik.icon_base_url}/${var.icon_filename}" :
+    ""
+  )
 }

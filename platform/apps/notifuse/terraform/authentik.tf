@@ -5,7 +5,7 @@ module "authentik" {
   application_name = var.application_name
   application_slug = local.application_slug
   category_group   = var.category_group
-  icon_url         = var.icon_url
+  icon_url         = local.effective_icon_url
   description      = "Transactional + marketing email"
   launch_url       = local.app_url
 

@@ -76,5 +76,7 @@ output "authentik" {
     # exists, still attaches providers, terraform still applies it.
     outpost_id           = data.authentik_outpost.embedded.id
     branding_assets_path = "${path.module}/assets"
+
+    icon_base_url = local.effective_icon_base_url
   }
 }

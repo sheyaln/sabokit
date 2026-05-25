@@ -36,9 +36,15 @@ variable "application_slug" {
 }
 
 variable "icon_url" {
-  description = "Optional icon path in Authentik media (e.g. \"n8n-icon.png\")."
+  description = "Full icon URL override. When set, used verbatim and `icon_filename` is ignored. Empty string falls back to `$${base.authentik.icon_base_url}/$${icon_filename}` (or no icon when `icon_filename` is also empty)."
   type        = string
-  default     = null
+  default     = ""
+}
+
+variable "icon_filename" {
+  description = "Icon filename fetched from `base.authentik.icon_base_url`. Empty disables the icon. Overridden by `icon_url`."
+  type        = string
+  default     = "n8n-icon.png"
 }
 
 variable "access_level" {

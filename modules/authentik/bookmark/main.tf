@@ -5,6 +5,15 @@
 # documenting external services that integrate with the Authentik
 # identity but don't authenticate through it.
 
+locals {
+  # Full URL wins; else compose from icon_base_url + filename; else default-logo.
+  effective_icon_url = (
+    var.icon_url != "" ? var.icon_url :
+    (var.icon_filename != "" && var.icon_base_url != "") ? "${var.icon_base_url}/${var.icon_filename}" :
+    "default-logo.png"
+  )
+}
+
 resource "authentik_application" "bookmark" {
   name              = var.application_name
   slug              = var.application_slug
@@ -15,7 +24,7 @@ resource "authentik_application" "bookmark" {
   meta_launch_url  = var.launch_url
   meta_description = var.description
   open_in_new_tab  = var.open_in_new_tab
-  meta_icon        = var.icon_url != null ? var.icon_url : "default-logo.png"
+  meta_icon        = local.effective_icon_url
 
   policy_engine_mode = "any"
 

@@ -18,4 +18,11 @@ locals {
   # Bucket: notifuse stores marketing assets (templates, attachments). Globally
   # unique per Scaleway, hence the secrets_namespace prefix.
   bucket_name = "${var.base.scaleway.secrets_namespace}-${local.slug}-files"
+
+  # Full URL wins; else compose from platform icon_base_url + filename; else empty.
+  effective_icon_url = (
+    var.icon_url != "" ? var.icon_url :
+    var.icon_filename != "" ? "${var.base.authentik.icon_base_url}/${var.icon_filename}" :
+    ""
+  )
 }

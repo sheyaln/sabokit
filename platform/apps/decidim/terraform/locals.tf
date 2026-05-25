@@ -24,4 +24,11 @@ locals {
 
   # Bucket name must be globally unique across all Scaleway customers.
   bucket_name = "${var.base.scaleway.secrets_namespace}-${local.slug}-uploads"
+
+  # Full URL wins; else compose from platform icon_base_url + filename; else empty.
+  effective_icon_url = (
+    var.icon_url != "" ? var.icon_url :
+    var.icon_filename != "" ? "${var.base.authentik.icon_base_url}/${var.icon_filename}" :
+    ""
+  )
 }

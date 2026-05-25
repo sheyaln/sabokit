@@ -16,4 +16,11 @@ locals {
   oidc_callback_url = "https://${var.hostname}/oauth-callback.php"
   oidc_logout_url   = "https://${var.base.authentik.gateway_domain}/application/o/${local.application_slug}/end-session/"
   app_url           = "https://${var.hostname}"
+
+  # Full URL wins; else compose from platform icon_base_url + filename; else empty.
+  effective_icon_url = (
+    var.icon_url != "" ? var.icon_url :
+    var.icon_filename != "" ? "${var.base.authentik.icon_base_url}/${var.icon_filename}" :
+    ""
+  )
 }
