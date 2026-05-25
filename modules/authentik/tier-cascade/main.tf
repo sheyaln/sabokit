@@ -24,6 +24,13 @@
 locals {
   effective_admin_tier = coalesce(var.admin_tier, var.tier_names[length(var.tier_names) - 1])
 
+  # Logical keys for the tier_cascade output. Decoupled from tier_names so
+  # consumers can rebrand display names without breaking bundles whose
+  # var.tier_access_level references the logical key (e.g. "member").
+  # Defaults to tier_names — identity to current behavior when tier_keys is
+  # unset, which is fine for consumers using default tier names.
+  effective_tier_keys = var.tier_keys != null ? var.tier_keys : var.tier_names
+
   # Convenience lookups. Each slot above tier_count resolves to null and the
   # corresponding resource block's count = 0.
   tier_count = length(var.tier_names)

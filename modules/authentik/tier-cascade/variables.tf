@@ -1,5 +1,5 @@
 variable "tier_names" {
-  description = "Ordered list of tier names, lowest privilege first. Each tier's members are inherited up the chain so apps gated on a lower tier admit users of every higher tier. Defaults model a typical org: baseline members, elevated delegates, treasurers with financial access, administrators on top. Override per consumer (e.g. [\"member\", \"editor\", \"moderator\", \"admin\"]) — keep order lowest→highest."
+  description = "Ordered list of tier display names, lowest privilege first. These become the actual Authentik group names. Each tier's members are inherited up the chain so apps gated on a lower tier admit users of every higher tier. Defaults model a typical org: baseline members, elevated delegates, treasurers with financial access, administrators on top. Override per consumer (e.g. [\"union-member\", \"union-delegate\", \"union-secretary-treasurer\", \"admin\"]) to brand the groups — keep order lowest→highest. When you override these to non-default values, also set tier_keys so bundles' tier_access_level lookups keep working."
   type        = list(string)
   default     = ["member", "delegate", "treasurer", "admin"]
 
@@ -11,6 +11,22 @@ variable "tier_names" {
   validation {
     condition     = length(distinct(var.tier_names)) == length(var.tier_names)
     error_message = "tier_names must be unique."
+  }
+}
+
+variable "tier_keys" {
+  description = "Stable logical identifiers per tier, parallel to tier_names. App bundles' var.tier_access_level references these (e.g. \"member\", \"admin\") regardless of what the corresponding Authentik group is actually named. Defaults to tier_names when null — fine for consumers using default tier names. When you override tier_names to brand the display names, set tier_keys here to the logical identifiers your bundles expect (e.g. tier_keys = [\"member\", \"delegate\", \"treasurer\", \"admin\"] while tier_names = [\"union-member\", \"union-delegate\", \"union-secretary-treasurer\", \"admin\"]). Without this, tier_cascade is keyed by display names and every bundle's tier_access_level lookup breaks."
+  type        = list(string)
+  default     = null
+
+  validation {
+    condition     = var.tier_keys == null || length(var.tier_keys) == length(var.tier_names)
+    error_message = "tier_keys length must match tier_names length (they're parallel lists)."
+  }
+
+  validation {
+    condition     = var.tier_keys == null || length(distinct(var.tier_keys)) == length(var.tier_keys)
+    error_message = "tier_keys must be unique."
   }
 }
 

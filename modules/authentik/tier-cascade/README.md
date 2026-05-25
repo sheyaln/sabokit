@@ -6,7 +6,8 @@ Chained Authentik groups where each tier inherits all tiers below it.
 
 | Name | Type | Default | Notes |
 |------|------|---------|-------|
-| `tier_names` | `list(string)` | `["member", "delegate", "treasurer", "admin"]` | Lowest privilege first. Order matters. |
+| `tier_names` | `list(string)` | `["member", "delegate", "treasurer", "admin"]` | Display names — become the actual Authentik group names. Lowest privilege first. |
+| `tier_keys` | `list(string)` | `null` (= `tier_names`) | Logical identifiers parallel to `tier_names`. Bundles' `var.tier_access_level` references these. Set when you override `tier_names` to brand display names. |
 | `admin_tier` | `string` | last entry of `tier_names` | Tier flagged `is_superuser = true`. |
 | `admin_user_pks` | `list(number)` | `null` | Optional explicit admin members. `null` = UI-managed. |
 | `tier_attributes` | `map(string)` | `{}` | Per-tier description override. |
@@ -16,7 +17,7 @@ Chained Authentik groups where each tier inherits all tiers below it.
 | Name | Shape | Use |
 |------|-------|-----|
 | `groups` | `map(name → group_id)` | Merge into `base.authentik.groups`. |
-| `tier_cascade` | `map(name → map(name → group_id))` | `tier_cascade[T]` = every tier at-or-above `T`. Drop into app bundles' `authorized_groups`. |
+| `tier_cascade` | `map(key → map(name → group_id))` | Outer keys are `tier_keys` (logical, stable across rebranding). `tier_cascade[T]` = every tier at-or-above `T`. Drop into app bundles' `authorized_groups`. |
 | `admin_tier` | `string` | Echo of the resolved admin tier name. |
 
 ## How it works
