@@ -2,6 +2,19 @@
 
 All notable changes to sabokit go here. Versioning follows semver; major bumps signal breaking contract changes for consumers.
 
+## v2.17.0 — 2026-05-25
+
+Consumer-facing wrapper around the runner image + a working secret-rotation path. Stop telling consumers to clone the repo.
+
+### Added
+- **`scripts/fc-runner.sh`** — friendly bash wrapper around `ghcr.io/sheyaln/sabokit-runner`. Flags: `--apps`, `--servers` (alias `--hosts`), `--base`, `--no-base`, `--rotate-secrets`, `--check`, `--overlay`, `--inventory`, `--enabled-apps`, `--env`, `--image`, `--dry-run`, `--verbose`. Bash 3.2 compatible. Image tag defaults to the wrapper's own version; pin via `--image`. Recipe table front-and-center in `docker/runner/README.md` + raw `docker run` equivalent below for transparency.
+- **`[secrets]` tag across 14 app roles** (backrest, broadsheet, decidim, espocrm, grafana, jitsi, n8n, nextcloud, notifuse, outline, prometheus, steward, vikunja, wazuh). 70 tasks tagged in total — Scaleway secret-ID normalization, `lookup()` fetches, SMTP-config defaults, env-file renders, secret-bearing config renders. `fc-runner --rotate-secrets` (or `ansible-playbook --tags secrets`) re-runs the secret path only; restart handlers fire when env content changes. Convention documented in `platform/ansible/README.md`.
+
+### Notes
+- Per-app secret rotation via `--rotate-secrets --apps X` is union semantics, not intersection — runs both all-secrets AND all-of-X. For genuine per-app rotation, run `--apps X` directly: the full role is idempotent and re-fetches secrets along the way (seconds-fast).
+- Consumer overlays: `--overlay DIR` mounts at `/consumer:ro`, prepends `/consumer/roles` to roles path (upstream still wins on conflict), auto-runs `DIR/extensions.yml` after upstream's `site.yml` if present. No `import_playbook` gymnastics — both playbooks run in one ansible process for shared facts/SSH.
+- Espocrm OIDC bootstrap, decidim post-deploy migrations, and a couple of other rotation-incompatible task types intentionally left untagged — those need full role runs because secret changes flow through `docker exec` paths or one-shot DB migrations rather than env reload.
+
 ## v2.16.2 — 2026-05-25
 
 Broadsheet bundle defaults were wrong out of the box.
