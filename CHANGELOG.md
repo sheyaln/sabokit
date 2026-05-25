@@ -2,6 +2,14 @@
 
 All notable changes to sabokit go here. Versioning follows semver; major bumps signal breaking contract changes for consumers.
 
+## v3.1.4 — 2026-05-25
+
+Two more credentials_preserve extensions to surrounding layers — base postgres + identity_bootstrap.
+
+### Fixed
+- **`postgres_credentials_preserve` on base layer.** Without this, in-place cutover apply silently rotates the live RDB instance admin password (the one underneath every app's per-db user). Blast radius: every non-app-bundle connection (DBA sessions, monitoring exporters, backup tooling) starts failing mid-apply. Wire-through is plumbing only — the data sources already exist inside `modules/infrastructure/storage/postgres`. Also added `password` to `scaleway_rdb_instance.this` lifecycle ignore_changes as defence-in-depth (defends against a stale plan triggering an unwanted UpdatePassword API call on imported instances).
+- **`credentials_preserve` on identity_bootstrap.** Without this, the first cutover apply collapses at Phase 3: bootstrap generates a fresh `random_password.admin_api_token`, configure.sh exports it as `TF_VAR_authentik_admin_token`, every `authentik_*` resource call in the apply hits live Authentik with the bogus token → 401 cascade. Full three-part pattern (count-gate randoms, data sources for preserved bags, ternary plumbing through locals). Server bag passes through `secret_key` from `random_id.server_key.hex` (matches the existing on-disk shape so re-renders stay byte-stable).
+
 ## v3.1.3 — 2026-05-25
 
 ### Added
