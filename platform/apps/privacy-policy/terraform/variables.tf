@@ -17,6 +17,12 @@ variable "hostname" {
   default     = ""
 }
 
+variable "dns_zone_override" {
+  description = "Override the DNS zone the per-app A record lands in. Default empty derives the zone from var.hostname by longest-suffix match against var.base.domains.zones. Set explicitly only for edge cases where derivation produces the wrong zone."
+  type        = string
+  default     = ""
+}
+
 variable "monitoring_enabled" {
   description = "If true and a monitoring app is enabled, the privacy-policy access log paths wire in."
   type        = bool
