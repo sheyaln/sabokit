@@ -9,7 +9,7 @@ output "app_url" {
 }
 
 output "authentik_provider_id" {
-  description = "Authentik proxy-provider ID. Consumer MUST include in identity's extra_forward_auth_provider_ids."
+  description = "Authentik OIDC provider ID. Wazuh uses native OIDC via opensearch-security — does NOT belong in identity's extra_forward_auth_provider_ids (that list is for proxy-providers only). Exposed for any consumer tooling that needs the provider handle directly."
   value       = var.enabled ? module.authentik[0].provider_id : null
 }
 
