@@ -28,7 +28,6 @@ module "base" {
   default_security_group_extra_inbound_rules = concat(
     module.jitsi.required_inbound_rules,
     module.nextcloud.required_inbound_rules,
-    module.postiz.required_inbound_rules,
     module.wazuh.required_inbound_rules,
   )
 }
