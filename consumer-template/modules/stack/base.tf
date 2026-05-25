@@ -22,6 +22,8 @@ module "base" {
   manage_gateway_dns       = var.manage_gateway_dns
   gateway_compute_host_key = var.gateway_compute_host_key
 
+  custom_dns_records = var.custom_dns_records
+
   # App bundles export their own SG rule requirements as
   # required_inbound_rules. Aggregate here so enabling an app
   # automatically opens its ports; disabling closes them.

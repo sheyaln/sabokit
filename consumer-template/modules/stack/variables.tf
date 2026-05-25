@@ -117,3 +117,11 @@ variable "gateway_compute_host_key" {
   type        = string
   default     = null
 }
+
+# ── Custom DNS records ──────────────────────────────────────────────────────
+
+variable "custom_dns_records" {
+  description = "Pass-through to base.custom_dns_records. Map of zone-name → list of records (A/AAAA/CNAME/MX/TXT/SRV). See platform/base/terraform/variables.tf for shape and examples."
+  type        = any
+  default     = {}
+}

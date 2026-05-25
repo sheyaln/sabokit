@@ -33,6 +33,8 @@ module "stack" {
 
   manage_gateway_dns       = var.manage_gateway_dns
   gateway_compute_host_key = var.gateway_compute_host_key
+
+  custom_dns_records = var.custom_dns_records
 }
 
 # Surface stack outputs so `terraform output` / `terraform output -json` works

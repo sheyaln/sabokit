@@ -1,5 +1,5 @@
 variable "dns_records" {
-  description = "DNS records to create, keyed by domain. Each value is a list of records. A records need `server`; CNAMEs need `target`. Records whose domain or server can't be resolved against the lookup maps are silently dropped."
+  description = "DNS records to create, keyed by domain. Each value is a list of records. A/AAAA records need `server` (resolved via server_ips); CNAME/MX/TXT/SRV need `target` (literal Scaleway `data` value — for MX `\"<priority> <target>\"`, for SRV `\"<priority> <weight> <port> <target>\"`, for TXT the literal string). Records whose domain or server can't be resolved against the lookup maps are silently dropped."
   type = map(list(object({
     subdomain = string
     type      = string
