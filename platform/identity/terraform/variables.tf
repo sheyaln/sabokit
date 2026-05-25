@@ -75,9 +75,20 @@ variable "treasurer_group_name" {
 }
 
 variable "tier_names_override" {
-  description = "Optional full override of the cascade tier order. When non-empty, this list is used verbatim (lowest-privilege first) and admin/member/delegate/treasurer name variables are ignored for cascade construction. Use when an org's tier naming doesn't fit the default four-tier shape."
+  description = "Optional full override of the cascade tier order. When non-empty, this list is used verbatim (lowest-privilege first) and admin/member/delegate/treasurer name variables are ignored for cascade construction. Use when an org's tier naming doesn't fit the default four-tier shape. When set, also set tier_keys_override if your bundles' var.tier_access_level expects logical keys distinct from the display names."
   type        = list(string)
   default     = []
+}
+
+variable "tier_keys_override" {
+  description = "Parallel to tier_names_override — the stable logical identifiers bundles' tier_access_level references. Defaults to tier_names_override (display names doubling as keys). Set this when overriding tier_names_override to display names that differ from the logical keys your bundles use. Length must match tier_names_override."
+  type        = list(string)
+  default     = []
+
+  validation {
+    condition     = length(var.tier_keys_override) == 0 || length(var.tier_keys_override) == length(var.tier_names_override)
+    error_message = "tier_keys_override must be empty or the same length as tier_names_override."
+  }
 }
 
 variable "delegate_role_name" {

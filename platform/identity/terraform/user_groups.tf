@@ -26,6 +26,27 @@ locals {
   ])
   resolved_tier_names = length(var.tier_names_override) > 0 ? var.tier_names_override : local.default_tier_names
 
+  # Parallel logical keys — what app bundles' var.tier_access_level references
+  # (e.g. "member"/"delegate"/"treasurer"/"admin"). Stable across rebranding:
+  # consumer can override the display names (member_group_name = "union-member")
+  # without breaking bundle lookups, because the logical key for that slot
+  # stays "member".
+  #
+  # The compact() filter is parallel to default_tier_names — same vars decide
+  # which slots exist, just with the LOGICAL token instead of the consumer's
+  # chosen display name. Order must match default_tier_names exactly.
+  default_tier_keys = compact([
+    var.member_group_name != null ? "member" : null,
+    var.delegate_group_name != null ? "delegate" : null,
+    var.treasurer_group_name != null ? "treasurer" : null,
+    var.admin_group_name != null ? "admin" : null,
+  ])
+  resolved_tier_keys = (
+    length(var.tier_names_override) > 0
+    ? (length(var.tier_keys_override) > 0 ? var.tier_keys_override : var.tier_names_override)
+    : local.default_tier_keys
+  )
+
   delegate_enabled = var.delegate_group_name != null && contains(local.resolved_tier_names, var.delegate_group_name)
 }
 
@@ -33,6 +54,7 @@ module "tier_cascade" {
   source = "../../../modules/authentik/tier-cascade"
 
   tier_names     = local.resolved_tier_names
+  tier_keys      = local.resolved_tier_keys
   admin_tier     = var.admin_group_name
   admin_user_pks = var.admin_user_pks
 
