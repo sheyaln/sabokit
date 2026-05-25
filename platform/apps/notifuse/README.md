@@ -1,5 +1,9 @@
 # apps/notifuse
 
+> **DEPRECATED in v2.16.0.** Use the `broadsheet` bundle instead
+> (sabokit-broadsheet fork). notifuse stays one more v2.x cycle for
+> migration headroom; v3.0.0 drops it.
+
 Notifuse — open-source transactional + marketing email manager. Single-container docker-compose stack behind Traefik. PostgreSQL is the shared instance; an S3 bucket holds marketing assets (templates, attachments). Defaults to admin-only access — Notifuse is an operator tool.
 
 ## Inputs
