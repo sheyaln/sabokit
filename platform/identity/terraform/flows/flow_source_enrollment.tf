@@ -40,22 +40,13 @@ resource "authentik_stage_prompt" "source_enrollment_welcome" {
   ]
 }
 
-# Profile prompt — given_name (required) + member_id (optional, label override).
-# Runs after AUP, before user_write, so the policy-source-enrollment-user-setup
-# expression can pull both values out of prompt_data and into the right places
-# (user.name, user.attributes['member_id']). Attribute key for the second field
-# stays "member_id" across consumers; only the on-screen label is per-org.
-resource "authentik_stage_prompt_field" "source_enrollment_given_name" {
-  name                   = "source-enrollment-field-given-name"
-  field_key              = "given_name"
-  label                  = "First Name"
-  type                   = "text"
-  required               = true
-  placeholder            = "Your first name"
-  placeholder_expression = false
-  order                  = 1
-}
-
+# Profile prompt — reuses the manual_enrollment_name field (field_key=name,
+# label="Chosen Name", required text) so social enrollees see the same naming
+# UX as manual enrollees + a member_id field (optional, label per-consumer
+# via var.member_id_label, attribute key always "member_id"). Runs after AUP,
+# before user_write, so policy-source-enrollment-user-setup can pull both
+# values out of prompt_data and into the right places (user.name,
+# user.attributes['member_id']).
 resource "authentik_stage_prompt_field" "source_enrollment_member_id" {
   name                   = "source-enrollment-field-member-id"
   field_key              = "member_id"
@@ -70,7 +61,7 @@ resource "authentik_stage_prompt_field" "source_enrollment_member_id" {
 resource "authentik_stage_prompt" "source_enrollment_profile" {
   name = "source-enrollment-profile"
   fields = [
-    authentik_stage_prompt_field.source_enrollment_given_name.id,
+    authentik_stage_prompt_field.manual_enrollment_name.id,
     authentik_stage_prompt_field.source_enrollment_member_id.id,
   ]
 }
@@ -129,10 +120,9 @@ resource "authentik_flow_stage_binding" "source_enrollment_login_binding" {
 
 # Policy to set user data from OAuth provider + the profile prompt.
 # Username = email unconditionally (matches the manual + user-settings flows).
-# user.name comes from the prompt's given_name (required); we still concat
-# OAuth family_name if the provider gave one. member_id from the prompt
-# (optional) goes through prompt_data so user_write lands it in
-# user.attributes['member_id'].
+# user.name comes from the prompt's `name` field (required, shared with
+# manual enrollment). member_id from the prompt (optional) goes through
+# prompt_data so user_write lands it in user.attributes['member_id'].
 resource "authentik_policy_expression" "source_enrollment_user_setup" {
   name              = "policy-source-enrollment-user-setup"
   execution_logging = true
@@ -148,24 +138,20 @@ resource "authentik_policy_expression" "source_enrollment_user_setup" {
         ak_message("Unable to extract email from social provider")
         return False
 
-    # Profile prompt data (given_name required, member_id optional).
+    # Profile prompt data (name required via the reused manual_enrollment_name
+    # field, member_id optional).
     prompt_data = request.context.get('prompt_data', {}) or {}
-    given_name = (prompt_data.get('given_name') or '').strip()
-    member_id  = (prompt_data.get('member_id') or '').strip()
+    user_name = (prompt_data.get('name') or '').strip()
+    member_id = (prompt_data.get('member_id') or '').strip()
 
-    # OAuth family_name is appended to the prompt's given_name when present.
-    family_name = ''
-    if 'oauth_userinfo' in context:
-        family_name = (context['oauth_userinfo'].get('family_name') or '').strip()
-
-    # Defensive: prompt is required, so given_name should always be set.
+    # Defensive: prompt is required, so user_name should always be set.
     # If somehow empty, fall back to OAuth-provided name fields so we never
     # write an empty user.name.
-    if not given_name and 'oauth_userinfo' in context:
-        given_name = (context['oauth_userinfo'].get('given_name') or
-                      context['oauth_userinfo'].get('name') or '').strip()
-
-    full_name = (given_name + ' ' + family_name).strip() if family_name else given_name
+    if not user_name and 'oauth_userinfo' in context:
+        given_name  = (context['oauth_userinfo'].get('given_name')  or '').strip()
+        family_name = (context['oauth_userinfo'].get('family_name') or '').strip()
+        oauth_name  = (context['oauth_userinfo'].get('name')        or '').strip()
+        user_name = oauth_name or (given_name + ' ' + family_name).strip()
 
     if 'prompt_data' not in request.context:
         request.context['prompt_data'] = {}
@@ -173,7 +159,7 @@ resource "authentik_policy_expression" "source_enrollment_user_setup" {
     # Username locked to email.
     request.context['prompt_data']['username'] = user_email
     request.context['prompt_data']['email']    = user_email
-    request.context['prompt_data']['name']     = full_name
+    request.context['prompt_data']['name']     = user_name
 
     # member_id is optional — only set when supplied. user_write writes
     # non-User-model prompt_data keys into user.attributes, so this lands
