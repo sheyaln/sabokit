@@ -2,7 +2,9 @@
   "name": "EspoCRM Member Upsert",
   "nodes": [
     {
-      "parameters": {},
+      "parameters": {
+        "inputSource": "passthrough"
+      },
       "id": "trigger-1",
       "name": "When Called by Parent",
       "type": "n8n-nodes-base.executeWorkflowTrigger",
