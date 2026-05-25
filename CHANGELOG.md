@@ -2,6 +2,15 @@
 
 All notable changes to sabokit go here. Versioning follows semver; major bumps signal breaking contract changes for consumers.
 
+## v2.16.0 — 2026-05-25
+
+### Added
+- `platform/apps/broadsheet/` — new bundle, sabokit-broadsheet fork of notifuse. Defaults: image_source_repo = sheyaln/sabokit-broadsheet, image_source_ref = main, icon = broadsheet-icon.png, application_name = Broadsheet.
+- consumer-template + apps-manifest wiring for broadsheet alongside notifuse.
+
+### Deprecated
+- `platform/apps/notifuse/` — replaced by broadsheet. Stays through one more v2.x cycle for migration headroom; v3.0.0 will drop it. Notifuse README has a deprecation banner.
+
 ## v2.15.7 — `icon_base_url` platform default + per-bundle `icon_filename`
 
 App icons stop being a per-consumer plumbing problem. New `identity.var.icon_base_url` (default `https://raw.githubusercontent.com/sheyaln/sabokit-assets/v1.0.0/application-icons`) surfaces on `var.base.authentik.icon_base_url`. Every bundle composes `${icon_base_url}/${icon_filename}` when no full URL override is set.
