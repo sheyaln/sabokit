@@ -963,7 +963,7 @@ apps:
 
         category_group:
           type: string
-          default: Productivity
+          default: Administration
           description: Section the app appears under in the Authentik portal.
           ui: advanced
 
