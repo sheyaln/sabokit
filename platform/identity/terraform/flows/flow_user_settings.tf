@@ -1,16 +1,18 @@
-# USER SETTINGS FLOW (custom)
+# USER SETTINGS FLOW
 #
-# Replaces Authentik's built-in "default-user-settings-flow" with a custom
-# flow that:
-#   - hides the username field from the edit-info screen (email only)
-#   - on email update, sets user.username = user.email so the two stay
-#     in lockstep (matches the manual-enrollment + source-enrollment
-#     invariant: username is always the email)
+# Clones Authentik's built-in default-user-settings-flow minus the username
+# field — same prompt shape (name, email, locale) the default ships, just
+# without the username editor (it confuses users now that username = email
+# always, per the source/manual enrollment invariant).
 #
-# Contract: the bundle output `authentik.flows.user_settings_flow` keeps
-# its shape (UUID string). The UUID itself changes — consumers that
-# pinned the old default flow ID anywhere outside `var.base.authentik`
-# need to bump their reference.
+# Password change + delete account are SEPARATE flows triggered by buttons
+# in Authentik's user-settings UI — wired by brand.tf's flow_recovery and
+# flow_unenrollment settings. Not in this flow.
+#
+# Contract: bundle output `authentik.flows.user_settings_flow` still a
+# UUID string. The UUID itself changes (replacing the built-in default).
+# Consumers pinning the old default flow ID outside `var.base.authentik`
+# need to bump.
 
 resource "authentik_flow" "user_settings" {
   name               = "${var.organisation_name} User Settings"
@@ -25,8 +27,20 @@ resource "authentik_flow" "user_settings" {
   background         = var.flow_background
 }
 
-# PROMPT FIELDS — email only. Username is intentionally absent.
-# Adding name/locale/etc. fields here later is additive.
+# PROMPT FIELDS — mirrors Authentik's default user-settings flow minus username.
+
+resource "authentik_stage_prompt_field" "user_settings_name" {
+  name                     = "user-settings-field-name"
+  field_key                = "name"
+  label                    = "Name"
+  type                     = "text"
+  required                 = true
+  placeholder              = "Name"
+  placeholder_expression   = false
+  initial_value            = "return request.user.name"
+  initial_value_expression = true
+  order                    = 0
+}
 
 resource "authentik_stage_prompt_field" "user_settings_email" {
   name                     = "user-settings-field-email"
@@ -41,10 +55,25 @@ resource "authentik_stage_prompt_field" "user_settings_email" {
   order                    = 10
 }
 
+resource "authentik_stage_prompt_field" "user_settings_locale" {
+  name                     = "user-settings-field-locale"
+  field_key                = "attributes.settings.locale"
+  label                    = "Locale"
+  type                     = "text"
+  required                 = false
+  placeholder              = "en"
+  placeholder_expression   = false
+  initial_value            = "return request.user.attributes.get('settings', {}).get('locale', '')"
+  initial_value_expression = true
+  order                    = 20
+}
+
 resource "authentik_stage_prompt" "user_settings_prompt" {
   name = "user-settings-prompt"
   fields = [
+    authentik_stage_prompt_field.user_settings_name.id,
     authentik_stage_prompt_field.user_settings_email.id,
+    authentik_stage_prompt_field.user_settings_locale.id,
   ]
 }
 
