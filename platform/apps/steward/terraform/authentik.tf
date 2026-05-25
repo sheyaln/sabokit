@@ -40,7 +40,9 @@ data "authentik_group" "admins" {
 resource "authentik_user" "service_steward" {
   count = var.enabled ? 1 : 0
 
-  username  = "svc-${local.slug}"
+  # Username = email per the platform "username = email always" invariant
+  # (v2.15.0 established it for human users; v2.15.3 aligned service accounts).
+  username  = "svc-${local.slug}@${var.base.domains.base_domain}"
   name      = "Steward service account"
   email     = "svc-${local.slug}@${var.base.domains.base_domain}"
   type      = "service_account"

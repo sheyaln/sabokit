@@ -50,6 +50,11 @@ resource "scaleway_secret_version" "app" {
     OIDC_CLIENT_SECRET = module.authentik[0].client_secret
     OIDC_REDIRECT_URI  = local.oidc_callback_url
     OIDC_ADMIN_GROUP   = var.n8n_admin_group_name
+
+    # Server-to-server Authentik API access for workflows that need to read
+    # users/groups, post events, etc. Same shape as steward's bag.
+    AUTHENTIK_API_URL   = "https://${var.base.authentik.gateway_domain}/api/v3"
+    AUTHENTIK_API_TOKEN = authentik_token.service_n8n[0].key
   })
 
   # Same logic as notifuse: encryption_key + runners_auth_token are ignore_changes,

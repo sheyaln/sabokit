@@ -18,9 +18,9 @@ variable "hostname" {
 }
 
 variable "category_group" {
-  description = "Authentik portal category."
+  description = "Authentik portal category. Default 'Administration' — CRM is where org admins manage member data (same bucket as steward); override per-consumer if your portal taxonomy puts it elsewhere."
   type        = string
-  default     = "Tools"
+  default     = "Administration"
 }
 
 variable "application_name" {
