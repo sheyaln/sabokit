@@ -2,6 +2,14 @@
 
 All notable changes to sabokit go here. Versioning follows semver; major bumps signal breaking contract changes for consumers.
 
+## v3.0.2 — 2026-05-25
+
+Rebrand stragglers the v3.0.0 sed pass missed (it was scoped to the literal `federated-commons` string; these were `Federated Commons` with a space, plus the `FC_BASE_*` packer convention).
+
+### Changed
+- **`Federated Commons` → `Sabokit`** in README banner alt + H1, ARCHITECTURE title, LICENSE copyright, identity flows `organisation_name` default, oidc-app + saml-app `signing_key_subject.organization` default, and the local-validate test fixture's `org_name`.
+- **`FC_BASE_VERSION` → `SABOKIT_BASE_VERSION`** and **`/etc/fc-base-image` → `/etc/sabokit-base-image`** across packer (base.pkr.hcl, variables.pkr.hcl, 06-stamp-image.sh, README). Rebuild required; the marker file path changed.
+
 ## v3.0.1 — 2026-05-25
 
 Packer + CI builds unblocked.
