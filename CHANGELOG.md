@@ -2,6 +2,14 @@
 
 All notable changes to sabokit go here. Versioning follows semver; major bumps signal breaking contract changes for consumers.
 
+## v3.0.1 — 2026-05-25
+
+Packer + CI builds unblocked.
+
+### Fixed
+- **`packer/variables.pkr.hcl` `scw_cli_version` default bumped `2.34.0` → `2.56.1`.** Old release assets get garbage-collected by GitHub eventually; the v2.34.0 binary is no longer downloadable. Provisioner script default raised in lockstep.
+- **`.github/workflows/packer-publish.yml` Install-Scaleway-CLI step resolves the latest release via the GitHub API** instead of relying on `/releases/latest/download/<file>` redirects. Scaleway embeds the version in asset filenames (`scaleway-cli_X.Y.Z_linux_amd64`), so the un-versioned filename in the redirect URL always 404s.
+
 ## v3.0.0 — 2026-05-25 — Rebrand to sabokit
 
 sabokit is now sabokit. Same blueprint, new name, expanded runner image.
