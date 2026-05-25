@@ -131,6 +131,7 @@
   ansible.builtin.set_fact:
     _prometheus_tem_secret_uuid: "{{ prometheus_tem_smtp_secret_id | regex_replace('^[^/]+/', '') }}"
   when: prometheus_tem_exporter_enabled | bool
+  tags: [secrets]
 
 - name: Look up TEM smtp-config secret from Scaleway
   ansible.builtin.set_fact:
@@ -138,6 +139,7 @@
       {{ lookup('scaleway.scaleway.scaleway_secret', _prometheus_tem_secret_uuid) | b64decode | from_json }}
   when: prometheus_tem_exporter_enabled | bool
   no_log: true
+  tags: [secrets]
 
 - name: Render TEM exporter env file
   ansible.builtin.copy:
@@ -155,6 +157,7 @@
   when: prometheus_tem_exporter_enabled | bool
   no_log: true
   notify: Restart prometheus
+  tags: [secrets]
 
 - name: Render docker-compose.yml
   ansible.builtin.template:

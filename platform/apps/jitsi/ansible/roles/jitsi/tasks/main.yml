@@ -65,11 +65,13 @@
 - name: Normalize Scaleway secret ID (strip leading region/ prefix)
   ansible.builtin.set_fact:
     _jitsi_app_secret_uuid: "{{ jitsi_app_secret_id | regex_replace('^[^/]+/', '') }}"
+  tags: [secrets]
 
 - name: Look up Jitsi app secrets from Scaleway
   ansible.builtin.set_fact:
     jitsi_app_secrets: "{{ lookup('scaleway.scaleway.scaleway_secret', _jitsi_app_secret_uuid) | b64decode | from_json }}"
   no_log: true
+  tags: [secrets]
 
 - name: Clone Jitsi OIDC adapter from source
   ansible.builtin.git:
@@ -107,6 +109,7 @@
     group: root
   notify: Restart jitsi
   no_log: true
+  tags: [secrets]
 
 - name: Ensure Jitsi stack is running
   community.docker.docker_compose_v2:

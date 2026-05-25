@@ -44,11 +44,13 @@
 - name: Normalize Scaleway secret ID
   ansible.builtin.set_fact:
     _grafana_app_secret_uuid: "{{ grafana_app_secret_id | regex_replace('^[^/]+/', '') }}"
+  tags: [secrets]
 
 - name: Look up Grafana app secrets from Scaleway
   ansible.builtin.set_fact:
     grafana_app_secrets: "{{ lookup('scaleway.scaleway.scaleway_secret', _grafana_app_secret_uuid) | b64decode | from_json }}"
   no_log: true
+  tags: [secrets]
 
 - name: Render datasources.yml
   ansible.builtin.template:
@@ -87,17 +89,20 @@
         else 'https://api.eu.atlassian.com/jsm/ops/integration/v1/alerts'
       }}
   when: grafana_jsm_api_key_secret_id | length > 0
+  tags: [secrets]
 
 - name: Normalize JSM Scaleway secret ID
   ansible.builtin.set_fact:
     _grafana_jsm_secret_uuid: "{{ grafana_jsm_api_key_secret_id | regex_replace('^[^/]+/', '') }}"
   when: grafana_jsm_api_key_secret_id | length > 0
+  tags: [secrets]
 
 - name: Look up JSM API key from Scaleway
   ansible.builtin.set_fact:
     grafana_jsm_secrets: "{{ lookup('scaleway.scaleway.scaleway_secret', _grafana_jsm_secret_uuid) | b64decode | from_json }}"
   when: grafana_jsm_api_key_secret_id | length > 0
   no_log: true
+  tags: [secrets]
 
 - name: Render JSM contact points
   ansible.builtin.template:
@@ -107,6 +112,7 @@
   when: grafana_jsm_api_key_secret_id | length > 0
   no_log: true
   notify: Restart grafana
+  tags: [secrets]
 
 - name: Render JSM-routed root policy
   ansible.builtin.template:
@@ -140,6 +146,7 @@
     mode: "0600"
   notify: Restart grafana
   no_log: true
+  tags: [secrets]
 
 - name: Ensure Grafana is running
   community.docker.docker_compose_v2:

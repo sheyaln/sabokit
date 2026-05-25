@@ -51,27 +51,32 @@
   ansible.builtin.set_fact:
     _notifuse_app_secret_uuid: "{{ notifuse_app_secret_id | regex_replace('^[^/]+/', '') }}"
     _notifuse_db_credentials_secret_uuid: "{{ notifuse_db_credentials_secret_id | regex_replace('^[^/]+/', '') }}"
+  tags: [secrets]
 
 - name: Look up Notifuse app secrets from Scaleway
   ansible.builtin.set_fact:
     notifuse_app_secrets: "{{ lookup('scaleway.scaleway.scaleway_secret', _notifuse_app_secret_uuid) | b64decode | from_json }}"
   no_log: true
+  tags: [secrets]
 
 - name: Look up Notifuse DB credentials from Scaleway
   ansible.builtin.set_fact:
     notifuse_db_credentials: "{{ lookup('scaleway.scaleway.scaleway_secret', _notifuse_db_credentials_secret_uuid) | b64decode | from_json }}"
   no_log: true
+  tags: [secrets]
 
 - name: Default Notifuse SMTP config to empty when smtp_secret_name is unset
   ansible.builtin.set_fact:
     notifuse_smtp_config: {}
   when: notifuse_smtp_secret_name | default('') | length == 0
+  tags: [secrets]
 
 - name: Look up SMTP config from Scaleway
   ansible.builtin.set_fact:
     notifuse_smtp_config: "{{ lookup('scaleway.scaleway.scaleway_secret', notifuse_smtp_secret_name, errors='ignore') | default('e30=', true) | b64decode | from_json }}"
   when: notifuse_smtp_secret_name | default('') | length > 0
   no_log: true
+  tags: [secrets]
 
 - name: Render docker-compose.yml
   ansible.builtin.template:
@@ -91,6 +96,7 @@
     group: root
   notify: Restart notifuse
   no_log: true
+  tags: [secrets]
 
 - name: Ensure Notifuse stack is running (build_from_source)
   community.docker.docker_compose_v2:
