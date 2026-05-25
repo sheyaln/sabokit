@@ -348,8 +348,32 @@ locals {
     module.diun_mgmt.monitoring,     # loki_log_paths
   ] : c if c != null]
 
+  # Normalize every per-bundle scrape entry to a canonical shape before flatten.
+  # Terraform requires homogeneous list element types, and bundles emit entries
+  # with optional fields (scheme/metrics_path absent, labels absent or with
+  # varying keys). Rebuild each entry through the same expression so every
+  # element ends up at the same object type:
+  #
+  #   { job_name, scheme, metrics_path, static_configs: [{ targets, labels: map(string) }] }
+  #
+  # Bundles emitting new scrape entries just need job_name + static_configs;
+  # the rest default sensibly. Scrape entries using non-static SDs (file_sd,
+  # dns_sd, etc.) aren't supported by this normalizer yet — add handling
+  # here when the first bundle needs it.
   aggregated_scrape_configs = flatten([
-    for c in local._monitoring_contribs : try(c.prometheus_scrape_configs, [])
+    for c in local._monitoring_contribs : [
+      for entry in try(c.prometheus_scrape_configs, []) : {
+        job_name     = entry.job_name
+        scheme       = try(entry.scheme, "http")
+        metrics_path = try(entry.metrics_path, "/metrics")
+        static_configs = [
+          for sc in try(entry.static_configs, []) : {
+            targets = sc.targets
+            labels  = { for k, v in try(sc.labels, {}) : k => tostring(v) }
+          }
+        ]
+      }
+    ]
   ])
   aggregated_alert_rules = flatten([
     for c in local._monitoring_contribs : try(c.alert_rules, [])
