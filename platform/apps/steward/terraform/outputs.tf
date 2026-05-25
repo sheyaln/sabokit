@@ -71,12 +71,18 @@ output "service_account_token_secret_hint" {
 }
 
 output "backup_plan" {
-  description = "Backrest backup plan contribution. null when disabled or backup_enabled = false. Aggregated by consumer-template into backrest's backup_plans."
+  description = "Backrest backup plan contribution. null when disabled or backup_enabled = false. Aggregated by consumer-template into backrest's backup_plans. RDB postgres has its own managed backups; `steward-media` carries user-uploaded files; `steward-static` is collected at image build and regenerable."
   value = (var.enabled && var.backup_enabled) ? {
-    id        = local.slug
-    paths     = concat(["/backup-sources/opt/${local.slug}"], var.backup_extra_paths)
-    excludes  = []
-    schedule  = { cron = var.backup_schedule_cron }
-    retention = var.backup_retention
+    id               = local.slug
+    paths            = ["/backup-sources/opt/${local.slug}"] # legacy field; kept populated for belt-and-suspenders backward compat
+    opt_dir          = true
+    volumes          = ["steward-media"]
+    excluded_volumes = ["steward-static"]
+    extra_paths      = var.backup_extra_paths
+    pre_hooks        = []
+    post_hooks       = []
+    excludes         = []
+    schedule         = { cron = var.backup_schedule_cron }
+    retention        = var.backup_retention
   } : null
 }

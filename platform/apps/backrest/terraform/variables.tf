@@ -113,11 +113,43 @@ variable "image_tag" {
 }
 
 variable "backup_plans" {
-  description = "Backup plans this instance will run. Each entry becomes an entry in Backrest's config.json `plans[]` array. `id` must be unique within the instance. `paths` are paths INSIDE the container; default `backup_sources` mount `/opt` and `/var/lib/docker/volumes` from the host read-only, so a typical path is \"/backup-sources/opt/<app>\" or \"/backup-sources/docker-volumes/<volume>\"."
+  description = <<-EOT
+    Backup plans this instance will run. Each entry becomes an entry in
+    Backrest's config.json `plans[]` array. `id` must be unique within the
+    instance.
+
+    Two shapes are accepted (the role merges both, so bundles can migrate
+    incrementally):
+
+    Legacy: `paths` listed verbatim — paths INSIDE the container; the default
+    `backup_sources` mount `/opt` and `/var/lib/docker/volumes` from the host
+    read-only, so a typical path is `/backup-sources/opt/<app>` or
+    `/backup-sources/docker-volumes/<volume>/_data`.
+
+    Content-aware (v2.14.0+):
+      - `opt_dir = true` → adds `/backup-sources/opt/<id>` for free
+      - `volumes = ["foo"]` → adds `/backup-sources/docker-volumes/foo/_data`
+      - `excluded_volumes` → documentation only today, not rendered (a future
+        per-volume retention story will read it)
+      - `extra_paths` → one-off restic paths the bundle doesn't fit either bucket
+      - `pre_hooks` / `post_hooks` → host shell commands wrapped as Backrest
+        CONDITION_SNAPSHOT_START / CONDITION_SNAPSHOT_END action_command hooks.
+        For quiescence (sqlite `.backup`, app-side flush) etc.
+
+    A plan must end up with at least one of paths / opt_dir=true / volumes /
+    extra_paths populated; the validation below enforces that.
+  EOT
   type = list(object({
-    id       = string
-    paths    = list(string)
-    excludes = optional(list(string), [])
+    id    = string
+    paths = optional(list(string), [])
+    # Content-aware additions (v2.14.0). All optional; legacy plans omit them.
+    opt_dir          = optional(bool, false)
+    volumes          = optional(list(string), [])
+    excluded_volumes = optional(list(string), [])
+    extra_paths      = optional(list(string), [])
+    pre_hooks        = optional(list(string), [])
+    post_hooks       = optional(list(string), [])
+    excludes         = optional(list(string), [])
     schedule = object({
       cron = string
     })
@@ -134,6 +166,14 @@ variable "backup_plans" {
   validation {
     condition     = length(var.backup_plans) == length(distinct([for p in var.backup_plans : p.id]))
     error_message = "backup_plans entries must have unique `id` values within the instance."
+  }
+
+  validation {
+    condition = alltrue([
+      for p in var.backup_plans :
+      length(p.paths) > 0 || p.opt_dir || length(p.volumes) > 0 || length(p.extra_paths) > 0
+    ])
+    error_message = "Each backup_plan must populate at least one of `paths`, `opt_dir = true`, `volumes`, or `extra_paths` — otherwise there is nothing to back up."
   }
 }
 

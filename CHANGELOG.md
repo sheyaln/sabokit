@@ -2,6 +2,58 @@
 
 All notable changes to sabokit go here. Versioning follows semver; major bumps signal breaking contract changes for consumers.
 
+## v2.14.0 — backrest `backup_plan` content-intelligence + pre/post hooks
+
+`backup_plan` grew from "list of paths" to a content-aware shape. Bundles now declare WHAT they care about — `/opt/<slug>` (bind-mount data) and/or specific named docker volumes — and the backrest role translates that into restic paths at render time. Old shape (`paths` + `excludes`) still accepted unchanged; the role merges both, so a consumer holding back on a bundle bump keeps working.
+
+**New `backup_plan` shape (per bundle):**
+
+```hcl
+backup_plan = (var.enabled && var.backup_enabled) ? {
+  id               = local.slug
+  paths            = ["/backup-sources/opt/${local.slug}"] # legacy field; kept for backward compat
+  opt_dir          = true                                  # back up /opt/<id>
+  volumes          = ["nextcloud-data"]                    # named docker volumes -> /backup-sources/docker-volumes/<v>/_data
+  excluded_volumes = ["redis-data"]                        # documentation today; future per-volume retention hook
+  extra_paths      = []                                    # one-off restic paths
+  pre_hooks        = []                                    # host shell, wrapped as CONDITION_SNAPSHOT_START actionCommand, on_error=CANCEL
+  post_hooks       = []                                    # host shell, wrapped as CONDITION_SNAPSHOT_END actionCommand, on_error=IGNORE
+  excludes         = []
+  schedule         = { cron = var.backup_schedule_cron }
+  retention        = var.backup_retention
+} : null
+```
+
+**Backrest role translation** (`platform/apps/backrest/ansible/roles/backrest/templates/config.json.j2`): effective restic `paths` per plan = union of legacy `paths`, `["/backup-sources/opt/<id>"]` if `opt_dir`, `["/backup-sources/docker-volumes/<v>/_data" for v in volumes]`, and `extra_paths`, deduped. `pre_hooks` / `post_hooks` render as entries in the plan's `hooks[]` array — Backrest's `Hook` proto with `actionCommand.command = <string>`. Restic skips paths that don't exist on a given host, so passing the full union to every backrest instance is the same plug-and-play pattern as `required_inbound_rules` — backrest on `apps` ignores prometheus's plan, prometheus's host ignores nextcloud's plan, no per-host plumbing in the consumer.
+
+**Per-bundle migration (15 bundles):**
+
+| bundle | opt_dir | volumes | excluded_volumes |
+|---|---|---|---|
+| outline | yes | — | redis-data, storage-data (storage in Scaleway S3) |
+| steward | yes | steward-media | steward-static (rebuildable) |
+| vikunja | yes | — | — (files live under /opt/vikunja/files, covered by opt_dir) |
+| bentopdf | yes | — | — (stateless; opt_dir captures compose + .env) |
+| privacy-policy | yes | — | — (static site under /opt) |
+| notifuse | yes | — | — (data under /opt/notifuse/data) |
+| nextcloud | yes | nextcloud-data, onlyoffice-data | redis-data, nextcloud-fontcache, nextcloud-wwwcache, onlyoffice-logs, onlyoffice-cache, onlyoffice-fonts |
+| decidim | yes | uploads-data | logs-data, redis-data, init-marker |
+| jitsi | yes | — | — (videobridge state ephemeral; opt_dir for prosody/jicofo/jvb config) |
+| espocrm | yes | espocrm-data | — |
+| n8n | yes | n8n_data | — (workflows, encrypted creds, exec history) |
+| prometheus | yes | prometheus-data | — (TSDB) |
+| loki | yes | loki-data | — (log archive) |
+| grafana | yes | grafana-data | — (user-created dashboards) |
+| wazuh | yes | wazuh-indexer-data, wazuh_etc, wazuh_api_configuration, wazuh_queue, wazuh_var_multigroups, wazuh_active_response, wazuh_wodles, filebeat_etc, filebeat_var, wazuh-dashboard-custom | wazuh_logs (shipped to loki separately) |
+
+**Pre/post hooks**: nobody ships hooks in v2.14.0. The two candidates from the v3 backlog memo (vikunja, steward "for sqlite quiescence") are both Scaleway-RDB-backed, no on-host sqlite — RDB has its own managed backups, no app-side hook needed. The hook surface is wired and ready for bundles that DO need it (e.g. a future on-host sqlite app); default conservatively empty per bundle.
+
+**Backward compat**: old `paths`/`excludes`-only plans validate and render exactly as before. The role's union logic treats missing `opt_dir`/`volumes`/`extra_paths` as empty — a v2.13.x bundle paired with a v2.14.0 backrest is a no-op diff. A v2.14.0 bundle paired with a v2.13.x backrest passes the new fields through Terraform; the older backrest variable rejects unknown fields, so a mixed-version pairing in that direction fails to plan — bump backrest first or together. Bundles also keep the legacy `paths = ["/backup-sources/opt/<slug>"]` field populated alongside the new fields — belt + suspenders.
+
+**Restic path dedup**: the j2 template runs `| unique` on the effective paths so the legacy `paths` entry and the opt_dir-derived path don't double-list `/backup-sources/opt/<slug>`.
+
+---
+
 ## v2.13.2 — `application_name` knob on every authentik-integrated bundle
 
 Adds an `application_name` input to the 13 bundles that hardcoded their Authentik portal display name: outline, steward, vikunja, bentopdf, notifuse, nextcloud, decidim, jitsi, espocrm, n8n, grafana, wazuh, backrest. Default on each matches the previous hardcoded string — zero diff for existing consumers on apply. Backrest's default is empty string, preserving the per-instance shape `Backrest (<instance_name>)` until a consumer sets a literal override.
