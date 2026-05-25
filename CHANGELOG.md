@@ -2,6 +2,20 @@
 
 All notable changes to sabokit go here. Versioning follows semver; major bumps signal breaking contract changes for consumers.
 
+## v2.14.1 — Identity policy fixes: activation race + webhook attr filter
+
+Two policy-template fixes that were sitting as WIP in the working tree all session — taken to ship.
+
+**1. Activation double-fire race** (`platform/identity/terraform/expressions/policy-user-activation-notification.py.tpl`). Authentik fires multiple `model_updated` events in quick succession when a user is activated — the activation save itself plus auxiliary writes (last_login bumps, group syncs). The previous naive `attributes.get("activation_notification_sent")` idempotency check races: both invocations pass, the workflow fires twice, admins get duplicate emails per activation.
+
+Replaced with an atomic `select_for_update()` row lock: open a transaction, lock the user row, re-check the flag inside the lock, claim it BEFORE doing the notification work, commit. Reserve-then-do (at-most-once). Trade-off documented inline — a rare missed notification on transient failure beats spamming admins on every activation.
+
+**2. Webhook attribute filter** (both policy templates). Internal bookkeeping attribute keys (`activation_notification_sent`, `enrollment_notification_sent`, `signup_correlation_id`, `signup_method`) were leaking into the webhook payload's `user.attributes` field. Downstream automations had to filter them out themselves. Now filtered at the policy boundary; webhook payload's new `attributes` field carries only consumer-supplied per-user metadata.
+
+**Consumer-template identity refs bumped** from `v2.8.1` to `v2.14.1`. Pre-existing wiring gap — both `consumer-template/modules/stack/identity.tf` and `identity_bootstrap.tf` had been frozen at v2.8.1 since the cycle-bug ship, skipping the v2.10.1 tier-cascade refactor + outpost count-unknown fix and other v2.9+ identity work. Bumping along with this patch picks up everything consumers should already have had.
+
+---
+
 ## v2.14.0 — backrest `backup_plan` content-intelligence + pre/post hooks
 
 `backup_plan` grew from "list of paths" to a content-aware shape. Bundles now declare WHAT they care about — `/opt/<slug>` (bind-mount data) and/or specific named docker volumes — and the backrest role translates that into restic paths at render time. Old shape (`paths` + `excludes`) still accepted unchanged; the role merges both, so a consumer holding back on a bundle bump keeps working.
