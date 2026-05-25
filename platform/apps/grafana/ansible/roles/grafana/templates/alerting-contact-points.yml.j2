@@ -1,0 +1,22 @@
+# {{ ansible_managed }}
+# Grafana alerting contact points. Provisioned via the alerting file provider.
+# Only rendered when grafana_jsm_api_key_secret_id is non-empty — see
+# tasks/main.yml. JSM Operations (the rebrand of Opsgenie) speaks the heritage
+# Opsgenie alerts API; Grafana's native `opsgenie` contact point talks to that
+# directly — no custom webhook payload templating needed.
+apiVersion: 1
+
+contactPoints:
+  - orgId: 1
+    name: jsm-default
+    receivers:
+      - uid: jsm-default
+        type: opsgenie
+        settings:
+          apiKey: "{{ grafana_jsm_secrets.api_key }}"
+          apiUrl: "{{ _grafana_jsm_api_url }}"
+          autoClose: true
+          overridePriority: true
+          sendTagsAs: both
+        secureSettings: {}
+        disableResolveMessage: false

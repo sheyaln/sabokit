@@ -27,3 +27,17 @@ grafana_autoheal_enabled: true
 # union of every enabled app's monitoring.grafana_dashboards by the consumer.
 # Each entry: {filename: "foo.json", contents: "<rendered JSON>"}.
 grafana_dashboards: []
+
+# JSM (Jira Service Management Operations, heritage Opsgenie) integration.
+# Empty secret ID = JSM provisioning skipped — no contact point file, root
+# policy stays on Grafana's default destination. When non-empty, the role
+# pulls the API key from Scaleway Secret Manager and provisions a
+# `jsm-default` contact point that the root notification policy targets.
+grafana_jsm_api_key_secret_id: ""
+grafana_jsm_api_region: "us"
+grafana_jsm_priority_mapping:
+  critical: P1
+  warning: P3
+  info: P5
+grafana_jsm_alert_tags:
+  - sabokit

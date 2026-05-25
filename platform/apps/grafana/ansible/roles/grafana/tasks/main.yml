@@ -34,6 +34,7 @@
     - "{{ grafana_install_dir }}/provisioning"
     - "{{ grafana_install_dir }}/provisioning/datasources"
     - "{{ grafana_install_dir }}/provisioning/dashboards"
+    - "{{ grafana_install_dir }}/provisioning/alerting"
 
 - name: Ensure shared monitoring network exists
   community.docker.docker_network:
@@ -73,6 +74,57 @@
   loop: "{{ grafana_dashboards }}"
   loop_control:
     label: "{{ item.filename }}"
+
+# JSM (Jira Service Management Ops, heritage Opsgenie) alerting destination.
+# Render contact-points + root policy when a secret ID is supplied; remove
+# both when not, so toggling off cleanly reverts to Grafana's built-in default.
+- name: Resolve JSM API URL by region
+  ansible.builtin.set_fact:
+    _grafana_jsm_api_url: >-
+      {{
+        'https://api.atlassian.com/jsm/ops/integration/v1/alerts'
+        if grafana_jsm_api_region == 'us'
+        else 'https://api.eu.atlassian.com/jsm/ops/integration/v1/alerts'
+      }}
+  when: grafana_jsm_api_key_secret_id | length > 0
+
+- name: Normalize JSM Scaleway secret ID
+  ansible.builtin.set_fact:
+    _grafana_jsm_secret_uuid: "{{ grafana_jsm_api_key_secret_id | regex_replace('^[^/]+/', '') }}"
+  when: grafana_jsm_api_key_secret_id | length > 0
+
+- name: Look up JSM API key from Scaleway
+  ansible.builtin.set_fact:
+    grafana_jsm_secrets: "{{ lookup('scaleway.scaleway.scaleway_secret', _grafana_jsm_secret_uuid) | b64decode | from_json }}"
+  when: grafana_jsm_api_key_secret_id | length > 0
+  no_log: true
+
+- name: Render JSM contact points
+  ansible.builtin.template:
+    src: alerting-contact-points.yml.j2
+    dest: "{{ grafana_install_dir }}/provisioning/alerting/contact-points.yml"
+    mode: "0600"
+  when: grafana_jsm_api_key_secret_id | length > 0
+  no_log: true
+  notify: Restart grafana
+
+- name: Render JSM-routed root policy
+  ansible.builtin.template:
+    src: alerting-policies.yml.j2
+    dest: "{{ grafana_install_dir }}/provisioning/alerting/policies.yml"
+    mode: "0644"
+  when: grafana_jsm_api_key_secret_id | length > 0
+  notify: Restart grafana
+
+- name: Remove JSM provisioning files when disabled
+  ansible.builtin.file:
+    path: "{{ grafana_install_dir }}/provisioning/alerting/{{ item }}"
+    state: absent
+  loop:
+    - contact-points.yml
+    - policies.yml
+  when: grafana_jsm_api_key_secret_id | length == 0
+  notify: Restart grafana
 
 - name: Render docker-compose.yml
   ansible.builtin.template:

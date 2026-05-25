@@ -2,6 +2,29 @@
 
 All notable changes to sabokit go here. Versioning follows semver; major bumps signal breaking contract changes for consumers.
 
+## v2.12.0 — Full zabbix substitution: blackbox active probing + JSM contact point
+
+Two pieces that closed the gap left when zabbix was dropped:
+
+**1. Active liveness probing via `prom/blackbox-exporter`** (sidecar in the prometheus bundle, pinned `v0.28.0`). Was: prometheus only knew "did the in-network /metrics scrape succeed". Now: actually probes every public hostname over HTTPS from the prometheus host, exposing `probe_success`, `probe_http_status_code`, `probe_ssl_earliest_cert_expiry`, `probe_duration_seconds`.
+
+- Contract growth: every bundle's `monitoring` output gains a `blackbox_targets = list(string)` field. Defaults: every HTTPS-facing app emits `["https://${var.hostname}/"]`; backend-only ones (loki, prometheus self, autoheal, watchtower, wazuh-agent) emit nothing. Nextcloud emits three entries (main UI / OnlyOffice / Talk HPB) and uses per-app health-endpoint paths instead of `/`. Grafana probes `/api/health`.
+- Consumer-template aggregates the union into `local.aggregated_blackbox_targets` and passes to the prometheus module on a new `blackbox_targets` input. Bundle-local extras still accepted via the same input.
+- New bundle vars: `blackbox_exporter_enabled` (default true — opt-OUT, plug-and-play), `blackbox_exporter_image_tag`, `blackbox_targets`. Sidecar is internal-only on `monitoring_internal`, port 9115.
+- Ships paired `monitoring/dashboards/blackbox.json` + `monitoring/alerts/blackbox.yml` (`BlackboxProbeFailing` crit 3m, `BlackboxSslCertExpiringSoon` warn 14d / `VerySoon` crit 3d, `BlackboxProbeSlow` warn >5s 10m). Dashboards picked up via the existing `grafana_dashboards` aggregation; rules dropped into `/etc/prometheus/rules/` when the exporter is on.
+
+**2. JSM (Jira Service Management Ops, heritage Opsgenie) as default Grafana alerting destination**. Native `opsgenie` contact point — no webhook-payload templating, JSM speaks the heritage Opsgenie alerts API directly.
+
+- New grafana bundle vars: `jsm_api_key_secret_id` (Scaleway secret with `{"api_key": "..."}` — empty = JSM provisioning skipped entirely, existing behaviour preserved), `jsm_api_region` (`us` / `eu`), `jsm_priority_mapping` (Grafana severity -> JSM priority, default `critical=P1 warning=P3 info=P5`), `jsm_alert_tags`.
+- Role renders `provisioning/alerting/contact-points.yml` + `policies.yml` when the secret ID is non-empty. Root notification policy targets `jsm-default`. When empty, both files are absent and Grafana uses its built-in default contact point.
+- API URL: `https://api.atlassian.com/jsm/ops/integration/v1/alerts` (us) / `https://api.eu.atlassian.com/jsm/ops/integration/v1/alerts` (eu). Atlassian keeps shifting the JSM Ops paths around; the heritage `api.opsgenie.com` / `api.eu.opsgenie.com` endpoints still resolve too.
+- **Behaviour shift on bump**: existing v2.11.0 consumers with grafana enabled but no `jsm_api_key_secret_id` set get zero behaviour change. Consumers who *do* set the var on bump start receiving JSM alerts immediately on next ansible run.
+- The n8n `grafana-alert-router` workflow stays untouched. It remains the secondary path for slack/email/discord fan-out — operator wires it in as an additional contact point on Grafana's side if they want both.
+
+Contract growth touches every bundle's `monitoring.tf`. Consumers re-applying do not need to change anything beyond the version bump — aggregation handles old (without `blackbox_targets`) and new shapes via `try()`.
+
+---
+
 ## v2.11.0 — New bundle: Postiz (social media scheduling) + wazuh output doc fix
 
 **New app bundle**: `platform/apps/postiz/` — social media scheduling + content management (https://github.com/gitroomhq/postiz-app, MIT). 5-container stack inside the bundle: postiz (web+api), redis, temporal, temporal-postgresql, temporal-elasticsearch. Postiz's main app DB lives on Scaleway RDB (the standard fc pattern); temporal's metadata DB stays bundled in-stack to avoid fighting Scaleway RDB's lifecycle for a glorified workflow store.
