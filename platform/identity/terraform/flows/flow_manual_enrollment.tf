@@ -156,22 +156,40 @@ resource "authentik_flow_stage_binding" "manual_enrollment_email_verification_bi
   re_evaluate_policies = true
 }
 
-# Step 4.5: Welcome Message
-# Note: evaluate_on_plan=false and re_evaluate_policies=true ensures the notification
-# policy runs AFTER user_write has created the user, so the user is in context
+# Step 5: MFA Setup — must run BEFORE the welcome screen. Welcome's HTML
+# installs a JS submit-interceptor that redirects to / (correct terminal
+# behavior for inactive users hitting the "reach out to a delegate" message)
+# — if MFA fired after the welcome, active users would be bounced before
+# ever setting up MFA. Order swapped 2026-05-25.
+resource "authentik_flow_stage_binding" "manual_enrollment_mfa_setup_binding" {
+  target = authentik_flow.manual_enrollment.uuid
+  stage  = authentik_stage_authenticator_validate.mfa_validate_strict.id
+  order  = 35
+}
+
+# Step 6: Welcome Message — only shown to users who finished MFA setup but
+# are still is_active=false (the normal manual-enrollment outcome — accounts
+# are inactive until a delegate activates). Gated by shared_inactive_user_gate
+# (same policy the auth flows use); active users skip the stage entirely and
+# proceed to user_login at 100.
+# evaluate_on_plan=false + re_evaluate_policies=true ensures the gate runs
+# AFTER user_write created the user, so pending_user is in context.
 resource "authentik_flow_stage_binding" "manual_enrollment_welcome_binding" {
   target               = authentik_flow.manual_enrollment.uuid
   stage                = authentik_stage_prompt.manual_enrollment_welcome.id
-  order                = 35
+  order                = 40
   evaluate_on_plan     = false
   re_evaluate_policies = true
 }
 
-# Step 5: MFA Setup
-resource "authentik_flow_stage_binding" "manual_enrollment_mfa_setup_binding" {
-  target = authentik_flow.manual_enrollment.uuid
-  stage  = authentik_stage_authenticator_validate.mfa_validate_strict.id
-  order  = 40
+# Gate the welcome message on inactive-user — active users (re-entering the
+# enrollment flow post-activation by an admin) skip it and hit user_login.
+resource "authentik_policy_binding" "manual_enrollment_welcome_inactive_gate_binding" {
+  target  = authentik_flow_stage_binding.manual_enrollment_welcome_binding.id
+  policy  = authentik_policy_expression.shared_inactive_user_gate.id
+  order   = 0
+  enabled = true
+  timeout = 30
 }
 
 # Step 6: Complete Login
