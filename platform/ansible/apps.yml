@@ -84,6 +84,22 @@
     notifuse_autoheal_enabled: "{{ enabled_apps.notifuse.ansible_vars.notifuse_autoheal_enabled }}"
   when: enabled_apps.notifuse is defined and enabled_apps.notifuse is not none
   tags: [apps, notifuse]
+- import_playbook: ../apps/broadsheet/ansible/playbook.yml
+  vars:
+    broadsheet_host_group: "{{ enabled_apps.broadsheet.ansible_group }}"
+    broadsheet_hostname: "{{ enabled_apps.broadsheet.ansible_vars.broadsheet_hostname }}"
+    broadsheet_image: "{{ enabled_apps.broadsheet.ansible_vars.broadsheet_image }}"
+    broadsheet_image_tag: "{{ enabled_apps.broadsheet.ansible_vars.broadsheet_image_tag }}"
+    broadsheet_build_from_source: "{{ enabled_apps.broadsheet.ansible_vars.broadsheet_build_from_source }}"
+    broadsheet_image_source_repo: "{{ enabled_apps.broadsheet.ansible_vars.broadsheet_image_source_repo }}"
+    broadsheet_image_source_ref: "{{ enabled_apps.broadsheet.ansible_vars.broadsheet_image_source_ref }}"
+    broadsheet_app_secret_id: "{{ enabled_apps.broadsheet.ansible_vars.broadsheet_app_secret_id }}"
+    broadsheet_db_credentials_secret_id: "{{ enabled_apps.broadsheet.ansible_vars.broadsheet_db_credentials_secret_id }}"
+    broadsheet_smtp_secret_name: "{{ enabled_apps.broadsheet.ansible_vars.broadsheet_smtp_secret_name }}"
+    broadsheet_auto_update_enabled: "{{ enabled_apps.broadsheet.ansible_vars.broadsheet_auto_update_enabled }}"
+    broadsheet_autoheal_enabled: "{{ enabled_apps.broadsheet.ansible_vars.broadsheet_autoheal_enabled }}"
+  when: enabled_apps.broadsheet is defined and enabled_apps.broadsheet is not none
+  tags: [apps, broadsheet]
 - import_playbook: ../apps/privacy-policy/ansible/playbook.yml
   vars:
     privacy_policy_host_group: "{{ enabled_apps.privacy_policy.ansible_group }}"

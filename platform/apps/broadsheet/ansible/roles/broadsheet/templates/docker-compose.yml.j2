@@ -1,0 +1,61 @@
+---
+# Managed by sabokit apps/broadsheet/ansible/role.
+# Do not edit by hand — regenerated on every ansible-playbook run.
+#
+# NOTE: the internal docker service name + traefik label namespace remain
+# `notifuse` because the bundled binary is the sabokit-broadsheet fork of
+# notifuse — internal paths (healthcheck, traefik service id) still assume
+# that name. Only the build context and image tag are rebranded.
+
+services:
+  notifuse:
+{% if broadsheet_build_from_source | default(false) %}
+    build:
+      context: "{{ broadsheet_install_dir }}/src"
+      dockerfile: Dockerfile
+    image: broadsheet-local:latest
+{% else %}
+    image: "{{ broadsheet_image }}:{{ broadsheet_image_tag }}"
+{% endif %}
+    container_name: broadsheet
+    restart: unless-stopped
+    volumes:
+      - "{{ broadsheet_data_dir }}:/app/data"
+    env_file:
+      - .env
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network={{ broadsheet_traefik_docker_network }}"
+      - "traefik.http.services.notifuse.loadbalancer.server.port=8080"
+      - "traefik.http.routers.notifuse.rule=Host(`{{ broadsheet_hostname }}`)"
+      - "traefik.http.routers.notifuse.entrypoints=websecure"
+      - "traefik.http.routers.notifuse.tls.certresolver=le"
+      - "traefik.http.routers.notifuse.service=notifuse"
+{% if broadsheet_auto_update_enabled | default(false) %}
+      - "com.centurylinklabs.watchtower.enable=true"
+{% endif %}
+{% if broadsheet_autoheal_enabled | default(false) %}
+      - "autoheal=true"
+{% endif %}
+    networks:
+      - "{{ broadsheet_traefik_docker_network }}"
+    security_opt:
+      - no-new-privileges:true
+    deploy:
+      resources:
+        limits:
+          memory: "{{ broadsheet_memory_limit }}"
+          cpus: "{{ broadsheet_cpu_limit }}"
+        reservations:
+          memory: "{{ broadsheet_memory_reservation }}"
+          cpus: "{{ broadsheet_cpu_reservation }}"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:8080/health >/dev/null 2>&1 || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+
+networks:
+  "{{ broadsheet_traefik_docker_network }}":
+    external: true

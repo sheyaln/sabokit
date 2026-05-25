@@ -131,6 +131,31 @@ module "notifuse" {
   deployment_host_key     = try(var.apps.notifuse.deployment_host_key, "apps")
 }
 
+# Broadsheet — sabokit-broadsheet fork of notifuse. Replaces notifuse going
+# forward; notifuse stays through one more v2.x cycle for migration headroom.
+module "broadsheet" {
+  source = "git::https://github.com/sheyaln/sabokit.git//platform/apps/broadsheet/terraform?ref=v2.15.7"
+
+  enabled          = try(var.apps.broadsheet.enabled, false)
+  hostname         = try(var.apps.broadsheet.hostname, "")
+  root_admin_email = try(var.apps.broadsheet.root_admin_email, "")
+  base             = local.base
+
+  access_level            = try(var.apps.broadsheet.access_level, "admin")
+  extra_authorized_groups = try(var.apps.broadsheet.extra_authorized_groups, {})
+  tier_cascade_enabled    = try(var.apps.broadsheet.tier_cascade_enabled, true)
+  tier_access_level       = try(var.apps.broadsheet.tier_access_level, "admin")
+  smtp_from_email         = try(var.apps.broadsheet.smtp_from_email, "")
+  oidc_auto_provision     = try(var.apps.broadsheet.oidc_auto_provision, true)
+  oidc_allow_magic_code   = try(var.apps.broadsheet.oidc_allow_magic_code, true)
+  application_name        = try(var.apps.broadsheet.application_name, "Broadsheet")
+  application_slug        = try(var.apps.broadsheet.application_slug, "")
+  icon_url                = try(var.apps.broadsheet.icon_url, "")
+  icon_filename           = try(var.apps.broadsheet.icon_filename, "broadsheet-icon.png")
+  monitoring_enabled      = try(var.apps.broadsheet.monitoring_enabled, true)
+  deployment_host_key     = try(var.apps.broadsheet.deployment_host_key, "apps")
+}
+
 # Nextcloud + OnlyOffice + Talk HPB ship as one stack — three hostnames
 # (the main UI, the OnlyOffice editor, and the Talk signaling/TURN endpoint).
 # Talk HPB needs UDP/TCP 3478 + UDP 49152-49252 open in the security group on
@@ -288,6 +313,7 @@ locals {
     module.bentopdf.backup_plan,
     module.privacy_policy.backup_plan,
     module.notifuse.backup_plan,
+    module.broadsheet.backup_plan,
     module.nextcloud.backup_plan,
     module.decidim.backup_plan,
     module.jitsi.backup_plan,
@@ -309,6 +335,7 @@ locals {
     module.bentopdf.monitoring,
     module.privacy_policy.monitoring,
     module.notifuse.monitoring,
+    module.broadsheet.monitoring,
     module.nextcloud.monitoring,
     module.decidim.monitoring,
     module.jitsi.monitoring,
@@ -356,6 +383,7 @@ locals {
     module.bentopdf.split_dns_entries,
     module.privacy_policy.split_dns_entries,
     module.notifuse.split_dns_entries,
+    module.broadsheet.split_dns_entries,
     module.nextcloud.split_dns_entries,
     module.decidim.split_dns_entries,
     module.jitsi.split_dns_entries,

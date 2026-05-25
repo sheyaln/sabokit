@@ -85,10 +85,22 @@ apps = {
   #   hostname = "pdf.example.org"
   # }
 
-  # Notifuse: transactional + marketing email. OIDC via Authentik; defaults
-  # to admin-only access. SECRET_KEY and root admin password are immutable
-  # after first apply — see platform/apps/notifuse/README.md.
+  # Notifuse: DEPRECATED in v2.16.0 — use broadsheet below for new deploys.
+  # Stays one more v2.x cycle for migration headroom; v3.0.0 drops it.
+  # SECRET_KEY and root admin password are immutable after first apply.
+  # See platform/apps/notifuse/README.md.
   # notifuse = {
+  #   enabled          = true
+  #   hostname         = "email.example.org"
+  #   root_admin_email = "ops@example.org"
+  #   smtp_from_email  = "notify@example.org"
+  # }
+
+  # Broadsheet: newsletters + transactional email (sabokit-broadsheet fork of
+  # notifuse). OIDC via Authentik; defaults to admin-only access. SECRET_KEY
+  # and root admin password are immutable after first apply.
+  # See platform/apps/broadsheet/README.md.
+  # broadsheet = {
   #   enabled          = true
   #   hostname         = "email.example.org"
   #   root_admin_email = "ops@example.org"

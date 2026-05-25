@@ -1,0 +1,107 @@
+---
+# Deploy Broadsheet as a docker-compose stack. Secrets are pulled from Scaleway
+# Secret Manager at deploy time and rendered into /opt/broadsheet/.env (mode 0600).
+#
+# Required vars:
+#   broadsheet_hostname
+#   broadsheet_app_secret_id
+#   broadsheet_db_credentials_secret_id
+
+- name: Validate required Broadsheet variables
+  ansible.builtin.assert:
+    that:
+      - broadsheet_hostname | length > 0
+      - broadsheet_app_secret_id | length > 0
+      - broadsheet_db_credentials_secret_id | length > 0
+    fail_msg: "broadsheet_hostname, broadsheet_app_secret_id and broadsheet_db_credentials_secret_id are required."
+
+- name: Assert Docker is installed and running
+  ansible.builtin.command: docker info
+  register: broadsheet_docker_check
+  changed_when: false
+  failed_when: broadsheet_docker_check.rc != 0
+
+- name: Assert Traefik external network exists
+  community.docker.docker_network_info:
+    name: "{{ broadsheet_traefik_docker_network }}"
+  register: broadsheet_traefik_net
+  failed_when: not broadsheet_traefik_net.exists
+
+- name: Ensure Broadsheet directory tree
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    mode: "0750"
+    owner: root
+    group: root
+  loop:
+    - "{{ broadsheet_install_dir }}"
+    - "{{ broadsheet_data_dir }}"
+
+- name: Clone Broadsheet source repository (build_from_source path)
+  ansible.builtin.git:
+    repo: "{{ broadsheet_image_source_repo }}"
+    dest: "{{ broadsheet_install_dir }}/src"
+    version: "{{ broadsheet_image_source_ref }}"
+    force: true
+  when: broadsheet_build_from_source | default(false)
+  notify: Restart broadsheet
+
+- name: Normalize Scaleway secret IDs
+  ansible.builtin.set_fact:
+    _broadsheet_app_secret_uuid: "{{ broadsheet_app_secret_id | regex_replace('^[^/]+/', '') }}"
+    _broadsheet_db_credentials_secret_uuid: "{{ broadsheet_db_credentials_secret_id | regex_replace('^[^/]+/', '') }}"
+
+- name: Look up Broadsheet app secrets from Scaleway
+  ansible.builtin.set_fact:
+    broadsheet_app_secrets: "{{ lookup('scaleway.scaleway.scaleway_secret', _broadsheet_app_secret_uuid) | b64decode | from_json }}"
+  no_log: true
+
+- name: Look up Broadsheet DB credentials from Scaleway
+  ansible.builtin.set_fact:
+    broadsheet_db_credentials: "{{ lookup('scaleway.scaleway.scaleway_secret', _broadsheet_db_credentials_secret_uuid) | b64decode | from_json }}"
+  no_log: true
+
+- name: Default Broadsheet SMTP config to empty when smtp_secret_name is unset
+  ansible.builtin.set_fact:
+    broadsheet_smtp_config: {}
+  when: broadsheet_smtp_secret_name | default('') | length == 0
+
+- name: Look up SMTP config from Scaleway
+  ansible.builtin.set_fact:
+    broadsheet_smtp_config: "{{ lookup('scaleway.scaleway.scaleway_secret', broadsheet_smtp_secret_name, errors='ignore') | default('e30=', true) | b64decode | from_json }}"
+  when: broadsheet_smtp_secret_name | default('') | length > 0
+  no_log: true
+
+- name: Render docker-compose.yml
+  ansible.builtin.template:
+    src: docker-compose.yml.j2
+    dest: "{{ broadsheet_install_dir }}/docker-compose.yml"
+    mode: "0644"
+    owner: root
+    group: root
+  notify: Restart broadsheet
+
+- name: Render Broadsheet environment file
+  ansible.builtin.template:
+    src: env.j2
+    dest: "{{ broadsheet_install_dir }}/.env"
+    mode: "0600"
+    owner: root
+    group: root
+  notify: Restart broadsheet
+  no_log: true
+
+- name: Ensure Broadsheet stack is running (build_from_source)
+  community.docker.docker_compose_v2:
+    project_src: "{{ broadsheet_install_dir }}"
+    state: present
+    build: always
+  when: broadsheet_build_from_source | default(false)
+
+- name: Ensure Broadsheet stack is running (pulled image)
+  community.docker.docker_compose_v2:
+    project_src: "{{ broadsheet_install_dir }}"
+    state: present
+    pull: always
+  when: not (broadsheet_build_from_source | default(false))

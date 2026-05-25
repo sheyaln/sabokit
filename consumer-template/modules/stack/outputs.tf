@@ -68,6 +68,12 @@ output "enabled_apps" {
       ansible_group = module.notifuse.ansible.host_group
       monitoring    = module.notifuse.monitoring
     } : null
+    broadsheet = module.broadsheet.enabled ? {
+      url           = module.broadsheet.app_url
+      ansible_vars  = module.broadsheet.ansible.vars
+      ansible_group = module.broadsheet.ansible.host_group
+      monitoring    = module.broadsheet.monitoring
+    } : null
     privacy_policy = module.privacy_policy.enabled ? {
       url           = module.privacy_policy.app_url
       ansible_vars  = module.privacy_policy.ansible.vars
