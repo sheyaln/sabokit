@@ -20,9 +20,21 @@ variable "launch_url" {
 }
 
 variable "icon_url" {
-  description = "Optional icon path or full URL."
+  description = "Full icon URL override. When set, used verbatim and `icon_filename` is ignored. Empty falls back to `$${icon_base_url}/$${icon_filename}` (or `default-logo.png` when `icon_filename` is also empty)."
   type        = string
-  default     = null
+  default     = ""
+}
+
+variable "icon_filename" {
+  description = "Icon filename fetched from `icon_base_url`. Empty disables the composed URL. Overridden by `icon_url`."
+  type        = string
+  default     = ""
+}
+
+variable "icon_base_url" {
+  description = "Base URL the bookmark composes `$${icon_base_url}/$${icon_filename}` from when `icon_url` is empty. Typically `var.base.authentik.icon_base_url` from the platform identity output."
+  type        = string
+  default     = ""
 }
 
 variable "description" {
