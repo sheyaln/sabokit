@@ -48,7 +48,13 @@ resource "authentik_user" "service_steward" {
   type      = "service_account"
   is_active = true
   path      = "service-accounts"
-  groups    = [data.authentik_group.admins[0].id]
+  # admin group always present; consumer-supplied extras merged in from
+  # var.service_account_extra_groups — those must exist in
+  # var.base.authentik.groups (created via identity's var.extra_groups).
+  groups = concat(
+    [data.authentik_group.admins[0].id],
+    [for g in var.service_account_extra_groups : var.base.authentik.groups[g]],
+  )
 }
 
 resource "authentik_token" "service_steward" {

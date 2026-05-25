@@ -28,18 +28,19 @@ module "steward" {
   base     = local.base
 
   # Optional overrides
-  access_level            = try(var.apps.steward.access_level, "admin")
-  extra_authorized_groups = try(var.apps.steward.extra_authorized_groups, {})
-  tier_cascade_enabled    = try(var.apps.steward.tier_cascade_enabled, true)
-  tier_access_level       = try(var.apps.steward.tier_access_level, "admin")
-  admin_group_name        = try(var.apps.steward.admin_group_name, "union-delegate")
-  invite_flow_slug        = try(var.apps.steward.invite_flow_slug, "")
-  image_repository        = try(var.apps.steward.image_repository, "ghcr.io/sheyaln/sabokit-steward")
-  image_tag               = try(var.apps.steward.image_tag, "latest")
-  application_name        = try(var.apps.steward.application_name, "Steward")
-  application_slug        = try(var.apps.steward.application_slug, "")
-  monitoring_enabled      = try(var.apps.steward.monitoring_enabled, true)
-  deployment_host_key     = try(var.apps.steward.deployment_host_key, "apps")
+  access_level                 = try(var.apps.steward.access_level, "admin")
+  extra_authorized_groups      = try(var.apps.steward.extra_authorized_groups, {})
+  tier_cascade_enabled         = try(var.apps.steward.tier_cascade_enabled, true)
+  tier_access_level            = try(var.apps.steward.tier_access_level, "admin")
+  admin_group_name             = try(var.apps.steward.admin_group_name, "union-delegate")
+  invite_flow_slug             = try(var.apps.steward.invite_flow_slug, "")
+  image_repository             = try(var.apps.steward.image_repository, "ghcr.io/sheyaln/sabokit-steward")
+  image_tag                    = try(var.apps.steward.image_tag, "latest")
+  application_name             = try(var.apps.steward.application_name, "Steward")
+  application_slug             = try(var.apps.steward.application_slug, "")
+  service_account_extra_groups = try(var.apps.steward.service_account_extra_groups, [])
+  monitoring_enabled           = try(var.apps.steward.monitoring_enabled, true)
+  deployment_host_key          = try(var.apps.steward.deployment_host_key, "apps")
 }
 
 module "vikunja" {
@@ -239,18 +240,19 @@ module "n8n" {
   hostname = try(var.apps.n8n.hostname, "")
   base     = local.base
 
-  access_level            = try(var.apps.n8n.access_level, "member")
-  extra_authorized_groups = try(var.apps.n8n.extra_authorized_groups, {})
-  tier_cascade_enabled    = try(var.apps.n8n.tier_cascade_enabled, true)
-  tier_access_level       = try(var.apps.n8n.tier_access_level, "admin")
-  image_tag               = try(var.apps.n8n.image_tag, "latest")
-  n8n_admin_group_name    = try(var.apps.n8n.n8n_admin_group_name, "admin")
-  timezone                = try(var.apps.n8n.timezone, "UTC")
-  public_api_disabled     = try(var.apps.n8n.public_api_disabled, true)
-  application_name        = try(var.apps.n8n.application_name, "Workflows (n8n)")
-  application_slug        = try(var.apps.n8n.application_slug, "")
-  monitoring_enabled      = try(var.apps.n8n.monitoring_enabled, true)
-  deployment_host_key     = try(var.apps.n8n.deployment_host_key, "apps")
+  access_level                 = try(var.apps.n8n.access_level, "member")
+  extra_authorized_groups      = try(var.apps.n8n.extra_authorized_groups, {})
+  tier_cascade_enabled         = try(var.apps.n8n.tier_cascade_enabled, true)
+  tier_access_level            = try(var.apps.n8n.tier_access_level, "admin")
+  image_tag                    = try(var.apps.n8n.image_tag, "latest")
+  n8n_admin_group_name         = try(var.apps.n8n.n8n_admin_group_name, "admin")
+  timezone                     = try(var.apps.n8n.timezone, "UTC")
+  public_api_disabled          = try(var.apps.n8n.public_api_disabled, true)
+  application_name             = try(var.apps.n8n.application_name, "Workflows (n8n)")
+  application_slug             = try(var.apps.n8n.application_slug, "")
+  service_account_extra_groups = try(var.apps.n8n.service_account_extra_groups, [])
+  monitoring_enabled           = try(var.apps.n8n.monitoring_enabled, true)
+  deployment_host_key          = try(var.apps.n8n.deployment_host_key, "apps")
 }
 
 # App bundles export their backup contribution as `backup_plan` (null when

@@ -71,6 +71,12 @@ variable "monitoring_enabled" {
   default     = true
 }
 
+variable "service_account_extra_groups" {
+  description = "Authentik group names (must exist in var.base.authentik.groups — typically created via identity's var.extra_groups) that the Steward service account is added to alongside `authentik Admins`. Empty default — Steward's bearer-token API access through the admins group is usually sufficient; expose for parity with n8n in case a consumer's authorization model needs the SA scoped into custom groups."
+  type        = list(string)
+  default     = []
+}
+
 variable "deployment_host_key" {
   description = "Key in base.compute.hosts identifying the VM this app deploys to (e.g. \"apps\", \"tools\"). The Ansible playbook targets this host's ansible_group."
   type        = string

@@ -93,6 +93,12 @@ variable "apps" {
   default     = {}
 }
 
+variable "identity" {
+  description = "Identity-bundle overrides. Notable fields: `extra_groups = map(object({ is_superuser, description }))` — additional Authentik groups beyond the tier cascade, surfaced through `var.base.authentik.groups[<name>]` so apps can reference them via `service_account_extra_groups` etc. Empty map by default."
+  type        = any
+  default     = {}
+}
+
 variable "smtp_secret_name" {
   description = "Name of a Scaleway secret holding SMTP config {smtp_host, smtp_port, smtp_username, smtp_password}. Empty (default) disables outbound email — the identity flows still apply but every email step no-ops at runtime. Set to your secret name to turn email on; no re-create needed."
   type        = string
