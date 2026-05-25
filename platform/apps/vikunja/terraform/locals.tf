@@ -1,5 +1,6 @@
 locals {
-  slug = "vikunja"
+  slug             = "vikunja"
+  application_slug = var.application_slug != "" ? var.application_slug : local.slug
 
   authorized_groups = var.enabled ? (
     var.tier_cascade_enabled

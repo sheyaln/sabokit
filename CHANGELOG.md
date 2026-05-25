@@ -2,6 +2,22 @@
 
 All notable changes to sabokit go here. Versioning follows semver; major bumps signal breaking contract changes for consumers.
 
+## v2.15.4 — `application_slug` override across 12 bundles
+
+**Additive override for the Authentik application's slug.** Legacy consumers cutting over to fc bundles can't carry their existing Authentik state forward without this: bundles hardcoded the application slug to the bundle's stock name (`outline`, `nextcloud`, ...), and renaming the slug live breaks Authentik's `issuer_mode = per_provider` OIDC discovery URL — the URL embeds the slug, every connected app reauths. New `application_slug` knob lets the consumer pin the slug to the legacy value at import time.
+
+Concrete case: a consumer with a branded `sabo-cloud` Authentik application wants to import its state into the fc `nextcloud` bundle. Pre-v2.15.4 the bundle would force-replace the application to `nextcloud`. Now: set `application_slug = "sabo-cloud"` in the apps tfvars and the existing application imports clean.
+
+**Bundles touched (12):** bentopdf, decidim, espocrm, grafana, jitsi, n8n, nextcloud, notifuse, outline, steward, vikunja, wazuh.
+
+**`local.slug` left alone — new `local.application_slug` introduced.** `local.slug` feeds ~20 internal namespaces per bundle: bucket names, secret names, IAM application names, database names, backup plan IDs, monitoring labels, service-account usernames. Hijacking it would rename every one of those for `nextcloud → sabo-cloud` and trigger destroys on each. Instead the new local is scoped — it ONLY feeds the authentik application's slug and any URL that's keyed by that slug (OIDC issuer / discovery / end-session / jwks endpoints in `secrets.tf` and a handful of bundle-specific URL locals). Internal namespaces stay on `local.slug` and are unaffected.
+
+**Backrest skipped.** Backrest's authentik call already uses `local.qualified_slug` (a per-instance value like `backrest-mgmt`, `backrest-tools`). Per-instance qualification makes legacy slug collisions much less likely — no two consumers are realistically going to share a `backrest-mgmt` legacy slug across orgs. Lower priority, not blocking the immediate cutover. Future work if a real collision surfaces.
+
+Additive change, default empty = existing consumers see no behaviour change. Consumer-template `apps.tf` + `apps-manifest.yaml` updated alongside the bundles. No state migration.
+
+---
+
 ## v2.15.3 — Service-account `username = email` + n8n service account + EspoCRM category
 
 **Service-account convention completed.** v2.15.1 shipped the `service_<thing>` resource name + `svc-<thing>` username/email pattern but left username and email *inconsistent* with each other (username = `svc-steward`, email = `svc-steward@<domain>`). v2.15.0 established the "username = email always" invariant for human users via the user-settings sync policy. Service accounts now match — `username = email = svc-<thing>@<base_domain>`.

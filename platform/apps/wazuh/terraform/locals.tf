@@ -1,5 +1,6 @@
 locals {
-  slug = "wazuh"
+  slug             = "wazuh"
+  application_slug = var.application_slug != "" ? var.application_slug : local.slug
 
   authorized_groups = var.enabled ? (
     var.tier_cascade_enabled
@@ -17,5 +18,5 @@ locals {
   oidc_callback_url = "https://${var.hostname}/auth/openid/login"
 
   # OIDC discovery URL on Authentik for the wazuh app.
-  oidc_discovery_url = "https://${var.base.authentik.gateway_domain}/application/o/${local.slug}/.well-known/openid-configuration"
+  oidc_discovery_url = "https://${var.base.authentik.gateway_domain}/application/o/${local.application_slug}/.well-known/openid-configuration"
 }

@@ -29,6 +29,12 @@ variable "application_name" {
   default     = "CRM (EspoCRM)"
 }
 
+variable "application_slug" {
+  description = "Override the Authentik application's slug. Defaults to the bundle's stock slug (`espocrm`). Set to match an existing legacy slug to enable in-place state import without force-replace. Note: this overrides ONLY the Authentik application's slug — bucket names, secret names, IAM apps and other internal namespaces keep using the canonical bundle slug."
+  type        = string
+  default     = ""
+}
+
 variable "icon_url" {
   description = "Optional icon path in Authentik media (e.g. \"espocrm-icon.png\")."
   type        = string

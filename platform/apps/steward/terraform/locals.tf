@@ -1,5 +1,6 @@
 locals {
-  slug = "steward"
+  slug             = "steward"
+  application_slug = var.application_slug != "" ? var.application_slug : local.slug
 
   # Authorized groups = the access-level group from base + any extras.
   # Map keys are static role names so for_each can plan before identity-apply
@@ -23,6 +24,6 @@ locals {
   oidc_auth_endpoint  = "${local.authentik_base}/application/o/authorize/"
   oidc_token_endpoint = "${local.authentik_base}/application/o/token/"
   oidc_userinfo_endpt = "${local.authentik_base}/application/o/userinfo/"
-  oidc_jwks_endpoint  = "${local.authentik_base}/application/o/${local.slug}/jwks/"
+  oidc_jwks_endpoint  = "${local.authentik_base}/application/o/${local.application_slug}/jwks/"
   authentik_api_url   = local.authentik_base
 }

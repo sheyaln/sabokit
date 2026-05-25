@@ -15,6 +15,7 @@ module "outline" {
   tier_access_level       = try(var.apps.outline.tier_access_level, "member")
   smtp_from_email         = try(var.apps.outline.smtp_from_email, "")
   application_name        = try(var.apps.outline.application_name, "Wiki (Outline)")
+  application_slug        = try(var.apps.outline.application_slug, "")
   monitoring_enabled      = try(var.apps.outline.monitoring_enabled, true)
   deployment_host_key     = try(var.apps.outline.deployment_host_key, "apps")
 }
@@ -36,6 +37,7 @@ module "steward" {
   image_repository        = try(var.apps.steward.image_repository, "ghcr.io/sheyaln/sabokit-steward")
   image_tag               = try(var.apps.steward.image_tag, "latest")
   application_name        = try(var.apps.steward.application_name, "Steward")
+  application_slug        = try(var.apps.steward.application_slug, "")
   monitoring_enabled      = try(var.apps.steward.monitoring_enabled, true)
   deployment_host_key     = try(var.apps.steward.deployment_host_key, "apps")
 }
@@ -58,6 +60,7 @@ module "vikunja" {
   smtp_from_email         = try(var.apps.vikunja.smtp_from_email, "")
   oidc_groups_scope_name  = try(var.apps.vikunja.oidc_groups_scope_name, "vikunja_scope")
   application_name        = try(var.apps.vikunja.application_name, "Tasks (Vikunja)")
+  application_slug        = try(var.apps.vikunja.application_slug, "")
   monitoring_enabled      = try(var.apps.vikunja.monitoring_enabled, true)
   deployment_host_key     = try(var.apps.vikunja.deployment_host_key, "apps")
 }
@@ -78,6 +81,7 @@ module "bentopdf" {
   tier_access_level       = try(var.apps.bentopdf.tier_access_level, "member")
   image                   = try(var.apps.bentopdf.image, "ghcr.io/digital-blueprint/bento-pdf:latest")
   application_name        = try(var.apps.bentopdf.application_name, "PDF Tools (BentoPDF)")
+  application_slug        = try(var.apps.bentopdf.application_slug, "")
   monitoring_enabled      = try(var.apps.bentopdf.monitoring_enabled, true)
   deployment_host_key     = try(var.apps.bentopdf.deployment_host_key, "apps")
 }
@@ -111,6 +115,7 @@ module "notifuse" {
   oidc_auto_provision     = try(var.apps.notifuse.oidc_auto_provision, true)
   oidc_allow_magic_code   = try(var.apps.notifuse.oidc_allow_magic_code, true)
   application_name        = try(var.apps.notifuse.application_name, "Notifuse")
+  application_slug        = try(var.apps.notifuse.application_slug, "")
   monitoring_enabled      = try(var.apps.notifuse.monitoring_enabled, true)
   deployment_host_key     = try(var.apps.notifuse.deployment_host_key, "apps")
 }
@@ -139,6 +144,7 @@ module "nextcloud" {
   max_upload_size_bytes   = try(var.apps.nextcloud.max_upload_size_bytes, 2147483648)
   smtp_from_email         = try(var.apps.nextcloud.smtp_from_email, "")
   application_name        = try(var.apps.nextcloud.application_name, "Nextcloud")
+  application_slug        = try(var.apps.nextcloud.application_slug, "")
   monitoring_enabled      = try(var.apps.nextcloud.monitoring_enabled, true)
   deployment_host_key     = try(var.apps.nextcloud.deployment_host_key, "apps")
 }
@@ -164,6 +170,7 @@ module "decidim" {
   smtp_from_email               = try(var.apps.decidim.smtp_from_email, "")
   sidekiq_concurrency           = try(var.apps.decidim.sidekiq_concurrency, 5)
   application_name              = try(var.apps.decidim.application_name, "Decidim")
+  application_slug              = try(var.apps.decidim.application_slug, "")
   monitoring_enabled            = try(var.apps.decidim.monitoring_enabled, true)
   deployment_host_key           = try(var.apps.decidim.deployment_host_key, "apps")
 }
@@ -193,6 +200,7 @@ module "jitsi" {
   oidc_adapter_image_version = try(var.apps.jitsi.oidc_adapter_image_version, "main")
   oidc_log_level             = try(var.apps.jitsi.oidc_log_level, "INFO")
   application_name           = try(var.apps.jitsi.application_name, "Video Meetings (Jitsi)")
+  application_slug           = try(var.apps.jitsi.application_slug, "")
   monitoring_enabled         = try(var.apps.jitsi.monitoring_enabled, true)
   deployment_host_key        = try(var.apps.jitsi.deployment_host_key, "apps")
 }
@@ -219,6 +227,7 @@ module "espocrm" {
   enable_member_entity_bootstrap = try(var.apps.espocrm.enable_member_entity_bootstrap, false)
   member_entity_webhooks         = try(var.apps.espocrm.member_entity_webhooks, [])
   application_name               = try(var.apps.espocrm.application_name, "CRM (EspoCRM)")
+  application_slug               = try(var.apps.espocrm.application_slug, "")
   monitoring_enabled             = try(var.apps.espocrm.monitoring_enabled, true)
   deployment_host_key            = try(var.apps.espocrm.deployment_host_key, "apps")
 }
@@ -239,6 +248,7 @@ module "n8n" {
   timezone                = try(var.apps.n8n.timezone, "UTC")
   public_api_disabled     = try(var.apps.n8n.public_api_disabled, true)
   application_name        = try(var.apps.n8n.application_name, "Workflows (n8n)")
+  application_slug        = try(var.apps.n8n.application_slug, "")
   monitoring_enabled      = try(var.apps.n8n.monitoring_enabled, true)
   deployment_host_key     = try(var.apps.n8n.deployment_host_key, "apps")
 }
@@ -406,6 +416,7 @@ module "wazuh" {
   indexer_heap_size       = try(var.apps.wazuh.indexer_heap_size, "1g")
   oidc_admin_group        = try(var.apps.wazuh.oidc_admin_group, "admin")
   application_name        = try(var.apps.wazuh.application_name, "Wazuh")
+  application_slug        = try(var.apps.wazuh.application_slug, "")
 }
 
 module "grafana" {
@@ -424,6 +435,7 @@ module "grafana" {
   oidc_admin_group        = try(var.apps.grafana.oidc_admin_group, "admin")
   oidc_editor_group       = try(var.apps.grafana.oidc_editor_group, "manager")
   application_name        = try(var.apps.grafana.application_name, "Grafana")
+  application_slug        = try(var.apps.grafana.application_slug, "")
   # Auto-aggregated from every enabled app's monitoring.grafana_dashboards
   # plus any consumer-supplied extras.
   grafana_dashboards = concat(

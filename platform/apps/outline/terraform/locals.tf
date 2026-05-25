@@ -1,5 +1,6 @@
 locals {
-  slug = "outline"
+  slug             = "outline"
+  application_slug = var.application_slug != "" ? var.application_slug : local.slug
 
   # Authorized groups = the access-level group from base + any extras.
   # Map keys are static role names so for_each can plan before identity-apply

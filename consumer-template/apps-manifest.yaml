@@ -113,6 +113,12 @@ apps:
           description: Display name for the Authentik portal entry. Override for branded portals.
           ui: advanced
 
+        application_slug:
+          type: string
+          default: ""
+          description: Override the Authentik application slug. Default empty = use the bundle's stock slug (`outline`). Set to a legacy slug to enable in-place import without force-replace.
+          ui: advanced
+
   # ── Steward ─────────────────────────────────────────────────────────────
   # Simplified Authentik admin UI for non-technical org admins. Members of
   # `admin_group_name` (matched against the OIDC `groups` claim) can sign in
@@ -201,6 +207,12 @@ apps:
           type: string
           default: Steward
           description: Display name for the Authentik portal entry. Override for branded portals.
+          ui: advanced
+
+        application_slug:
+          type: string
+          default: ""
+          description: Override the Authentik application slug. Default empty = use the bundle's stock slug (`steward`). Set to a legacy slug to enable in-place import without force-replace.
           ui: advanced
 
   # ── Vikunja ─────────────────────────────────────────────────────────────
@@ -312,6 +324,12 @@ apps:
           description: Display name for the Authentik portal entry. Override for branded portals.
           ui: advanced
 
+        application_slug:
+          type: string
+          default: ""
+          description: Override the Authentik application slug. Default empty = use the bundle's stock slug (`vikunja`). Set to a legacy slug to enable in-place import without force-replace.
+          ui: advanced
+
   # ── BentoPDF ────────────────────────────────────────────────────────────
   # Browser-based PDF toolkit (merge, split, OCR, redact). Stateless — no
   # DB, no storage. Authenticated via Authentik forward-auth (the embedded
@@ -386,6 +404,12 @@ apps:
           type: string
           default: PDF Tools (BentoPDF)
           description: Display name for the Authentik portal entry. Override for branded portals.
+          ui: advanced
+
+        application_slug:
+          type: string
+          default: ""
+          description: Override the Authentik application slug. Default empty = use the bundle's stock slug (`bentopdf`). Set to a legacy slug to enable in-place import without force-replace.
           ui: advanced
 
   # ── Notifuse ────────────────────────────────────────────────────────────
@@ -488,6 +512,12 @@ apps:
           type: string
           default: Notifuse
           description: Display name for the Authentik portal entry. Override for branded portals.
+          ui: advanced
+
+        application_slug:
+          type: string
+          default: ""
+          description: Override the Authentik application slug. Default empty = use the bundle's stock slug (`notifuse`). Set to a legacy slug to enable in-place import without force-replace.
           ui: advanced
 
   # ── Privacy policy ──────────────────────────────────────────────────────
@@ -661,6 +691,12 @@ apps:
           description: Display name for the Authentik portal entry. Override for branded portals.
           ui: advanced
 
+        application_slug:
+          type: string
+          default: ""
+          description: Override the Authentik application slug. Default empty = use the bundle's stock slug (`nextcloud`). Set to a legacy slug to enable in-place import without force-replace.
+          ui: advanced
+
   # ── Decidim ─────────────────────────────────────────────────────────────
   # Participatory democracy platform. Multi-container (web + sidekiq),
   # postgres + S3, OIDC.
@@ -766,6 +802,12 @@ apps:
           type: string
           default: Decidim
           description: Display name for the Authentik portal entry. Override for branded portals.
+          ui: advanced
+
+        application_slug:
+          type: string
+          default: ""
+          description: Override the Authentik application slug. Default empty = use the bundle's stock slug (`decidim`). Set to a legacy slug to enable in-place import without force-replace.
           ui: advanced
 
   # ── Jitsi ───────────────────────────────────────────────────────────────
@@ -874,6 +916,12 @@ apps:
           description: Display name for the Authentik portal entry. Override for branded portals.
           ui: advanced
 
+        application_slug:
+          type: string
+          default: ""
+          description: Override the Authentik application slug. Default empty = use the bundle's stock slug (`jitsi`). Set to a legacy slug to enable in-place import without force-replace.
+          ui: advanced
+
   # ── EspoCRM ─────────────────────────────────────────────────────────────
   # PHP CRM with OIDC. Member-entity bootstrap is opt-in (sets up
   # constituent/dues tracking on top of the generic CRM).
@@ -973,6 +1021,12 @@ apps:
           description: Display name for the Authentik portal entry. Override for branded portals.
           ui: advanced
 
+        application_slug:
+          type: string
+          default: ""
+          description: Override the Authentik application slug. Default empty = use the bundle's stock slug (`espocrm`). Set to a legacy slug to enable in-place import without force-replace.
+          ui: advanced
+
   # ── n8n ─────────────────────────────────────────────────────────────────
   # Workflow automation. OIDC via Authentik; a bundled hooks.js promotes
   # members of n8n_admin_group_name to n8n's owner role.
@@ -1064,6 +1118,12 @@ apps:
           type: string
           default: Workflows (n8n)
           description: Display name for the Authentik portal entry. Override for branded portals.
+          ui: advanced
+
+        application_slug:
+          type: string
+          default: ""
+          description: Override the Authentik application slug. Default empty = use the bundle's stock slug (`n8n`). Set to a legacy slug to enable in-place import without force-replace.
           ui: advanced
 
   # ── Backrest ────────────────────────────────────────────────────────────
@@ -1528,6 +1588,12 @@ apps:
           description: Display name for the Authentik portal entry. Override for branded portals.
           ui: advanced
 
+        application_slug:
+          type: string
+          default: ""
+          description: Override the Authentik application slug. Default empty = use the bundle's stock slug (`grafana`). Set to a legacy slug to enable in-place import without force-replace.
+          ui: advanced
+
   # ── Wazuh ───────────────────────────────────────────────────────────────
   # SIEM server stack: manager + indexer (OpenSearch) + dashboard. UI fronted
   # via Authentik forward-auth at the gateway (the dashboard's native SSO is
@@ -1610,6 +1676,12 @@ apps:
           type: string
           default: Wazuh
           description: Display name for the Authentik portal entry. Override for branded portals.
+          ui: advanced
+
+        application_slug:
+          type: string
+          default: ""
+          description: Override the Authentik application slug. Default empty = use the bundle's stock slug (`wazuh`). Set to a legacy slug to enable in-place import without force-replace.
           ui: advanced
 
   # ── Wazuh Agent ─────────────────────────────────────────────────────────

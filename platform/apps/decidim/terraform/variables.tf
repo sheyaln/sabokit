@@ -29,6 +29,12 @@ variable "application_name" {
   default     = "Decidim"
 }
 
+variable "application_slug" {
+  description = "Override the Authentik application's slug. Defaults to the bundle's stock slug (`decidim`). Set to match an existing legacy slug to enable in-place state import without force-replace. Note: this overrides ONLY the Authentik application's slug — bucket names, secret names, IAM apps and other internal namespaces keep using the canonical bundle slug."
+  type        = string
+  default     = ""
+}
+
 variable "icon_url" {
   description = "Optional icon path in Authentik media (e.g. \"decidim-icon.png\")."
   type        = string

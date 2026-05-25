@@ -69,8 +69,8 @@ resource "scaleway_secret_version" "app" {
     OIDC_AUTH_URI      = "https://${var.base.authentik.gateway_domain}/application/o/authorize/"
     OIDC_TOKEN_URI     = "https://${var.base.authentik.gateway_domain}/application/o/token/"
     OIDC_USERINFO_URI  = "https://${var.base.authentik.gateway_domain}/application/o/userinfo/"
-    OIDC_LOGOUT_URI    = "https://${var.base.authentik.gateway_domain}/application/o/${local.slug}/end-session/"
-    OIDC_ISSUER_URL    = "https://${var.base.authentik.gateway_domain}/application/o/${local.slug}/"
+    OIDC_LOGOUT_URI    = "https://${var.base.authentik.gateway_domain}/application/o/${local.application_slug}/end-session/"
+    OIDC_ISSUER_URL    = "https://${var.base.authentik.gateway_domain}/application/o/${local.application_slug}/"
     OIDC_SCOPES        = "openid profile email"
 
     AWS_REGION              = var.base.scaleway.region

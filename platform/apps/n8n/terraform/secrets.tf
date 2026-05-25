@@ -45,7 +45,7 @@ resource "scaleway_secret_version" "app" {
 
     WEBHOOK_URL = local.app_url
 
-    OIDC_ISSUER_URL    = "https://${var.base.authentik.gateway_domain}/application/o/${local.slug}/"
+    OIDC_ISSUER_URL    = "https://${var.base.authentik.gateway_domain}/application/o/${local.application_slug}/"
     OIDC_CLIENT_ID     = module.authentik[0].client_id
     OIDC_CLIENT_SECRET = module.authentik[0].client_secret
     OIDC_REDIRECT_URI  = local.oidc_callback_url
