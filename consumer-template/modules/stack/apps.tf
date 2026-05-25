@@ -20,6 +20,8 @@ module "outline" {
   icon_filename           = try(var.apps.outline.icon_filename, "outline-icon.png")
   monitoring_enabled      = try(var.apps.outline.monitoring_enabled, true)
   deployment_host_key     = try(var.apps.outline.deployment_host_key, "apps")
+  bucket_name_override    = try(var.apps.outline.bucket_name_override, "")
+  dns_zone_override       = try(var.apps.outline.dns_zone_override, "")
 }
 
 module "steward" {
@@ -45,6 +47,7 @@ module "steward" {
   service_account_extra_groups = try(var.apps.steward.service_account_extra_groups, [])
   monitoring_enabled           = try(var.apps.steward.monitoring_enabled, true)
   deployment_host_key          = try(var.apps.steward.deployment_host_key, "apps")
+  dns_zone_override            = try(var.apps.steward.dns_zone_override, "")
 }
 
 module "vikunja" {
@@ -70,6 +73,7 @@ module "vikunja" {
   icon_filename           = try(var.apps.vikunja.icon_filename, "vikunja-icon.png")
   monitoring_enabled      = try(var.apps.vikunja.monitoring_enabled, true)
   deployment_host_key     = try(var.apps.vikunja.deployment_host_key, "apps")
+  dns_zone_override       = try(var.apps.vikunja.dns_zone_override, "")
 }
 
 # Forward-auth app (no OIDC). Its provider_id MUST also be added to the
@@ -93,6 +97,7 @@ module "bentopdf" {
   icon_filename           = try(var.apps.bentopdf.icon_filename, "bentopdf-icon.png")
   monitoring_enabled      = try(var.apps.bentopdf.monitoring_enabled, true)
   deployment_host_key     = try(var.apps.bentopdf.deployment_host_key, "apps")
+  dns_zone_override       = try(var.apps.bentopdf.dns_zone_override, "")
 }
 
 # Public — no auth integration. Privacy policies must be reachable without login.
@@ -106,6 +111,7 @@ module "privacy_policy" {
   page_title          = try(var.apps.privacy_policy.page_title, "Privacy Policy")
   monitoring_enabled  = try(var.apps.privacy_policy.monitoring_enabled, true)
   deployment_host_key = try(var.apps.privacy_policy.deployment_host_key, "apps")
+  dns_zone_override   = try(var.apps.privacy_policy.dns_zone_override, "")
 }
 
 module "notifuse" {
@@ -129,6 +135,8 @@ module "notifuse" {
   icon_filename           = try(var.apps.notifuse.icon_filename, "")
   monitoring_enabled      = try(var.apps.notifuse.monitoring_enabled, true)
   deployment_host_key     = try(var.apps.notifuse.deployment_host_key, "apps")
+  bucket_name_override    = try(var.apps.notifuse.bucket_name_override, "")
+  dns_zone_override       = try(var.apps.notifuse.dns_zone_override, "")
 }
 
 # Broadsheet — sabokit-broadsheet fork of notifuse. Replaces notifuse going
@@ -154,6 +162,8 @@ module "broadsheet" {
   icon_filename           = try(var.apps.broadsheet.icon_filename, "broadsheet-icon.png")
   monitoring_enabled      = try(var.apps.broadsheet.monitoring_enabled, true)
   deployment_host_key     = try(var.apps.broadsheet.deployment_host_key, "apps")
+  bucket_name_override    = try(var.apps.broadsheet.bucket_name_override, "")
+  dns_zone_override       = try(var.apps.broadsheet.dns_zone_override, "")
 }
 
 # Nextcloud + OnlyOffice + Talk HPB ship as one stack — three hostnames
@@ -185,6 +195,8 @@ module "nextcloud" {
   icon_filename           = try(var.apps.nextcloud.icon_filename, "")
   monitoring_enabled      = try(var.apps.nextcloud.monitoring_enabled, true)
   deployment_host_key     = try(var.apps.nextcloud.deployment_host_key, "apps")
+  bucket_name_override    = try(var.apps.nextcloud.bucket_name_override, "")
+  dns_zone_override       = try(var.apps.nextcloud.dns_zone_override, "")
 }
 
 module "decidim" {
@@ -213,6 +225,8 @@ module "decidim" {
   icon_filename                 = try(var.apps.decidim.icon_filename, "decidim-icon.png")
   monitoring_enabled            = try(var.apps.decidim.monitoring_enabled, true)
   deployment_host_key           = try(var.apps.decidim.deployment_host_key, "apps")
+  bucket_name_override          = try(var.apps.decidim.bucket_name_override, "")
+  dns_zone_override             = try(var.apps.decidim.dns_zone_override, "")
 }
 
 # OIDC via an adapter (NOT forward-auth — don't add jitsi.authentik_provider_id
@@ -245,6 +259,7 @@ module "jitsi" {
   icon_filename              = try(var.apps.jitsi.icon_filename, "")
   monitoring_enabled         = try(var.apps.jitsi.monitoring_enabled, true)
   deployment_host_key        = try(var.apps.jitsi.deployment_host_key, "apps")
+  dns_zone_override          = try(var.apps.jitsi.dns_zone_override, "")
 }
 
 module "espocrm" {
@@ -274,6 +289,7 @@ module "espocrm" {
   icon_filename                  = try(var.apps.espocrm.icon_filename, "espocrm-icon.png")
   monitoring_enabled             = try(var.apps.espocrm.monitoring_enabled, true)
   deployment_host_key            = try(var.apps.espocrm.deployment_host_key, "apps")
+  dns_zone_override              = try(var.apps.espocrm.dns_zone_override, "")
 }
 
 module "n8n" {
@@ -298,6 +314,7 @@ module "n8n" {
   service_account_extra_groups = try(var.apps.n8n.service_account_extra_groups, [])
   monitoring_enabled           = try(var.apps.n8n.monitoring_enabled, true)
   deployment_host_key          = try(var.apps.n8n.deployment_host_key, "apps")
+  dns_zone_override            = try(var.apps.n8n.dns_zone_override, "")
 }
 
 # App bundles export their backup contribution as `backup_plan` (null when
@@ -493,6 +510,7 @@ module "wazuh" {
   application_slug        = try(var.apps.wazuh.application_slug, "")
   icon_url                = try(var.apps.wazuh.icon_url, "")
   icon_filename           = try(var.apps.wazuh.icon_filename, "")
+  dns_zone_override       = try(var.apps.wazuh.dns_zone_override, "")
 }
 
 module "grafana" {
@@ -520,6 +538,8 @@ module "grafana" {
     local.aggregated_grafana_dashboards,
     try(var.apps.grafana.grafana_dashboards, []),
   )
+
+  dns_zone_override = try(var.apps.grafana.dns_zone_override, "")
 }
 
 # Backrest is multi-instance: each backed-up host gets its own module block,
@@ -554,6 +574,8 @@ module "backrest_mgmt" {
   icon_filename                         = try(var.apps.backrest_mgmt.icon_filename, "")
   monitoring_enabled                    = try(var.apps.backrest_mgmt.monitoring_enabled, true)
   deployment_host_key                   = try(var.apps.backrest_mgmt.deployment_host_key, "apps")
+  bucket_name_override                  = try(var.apps.backrest_mgmt.bucket_name_override, "")
+  dns_zone_override                     = try(var.apps.backrest_mgmt.dns_zone_override, "")
 }
 
 # ── Platform host-services (one container per host) ─────────────────────────

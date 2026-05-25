@@ -51,6 +51,11 @@ output "domains" {
     base_domain    = var.base_domain
     mgmt_domain    = local.mgmt_domain
     gateway_domain = local.gateway_domain
+
+    # Set of DNS zones the consumer owns. Per-app DNS modules consult this for
+    # longest-suffix-match zone routing (split-domain setups). compact + distinct
+    # collapse the common case where mgmt_domain defaults to base_domain.
+    zones = distinct(compact([var.base_domain, local.mgmt_domain]))
   }
 }
 

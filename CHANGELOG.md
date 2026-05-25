@@ -2,6 +2,18 @@
 
 All notable changes to sabokit go here. Versioning follows semver; major bumps signal breaking contract changes for consumers.
 
+## v3.0.3 — 2026-05-25
+
+Two consumer step-3 blockers — bucket name preservation (data-loss risk) and per-app DNS zone derivation (split-domain support).
+
+### Added
+- **`var.bucket_name_override`** on every bundle that creates a Scaleway object bucket (backrest, broadsheet, decidim, nextcloud, notifuse, outline). Default empty composes the canonical `{secrets_namespace}-{qualified_slug}` name; set explicitly to import an existing legacy-named bucket without force-replace. Short-lived knob — rsync data into the canonical naming pattern within a release cycle and drop the override; removal slated for v4.0.
+- **`base.domains.zones`** derived output — distinct + compact of `[base_domain, mgmt_domain]`. The set of DNS zones the consumer owns; per-app DNS modules consult this for zone routing.
+- **`var.dns_zone_override`** per bundle (escape hatch). Default empty derives the zone from `var.hostname` by longest-suffix match against `base.domains.zones`. Only set explicitly for edge cases.
+
+### Fixed
+- **Per-app DNS module now derives both zone AND record name from the hostname.** Was: `dns_zone = base_domain` hardcode — broke split-domain setups (e.g. `n8n.example.cc` when `base_domain=example.org`, record landed in wrong zone, force-replace on subsequent applies). Now: longest-matching zone in `base.domains.zones` wins; plan-time precondition error if hostname doesn't match any owned zone.
+
 ## v3.0.2 — 2026-05-25
 
 Rebrand stragglers the v3.0.0 sed pass missed (it was scoped to the literal `federated-commons` string; these were `Federated Commons` with a space, plus the `FC_BASE_*` packer convention).

@@ -17,6 +17,12 @@ variable "hostname" {
   default     = ""
 }
 
+variable "dns_zone_override" {
+  description = "Override the DNS zone the per-app A record lands in. Default empty derives the zone from var.hostname by longest-suffix match against var.base.domains.zones. Set explicitly only for edge cases where derivation produces the wrong zone."
+  type        = string
+  default     = ""
+}
+
 variable "category_group" {
   description = "Authentik portal category. Default 'Administration' — CRM is where org admins manage member data (same bucket as steward); override per-consumer if your portal taxonomy puts it elsewhere."
   type        = string

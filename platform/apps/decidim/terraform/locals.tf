@@ -23,7 +23,9 @@ locals {
   reference_prefix = var.organization_reference_prefix != "" ? var.organization_reference_prefix : upper(substr(replace(var.organization_name, "/[^A-Za-z]/", ""), 0, 3))
 
   # Bucket name must be globally unique across all Scaleway customers.
-  bucket_name = "${var.base.scaleway.secrets_namespace}-${local.slug}-uploads"
+  # Override consults var.bucket_name_override for legacy-bucket import without
+  # force-replace.
+  bucket_name = var.bucket_name_override != "" ? var.bucket_name_override : "${var.base.scaleway.secrets_namespace}-${local.slug}-uploads"
 
   # Full URL wins; else compose from platform icon_base_url + filename; else empty.
   effective_icon_url = (
