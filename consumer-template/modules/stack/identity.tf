@@ -28,6 +28,11 @@ module "identity" {
   # surfaced via `var.base.authentik.groups[<name>]`. Apps with service
   # accounts (n8n, steward) consume by name via `service_account_extra_groups`.
   extra_groups = try(var.identity.extra_groups, {})
+
+  # Where app bundles fetch icons by filename. Empty = use the identity
+  # module's default (sabokit-assets pinned tag). Override to point at your
+  # own CDN / internal mirror to retheme every app icon at once.
+  icon_base_url = try(var.identity.icon_base_url, "")
 }
 
 # The merged "base" object app bundles consume. Apps reference
