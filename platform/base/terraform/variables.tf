@@ -81,6 +81,20 @@ variable "default_security_group_extra_inbound_rules" {
   default = []
 }
 
+# ── Custom DNS records ──────────────────────────────────────────────────────
+
+variable "custom_dns_records" {
+  description = "Consumer-declared DNS records, keyed by zone-name. Each list entry is a record (A, AAAA, CNAME, MX, TXT, SRV). Lives at base layer so it co-exists with TEM's auto-managed SPF/DKIM/DMARC records. Common use: MX records pointing at the consumer's inbound mail provider (e.g. Proton Mail), additional TXT verifications, SRV records. Zones in keys must match base.domains.zones (records for unknown zones are silently dropped per the app_dns module convention). Example: `{ \"example.org\" = [{ subdomain = \"@\", type = \"MX\", target = \"10 mail.protonmail.ch.\" }] }`."
+  type = map(list(object({
+    subdomain = string
+    type      = string
+    target    = optional(string) # data for MX/CNAME/TXT/SRV (literal Scaleway data field)
+    server    = optional(string) # server key for A/AAAA (looked up in compute_hosts)
+    ttl       = optional(number, 3600)
+  })))
+  default = {}
+}
+
 # ── Compute hosts ───────────────────────────────────────────────────────────
 
 variable "compute_hosts" {
