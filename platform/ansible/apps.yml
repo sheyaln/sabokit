@@ -194,28 +194,6 @@
     n8n_db_credentials_secret_id: "{{ enabled_apps.n8n.ansible_vars.n8n_db_credentials_secret_id }}"
   when: enabled_apps.n8n is defined and enabled_apps.n8n is not none
   tags: [apps, n8n]
-- import_playbook: ../apps/postiz/ansible/playbook.yml
-  vars:
-    postiz_host_group: "{{ enabled_apps.postiz.ansible_group }}"
-    postiz_hostname: "{{ enabled_apps.postiz.ansible_vars.postiz_hostname }}"
-    postiz_image_tag: "{{ enabled_apps.postiz.ansible_vars.postiz_image_tag }}"
-    postiz_temporal_image_tag: "{{ enabled_apps.postiz.ansible_vars.postiz_temporal_image_tag }}"
-    postiz_temporal_elasticsearch_image_tag: "{{ enabled_apps.postiz.ansible_vars.postiz_temporal_elasticsearch_image_tag }}"
-    postiz_temporal_postgres_image_tag: "{{ enabled_apps.postiz.ansible_vars.postiz_temporal_postgres_image_tag }}"
-    postiz_timezone: "{{ enabled_apps.postiz.ansible_vars.postiz_timezone }}"
-    postiz_disable_registration: "{{ enabled_apps.postiz.ansible_vars.postiz_disable_registration }}"
-    postiz_app_secret_id: "{{ enabled_apps.postiz.ansible_vars.postiz_app_secret_id }}"
-    postiz_db_credentials_secret_id: "{{ enabled_apps.postiz.ansible_vars.postiz_db_credentials_secret_id }}"
-    postiz_smtp_secret_name: "{{ enabled_apps.postiz.ansible_vars.postiz_smtp_secret_name }}"
-    postiz_memory_limit: "{{ enabled_apps.postiz.ansible_vars.postiz_memory_limit }}"
-    postiz_memory_reservation: "{{ enabled_apps.postiz.ansible_vars.postiz_memory_reservation }}"
-    postiz_cpu_limit: "{{ enabled_apps.postiz.ansible_vars.postiz_cpu_limit }}"
-    postiz_cpu_reservation: "{{ enabled_apps.postiz.ansible_vars.postiz_cpu_reservation }}"
-    postiz_es_heap_size: "{{ enabled_apps.postiz.ansible_vars.postiz_es_heap_size }}"
-    postiz_auto_update_enabled: "{{ enabled_apps.postiz.ansible_vars.postiz_auto_update_enabled }}"
-    postiz_autoheal_enabled: "{{ enabled_apps.postiz.ansible_vars.postiz_autoheal_enabled }}"
-  when: enabled_apps.postiz is defined and enabled_apps.postiz is not none
-  tags: [apps, postiz]
 - import_playbook: ../apps/backrest/ansible/playbook.yml
   vars:
     backrest_host_group: "{{ enabled_apps.backrest_mgmt.ansible_group }}"
