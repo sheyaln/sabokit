@@ -46,27 +46,32 @@
   ansible.builtin.set_fact:
     _decidim_app_secret_uuid: "{{ decidim_app_secret_id | regex_replace('^[^/]+/', '') }}"
     _decidim_db_credentials_secret_uuid: "{{ decidim_db_credentials_secret_id | regex_replace('^[^/]+/', '') }}"
+  tags: [secrets]
 
 - name: Look up Decidim app secrets from Scaleway
   ansible.builtin.set_fact:
     decidim_app_secrets: "{{ lookup('scaleway.scaleway.scaleway_secret', _decidim_app_secret_uuid) | b64decode | from_json }}"
   no_log: true
+  tags: [secrets]
 
 - name: Look up Decidim DB credentials from Scaleway
   ansible.builtin.set_fact:
     decidim_db_credentials: "{{ lookup('scaleway.scaleway.scaleway_secret', _decidim_db_credentials_secret_uuid) | b64decode | from_json }}"
   no_log: true
+  tags: [secrets]
 
 - name: Default Decidim SMTP config to empty when smtp_secret_name is unset
   ansible.builtin.set_fact:
     decidim_smtp_config: {}
   when: decidim_smtp_secret_name | default('') | length == 0
+  tags: [secrets]
 
 - name: Look up SMTP config from Scaleway
   ansible.builtin.set_fact:
     decidim_smtp_config: "{{ lookup('scaleway.scaleway.scaleway_secret', decidim_smtp_secret_name, errors='ignore') | default('e30=', true) | b64decode | from_json }}"
   when: decidim_smtp_secret_name | default('') | length > 0
   no_log: true
+  tags: [secrets]
 
 - name: Render Dockerfile (extends base image with extra_gems)
   ansible.builtin.template:
@@ -96,6 +101,7 @@
     group: root
   notify: Restart decidim
   no_log: true
+  tags: [secrets]
 
 # Force-init: remove the marker volume so db-init reruns its seed step.
 # Operators set decidim_force_db_init=true via -e on the playbook invocation

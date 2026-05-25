@@ -52,11 +52,13 @@
 - name: Normalize Scaleway secret ID (strip leading region/ prefix)
   ansible.builtin.set_fact:
     _backrest_app_secret_uuid: "{{ backrest_app_secret_id | regex_replace('^[^/]+/', '') }}"
+  tags: [secrets]
 
 - name: Look up Backrest secrets from Scaleway
   ansible.builtin.set_fact:
     backrest_app_secrets: "{{ lookup('scaleway.scaleway.scaleway_secret', _backrest_app_secret_uuid) | b64decode | from_json }}"
   no_log: true
+  tags: [secrets]
 
 - name: Render Backrest config.json
   ansible.builtin.template:
@@ -67,6 +69,7 @@
     group: root
   notify: Restart backrest
   no_log: true
+  tags: [secrets]
 
 - name: Render docker-compose.yml
   ansible.builtin.template:
@@ -86,6 +89,7 @@
     group: root
   notify: Restart backrest
   no_log: true
+  tags: [secrets]
 
 - name: Ensure Backrest stack is running
   community.docker.docker_compose_v2:

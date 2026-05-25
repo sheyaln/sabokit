@@ -49,27 +49,32 @@
   ansible.builtin.set_fact:
     _vikunja_app_secret_uuid: "{{ vikunja_app_secret_id | regex_replace('^[^/]+/', '') }}"
     _vikunja_db_credentials_secret_uuid: "{{ vikunja_db_credentials_secret_id | regex_replace('^[^/]+/', '') }}"
+  tags: [secrets]
 
 - name: Look up Vikunja app secrets from Scaleway
   ansible.builtin.set_fact:
     vikunja_app_secrets: "{{ lookup('scaleway.scaleway.scaleway_secret', _vikunja_app_secret_uuid) | b64decode | from_json }}"
   no_log: true
+  tags: [secrets]
 
 - name: Look up Vikunja DB credentials from Scaleway
   ansible.builtin.set_fact:
     vikunja_db_credentials: "{{ lookup('scaleway.scaleway.scaleway_secret', _vikunja_db_credentials_secret_uuid) | b64decode | from_json }}"
   no_log: true
+  tags: [secrets]
 
 - name: Default Vikunja SMTP config to empty when smtp_secret_name is unset
   ansible.builtin.set_fact:
     vikunja_smtp_config: {}
   when: vikunja_smtp_secret_name | default('') | length == 0
+  tags: [secrets]
 
 - name: Look up SMTP config from Scaleway
   ansible.builtin.set_fact:
     vikunja_smtp_config: "{{ lookup('scaleway.scaleway.scaleway_secret', vikunja_smtp_secret_name, errors='ignore') | default('e30=', true) | b64decode | from_json }}"
   when: vikunja_smtp_secret_name | default('') | length > 0
   no_log: true
+  tags: [secrets]
 
 - name: Render docker-compose.yml
   ansible.builtin.template:
@@ -89,6 +94,7 @@
     group: root
   notify: Restart vikunja
   no_log: true
+  tags: [secrets]
 
 - name: Ensure Vikunja stack is running
   community.docker.docker_compose_v2:

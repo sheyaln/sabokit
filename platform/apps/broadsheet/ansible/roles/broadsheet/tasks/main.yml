@@ -51,27 +51,32 @@
   ansible.builtin.set_fact:
     _broadsheet_app_secret_uuid: "{{ broadsheet_app_secret_id | regex_replace('^[^/]+/', '') }}"
     _broadsheet_db_credentials_secret_uuid: "{{ broadsheet_db_credentials_secret_id | regex_replace('^[^/]+/', '') }}"
+  tags: [secrets]
 
 - name: Look up Broadsheet app secrets from Scaleway
   ansible.builtin.set_fact:
     broadsheet_app_secrets: "{{ lookup('scaleway.scaleway.scaleway_secret', _broadsheet_app_secret_uuid) | b64decode | from_json }}"
   no_log: true
+  tags: [secrets]
 
 - name: Look up Broadsheet DB credentials from Scaleway
   ansible.builtin.set_fact:
     broadsheet_db_credentials: "{{ lookup('scaleway.scaleway.scaleway_secret', _broadsheet_db_credentials_secret_uuid) | b64decode | from_json }}"
   no_log: true
+  tags: [secrets]
 
 - name: Default Broadsheet SMTP config to empty when smtp_secret_name is unset
   ansible.builtin.set_fact:
     broadsheet_smtp_config: {}
   when: broadsheet_smtp_secret_name | default('') | length == 0
+  tags: [secrets]
 
 - name: Look up SMTP config from Scaleway
   ansible.builtin.set_fact:
     broadsheet_smtp_config: "{{ lookup('scaleway.scaleway.scaleway_secret', broadsheet_smtp_secret_name, errors='ignore') | default('e30=', true) | b64decode | from_json }}"
   when: broadsheet_smtp_secret_name | default('') | length > 0
   no_log: true
+  tags: [secrets]
 
 - name: Render docker-compose.yml
   ansible.builtin.template:
@@ -91,6 +96,7 @@
     group: root
   notify: Restart broadsheet
   no_log: true
+  tags: [secrets]
 
 - name: Ensure Broadsheet stack is running (build_from_source)
   community.docker.docker_compose_v2:

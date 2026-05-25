@@ -46,16 +46,19 @@
   ansible.builtin.set_fact:
     _steward_app_secret_uuid: "{{ steward_app_secret_id | regex_replace('^[^/]+/', '') }}"
     _steward_db_credentials_secret_uuid: "{{ steward_db_credentials_secret_id | regex_replace('^[^/]+/', '') }}"
+  tags: [secrets]
 
 - name: Look up Steward app secrets from Scaleway
   ansible.builtin.set_fact:
     steward_app_secrets: "{{ lookup('scaleway.scaleway.scaleway_secret', _steward_app_secret_uuid) | b64decode | from_json }}"
   no_log: true
+  tags: [secrets]
 
 - name: Look up Steward DB credentials from Scaleway
   ansible.builtin.set_fact:
     steward_db_credentials: "{{ lookup('scaleway.scaleway.scaleway_secret', _steward_db_credentials_secret_uuid) | b64decode | from_json }}"
   no_log: true
+  tags: [secrets]
 
 - name: Render docker-compose.yml
   ansible.builtin.template:
@@ -75,6 +78,7 @@
     group: root
   notify: Restart steward
   no_log: true
+  tags: [secrets]
 
 - name: Ensure Steward stack is running
   community.docker.docker_compose_v2:

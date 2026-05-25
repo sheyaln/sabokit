@@ -51,11 +51,13 @@
 - name: Normalize Scaleway secret ID
   ansible.builtin.set_fact:
     _wazuh_app_secret_uuid: "{{ wazuh_app_secret_id | regex_replace('^[^/]+/', '') }}"
+  tags: [secrets]
 
 - name: Look up Wazuh app secrets from Scaleway
   ansible.builtin.set_fact:
     wazuh_app_secrets: "{{ lookup('scaleway.scaleway.scaleway_secret', _wazuh_app_secret_uuid) | b64decode | from_json }}"
   no_log: true
+  tags: [secrets]
 
 # ── Certificate generation (one-shot) ────────────────────────────────────────
 # Drop existing certs on regenerate request, then run the official cert
@@ -137,6 +139,7 @@
     mode: "0644"
   no_log: true
   notify: Restart wazuh stack
+  tags: [secrets]
 
 - name: Render security config.yml
   ansible.builtin.template:
@@ -144,6 +147,7 @@
     dest: "{{ wazuh_install_dir }}/config/wazuh_indexer/config.yml"
     mode: "0644"
   notify: Restart wazuh stack
+  tags: [secrets]
 
 - name: Render roles_mapping.yml
   ansible.builtin.template:
@@ -180,6 +184,7 @@
     mode: "0600"
   no_log: true
   notify: Restart wazuh stack
+  tags: [secrets]
 
 - name: Render docker-compose.yml
   ansible.builtin.template:
