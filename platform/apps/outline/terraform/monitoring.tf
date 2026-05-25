@@ -14,6 +14,7 @@ locals {
       "/var/log/containers/outline-*.log",
       "/var/log/containers/outline-redis-*.log",
     ]
-    alert_rules = []
+    alert_rules      = []
+    blackbox_targets = var.hostname != "" ? ["https://${var.hostname}/"] : []
   } : null
 }

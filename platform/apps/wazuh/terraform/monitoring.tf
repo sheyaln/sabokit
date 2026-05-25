@@ -7,6 +7,7 @@ locals {
       "/var/log/containers/wazuh.indexer-*.log",
       "/var/log/containers/wazuh.dashboard-*.log",
     ]
-    alert_rules = []
+    alert_rules      = []
+    blackbox_targets = var.hostname != "" ? ["https://${var.hostname}/"] : []
   } : null
 }

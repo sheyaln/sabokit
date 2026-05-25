@@ -11,6 +11,7 @@ locals {
       "/var/log/containers/decidim-sidekiq-*.log",
       "/var/log/containers/decidim-redis-*.log",
     ]
-    alert_rules = []
+    alert_rules      = []
+    blackbox_targets = var.hostname != "" ? ["https://${var.hostname}/"] : []
   } : null
 }
