@@ -6,6 +6,12 @@ variable "enabled" {
   default     = false
 }
 
+variable "credentials_preserve" {
+  description = "In-place legacy cutover support. When true, the bundle skips `random_password.restic` and reads RESTIC_PASSWORD from the live `backrest-<instance_name>-app-secrets` bag via a data source. Restic encrypts the entire repo with this password — losing it makes every snapshot unrecoverable. Also passed through to the OIDC submodule. Drop after cutover; short-lived, removal slated for v4.x."
+  type        = bool
+  default     = false
+}
+
 variable "base" {
   description = "Outputs from module \"base\". Apps consume { scaleway, authentik, compute, domains } from this. Shape documented in /ARCHITECTURE.md (\"What base/ outputs\")."
   type        = any

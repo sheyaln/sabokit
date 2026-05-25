@@ -6,6 +6,12 @@ variable "enabled" {
   default     = false
 }
 
+variable "credentials_preserve" {
+  description = "In-place legacy cutover support. When true, the bundle skips `random_password.admin` (Grafana break-glass admin password) and reads GRAFANA_ADMIN_PASSWORD from the live `grafana-app-secrets` bag via a data source. Also passed through to the OIDC submodule. Drop after cutover; short-lived, removal slated for v4.x."
+  type        = bool
+  default     = false
+}
+
 variable "base" {
   description = "Outputs from module \"base\"."
   type        = any

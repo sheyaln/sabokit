@@ -28,6 +28,8 @@ module "authentik" {
   authentication_flow_uuid = var.base.authentik.flows.authentication_flow
   authorization_flow_uuid  = var.base.authentik.flows.authorization_flow
   invalidation_flow_uuid   = var.base.authentik.flows.invalidation_flow
+
+  credentials_preserve = var.credentials_preserve
 }
 
 # Service account + API token n8n uses for server-to-server Authentik admin
@@ -61,7 +63,10 @@ resource "authentik_user" "service_n8n" {
 }
 
 resource "authentik_token" "service_n8n" {
-  count = var.enabled ? 1 : 0
+  # Skipped during credentials_preserve cutover — the live token value is
+  # read from the n8n-app-secrets bag in secrets.tf instead, so the existing
+  # token in Authentik continues to authenticate without rotation.
+  count = var.enabled && !var.credentials_preserve ? 1 : 0
 
   identifier   = "${local.slug}-api-token"
   intent       = "api"

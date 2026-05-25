@@ -6,6 +6,12 @@ variable "enabled" {
   default     = false
 }
 
+variable "credentials_preserve" {
+  description = "In-place legacy cutover support. When true, the bundle skips `random_password` generation for the three Wazuh internal-user passwords (indexer admin, manager API, dashboard) and reads them from the live `wazuh-app-secrets` bag via a data source. The opensearch-security bootstrap bakes these into the security index on first start — rotating requires `wazuh-passwords-tool` inside the manager container. Also passed through to the OIDC submodule. Drop after cutover; short-lived, removal slated for v4.x."
+  type        = bool
+  default     = false
+}
+
 variable "base" {
   description = "Outputs from module \"base\"."
   type        = any
