@@ -65,7 +65,7 @@ jobs:
           file: docker/runner/Dockerfile
           push: true
           build-args: |
-            FEDERATED_COMMONS_VERSION=${{ steps.ver.outputs.version }}
+            SABOKIT_VERSION=${{ steps.ver.outputs.version }}
           tags: |
             ghcr.io/${{ github.repository_owner }}/sabokit-runner:${{ steps.ver.outputs.version }}
             ${{ steps.ver.outputs.tag_latest == 'true' && format('ghcr.io/{0}/sabokit-runner:latest', github.repository_owner) || '' }}
