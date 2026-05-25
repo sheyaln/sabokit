@@ -29,6 +29,12 @@ variable "talk_hostname" {
   default     = ""
 }
 
+variable "dns_zone_override" {
+  description = "Override the DNS zone all three A records (nextcloud, onlyoffice, talk) land in. Default empty derives each zone independently from its hostname by longest-suffix match against var.base.domains.zones. Set explicitly only for edge cases where derivation produces the wrong zone — applies to all three hostnames uniformly."
+  type        = string
+  default     = ""
+}
+
 variable "category_group" {
   description = "Authentik portal category."
   type        = string
@@ -256,6 +262,12 @@ variable "storage_class_transition_days" {
   description = "Days after upload before objects move to `storage_class`. Only consulted when storage_class != STANDARD."
   type        = number
   default     = 1
+}
+
+variable "bucket_name_override" {
+  description = "Override the Scaleway object bucket name. Defaults to '$${secrets_namespace}-nextcloud-data'. Set to match an existing legacy bucket to enable in-place import without force-replace + data loss. ONLY the bucket name flips — IAM apps, secret names, etc. keep using the canonical slug. SHORT-LIVED: rsync data into the canonical naming pattern within a release cycle and drop this override; the knob is marked for removal in v4.0."
+  type        = string
+  default     = ""
 }
 
 variable "backup_enabled" {

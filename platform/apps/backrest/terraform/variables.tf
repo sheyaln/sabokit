@@ -17,6 +17,12 @@ variable "hostname" {
   default     = ""
 }
 
+variable "dns_zone_override" {
+  description = "Override the DNS zone the per-app A record lands in. Default empty derives the zone from var.hostname by longest-suffix match against var.base.domains.zones. Set explicitly only for edge cases where derivation produces the wrong zone."
+  type        = string
+  default     = ""
+}
+
 variable "category_group" {
   description = "Authentik portal category."
   type        = string
@@ -51,6 +57,12 @@ variable "storage_class_transition_days" {
   description = "Days after upload before snapshots move to `storage_class`. Default 1 — one day of STANDARD-rate storage per upload before cold transition. Setting to 0 is not supported by Scaleway; configuring restic itself to upload directly into the target class (via restic's S3 storage-class option) is the way to fully eliminate the warm window. Not wired in v2.10.3."
   type        = number
   default     = 1
+}
+
+variable "bucket_name_override" {
+  description = "Override the Scaleway object bucket name. Defaults to '$${secrets_namespace}-$${qualified_slug}'. Set to match an existing legacy bucket to enable in-place import without force-replace + data loss. ONLY the bucket name flips — IAM apps, secret names, etc. keep using the canonical slug. SHORT-LIVED: rsync data into the canonical naming pattern within a release cycle and drop this override; the knob is marked for removal in v4.0."
+  type        = string
+  default     = ""
 }
 
 variable "access_level" {

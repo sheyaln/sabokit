@@ -19,8 +19,9 @@ locals {
 
   # Globally unique across all Scaleway customers. Namespaced by both the
   # consumer's secrets_namespace (e.g. "fc-prod") and the instance_name so
-  # multiple instances under one consumer don't collide.
-  bucket_name = "${var.base.scaleway.secrets_namespace}-${local.qualified_slug}"
+  # multiple instances under one consumer don't collide. Override consults
+  # var.bucket_name_override for legacy-bucket import without force-replace.
+  bucket_name = var.bucket_name_override != "" ? var.bucket_name_override : "${var.base.scaleway.secrets_namespace}-${local.qualified_slug}"
 
   # Restic repo URI uses the bucket's regional s3 endpoint, with the scheme
   # stripped — restic expects `s3:host/bucket`, not `s3:https://host/bucket`.

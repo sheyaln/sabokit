@@ -25,6 +25,7 @@ locals {
   )
 
   # Bucket name must be globally unique across all Scaleway customers.
-  # Convention: {secrets_namespace}-outline-attachments. Override via Scaleway dashboard if collision occurs.
-  bucket_name = "${var.base.scaleway.secrets_namespace}-${local.slug}-attachments"
+  # Convention: {secrets_namespace}-outline-attachments. Override consults
+  # var.bucket_name_override for legacy-bucket import without force-replace.
+  bucket_name = var.bucket_name_override != "" ? var.bucket_name_override : "${var.base.scaleway.secrets_namespace}-${local.slug}-attachments"
 }

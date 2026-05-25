@@ -16,8 +16,9 @@ locals {
   api_endpoint      = local.app_url
 
   # Bucket: broadsheet stores marketing assets (templates, attachments). Globally
-  # unique per Scaleway, hence the secrets_namespace prefix.
-  bucket_name = "${var.base.scaleway.secrets_namespace}-${local.slug}-files"
+  # unique per Scaleway, hence the secrets_namespace prefix. Override consults
+  # var.bucket_name_override for legacy-bucket import without force-replace.
+  bucket_name = var.bucket_name_override != "" ? var.bucket_name_override : "${var.base.scaleway.secrets_namespace}-${local.slug}-files"
 
   # Full URL wins; else compose from platform icon_base_url + filename; else empty.
   effective_icon_url = (
