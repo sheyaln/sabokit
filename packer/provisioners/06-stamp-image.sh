@@ -5,13 +5,13 @@
 
 set -euo pipefail
 
-: "${FC_BASE_VERSION:?FC_BASE_VERSION is required}"
+: "${SABOKIT_BASE_VERSION:?SABOKIT_BASE_VERSION is required}"
 
-cat >/etc/fc-base-image <<EOF
-# Federated Commons pre-baked base image marker. Presence of this file tells
+cat >/etc/sabokit-base-image <<EOF
+# Sabokit pre-baked base image marker. Presence of this file tells
 # Ansible roles to skip the static apt-install / binary-download steps that
 # Packer already ran. See packer/README.md.
-FC_BASE_VERSION=${FC_BASE_VERSION}
-FC_BASE_BUILT=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+SABOKIT_BASE_VERSION=${SABOKIT_BASE_VERSION}
+SABOKIT_BASE_BUILT=$(date -u +%Y-%m-%dT%H:%M:%SZ)
 EOF
-chmod 0644 /etc/fc-base-image
+chmod 0644 /etc/sabokit-base-image

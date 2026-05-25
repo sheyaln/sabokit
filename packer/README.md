@@ -15,7 +15,7 @@ Cold deploys against this image skip the slow apt-install steps in `bootstrap.ym
 | `/usr/local/bin/cadvisor` + systemd unit (disabled) | binary download | `monitoring-agent` |
 | `/usr/local/bin/scw` | binary download | `scw-secrets` |
 | Pre-pulled docker images: `prom/node-exporter`, `gcr.io/cadvisor/cadvisor`, `grafana/alloy`, `traefik`, `haproxy` | docker pull | `monitoring-agent`, `traefik` |
-| `/etc/fc-base-image` marker file (with `FC_BASE_VERSION`) | stamp script | every role's guard |
+| `/etc/sabokit-base-image` marker file (with `SABOKIT_BASE_VERSION`) | stamp script | every role's guard |
 
 Services are intentionally **stopped + disabled** in the image — every clone of the image runs Ansible on first boot, which configures and starts them with the right per-env config.
 
@@ -102,7 +102,7 @@ Consumers who skip the import keep `image = "ubuntu_jammy"` and pay the apt-inst
 2. Make the change idempotent (re-running the provisioner on an already-configured host must be a no-op).
 3. **Do not start services** — the image is cloned across many VMs. Ansible owns service lifecycle.
 4. If the addition replaces an Ansible install step, add a guard in the corresponding role that keys on the binary/marker file you're shipping. Keep the install step working for `ubuntu_jammy` users.
-5. Bump `image_version`. The version is baked into `/etc/fc-base-image`, surfaces in Scaleway image tags, and is the contract consumers pin against.
+5. Bump `image_version`. The version is baked into `/etc/sabokit-base-image`, surfaces in Scaleway image tags, and is the contract consumers pin against.
 
 ## Trade-offs
 

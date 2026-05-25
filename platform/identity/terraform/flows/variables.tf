@@ -68,7 +68,7 @@ variable "domain" {
 variable "organisation_name" {
   description = "The organisation name shown in Authentik."
   type        = string
-  default     = "Federated Commons"
+  default     = "Sabokit"
 }
 
 variable "gateway_email" {

@@ -50,7 +50,7 @@ variable "image_name_prefix" {
 
 variable "image_version" {
   type        = string
-  description = "Version tag baked into the image name and into /etc/fc-base-image. Typically the sabokit release tag without the leading 'v' (e.g. \"1.4.0\"). Required."
+  description = "Version tag baked into the image name and into /etc/sabokit-base-image. Typically the sabokit release tag without the leading 'v' (e.g. \"1.4.0\"). Required."
 }
 
 variable "node_exporter_version" {

@@ -124,6 +124,6 @@ variable "signing_key_subject" {
   })
   default = {
     common_name  = "authentik.example.org"
-    organization = "Federated Commons"
+    organization = "Sabokit"
   }
 }

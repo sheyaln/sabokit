@@ -1,8 +1,8 @@
 <p align="center">
-  <img src="images/fed-commons-banner.png" alt="Federated Commons" width="640" />
+  <img src="images/fed-commons-banner.png" alt="Sabokit" width="640" />
 </p>
 
-# Federated Commons
+# Sabokit
 
 A Terraform + Ansible blueprint for self-hosting an identity-managed application suite on Scaleway. You consume tagged versions of its modules from your own infrastructure repository — clone [`consumer-template/`](./consumer-template/), fill in per-env config, run three commands.
 

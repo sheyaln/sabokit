@@ -10,7 +10,7 @@
 // Cutting the slow apt-install steps out of bootstrap is worth roughly a 5×
 // speed-up on a cold deploy. The resulting image is fully compatible with the
 // existing bootstrap.yml — the Ansible role guards detect a pre-baked image
-// (via /etc/fc-base-image) and skip the redundant install steps.
+// (via /etc/sabokit-base-image) and skip the redundant install steps.
 
 packer {
   required_plugins {
@@ -94,7 +94,7 @@ build {
   // pre-baked host and skip redundant install steps.
   provisioner "shell" {
     environment_vars = [
-      "FC_BASE_VERSION=${var.image_version}",
+      "SABOKIT_BASE_VERSION=${var.image_version}",
     ]
     script = "./provisioners/06-stamp-image.sh"
   }

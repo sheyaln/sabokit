@@ -42,7 +42,7 @@ module "nextcloud_saml" {
 | `authorization_flow_uuid` | `string` | — | Authorization flow UUID. |
 | `invalidation_flow_uuid` | `string` | — | Invalidation flow UUID. |
 | `generate_rsa_signing_key` | `bool` | `false` | If true, generate a dedicated RSA signing key for SAML assertions. Otherwise use the Authentik default self-signed certificate. |
-| `signing_key_subject` | `object({ common_name, organization })` | `{ common_name = "authentik.example.org", organization = "Federated Commons" }` | Subject for the RSA signing certificate when `generate_rsa_signing_key` is true. |
+| `signing_key_subject` | `object({ common_name, organization })` | `{ common_name = "authentik.example.org", organization = "Sabokit" }` | Subject for the RSA signing certificate when `generate_rsa_signing_key` is true. |
 | `saml_assertion_consumer_service_url` | `string` | — | SAML Assertion Consumer Service (ACS) URL on the service provider side. Pass a full URL; the module never assembles subdomains. |
 | `saml_audience` | `string` | — | SAML audience / entity ID expected by the service provider. |
 | `saml_service_provider_binding` | `string` | `"redirect"` | SAML service provider binding. `redirect` or `post`. |

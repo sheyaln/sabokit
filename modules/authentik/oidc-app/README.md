@@ -49,7 +49,7 @@ module "outline_oidc" {
 | `authorization_flow_uuid` | `string` | — | Authorization flow UUID. From `base.authentik.flows.authorization_flow`. |
 | `invalidation_flow_uuid` | `string` | — | Invalidation flow UUID. From `base.authentik.flows.invalidation_flow`. |
 | `generate_rsa_signing_key` | `bool` | `false` | If true, generate a dedicated RSA signing key for this app. Otherwise use the Authentik default self-signed certificate. |
-| `signing_key_subject` | `object({ common_name, organization })` | `{ common_name = "authentik.example.org", organization = "Federated Commons" }` | Subject for the RSA signing certificate when `generate_rsa_signing_key` is true. Object with `common_name` and `organization`. |
+| `signing_key_subject` | `object({ common_name, organization })` | `{ common_name = "authentik.example.org", organization = "Sabokit" }` | Subject for the RSA signing certificate when `generate_rsa_signing_key` is true. Object with `common_name` and `organization`. |
 
 ## Outputs
 

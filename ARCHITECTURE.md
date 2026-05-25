@@ -1,4 +1,4 @@
-# Federated Commons Architecture
+# Sabokit Architecture
 
 This document is the **contract** for module authors and consumers. It defines how `base/`, `apps/`, `modules/`, and `consumer-template/` fit together and what each must guarantee.
 

@@ -87,8 +87,8 @@ module "authentik" {
 
   gateway_domain = module.base.domains.gateway_domain
   base_domain    = module.base.domains.base_domain
-  org_name       = "Federated Commons Test"
-  org_slug       = "fctest"
+  org_name       = "Sabokit Test"
+  org_slug       = "sabokittest"
   infra_email    = "ops@example.org"
 }
 
