@@ -19,6 +19,9 @@ Scrape configs and alert rules are aggregated by the consumer from each enabled 
 | `exporters_enabled` | `bool` | `true` | Deploy node_exporter + cadvisor sidecars + default scrape jobs for them. |
 | `remote_write_enabled` | `bool` | `true` | Enable the remote-write receiver endpoint. |
 | `private_ip_bind` | `string` | `""` | Bind 9090 to a private IP. Empty = 127.0.0.1 only. |
+| `blackbox_exporter_enabled` | `bool` | `true` | Deploy the bundled blackbox_exporter sidecar; ship paired alert rules + dashboard. Opt-out. |
+| `blackbox_exporter_image_tag` | `string` | `"v0.28.0"` | blackbox_exporter image tag. |
+| `blackbox_targets` | `list(string)` | `[]` | Extra probe URLs beyond the consumer-aggregated set (e.g. external dependency you care about). |
 | `tem_exporter_enabled` | `bool` | `false` | Deploy the bundled Scaleway TEM exporter sidecar. Pairs with `monitoring/dashboards/scaleway-tem.json` + `monitoring/alerts/scaleway-tem.yml`. Requires the next three vars. |
 | `tem_smtp_secret_id` | `string` | `""` | Scaleway secret ID for `smtp-config` (typically `module.base.scaleway.smtp_config_secret_id`). Exporter reads the `password` field as the TEM API key. |
 | `tem_scaleway_project_id` | `string` | `""` | Scaleway project the TEM domain lives in (typically `module.base.scaleway.project_id`). |
@@ -47,6 +50,17 @@ Scrape configs and alert rules are aggregated by the consumer from each enabled 
 - `node_exporter` runs with `pid: host` and a read-only bind of `/`. `cadvisor` runs privileged with `/var/lib/docker` mounted RO. Both are standard for the metrics they collect; disable via `exporters_enabled = false` if you'd rather wire your own.
 - Reload-only config changes (scrape configs, alert rules) trigger Prometheus's `POST /-/reload` endpoint instead of a container restart.
 - TSDB lives in the named volume `prometheus_prometheus-data`. The default `backup_extra_paths` covers it.
+
+## Blackbox exporter (opt-OUT)
+
+`prom/blackbox-exporter` sidecar, internal-only on the `monitoring_internal` network. Probes every URL aggregated from each enabled bundle's `monitoring.blackbox_targets` plus any extras passed in `blackbox_targets`. Default module is `http_2xx`; bundle author overrides per-target by editing the bundle's `monitoring.tf` (e.g. swap to `http_4xx_ok` for endpoints that 401 by design).
+
+Ships with:
+
+- `monitoring/dashboards/blackbox.json` — probe success matrix, cert expiry table, p50/recent timings, last status per probe.
+- `monitoring/alerts/blackbox.yml` — `BlackboxProbeFailing` (3m crit), `BlackboxSslCertExpiringSoon` (14d warn) / `VerySoon` (3d crit), `BlackboxProbeSlow` (>5s 10m warn).
+
+Default scrape interval 60s. Each bundle author decides whether their app emits a probe target by setting `monitoring.blackbox_targets` in `terraform/monitoring.tf` — public-facing apps default to `["https://${var.hostname}/"]`, backend-only ones (loki, prometheus self, etc.) emit `[]`.
 
 ## Scaleway TEM exporter (opt-in)
 

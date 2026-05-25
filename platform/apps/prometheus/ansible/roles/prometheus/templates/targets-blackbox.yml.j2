@@ -1,0 +1,10 @@
+# {{ ansible_managed }}
+# Prometheus file_sd target list for the blackbox exporter. Each entry is a
+# URL; the scrape job's relabel rules map __address__ -> __param_target and
+# point the actual scrape at blackbox_exporter:{{ prometheus_blackbox_exporter_port }}.
+- targets:
+{% for url in prometheus_blackbox_targets | default([]) %}
+    - "{{ url }}"
+{% endfor %}
+  labels:
+    probe_module: http_2xx

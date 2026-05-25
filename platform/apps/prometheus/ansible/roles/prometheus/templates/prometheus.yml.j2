@@ -27,6 +27,33 @@ scrape_configs:
       - targets: ["cadvisor:8080"]
 {% endif %}
 
+{% if prometheus_blackbox_exporter_enabled %}
+  # Blackbox probes — file_sd lists every URL to probe; relabel rewrites the
+  # scrape target so prometheus actually hits blackbox_exporter with the URL
+  # as a query param. Standard pattern from the blackbox_exporter README.
+  - job_name: blackbox
+    scrape_interval: {{ prometheus_blackbox_scrape_interval }}
+    metrics_path: /probe
+    file_sd_configs:
+      - files:
+          - /etc/prometheus/targets-blackbox.yml
+        refresh_interval: 60s
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: __param_target
+      - source_labels: [probe_module]
+        target_label: __param_module
+      - source_labels: [__param_target]
+        target_label: instance
+      - target_label: __address__
+        replacement: blackbox_exporter:{{ prometheus_blackbox_exporter_port }}
+
+  # Self-scrape the blackbox exporter for probe latency + exporter health.
+  - job_name: blackbox_exporter
+    static_configs:
+      - targets: ["blackbox_exporter:{{ prometheus_blackbox_exporter_port }}"]
+{% endif %}
+
 {% if prometheus_tem_exporter_enabled %}
   # Scaleway TEM exporter sidecar. Polls Scaleway's TEM API; exposes the
   # bounce/spam/failed counters the scaleway-tem dashboard + alert rules

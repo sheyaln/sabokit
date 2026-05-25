@@ -1,0 +1,55 @@
+# Prometheus alert rules for the blackbox exporter. Rendered into
+# /etc/prometheus/rules/ when blackbox_exporter_enabled = true. Probes are
+# the consumer-aggregated public hostnames from every enabled bundle.
+#
+# `instance` label = the probed URL (set by the relabel pattern in
+# prometheus.yml.j2 — __param_target -> instance).
+
+groups:
+  - name: blackbox
+    interval: 60s
+    rules:
+      - alert: BlackboxProbeFailing
+        # Probe returned non-2xx, timed out, or DNS/conn failed. 3m gives the
+        # app one or two scrape misses to recover before paging.
+        expr: probe_success == 0
+        for: 3m
+        labels:
+          severity: critical
+          component: blackbox
+        annotations:
+          summary: "Probe failing: {{ $labels.instance }}"
+          description: "Blackbox probe to {{ $labels.instance }} has failed for 3+ minutes. The hostname returns non-2xx or is unreachable from the prometheus host."
+
+      - alert: BlackboxSslCertExpiringSoon
+        # 14 days = warning. Cert renewal is automated via Traefik+LE, but
+        # firing here means renewal hasn't taken — investigate before crit.
+        expr: probe_ssl_earliest_cert_expiry - time() < 14 * 24 * 3600
+        for: 1h
+        labels:
+          severity: warning
+          component: blackbox
+        annotations:
+          summary: "TLS cert expiring soon: {{ $labels.instance }}"
+          description: "Certificate for {{ $labels.instance }} expires in {{ humanizeDuration $value }}. Renewal should be automatic via LE — check Traefik logs."
+
+      - alert: BlackboxSslCertExpiringVerySoon
+        expr: probe_ssl_earliest_cert_expiry - time() < 3 * 24 * 3600
+        for: 10m
+        labels:
+          severity: critical
+          component: blackbox
+        annotations:
+          summary: "TLS cert expiring in <3 days: {{ $labels.instance }}"
+          description: "Certificate for {{ $labels.instance }} expires in {{ humanizeDuration $value }}. Renewal has not happened. Manually trigger or rotate before browsers reject."
+
+      - alert: BlackboxProbeSlow
+        # Sustained slow responses — early warning before the probe fails.
+        expr: probe_duration_seconds > 5
+        for: 10m
+        labels:
+          severity: warning
+          component: blackbox
+        annotations:
+          summary: "Probe slow: {{ $labels.instance }}"
+          description: "Blackbox probe to {{ $labels.instance }} has been taking >5s for 10+ minutes (currently {{ $value }}s). The app is reachable but degraded."
