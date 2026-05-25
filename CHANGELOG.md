@@ -2,6 +2,16 @@
 
 All notable changes to sabokit go here. Versioning follows semver; major bumps signal breaking contract changes for consumers.
 
+## v2.12.2 — Fix split-dns vars-passthrough recursion in bootstrap.yml
+
+`platform/ansible/bootstrap.yml` had a `vars: { split_dns_overrides: "{{ split_dns_overrides | default({}) }}" }` block on the split-dns role. When extra-vars didn't supply the key (e.g. fresh consumers whose `.ansible-vars.json` predates the v2.10.0 split-dns aggregation wiring), jinja recursed through itself and Ansible errored with "Recursive loop detected in template: maximum recursion depth exceeded."
+
+Fix: drop the vars passthrough entirely. The role's `defaults/main.yml` has `split_dns_overrides: {}`; extra-vars / play vars override via Ansible's normal precedence chain.
+
+Existing consumers whose `.ansible-vars.json` does carry the key see zero change.
+
+---
+
 ## v2.12.1 — Remove postiz bundle
 
 Postiz shipped briefly in v2.11.0 (~hours, before any consumer adopted it) and is removed per user direction: too AI-heavy. Mechanical reversal — bundle dir deleted, consumer-template module + aggregations dropped, apps-manifest entry removed, gen_apps_yml.py BUNDLES list trimmed. Bundle count: 19.
