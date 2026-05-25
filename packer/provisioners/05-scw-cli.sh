@@ -5,7 +5,7 @@
 
 set -euo pipefail
 
-: "${SCW_CLI_VERSION:=2.34.0}"
+: "${SCW_CLI_VERSION:=2.56.1}"
 
 ARCH_DPKG="$(dpkg --print-architecture)"
 case "${ARCH_DPKG}" in
