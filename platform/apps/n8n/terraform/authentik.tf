@@ -59,6 +59,7 @@ resource "authentik_user" "service_n8n" {
   groups = concat(
     [data.authentik_group.admins[0].id],
     [for g in var.service_account_extra_groups : var.base.authentik.groups[g]],
+    var.service_account_extra_group_ids,
   )
 }
 

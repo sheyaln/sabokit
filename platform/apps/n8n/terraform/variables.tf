@@ -95,6 +95,12 @@ variable "service_account_extra_groups" {
   default     = []
 }
 
+variable "service_account_extra_group_ids" {
+  description = "Direct Authentik group IDs (UUIDs) to add the n8n service account to, in addition to `service_account_extra_groups` (which takes group names from base.authentik.groups). Use this for cross-bundle wiring — e.g. consumer-template adds broadsheet's per-app group ID here when broadsheet is also enabled."
+  type        = list(string)
+  default     = []
+}
+
 variable "deployment_host_key" {
   description = "Key in base.compute.hosts identifying the VM this app deploys to (e.g. \"apps\", \"tools\"). The Ansible playbook targets this host's ansible_group."
   type        = string

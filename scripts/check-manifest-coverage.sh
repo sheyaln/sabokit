@@ -30,6 +30,13 @@ fi
 # user-facing manifest entry. Not flagged as missing-from-manifest.
 INTERNAL_VARS=(base extra_authorized_groups)
 
+# Manifest-only inputs that are consumed by consumer-template wiring (not by
+# any bundle HCL variable). Format: "<app_id>:<input_name>". Not flagged as
+# manifest-declares-non-existent-variable.
+MANIFEST_ONLY_INPUTS=(
+  "n8n:broadsheet_membership"
+)
+
 errors=0
 warnings=0
 
@@ -59,9 +66,15 @@ for id in "${app_ids[@]}"; do
     }' "$vars_tf"
   )
 
-  # Manifest input → must be a real HCL variable
+  # Manifest input → must be a real HCL variable (unless explicitly allowed
+  # as a consumer-template-only knob via MANIFEST_ONLY_INPUTS).
   for input in "${manifest_inputs[@]}"; do
     if ! printf '%s\n' "${hcl_vars[@]}" | grep -qxF "$input"; then
+      allowed=false
+      for mo in "${MANIFEST_ONLY_INPUTS[@]}"; do
+        [[ "$mo" == "$id:$input" ]] && { allowed=true; break; }
+      done
+      $allowed && continue
       echo "ERROR [$id]: manifest declares input '$input' but no such variable in $vars_tf" >&2
       errors=$((errors+1))
     fi

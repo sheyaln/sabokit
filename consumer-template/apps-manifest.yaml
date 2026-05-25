@@ -1548,6 +1548,18 @@ apps:
           description: Full icon URL override. When set, used verbatim and icon_filename is ignored.
           ui: advanced
 
+        service_account_extra_group_ids:
+          type: list(string)
+          default: []
+          description: Direct Authentik group IDs to add the n8n service account to. For cross-bundle wiring; consumer-template auto-adds broadsheet's group when both enabled (see broadsheet_membership).
+          ui: advanced
+
+        broadsheet_membership:
+          type: bool
+          default: true
+          description: When both n8n and broadsheet are deployed, automatically add n8n's service account to broadsheet's per-app Authentik group so n8n workflows can authenticate to broadsheet. Set false to opt out.
+          ui: advanced
+
   # ── Backrest ────────────────────────────────────────────────────────────
   # Restic-based backups per host (each host = its own instance + bucket).
   # Forward-auth via the embedded outpost. Multi-instance: consumers
