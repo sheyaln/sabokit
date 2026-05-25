@@ -2,6 +2,14 @@
 
 All notable changes to sabokit go here. Versioning follows semver; major bumps signal breaking contract changes for consumers.
 
+## v3.1.2 — 2026-05-25
+
+### Fixed
+- **`authentik_token` resources ungated from `credentials_preserve` flag.** v3.1.1 gated `authentik_token.service_steward` and `authentik_token.service_n8n` with `count = !credentials_preserve ? 1 : 0` — but these are identity resources in Authentik, not value-only resources. Gating planned a destroy on preserve=true, which destroyed the live token in Authentik and broke container authentication. Now the resources always exist (`count = var.enabled ? 1 : 0`) with `lifecycle { ignore_changes = [key] }`. The `<slug>-app-secrets` bag's `AUTHENTIK_API_TOKEN` entry now always reads from `authentik_token.<service>[0].key` — works for both fresh generation (preserve=false) and import-from-legacy (preserve=true).
+
+### Known constraint (v3.1.1 + v3.1.2)
+- **`credentials_preserve = true` assumes the `<slug>-app-secrets` bag already exists with v3-canonical keys.** Greenfield deploys are fine — terraform creates the bag with the right shape on first apply. For in-place cutover from a legacy stack where credentials were managed via differently-named Scaleway secrets (`<slug>-admin-password`, etc.) or stored only in container ENV without Secret Manager, the bag must be pre-populated with v3-canonical keys before applying with preserve=true. Recipe: SSH to each affected container, dump its env, write a JSON bag matching the v3 module's expected key set into the named Scaleway secret. Slated for a cleaner solution in v3.2+ (post-stability-gate) — likely an opt-in "preserve from external source" mode that reads from a consumer-provided map instead of a Scaleway secret.
+
 ## v3.1.1 — 2026-05-25
 
 In-place legacy cutover support. Without this, applying v3 against a legacy stack regenerates ~50 credential values for live apps — n8n ENCRYPTION_KEY rotation alone bricks every stored workflow credential (irrecoverable). v2.18.2's `ignore_changes=[data]` is a guard, not a wall.
