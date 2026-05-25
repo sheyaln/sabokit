@@ -2,6 +2,35 @@
 
 All notable changes to sabokit go here. Versioning follows semver; major bumps signal breaking contract changes for consumers.
 
+## v2.18.0 — 2026-05-25
+
+Tier model now expresses a partial-order DAG instead of a linear cascade. Replaces `tier_names` / `tier_keys` with `tier_slots`.
+
+### Breaking
+- **`tier_names`, `tier_keys`, `tier_names_override`, `tier_keys_override`, `treasurer_group_name` removed; replaced by `tier_slots`.** The linear-cascade shape was insufficient for orgs with parallel-peer ranks (e.g. multiple L3 officers each owning their own scope; equal-rank L4 admins). `tier_slots` expresses each rank as a slot holding one or more independent peers; an app scoped to a peer admits that peer's own group plus every group in every strictly-higher slot. In-slot peers do NOT bridge — they are equal-rank but independent.
+- **`modules/authentik/tier-cascade/` deleted.** Identity layer now owns cascade composition directly; the per-slot tier resources live in `platform/identity/terraform/user_groups.tf`.
+- **Bundle `tier_access_level` semantics shifted from tier_name to peer_name.** Lookup pattern (`var.base.authentik.tier_cascade[var.tier_access_level]`) is unchanged; only the meaning of the string changes. Defaults across every cascade-enabled bundle moved to `"admin"` (the one peer_name we mandate exists in tier_slots).
+- **`base.authentik.tier_cascade` output shape:** outer key changed from tier_key to peer_name; inner map (group_name → group_id) unchanged.
+
+### Required consumer change
+Set `var.identity.tier_slots` in your root tfvars — the variable is required, no default. See the new `tier_slots = [...]` block in `consumer-template/environments/_template/terraform.tfvars.example` for a generic L1-L4 example. The `admin_group_name`, `member_group_name`, `delegate_group_name` named pointers stay; they must reference a group_name that exists somewhere in tier_slots.
+
+### Migration
+- Replace any `tier_names_override = [...]` / `tier_keys_override = [...]` with `tier_slots = [{ name, peers = { ... } }, ...]`.
+- For the old default four-tier shape, use:
+  ```
+  tier_slots = [
+    { name = "l1", peers = { member = "member" } },
+    { name = "l2", peers = { delegate = "delegate" } },
+    { name = "l3", peers = { treasurer = "treasurer" } },
+    { name = "l4", peers = { admin = "admin" } },
+  ]
+  ```
+- For parallel peers, add more entries to a slot's peers map. Example:
+  ```
+  { name = "l3", peers = { treasurer = "union-treasurer", comms = "comms-officer", organizing = "organizing-liason" } }
+  ```
+
 ## v2.17.0 — 2026-05-25
 
 Consumer-facing wrapper around the runner image + a working secret-rotation path. Stop telling consumers to clone the repo.

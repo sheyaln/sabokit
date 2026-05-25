@@ -2,10 +2,10 @@
 #
 # The delegate tier is the "elevated but not admin" role: can activate users,
 # reset passwords, manage group membership, but cannot edit brand/applications.
-# The role is defined here; the underlying group is created by the tier-cascade
-# module in user_groups.tf and inherits this role via tier_roles. Whole stack
-# is gated on var.delegate_group_name being non-null so consumers can opt out
-# of the tier entirely.
+# The role is defined here; the underlying group is created by the tier_slots
+# DAG resources in user_groups.tf and inherits this role when its group_name
+# matches var.delegate_group_name. Whole stack is gated on
+# var.delegate_group_name being non-null so consumers can opt out entirely.
 #
 # local.delegate_enabled (the gating boolean) is also defined in user_groups.tf
 # because the cascade module needs to know whether to wire the role in; both
@@ -108,5 +108,6 @@ resource "authentik_rbac_permission_role" "delegate_view_application" {
   permission = "${data.authentik_rbac_permission.view_application.app}.${data.authentik_rbac_permission.view_application.codename}"
 }
 
-# Note: the delegate group itself is created by module.tier_cascade in
-# user_groups.tf — the role above is attached to it via tier_roles.
+# Note: the delegate group itself is created by the tier_slots DAG resources
+# in user_groups.tf — the role above is attached to it inline when the slot
+# resource's name matches var.delegate_group_name.

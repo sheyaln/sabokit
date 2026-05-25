@@ -79,13 +79,13 @@ apps:
         tier_cascade_enabled:
           type: bool
           default: true
-          description: Derive authorized groups from the platform tier cascade (member→delegate→treasurer→admin; each tier inherits all lower). Set false to fall back to access_level + extra_authorized_groups.
+          description: Derive authorized groups from the platform tier_slots cascade. When true, the app binds every group in base.authentik.tier_cascade[tier_access_level] (the peer's own group + all groups in strictly-higher slots). Set false to fall back to access_level + extra_authorized_groups.
           ui: advanced
 
         tier_access_level:
           type: string
-          default: member
-          description: Cascade tier required for baseline access. Users in this tier and any higher are admitted. Only consulted when tier_cascade_enabled = true.
+          default: admin
+          description: peer_name from your tier_slots schema that grants baseline access. The app binds the peer's own group plus every group in every strictly-higher slot. Only consulted when tier_cascade_enabled = true.
           ui: advanced
 
         smtp_from_email:
@@ -194,13 +194,13 @@ apps:
         tier_cascade_enabled:
           type: bool
           default: true
-          description: Derive authorized groups from the platform tier cascade (member→delegate→treasurer→admin; each tier inherits all lower). Set false to fall back to access_level + extra_authorized_groups.
+          description: Derive authorized groups from the platform tier_slots cascade. When true, the app binds every group in base.authentik.tier_cascade[tier_access_level] (the peer's own group + all groups in strictly-higher slots). Set false to fall back to access_level + extra_authorized_groups.
           ui: advanced
 
         tier_access_level:
           type: string
           default: admin
-          description: Cascade tier required for baseline access. Users in this tier and any higher are admitted. Only consulted when tier_cascade_enabled = true.
+          description: peer_name from your tier_slots schema that grants baseline access. The app binds the peer's own group plus every group in every strictly-higher slot. Only consulted when tier_cascade_enabled = true.
           ui: advanced
 
         monitoring_enabled:
@@ -321,13 +321,13 @@ apps:
         tier_cascade_enabled:
           type: bool
           default: true
-          description: Derive authorized groups from the platform tier cascade (member→delegate→treasurer→admin; each tier inherits all lower). Set false to fall back to access_level + extra_authorized_groups.
+          description: Derive authorized groups from the platform tier_slots cascade. When true, the app binds every group in base.authentik.tier_cascade[tier_access_level] (the peer's own group + all groups in strictly-higher slots). Set false to fall back to access_level + extra_authorized_groups.
           ui: advanced
 
         tier_access_level:
           type: string
-          default: member
-          description: Cascade tier required for baseline access. Users in this tier and any higher are admitted. Only consulted when tier_cascade_enabled = true.
+          default: admin
+          description: peer_name from your tier_slots schema that grants baseline access. The app binds the peer's own group plus every group in every strictly-higher slot. Only consulted when tier_cascade_enabled = true.
           ui: advanced
 
         monitoring_enabled:
@@ -415,13 +415,13 @@ apps:
         tier_cascade_enabled:
           type: bool
           default: true
-          description: Derive authorized groups from the platform tier cascade (member→delegate→treasurer→admin; each tier inherits all lower). Set false to fall back to access_level + extra_authorized_groups.
+          description: Derive authorized groups from the platform tier_slots cascade. When true, the app binds every group in base.authentik.tier_cascade[tier_access_level] (the peer's own group + all groups in strictly-higher slots). Set false to fall back to access_level + extra_authorized_groups.
           ui: advanced
 
         tier_access_level:
           type: string
-          default: member
-          description: Cascade tier required for baseline access. Users in this tier and any higher are admitted. Only consulted when tier_cascade_enabled = true.
+          default: admin
+          description: peer_name from your tier_slots schema that grants baseline access. The app binds the peer's own group plus every group in every strictly-higher slot. Only consulted when tier_cascade_enabled = true.
           ui: advanced
 
         monitoring_enabled:
@@ -535,13 +535,13 @@ apps:
         tier_cascade_enabled:
           type: bool
           default: true
-          description: Derive authorized groups from the platform tier cascade (member→delegate→treasurer→admin; each tier inherits all lower). Set false to fall back to access_level + extra_authorized_groups.
+          description: Derive authorized groups from the platform tier_slots cascade. When true, the app binds every group in base.authentik.tier_cascade[tier_access_level] (the peer's own group + all groups in strictly-higher slots). Set false to fall back to access_level + extra_authorized_groups.
           ui: advanced
 
         tier_access_level:
           type: string
           default: admin
-          description: Cascade tier required for baseline access. Users in this tier and any higher are admitted. Only consulted when tier_cascade_enabled = true.
+          description: peer_name from your tier_slots schema that grants baseline access. The app binds the peer's own group plus every group in every strictly-higher slot. Only consulted when tier_cascade_enabled = true.
           ui: advanced
 
         monitoring_enabled:
@@ -657,13 +657,13 @@ apps:
         tier_cascade_enabled:
           type: bool
           default: true
-          description: Derive authorized groups from the platform tier cascade (member→delegate→treasurer→admin; each tier inherits all lower). Set false to fall back to access_level + extra_authorized_groups.
+          description: Derive authorized groups from the platform tier_slots cascade. When true, the app binds every group in base.authentik.tier_cascade[tier_access_level] (the peer's own group + all groups in strictly-higher slots). Set false to fall back to access_level + extra_authorized_groups.
           ui: advanced
 
         tier_access_level:
           type: string
           default: admin
-          description: Cascade tier required for baseline access. Users in this tier and any higher are admitted. Only consulted when tier_cascade_enabled = true.
+          description: peer_name from your tier_slots schema that grants baseline access. The app binds the peer's own group plus every group in every strictly-higher slot. Only consulted when tier_cascade_enabled = true.
           ui: advanced
 
         monitoring_enabled:
@@ -864,13 +864,13 @@ apps:
         tier_cascade_enabled:
           type: bool
           default: true
-          description: Derive authorized groups from the platform tier cascade (member→delegate→treasurer→admin; each tier inherits all lower). Set false to fall back to access_level + extra_authorized_groups.
+          description: Derive authorized groups from the platform tier_slots cascade. When true, the app binds every group in base.authentik.tier_cascade[tier_access_level] (the peer's own group + all groups in strictly-higher slots). Set false to fall back to access_level + extra_authorized_groups.
           ui: advanced
 
         tier_access_level:
           type: string
-          default: member
-          description: Cascade tier required for baseline access. Users in this tier and any higher are admitted. Only consulted when tier_cascade_enabled = true.
+          default: admin
+          description: peer_name from your tier_slots schema that grants baseline access. The app binds the peer's own group plus every group in every strictly-higher slot. Only consulted when tier_cascade_enabled = true.
           ui: advanced
 
         monitoring_enabled:
@@ -989,13 +989,13 @@ apps:
         tier_cascade_enabled:
           type: bool
           default: true
-          description: Derive authorized groups from the platform tier cascade (member→delegate→treasurer→admin; each tier inherits all lower). Set false to fall back to access_level + extra_authorized_groups.
+          description: Derive authorized groups from the platform tier_slots cascade. When true, the app binds every group in base.authentik.tier_cascade[tier_access_level] (the peer's own group + all groups in strictly-higher slots). Set false to fall back to access_level + extra_authorized_groups.
           ui: advanced
 
         tier_access_level:
           type: string
-          default: member
-          description: Cascade tier required for baseline access. Users in this tier and any higher are admitted. Only consulted when tier_cascade_enabled = true.
+          default: admin
+          description: peer_name from your tier_slots schema that grants baseline access. The app binds the peer's own group plus every group in every strictly-higher slot. Only consulted when tier_cascade_enabled = true.
           ui: advanced
 
         monitoring_enabled:
@@ -1113,13 +1113,13 @@ apps:
         tier_cascade_enabled:
           type: bool
           default: true
-          description: Derive authorized groups from the platform tier cascade (member→delegate→treasurer→admin; each tier inherits all lower). Set false to fall back to access_level + extra_authorized_groups.
+          description: Derive authorized groups from the platform tier_slots cascade. When true, the app binds every group in base.authentik.tier_cascade[tier_access_level] (the peer's own group + all groups in strictly-higher slots). Set false to fall back to access_level + extra_authorized_groups.
           ui: advanced
 
         tier_access_level:
           type: string
-          default: member
-          description: Cascade tier required for baseline access. Users in this tier and any higher are admitted. Only consulted when tier_cascade_enabled = true.
+          default: admin
+          description: peer_name from your tier_slots schema that grants baseline access. The app binds the peer's own group plus every group in every strictly-higher slot. Only consulted when tier_cascade_enabled = true.
           ui: advanced
 
         monitoring_enabled:
@@ -1230,13 +1230,13 @@ apps:
         tier_cascade_enabled:
           type: bool
           default: true
-          description: Derive authorized groups from the platform tier cascade (member→delegate→treasurer→admin; each tier inherits all lower). Set false to fall back to access_level + extra_authorized_groups.
+          description: Derive authorized groups from the platform tier_slots cascade. When true, the app binds every group in base.authentik.tier_cascade[tier_access_level] (the peer's own group + all groups in strictly-higher slots). Set false to fall back to access_level + extra_authorized_groups.
           ui: advanced
 
         tier_access_level:
           type: string
-          default: member
-          description: Cascade tier required for baseline access. Users in this tier and any higher are admitted. Only consulted when tier_cascade_enabled = true.
+          default: admin
+          description: peer_name from your tier_slots schema that grants baseline access. The app binds the peer's own group plus every group in every strictly-higher slot. Only consulted when tier_cascade_enabled = true.
           ui: advanced
 
         monitoring_enabled:
@@ -1341,13 +1341,13 @@ apps:
         tier_cascade_enabled:
           type: bool
           default: true
-          description: Derive authorized groups from the platform tier cascade (member→delegate→treasurer→admin; each tier inherits all lower). Set false to fall back to access_level + extra_authorized_groups.
+          description: Derive authorized groups from the platform tier_slots cascade. When true, the app binds every group in base.authentik.tier_cascade[tier_access_level] (the peer's own group + all groups in strictly-higher slots). Set false to fall back to access_level + extra_authorized_groups.
           ui: advanced
 
         tier_access_level:
           type: string
           default: admin
-          description: Cascade tier required for baseline access. Users in this tier and any higher are admitted. Only consulted when tier_cascade_enabled = true.
+          description: peer_name from your tier_slots schema that grants baseline access. The app binds the peer's own group plus every group in every strictly-higher slot. Only consulted when tier_cascade_enabled = true.
           ui: advanced
 
         monitoring_enabled:
@@ -1443,13 +1443,13 @@ apps:
         tier_cascade_enabled:
           type: bool
           default: true
-          description: Derive authorized groups from the platform tier cascade (member→delegate→treasurer→admin; each tier inherits all lower). Set false to fall back to access_level + extra_authorized_groups.
+          description: Derive authorized groups from the platform tier_slots cascade. When true, the app binds every group in base.authentik.tier_cascade[tier_access_level] (the peer's own group + all groups in strictly-higher slots). Set false to fall back to access_level + extra_authorized_groups.
           ui: advanced
 
         tier_access_level:
           type: string
           default: admin
-          description: Cascade tier required for baseline access. Users in this tier and any higher are admitted. Only consulted when tier_cascade_enabled = true.
+          description: peer_name from your tier_slots schema that grants baseline access. The app binds the peer's own group plus every group in every strictly-higher slot. Only consulted when tier_cascade_enabled = true.
           ui: advanced
 
         monitoring_enabled:
@@ -1821,13 +1821,13 @@ apps:
         tier_cascade_enabled:
           type: bool
           default: true
-          description: Derive authorized groups from the platform tier cascade (member→delegate→treasurer→admin; each tier inherits all lower). Set false to fall back to access_level + extra_authorized_groups.
+          description: Derive authorized groups from the platform tier_slots cascade. When true, the app binds every group in base.authentik.tier_cascade[tier_access_level] (the peer's own group + all groups in strictly-higher slots). Set false to fall back to access_level + extra_authorized_groups.
           ui: advanced
 
         tier_access_level:
           type: string
           default: admin
-          description: Cascade tier required for baseline access. Users in this tier and any higher are admitted. Only consulted when tier_cascade_enabled = true.
+          description: peer_name from your tier_slots schema that grants baseline access. The app binds the peer's own group plus every group in every strictly-higher slot. Only consulted when tier_cascade_enabled = true.
           ui: advanced
 
         oidc_admin_group:
@@ -1929,13 +1929,13 @@ apps:
         tier_cascade_enabled:
           type: bool
           default: true
-          description: Derive authorized groups from the platform tier cascade (member→delegate→treasurer→admin; each tier inherits all lower). Set false to fall back to access_level + extra_authorized_groups.
+          description: Derive authorized groups from the platform tier_slots cascade. When true, the app binds every group in base.authentik.tier_cascade[tier_access_level] (the peer's own group + all groups in strictly-higher slots). Set false to fall back to access_level + extra_authorized_groups.
           ui: advanced
 
         tier_access_level:
           type: string
           default: admin
-          description: Cascade tier required for baseline access. Users in this tier and any higher are admitted. Only consulted when tier_cascade_enabled = true.
+          description: peer_name from your tier_slots schema that grants baseline access. The app binds the peer's own group plus every group in every strictly-higher slot. Only consulted when tier_cascade_enabled = true.
           ui: advanced
 
         release_version:

@@ -43,52 +43,63 @@ variable "from_name" {
   default     = ""
 }
 
-# ── Group taxonomy ──────────────────────────────────────────────────────────
-# Group names default to generic platform terminology. Override per-org if you
-# prefer "editor", "moderator", "treasurer", etc. Apps reference these by the
-# string key in the output `groups` map (e.g. base.authentik.groups["admin"]),
-# not by the underlying Authentik group name, so renames here are safe as long
-# as you also adjust the key consumers use.
+# ── Tier DAG ────────────────────────────────────────────────────────────────
+# The org's authority hierarchy as a partial-order DAG. Each slot is a row
+# (rank); each peer within a slot is an independent role at that rank. A
+# bundle's `tier_access_level` references a `peer_name` from this structure;
+# `base.authentik.tier_cascade[peer]` resolves to that peer's group plus every
+# group in every strictly-higher slot. See platform/identity/terraform/README.md
+# for the full cascade-up semantics + a worked example.
+
+variable "tier_slots" {
+  description = "Ordered list of tier slots, lowest privilege first. Each slot has a logical name and a map of peer_name → group_name. peer_name is the stable token bundles' tier_access_level matches against; group_name is what the underlying Authentik group is called. Cascade-up: an app scoped to peer P in slot S admits P's group + every group in every strictly-higher slot (all peers in those slots). Required — no default."
+  type = list(object({
+    name  = string
+    peers = map(string)
+  }))
+
+  validation {
+    condition     = length(var.tier_slots) >= 1 && length(var.tier_slots) <= 12
+    error_message = "tier_slots must have 1-12 entries. The DAG is implemented as 12 per-slot resources to avoid Terraform for_each self-reference cycles; deeper hierarchies want RBAC roles, not group nesting."
+  }
+
+  validation {
+    condition     = length(distinct([for s in var.tier_slots : s.name])) == length(var.tier_slots)
+    error_message = "tier_slots names must be unique."
+  }
+
+  validation {
+    condition     = length(flatten([for s in var.tier_slots : keys(s.peers)])) == length(distinct(flatten([for s in var.tier_slots : keys(s.peers)])))
+    error_message = "peer_name keys must be unique across every slot in tier_slots."
+  }
+
+  validation {
+    condition     = length(flatten([for s in var.tier_slots : values(s.peers)])) == length(distinct(flatten([for s in var.tier_slots : values(s.peers)])))
+    error_message = "group_name values must be unique across every slot in tier_slots (each Authentik group can only exist once)."
+  }
+}
+
+# ── Named group pointers ────────────────────────────────────────────────────
+# Single-string vars identifying specific groups for behaviors that operate on
+# one named role (notification routing, enrollment landing, delegate RBAC).
+# The named group MUST exist as a group_name somewhere in tier_slots.
 
 variable "admin_group_name" {
-  description = "Name of the admin/superuser group. Always created."
+  description = "group_name of the superuser group inside tier_slots. The group with this name gets is_superuser = true and seeds admin_user_pks. Must match one of the group_name values in tier_slots."
   type        = string
   default     = "admin"
 }
 
 variable "member_group_name" {
-  description = "Name of the standard-member group. Always created."
+  description = "group_name new enrollees land in (set as primary group after sign-up). Must match one of the group_name values in tier_slots. Conventionally a peer in the lowest slot."
   type        = string
   default     = "member"
 }
 
 variable "delegate_group_name" {
-  description = "Name of the elevated-but-not-admin group (\"delegate\", \"editor\", \"moderator\" depending on org). Set to null to skip creation."
+  description = "group_name of the elevated-but-not-admin group that carries the delegate RBAC role. Must match one of the group_name values in tier_slots, or null to skip the delegate RBAC binding entirely. Also added to notification target recipients alongside admin."
   type        = string
   default     = "delegate"
-}
-
-variable "treasurer_group_name" {
-  description = "Name of the financial/operations tier between delegate and admin (e.g. \"treasurer\", \"finance\", \"ops\"). Sits in the tier cascade above delegate and below admin. Set to null to drop this tier — the cascade collapses to member→delegate→admin."
-  type        = string
-  default     = "treasurer"
-}
-
-variable "tier_names_override" {
-  description = "Optional full override of the cascade tier order. When non-empty, this list is used verbatim (lowest-privilege first) and admin/member/delegate/treasurer name variables are ignored for cascade construction. Use when an org's tier naming doesn't fit the default four-tier shape. When set, also set tier_keys_override if your bundles' var.tier_access_level expects logical keys distinct from the display names."
-  type        = list(string)
-  default     = []
-}
-
-variable "tier_keys_override" {
-  description = "Parallel to tier_names_override — the stable logical identifiers bundles' tier_access_level references. Defaults to tier_names_override (display names doubling as keys). Set this when overriding tier_names_override to display names that differ from the logical keys your bundles use. Length must match tier_names_override."
-  type        = list(string)
-  default     = []
-
-  validation {
-    condition     = length(var.tier_keys_override) == 0 || length(var.tier_keys_override) == length(var.tier_names_override)
-    error_message = "tier_keys_override must be empty or the same length as tier_names_override."
-  }
 }
 
 variable "delegate_role_name" {
