@@ -191,3 +191,11 @@ variable "notification_welcome_message" {
   type        = string
   default     = "Welcome!"
 }
+
+# ── Enrollment prompts ──────────────────────────────────────────────────────
+
+variable "member_id_label" {
+  description = "Display label for the optional member-id prompt field shown during social enrollment. Renames the on-screen label only — the underlying attribute key stays \"member_id\" so downstream automations keep working across consumers. Examples: \"Member ID\", \"X Number\", \"Local Number\", \"Coop Number\"."
+  type        = string
+  default     = "Member ID"
+}

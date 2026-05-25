@@ -32,4 +32,7 @@ module "flows" {
   # Admin-tier group names used by the unenrollment guard policy.
   admin_group_name    = var.admin_group_name
   delegate_group_name = var.delegate_group_name
+
+  # Enrollment prompt label overrides.
+  member_id_label = var.member_id_label
 }

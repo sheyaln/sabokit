@@ -33,8 +33,13 @@ output "default_provider_invalidation_flow_id" {
 }
 
 output "default_user_settings_flow_id" {
-  description = "ID of the default user settings flow"
+  description = "ID of the default user settings flow (Authentik built-in, kept for back-compat references). Brand and bundle output now point at user_settings_flow_uuid below."
   value       = data.authentik_flow.default-user-settings-flow.id
+}
+
+output "user_settings_flow_uuid" {
+  description = "UUID of the custom user-settings flow (email-only edit-info, syncs username to email on write)."
+  value       = authentik_flow.user_settings.uuid
 }
 
 output "default_provider_authorization_implicit_consent_id" {

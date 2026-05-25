@@ -35,7 +35,7 @@ output "authentik" {
       authorization_flow         = module.flows.default_provider_authorization_implicit_consent_id
       invalidation_flow          = module.flows.default_provider_invalidation_flow_id
       password_reset_flow        = module.flows.password_reset_flow_uuid
-      user_settings_flow         = module.flows.default_user_settings_flow_id
+      user_settings_flow         = module.flows.user_settings_flow_uuid
       unenrollment_flow          = module.flows.default_unenrollment_flow_uuid
       source_authentication_flow = module.flows.source_authentication_flow_uuid
       source_enrollment_flow     = module.flows.source_enrollment_flow_uuid
