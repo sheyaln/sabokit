@@ -13,11 +13,21 @@
 #   - welcome_message:               welcome line shown to the user
 
 from django.core.mail import send_mail
+from django.db import transaction
 from authentik.core.models import User, Group, UserSourceConnection
 from authentik.events.models import Event
 import json
 import urllib.request
 import urllib.error
+
+# Attribute keys used internally by the notification policies; not forwarded
+# to the webhook payload so downstream automations don't see bookkeeping flags.
+_INTERNAL_ATTR_KEYS = {
+    "activation_notification_sent",
+    "enrollment_notification_sent",
+    "signup_correlation_id",
+    "signup_method",
+}
 
 WEBHOOK_URL = "${webhook_url}"
 
@@ -134,14 +144,31 @@ if not user.is_active:
     ak_logger.debug(f"User {user.email} is not active, skipping")
     return False
 
-# Check if we already sent an activation notification (idempotency)
-if user.attributes.get("activation_notification_sent", False):
-    ak_logger.debug(f"Activation notification already sent for {user.email}")
-    return False
-
 # Don't send to users without email
 if not user.email:
     ak_logger.warning(f"User {user.username} has no email address")
+    return False
+
+# Atomically claim the activation lock. Authentik can fire several
+# model_updated events in rapid succession when a user is activated
+# (the activation save itself plus auxiliary writes such as last_login
+# bumps and group syncs); without a row lock both invocations pass a
+# naive idempotency check and the workflow fires twice.
+#
+# Reserve-then-do (at-most-once) is intentional: an extra rare missed
+# notification on a transient failure beats spamming admins on every
+# activation.
+try:
+    with transaction.atomic():
+        locked = User.objects.select_for_update().get(pk=user_pk)
+        if locked.attributes.get("activation_notification_sent", False):
+            ak_logger.debug(f"Activation notification already sent for {locked.email}")
+            return False
+        locked.attributes["activation_notification_sent"] = True
+        locked.save()
+        user = locked
+except Exception as e:
+    ak_logger.error(f"Failed to claim activation notification lock for {user.email}: {e}")
     return False
 
 # Get who activated the user from event user info
@@ -261,6 +288,11 @@ except Exception as e:
 # Optional thread correlation key carried from the signup notification.
 signup_correlation_id = user.attributes.get("signup_correlation_id", "")
 
+custom_attributes = {
+    k: v for k, v in (user.attributes or {}).items()
+    if k not in _INTERNAL_ATTR_KEYS
+}
+
 webhook_sent = send_webhook_notification("user_activation", {
     "email": user.email,
     "username": user.username,
@@ -268,14 +300,11 @@ webhook_sent = send_webhook_notification("user_activation", {
     "signup_method": signup_method,
     "activated_by": activated_by,
     "activated_by_email": activated_by_email,
-    "signup_correlation_id": signup_correlation_id
+    "signup_correlation_id": signup_correlation_id,
+    "attributes": custom_attributes,
 })
 
-# Mark as sent if at least one notification succeeded
-if email_to_user_sent or email_to_admins_sent or webhook_sent:
-    user.attributes["activation_notification_sent"] = True
-    user.save()
-    ak_logger.info(f"Activation notifications completed for {user.email}: email_user={email_to_user_sent}, email_admins={email_to_admins_sent}, webhook={webhook_sent}")
+ak_logger.info(f"Activation notifications completed for {user.email}: email_user={email_to_user_sent}, email_admins={email_to_admins_sent}, webhook={webhook_sent}")
 
 # Return True to indicate policy passed (doesn't affect notification delivery)
 return True

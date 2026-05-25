@@ -13,6 +13,15 @@ import json
 import urllib.request
 import urllib.error
 
+# Internal bookkeeping keys filtered out before forwarding user.attributes
+# to the webhook payload.
+_INTERNAL_ATTR_KEYS = {
+    "activation_notification_sent",
+    "enrollment_notification_sent",
+    "signup_correlation_id",
+    "signup_method",
+}
+
 WEBHOOK_URL = "${webhook_url}"
 
 def send_webhook_notification(event_type, user_data):
@@ -173,13 +182,18 @@ except Exception as e:
 webhook_sent = False
 correlation_id = None
 try:
+    custom_attributes = {
+        k: v for k, v in (user.attributes or {}).items()
+        if k not in _INTERNAL_ATTR_KEYS
+    }
     webhook_response = send_webhook_notification("user_signup", {
         "email": user_email,
         "username": user_username,
         "name": user_name,
         "signup_method": signup_method,
         "needs_activation": needs_activation,
-        "status": status_text
+        "status": status_text,
+        "attributes": custom_attributes,
     })
     webhook_sent = True
 
