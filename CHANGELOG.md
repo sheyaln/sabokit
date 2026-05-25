@@ -2,6 +2,21 @@
 
 All notable changes to sabokit go here. Versioning follows semver; major bumps signal breaking contract changes for consumers.
 
+## v2.15.3 — Service-account `username = email` + n8n service account + EspoCRM category
+
+**Service-account convention completed.** v2.15.1 shipped the `service_<thing>` resource name + `svc-<thing>` username/email pattern but left username and email *inconsistent* with each other (username = `svc-steward`, email = `svc-steward@<domain>`). v2.15.0 established the "username = email always" invariant for human users via the user-settings sync policy. Service accounts now match — `username = email = svc-<thing>@<base_domain>`.
+
+- **steward**: `authentik_user.service_steward.username` flipped from `svc-steward` to `svc-steward@<base_domain>`. In-place attribute update, no destroy.
+- **n8n** (new in v2.15.3): added `authentik_user.service_n8n` + `authentik_token.service_n8n`. Same shape as steward — username = email = `svc-n8n@<base_domain>`, member of `authentik Admins`, non-expiring API token. Token exposed in the n8n app secret bag as `AUTHENTIK_API_TOKEN` for workflows that need server-to-server Authentik access. `AUTHENTIK_API_URL` also surfaced.
+
+**Caveat on n8n secret bag update**: `scaleway_secret_version.app` has `lifecycle { ignore_changes = [data] }` to avoid version churn from OIDC client_secret rotation. Adding the new `AUTHENTIK_API_TOKEN` key to the data block won't trigger a version refresh on bump. Consumers wanting the new token surfaced in the secret bag must `terraform taint module.n8n.scaleway_secret_version.app[0]` once after bumping to v2.15.3. The token resource itself is created cleanly; only its propagation into the bag needs the taint.
+
+**EspoCRM category default `Tools` → `Administration`.** CRM is where org admins manage member data — same bucket as steward, not the same as a PDF editor. Also fixed a pre-existing drift between the TF default (`Tools`) and the apps-manifest default (`Productivity`) — both now `Administration`.
+
+No state migration beyond what's documented above. The username flip is in-place; n8n's new resources land cleanly; espocrm's category change is metadata only.
+
+---
+
 ## v2.15.2 — Manual enrollment MFA-before-terminal + release automation
 
 **Bug fix — manual enrollment forced MFA into a dead path.** `flow_manual_enrollment.tf` bound the welcome message at order 35 and MFA setup at order 40 — MFA fired AFTER the terminal screen. Worse: the welcome HTML's JS submit-interceptor (`preventDefault()` → `window.location='/'`) made the welcome a terminal stage even after order swap. Active users (re-entering the enrollment flow post-activation) would get bounced to `/` before ever reaching MFA setup or `user_login`.
