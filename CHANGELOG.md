@@ -2,6 +2,35 @@
 
 All notable changes to sabokit go here. Versioning follows semver; major bumps signal breaking contract changes for consumers.
 
+## v2.15.6 — Service-account extra-groups via generic identity.extra_groups
+
+Peer asked for hardcoded `union-automation` + `union-cloud-admin` groups in upstream + default n8n service-account membership in those groups. fc target audience is broader than unions (cooperatives, mutual aid networks, decentralized political orgs, faith-based commons) — `union-*` lexicon excludes them. Counter-shipped as a fully generic primitive.
+
+**`identity.var.extra_groups` already existed** (map of `{name -> {is_superuser, description}}`). What was missing: the consumer-template didn't surface it. Added `var.identity` to `consumer-template/modules/stack/`, passed through to the identity module as `extra_groups = try(var.identity.extra_groups, {})`. Consumers now set their org-specific groups in tfvars:
+
+```hcl
+identity = {
+  extra_groups = {
+    "union-automation"  = { description = "Service-account scope for automation workers acting on behalf of the union." }
+    "union-cloud-admin" = { description = "Service-account scope for cloud-resource administration on behalf of the union." }
+  }
+}
+```
+
+Coops set `coop-*`. Mutual aid networks set `mutual-aid-*`. Whatever fits the org's lexicon. No upstream contamination.
+
+**`var.service_account_extra_groups`** added to n8n + steward bundles (default `[]`). Service account membership becomes `[authentik Admins] ∪ [for g in var.service_account_extra_groups : var.base.authentik.groups[g]]`. The named groups must exist in `var.base.authentik.groups` — typically created via identity's `extra_groups`.
+
+```hcl
+apps.n8n.service_account_extra_groups = ["union-automation", "union-cloud-admin"]
+```
+
+Steward's bundle exposes the same knob for parity (steward's bearer-token API access through the admins group is usually sufficient, but the knob lets a consumer scope it down for custom authz models).
+
+No state migration. Existing consumers see no diff — defaults are empty everywhere.
+
+---
+
 ## v2.15.5 — n8n env.j2 propagation gap for AUTHENTIK_API_URL/TOKEN
 
 v2.15.3 added `AUTHENTIK_API_URL` + `AUTHENTIK_API_TOKEN` to the n8n app secret bag in `secrets.tf` but missed the propagation step — `env.j2` never read them. Result: keys sat in Scaleway Secret Manager but the n8n container had nothing in `process.env` for workflows that talk to Authentik. Peer caught it during v2.15.3 consumption audit.
