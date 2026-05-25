@@ -67,6 +67,6 @@ variable "cadvisor_version" {
 
 variable "scw_cli_version" {
   type        = string
-  description = "Scaleway CLI release to bake. Pinned for reproducibility — Ansible will upgrade in-place if a newer one is configured."
-  default     = "2.34.0"
+  description = "Scaleway CLI release to bake. Pinned for reproducibility — Ansible will upgrade in-place if a newer one is configured. GitHub garbage-collects very old release assets periodically; keep this within the last ~year of releases or builds 404."
+  default     = "2.56.1"
 }
