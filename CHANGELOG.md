@@ -2,6 +2,18 @@
 
 All notable changes to sabokit go here. Versioning follows semver; major bumps signal breaking contract changes for consumers.
 
+## v3.1.1 — 2026-05-25
+
+In-place legacy cutover support. Without this, applying v3 against a legacy stack regenerates ~50 credential values for live apps — n8n ENCRYPTION_KEY rotation alone bricks every stored workflow credential (irrecoverable). v2.18.2's `ignore_changes=[data]` is a guard, not a wall.
+
+### Added
+- **`var.credentials_preserve` (bool, default false) on every credential-generating bundle + shared module.** Bundles touched: outline, nextcloud, vikunja, jitsi, n8n, espocrm, grafana, notifuse, broadsheet, wazuh, decidim, steward, backrest. Shared modules: `modules/authentik/{oidc-app,saml-app}`, `modules/infrastructure/storage/{postgres,postgres_database}`. When true: count-gates `random_password`/`random_id`/`random_uuid` to 0, reads the existing `<slug>-app-secrets` bag via `data "scaleway_secret_version"`, plumbs preserved values through locals to every downstream consumer (secret_version re-render, ansible outputs).
+- Consumer-template passthrough + apps-manifest schema entries per bundle.
+
+### Migration
+- For in-place legacy cutover: set `credentials_preserve = true` per bundle in tfvars, run apply. Live credentials preserved end-to-end; zero rotation. Drop the flag on the next apply when ready to do a deliberate coordinated rotation.
+- Short-lived knob: removal slated for v4.0 once everyone's past their initial v3 cutover.
+
 ## v3.1.0 — 2026-05-25
 
 Consumer-declared DNS records at the base layer. Inbound mail setup (MX) no longer requires hand-managing records in Scaleway DNS.
