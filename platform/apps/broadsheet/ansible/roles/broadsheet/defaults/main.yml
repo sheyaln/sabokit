@@ -1,11 +1,11 @@
 ---
 broadsheet_hostname: ""
 
-# Default deploy builds from source on the host (sabokit-broadsheet fork).
-# Flip broadsheet_build_from_source=false to pull a published image.
-broadsheet_image: "ghcr.io/sheyaln/sabokit-broadsheet"
+# Default deploy pulls the published sabokit-broadsheet image. Flip
+# broadsheet_build_from_source=true only for unreleased fork patches.
+broadsheet_image: "ghcr.io/sheyaln/broadsheet"
 broadsheet_image_tag: "latest"
-broadsheet_build_from_source: true
+broadsheet_build_from_source: false
 broadsheet_image_source_repo: "https://github.com/sheyaln/sabokit-broadsheet.git"
 broadsheet_image_source_ref: "main"
 

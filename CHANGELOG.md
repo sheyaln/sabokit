@@ -2,6 +2,14 @@
 
 All notable changes to sabokit go here. Versioning follows semver; major bumps signal breaking contract changes for consumers.
 
+## v2.16.2 — 2026-05-25
+
+Broadsheet bundle defaults were wrong out of the box.
+
+### Fixed
+- **Broadsheet image default corrected** from `ghcr.io/sheyaln/sabokit-broadsheet` to `ghcr.io/sheyaln/broadsheet` (the actual published stream). Same fix in `consumer-template/apps-manifest.yaml`.
+- **`build_from_source` default flipped from `true` to `false`.** The published image is the supported path; source-build is opt-in for unreleased fork patches only. Saves ~3 min on first deploy + drops a hard dep on a host-side toolchain.
+
 ## v2.16.1 — 2026-05-25
 
 Two consumer step-3 blockers, both terraform-locals errors before any imports/refresh.

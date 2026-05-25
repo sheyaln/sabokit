@@ -704,14 +704,14 @@ apps:
 
         build_from_source:
           type: bool
-          default: true
-          description: Build the broadsheet image on the host from image_source_repo. Default true — sabokit-broadsheet's published image stream isn't always current.
+          default: false
+          description: Opt-in. Build the broadsheet image on the host from image_source_repo instead of pulling. For unreleased fork patches only.
           ui: advanced
 
         image_source_repo:
           type: string
           default: https://github.com/sheyaln/sabokit-broadsheet.git
-          description: Git URL cloned when building from source.
+          description: Git URL cloned when build_from_source = true.
           ui: advanced
 
         image_source_ref:
