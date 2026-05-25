@@ -16,6 +16,8 @@ module "outline" {
   smtp_from_email         = try(var.apps.outline.smtp_from_email, "")
   application_name        = try(var.apps.outline.application_name, "Wiki (Outline)")
   application_slug        = try(var.apps.outline.application_slug, "")
+  icon_url                = try(var.apps.outline.icon_url, "")
+  icon_filename           = try(var.apps.outline.icon_filename, "outline-icon.png")
   monitoring_enabled      = try(var.apps.outline.monitoring_enabled, true)
   deployment_host_key     = try(var.apps.outline.deployment_host_key, "apps")
 }
@@ -38,6 +40,8 @@ module "steward" {
   image_tag                    = try(var.apps.steward.image_tag, "latest")
   application_name             = try(var.apps.steward.application_name, "Steward")
   application_slug             = try(var.apps.steward.application_slug, "")
+  icon_url                     = try(var.apps.steward.icon_url, "")
+  icon_filename                = try(var.apps.steward.icon_filename, "steward-icon.png")
   service_account_extra_groups = try(var.apps.steward.service_account_extra_groups, [])
   monitoring_enabled           = try(var.apps.steward.monitoring_enabled, true)
   deployment_host_key          = try(var.apps.steward.deployment_host_key, "apps")
@@ -62,6 +66,8 @@ module "vikunja" {
   oidc_groups_scope_name  = try(var.apps.vikunja.oidc_groups_scope_name, "vikunja_scope")
   application_name        = try(var.apps.vikunja.application_name, "Tasks (Vikunja)")
   application_slug        = try(var.apps.vikunja.application_slug, "")
+  icon_url                = try(var.apps.vikunja.icon_url, "")
+  icon_filename           = try(var.apps.vikunja.icon_filename, "vikunja-icon.png")
   monitoring_enabled      = try(var.apps.vikunja.monitoring_enabled, true)
   deployment_host_key     = try(var.apps.vikunja.deployment_host_key, "apps")
 }
@@ -83,6 +89,8 @@ module "bentopdf" {
   image                   = try(var.apps.bentopdf.image, "ghcr.io/digital-blueprint/bento-pdf:latest")
   application_name        = try(var.apps.bentopdf.application_name, "PDF Tools (BentoPDF)")
   application_slug        = try(var.apps.bentopdf.application_slug, "")
+  icon_url                = try(var.apps.bentopdf.icon_url, "")
+  icon_filename           = try(var.apps.bentopdf.icon_filename, "bentopdf-icon.png")
   monitoring_enabled      = try(var.apps.bentopdf.monitoring_enabled, true)
   deployment_host_key     = try(var.apps.bentopdf.deployment_host_key, "apps")
 }
@@ -117,6 +125,8 @@ module "notifuse" {
   oidc_allow_magic_code   = try(var.apps.notifuse.oidc_allow_magic_code, true)
   application_name        = try(var.apps.notifuse.application_name, "Notifuse")
   application_slug        = try(var.apps.notifuse.application_slug, "")
+  icon_url                = try(var.apps.notifuse.icon_url, "")
+  icon_filename           = try(var.apps.notifuse.icon_filename, "")
   monitoring_enabled      = try(var.apps.notifuse.monitoring_enabled, true)
   deployment_host_key     = try(var.apps.notifuse.deployment_host_key, "apps")
 }
@@ -146,6 +156,8 @@ module "nextcloud" {
   smtp_from_email         = try(var.apps.nextcloud.smtp_from_email, "")
   application_name        = try(var.apps.nextcloud.application_name, "Nextcloud")
   application_slug        = try(var.apps.nextcloud.application_slug, "")
+  icon_url                = try(var.apps.nextcloud.icon_url, "")
+  icon_filename           = try(var.apps.nextcloud.icon_filename, "")
   monitoring_enabled      = try(var.apps.nextcloud.monitoring_enabled, true)
   deployment_host_key     = try(var.apps.nextcloud.deployment_host_key, "apps")
 }
@@ -172,6 +184,8 @@ module "decidim" {
   sidekiq_concurrency           = try(var.apps.decidim.sidekiq_concurrency, 5)
   application_name              = try(var.apps.decidim.application_name, "Decidim")
   application_slug              = try(var.apps.decidim.application_slug, "")
+  icon_url                      = try(var.apps.decidim.icon_url, "")
+  icon_filename                 = try(var.apps.decidim.icon_filename, "decidim-icon.png")
   monitoring_enabled            = try(var.apps.decidim.monitoring_enabled, true)
   deployment_host_key           = try(var.apps.decidim.deployment_host_key, "apps")
 }
@@ -202,6 +216,8 @@ module "jitsi" {
   oidc_log_level             = try(var.apps.jitsi.oidc_log_level, "INFO")
   application_name           = try(var.apps.jitsi.application_name, "Video Meetings (Jitsi)")
   application_slug           = try(var.apps.jitsi.application_slug, "")
+  icon_url                   = try(var.apps.jitsi.icon_url, "")
+  icon_filename              = try(var.apps.jitsi.icon_filename, "")
   monitoring_enabled         = try(var.apps.jitsi.monitoring_enabled, true)
   deployment_host_key        = try(var.apps.jitsi.deployment_host_key, "apps")
 }
@@ -229,6 +245,8 @@ module "espocrm" {
   member_entity_webhooks         = try(var.apps.espocrm.member_entity_webhooks, [])
   application_name               = try(var.apps.espocrm.application_name, "CRM (EspoCRM)")
   application_slug               = try(var.apps.espocrm.application_slug, "")
+  icon_url                       = try(var.apps.espocrm.icon_url, "")
+  icon_filename                  = try(var.apps.espocrm.icon_filename, "espocrm-icon.png")
   monitoring_enabled             = try(var.apps.espocrm.monitoring_enabled, true)
   deployment_host_key            = try(var.apps.espocrm.deployment_host_key, "apps")
 }
@@ -250,6 +268,8 @@ module "n8n" {
   public_api_disabled          = try(var.apps.n8n.public_api_disabled, true)
   application_name             = try(var.apps.n8n.application_name, "Workflows (n8n)")
   application_slug             = try(var.apps.n8n.application_slug, "")
+  icon_url                     = try(var.apps.n8n.icon_url, "")
+  icon_filename                = try(var.apps.n8n.icon_filename, "n8n-icon.png")
   service_account_extra_groups = try(var.apps.n8n.service_account_extra_groups, [])
   monitoring_enabled           = try(var.apps.n8n.monitoring_enabled, true)
   deployment_host_key          = try(var.apps.n8n.deployment_host_key, "apps")
@@ -419,6 +439,8 @@ module "wazuh" {
   oidc_admin_group        = try(var.apps.wazuh.oidc_admin_group, "admin")
   application_name        = try(var.apps.wazuh.application_name, "Wazuh")
   application_slug        = try(var.apps.wazuh.application_slug, "")
+  icon_url                = try(var.apps.wazuh.icon_url, "")
+  icon_filename           = try(var.apps.wazuh.icon_filename, "")
 }
 
 module "grafana" {
@@ -438,6 +460,8 @@ module "grafana" {
   oidc_editor_group       = try(var.apps.grafana.oidc_editor_group, "manager")
   application_name        = try(var.apps.grafana.application_name, "Grafana")
   application_slug        = try(var.apps.grafana.application_slug, "")
+  icon_url                = try(var.apps.grafana.icon_url, "")
+  icon_filename           = try(var.apps.grafana.icon_filename, "grafana-icon.png")
   # Auto-aggregated from every enabled app's monitoring.grafana_dashboards
   # plus any consumer-supplied extras.
   grafana_dashboards = concat(
@@ -474,6 +498,8 @@ module "backrest_mgmt" {
   restic_check_max_frequency_days       = try(var.apps.backrest_mgmt.restic_check_max_frequency_days, 30)
   restic_check_read_data_subset_percent = try(var.apps.backrest_mgmt.restic_check_read_data_subset_percent, 5)
   application_name                      = try(var.apps.backrest_mgmt.application_name, "")
+  icon_url                              = try(var.apps.backrest_mgmt.icon_url, "")
+  icon_filename                         = try(var.apps.backrest_mgmt.icon_filename, "")
   monitoring_enabled                    = try(var.apps.backrest_mgmt.monitoring_enabled, true)
   deployment_host_key                   = try(var.apps.backrest_mgmt.deployment_host_key, "apps")
 }
