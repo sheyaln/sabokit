@@ -1,0 +1,56 @@
+---
+# Set by the consumer via the values that come out of platform/apps/diun/terraform's ansible.vars output.
+
+diun_image: "crazymax/diun"
+diun_image_tag: "4.31.0"
+
+# Empty default = single-instance — container is just "diun". When set,
+# the container becomes "diun-<instance_name>", same for the data dir
+# and config file, so multiple instances on one host don't collide.
+diun_instance_name: ""
+
+# Derived names used everywhere in this role.
+diun_qualified_name: "{{ 'diun' if diun_instance_name == '' else 'diun-' + diun_instance_name }}"
+diun_install_dir: "/opt/{{ diun_qualified_name }}"
+
+diun_timezone: "UTC"
+
+# Polling schedule (6-field cron, seconds first). Default daily at 06:00 UTC,
+# offset from backrest (02:00) and watchtower's typical 04:00 so registry
+# polls don't pile on top of backup/restart windows.
+diun_watch_schedule: "0 0 6 * * *"
+
+# Concurrent image-check workers (Diun's upstream default is 10).
+diun_watch_workers: 10
+
+# Suppress notifications for images Diun has never seen before. Avoids the
+# first-boot flood where every running container looks "new".
+diun_watch_first_check_notif: false
+
+# Watch every container on the host without per-container opt-in label.
+# Plug-and-play default. Flip false to require diun.enable=true labels.
+diun_watch_by_default: true
+
+# Watch ALL tags of every image vs. only the exact tag in use.
+diun_default_watch_repo: false
+
+# Docker-swarm-mode service discovery — sabokit does not ship Swarm.
+diun_include_swarm_services: false
+
+# List of `{ type, config }` dicts; rendered into diun.yml's notif: block
+# verbatim. Empty = stdout/log-only.
+diun_notification_targets: []
+
+# Whether watchtower (if on the same host) auto-pulls newer Diun image
+# versions. Default false — Diun is "tell me about updates", auto-updating
+# Diun itself contradicts the design.
+diun_auto_update_enabled: false
+
+# Whether autoheal restarts Diun on healthcheck failure.
+diun_autoheal_enabled: true
+
+# Resource limits — Diun is small.
+diun_memory_limit: "128M"
+diun_memory_reservation: "16M"
+diun_cpu_limit: "0.25"
+diun_cpu_reservation: "0.02"

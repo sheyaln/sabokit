@@ -1,5 +1,7 @@
 # apps/watchtower
 
+> **DEPRECATED in v2.13.0.** Watchtower upstream is archived (last release Nov 2023, repo marked Maintenance Notice Dec 2025). The replacement is `platform/apps/diun/` — notify-on-new-image instead of auto-restart. Watchtower stays available in fc for one more v2.x cycle for migration headroom; will be removed in v3.0.0. Migrate when convenient.
+
 [Watchtower](https://github.com/containrrr/watchtower) — auto-update opted-in Docker containers. One container per host; watches the local Docker daemon, pulls newer image versions, restarts containers. Pure host-service: no DB, no S3, no Authentik, no DNS.
 
 Multi-instance: instantiate this module once per host you want auto-updates on. The platform's `auto_update_enabled` per-app knob (added to every app bundle) controls which containers Watchtower touches via the standard `com.centurylinklabs.watchtower.enable` label.

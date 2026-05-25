@@ -1132,6 +1132,103 @@ apps:
           ui: advanced
           sensitive: true
 
+  # ── Diun ────────────────────────────────────────────────────────────────
+  # Platform host-service: notifies when a new image is available on the
+  # registry for any container running on the host. Notify-only — does NOT
+  # pull or restart. Pairs with Watchtower as a deliberate split: Diun gives
+  # operators control + visibility over update timing, Watchtower handles
+  # unattended updates for whitelisted containers. Multi-instance — one per
+  # host you want coverage on.
+  - id: diun
+    display_name: Diun
+    category: ops
+    description_short: Notify when new container images land upstream
+    description: |
+      One container per host. Watches the local Docker daemon, polls each
+      container's image registry on a schedule, fires a notification when
+      a tag's digest changes. Does NOT pull or restart anything — the
+      operator (or n8n workflow) decides what to do with each notification.
+      Recommended pattern: webhook target pointing at the n8n bundle's
+      diun-notification-router workflow, then fan out.
+    icon: icons/diun.svg
+    upstream_url: https://github.com/crazy-max/diun
+
+    tfvars:
+      key: diun_mgmt
+      schema:
+        enabled:
+          type: bool
+          default: false
+          description: Whether this Diun instance is deployed.
+          ui: hidden
+
+        instance_name:
+          type: string
+          default: mgmt
+          description: Per-instance suffix. Set when running multiple Diun instances under one base so resources don't collide.
+          ui: advanced
+
+        deployment_host_key:
+          type: string
+          default: management
+          description: Which host (key in compute_hosts) this Diun instance runs on.
+          ui: advanced
+
+        image_tag:
+          type: string
+          default: "4.31.0"
+          description: Diun image tag. Pin in production; bump deliberately after reviewing upstream changelog.
+          ui: advanced
+
+        watch_schedule:
+          type: string
+          default: "0 0 6 * * *"
+          description: Cron (6-field, seconds first) governing how often Diun polls registries. Default daily at 06:00 UTC.
+          ui: advanced
+
+        watch_workers:
+          type: number
+          default: 10
+          description: Concurrent image-check workers. Raise for large fleets; lower if registries rate-limit.
+          ui: advanced
+
+        watch_first_check_notif:
+          type: bool
+          default: false
+          description: If true, notify for images Diun has never checked before (i.e. flood on first boot).
+          ui: advanced
+
+        watch_by_default:
+          type: bool
+          default: true
+          description: Watch every container without per-container opt-in label. Flip false to require diun.enable=true labels.
+          ui: advanced
+
+        default_watch_repo:
+          type: bool
+          default: false
+          description: Watch ALL tags of every image vs only the exact tag in use. Heavy on registries when true.
+          ui: advanced
+
+        auto_update_enabled:
+          type: bool
+          default: false
+          description: Whether Watchtower auto-pulls newer Diun image versions. Default false on purpose — auto-updating the tool whose job is to gate updates defeats the point.
+          ui: advanced
+
+        autoheal_enabled:
+          type: bool
+          default: true
+          description: Whether Autoheal restarts Diun on healthcheck failure.
+          ui: advanced
+
+        notification_targets:
+          type: list
+          default: []
+          description: List of `{ type, config }` Diun notifier configs. type ∈ {amqp, discord, gotify, mail, matrix, mqtt, ntfy, opsgenie, pushover, rocketchat, script, slack, teams, telegram, twilio, webhook}; config passed verbatim to Diun's diun.yml. Empty = stdout-only. See https://crazymax.dev/diun/notif/ for per-type schemas.
+          ui: advanced
+          sensitive: true
+
   # ── Autoheal ────────────────────────────────────────────────────────────
   # Platform host-service: restarts containers whose healthcheck flips to
   # unhealthy. Multi-instance — one per host. Per-app autoheal_enabled

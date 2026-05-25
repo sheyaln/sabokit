@@ -1,0 +1,6 @@
+---
+galaxy_info:
+  role_name: diun
+  description: Notify-on-new-image watcher for opted-in Docker containers via crazy-max/diun
+  min_ansible_version: "2.14"
+dependencies: []

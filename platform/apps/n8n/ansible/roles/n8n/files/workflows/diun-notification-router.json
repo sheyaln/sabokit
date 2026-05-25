@@ -1,0 +1,142 @@
+{
+  "name": "Diun Notification Router",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "diun-new-image",
+        "options": {}
+      },
+      "id": "d1a4e4e5-7c6e-4b9e-9b9d-3a7c1b2f0001",
+      "name": "Diun Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [-352, 320],
+      "webhookId": "diun-new-image"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Normalize Diun's webhook payload into a flat per-event object.\n//\n// Diun posts: { diun_version, hostname, status, provider, image, hub_link, mime_type, digest, created, platform }.\n// status ∈ { new, update, unchange, skip, error }. We only fan out new + update.\n//\n// Reference: https://crazymax.dev/diun/notif/webhook/\n//\n// Routing rules below are deliberately simple — adapt the Switch node to\n// match your image namespace / repo / hostname conventions.\n\nconst body = $input.first().json.body || $input.first().json;\n\nconst status = (body.status || '').toLowerCase();\nconst routable = status === 'new' || status === 'update';\n\nif (!routable) {\n  return [{ json: { skip: true, reason: `status=${status} (only new/update routed)`, raw: body } }];\n}\n\n// Image looks like \"docker.io/library/nginx:1.27\" or \"ghcr.io/owner/repo:tag\".\nconst imageStr = body.image || '';\nconst [imageRef, tag] = imageStr.split(':');\nconst imageParts = imageRef.split('/');\nconst registry = imageParts.length > 2 ? imageParts[0] : 'docker.io';\nconst repo = imageParts.slice(registry === imageParts[0] ? 1 : 0).join('/');\n\n// Coarse severity heuristic: bump major/minor → 'high', tag move → 'normal'.\n// Tune downstream based on what you actually care about.\nconst severity = status === 'new' ? 'high' : 'normal';\n\nreturn [{\n  json: {\n    hostname: body.hostname || '',\n    status,\n    severity,\n    image: imageStr,\n    registry,\n    repo,\n    tag: tag || 'latest',\n    digest: body.digest || '',\n    created: body.created || '',\n    platform: body.platform || '',\n    hubLink: body.hub_link || '',\n    provider: body.provider || '',\n    diunVersion: body.diun_version || '',\n    raw: body,\n  },\n}];"
+      },
+      "id": "d1a4e4e5-7c6e-4b9e-9b9d-3a7c1b2f0002",
+      "name": "Parse Diun Event",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [-128, 320]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict", "version": 1 },
+          "conditions": [
+            { "leftValue": "={{ $json.skip }}", "rightValue": true, "operator": { "type": "boolean", "operation": "notEquals" } }
+          ],
+          "combinator": "and"
+        }
+      },
+      "id": "d1a4e4e5-7c6e-4b9e-9b9d-3a7c1b2f0003",
+      "name": "Routable?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [96, 320]
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict", "version": 1 },
+                "conditions": [
+                  { "leftValue": "={{ $json.severity }}", "rightValue": "high", "operator": { "type": "string", "operation": "equals" } }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "high"
+            },
+            {
+              "conditions": {
+                "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict", "version": 1 },
+                "conditions": [
+                  { "leftValue": "={{ $json.severity }}", "rightValue": "normal", "operator": { "type": "string", "operation": "equals" } }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "normal"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "d1a4e4e5-7c6e-4b9e-9b9d-3a7c1b2f0004",
+      "name": "Route by Severity",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [320, 320]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.SLACK_WEBHOOK_INFRA_UPDATES || $env.SLACK_WEBHOOK_INFRA_ALERTS }}",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"blocks\": [\n    {\n      \"type\": \"header\",\n      \"text\": {\n        \"type\": \"plain_text\",\n        \"text\": \":package: New image: {{ $json.repo }}:{{ $json.tag }}\",\n        \"emoji\": true\n      }\n    },\n    {\n      \"type\": \"section\",\n      \"text\": {\n        \"type\": \"mrkdwn\",\n        \"text\": \"*Host:* {{ $json.hostname }}\\n*Status:* {{ $json.status }}\\n*Digest:* `{{ $json.digest }}`\\n*Created:* {{ $json.created }}\"\n      }\n    },\n    {\n      \"type\": \"actions\",\n      \"elements\": [\n        { \"type\": \"button\", \"text\": { \"type\": \"plain_text\", \"text\": \"View on registry\" }, \"url\": \"{{ $json.hubLink }}\" }\n      ]\n    }\n  ]\n}",
+        "options": {}
+      },
+      "id": "d1a4e4e5-7c6e-4b9e-9b9d-3a7c1b2f0005",
+      "name": "Slack New Image",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [592, 240]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.SLACK_WEBHOOK_INFRA_UPDATES || $env.SLACK_WEBHOOK_INFRA_ALERTS }}",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"blocks\": [\n    {\n      \"type\": \"section\",\n      \"text\": {\n        \"type\": \"mrkdwn\",\n        \"text\": \":arrows_counterclockwise: Tag updated: *{{ $json.repo }}:{{ $json.tag }}* on `{{ $json.hostname }}` — new digest `{{ $json.digest }}`\"\n      }\n    }\n  ]\n}",
+        "options": {}
+      },
+      "id": "d1a4e4e5-7c6e-4b9e-9b9d-3a7c1b2f0006",
+      "name": "Slack Tag Update",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [592, 400]
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Diun Webhook": { "main": [[{ "node": "Parse Diun Event", "type": "main", "index": 0 }]] },
+    "Parse Diun Event": { "main": [[{ "node": "Routable?", "type": "main", "index": 0 }]] },
+    "Routable?": { "main": [[{ "node": "Route by Severity", "type": "main", "index": 0 }], []] },
+    "Route by Severity": {
+      "main": [
+        [{ "node": "Slack New Image", "type": "main", "index": 0 }],
+        [{ "node": "Slack Tag Update", "type": "main", "index": 0 }]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false,
+    "timeSavedMode": "fixed",
+    "errorWorkflow": "ScNDFrAVG90ETWIh",
+    "callerPolicy": "workflowsFromSameOwner"
+  },
+  "versionId": "",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": ""
+  },
+  "id": "DiunNotificationRouter01",
+  "tags": [
+    { "updatedAt": "2026-05-25T00:00:00.000Z", "createdAt": "2026-05-25T00:00:00.000Z", "id": "", "name": "infrastructure" },
+    { "updatedAt": "2026-05-25T00:00:00.000Z", "createdAt": "2026-05-25T00:00:00.000Z", "id": "", "name": "diun" },
+    { "updatedAt": "2026-05-25T00:00:00.000Z", "createdAt": "2026-05-25T00:00:00.000Z", "id": "", "name": "updates" }
+  ]
+}

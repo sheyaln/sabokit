@@ -1,0 +1,39 @@
+---
+# {{ ansible_managed }}
+# Managed by sabokit apps/diun/ansible/role.
+# Do not edit by hand — regenerated on every ansible-playbook run.
+
+services:
+  {{ diun_qualified_name }}:
+    image: "{{ diun_image }}:{{ diun_image_tag }}"
+    container_name: {{ diun_qualified_name }}
+    command: serve
+    restart: unless-stopped
+    environment:
+      TZ: "{{ diun_timezone }}"
+      LOG_LEVEL: "info"
+      LOG_JSON: "false"
+    volumes:
+      # Required: lets Diun list sibling containers + read their image refs.
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ./diun.yml:/etc/diun/diun.yml:ro
+      - ./data:/data
+    labels:
+      - "com.centurylinklabs.watchtower.enable={{ diun_auto_update_enabled | string | lower }}"
+      - "autoheal={{ diun_autoheal_enabled | string | lower }}"
+      # Diun watching itself is harmless — gets noticed on registry checks
+      # like any other container. No opt-out needed.
+    healthcheck:
+      test: ["CMD", "diun", "--version"]
+      interval: 60s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    deploy:
+      resources:
+        limits:
+          memory: "{{ diun_memory_limit }}"
+          cpus: "{{ diun_cpu_limit }}"
+        reservations:
+          memory: "{{ diun_memory_reservation }}"
+          cpus: "{{ diun_cpu_reservation }}"
