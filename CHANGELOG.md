@@ -2,6 +2,12 @@
 
 All notable changes to sabokit go here. Versioning follows semver; major bumps signal breaking contract changes for consumers.
 
+## v3.1.3 — 2026-05-25
+
+### Added
+- **n8n service account auto-joins broadsheet's per-app Authentik group** when both bundles are deployed. Lets n8n workflows authenticate to broadsheet (e.g. for transactional email sends) without manual group membership wiring at the consumer-template layer. Opt out with `var.apps.n8n.broadsheet_membership = false`.
+- **`var.service_account_extra_group_ids` on n8n bundle** — direct Authentik group IDs (parallel to the existing `service_account_extra_groups` which takes names from `base.authentik.groups`). For cross-bundle wiring where the group is created by another bundle.
+
 ## v3.1.2 — 2026-05-25
 
 ### Fixed

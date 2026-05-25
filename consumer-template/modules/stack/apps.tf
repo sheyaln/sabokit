@@ -330,9 +330,15 @@ module "n8n" {
   icon_url                     = try(var.apps.n8n.icon_url, "")
   icon_filename                = try(var.apps.n8n.icon_filename, "n8n-icon.png")
   service_account_extra_groups = try(var.apps.n8n.service_account_extra_groups, [])
-  monitoring_enabled           = try(var.apps.n8n.monitoring_enabled, true)
-  deployment_host_key          = try(var.apps.n8n.deployment_host_key, "apps")
-  dns_zone_override            = try(var.apps.n8n.dns_zone_override, "")
+  service_account_extra_group_ids = concat(
+    try(var.apps.n8n.service_account_extra_group_ids, []),
+    (try(var.apps.broadsheet.enabled, false) && try(var.apps.n8n.broadsheet_membership, true))
+    ? [module.broadsheet.authentik_application_group_id]
+    : [],
+  )
+  monitoring_enabled  = try(var.apps.n8n.monitoring_enabled, true)
+  deployment_host_key = try(var.apps.n8n.deployment_host_key, "apps")
+  dns_zone_override   = try(var.apps.n8n.dns_zone_override, "")
 
   credentials_preserve = try(var.apps.n8n.credentials_preserve, false)
 }
