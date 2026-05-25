@@ -1006,6 +1006,108 @@ apps:
           description: Section the app appears under in the Authentik portal.
           ui: advanced
 
+  # ── Postiz ──────────────────────────────────────────────────────────────
+  # Social media scheduling + content management. Heavy stack: bundles its own
+  # temporal + elasticsearch + redis + temporal-postgres sidecars on top of
+  # the postiz container itself (~3GB RAM steady-state). OIDC via Authentik
+  # for user login; per-platform OAuth credentials (X, LinkedIn, Reddit, …)
+  # passed through verbatim as env vars — consumer obtains each from the
+  # platform's developer console. Local-filesystem uploads only (Postiz
+  # generic-S3 support is open upstream as of 2026-05).
+  - id: postiz
+    display_name: Postiz
+    category: productivity
+    description_short: Social media scheduling + content management with SSO
+    description: |
+      Self-hosted alternative to Buffer / Hootsuite. Schedule posts across
+      X, LinkedIn, Reddit, Facebook, YouTube, TikTok, Pinterest, Discord,
+      Slack, Mastodon and more. Federated SSO via Authentik. Heavy footprint
+      (bundles temporal + elasticsearch) — plan ~3GB RAM.
+    icon: icons/postiz.svg
+    upstream_url: https://github.com/gitroomhq/postiz-app
+
+    tfvars:
+      key: postiz
+      schema:
+        enabled:
+          type: bool
+          default: true
+          description: Whether Postiz is deployed in this environment.
+          ui: hidden
+
+        hostname:
+          type: string
+          required: true
+          description: Public hostname Postiz is served at.
+          example: social.example.org
+          subdomain_default: social
+          ui: text
+          validation:
+            pattern: ^[a-z0-9.-]+\.[a-z]{2,}$
+
+        timezone:
+          type: string
+          default: UTC
+          description: IANA timezone for the container. Affects scheduling display and cron evaluation.
+          example: America/New_York
+          ui: advanced
+
+        smtp_from_email:
+          type: string
+          default: ''
+          description: From-address for transactional email (activation, reset, scheduled-post notifications). Empty disables SMTP.
+          example: social@example.org
+          ui: advanced
+
+        social_platform_credentials:
+          type: map(map(string))
+          default: {}
+          description: Per-platform OAuth credentials Postiz uses to publish. Map keyed by lowercase platform name (x, linkedin, reddit, github, beehiiv, threads, facebook, youtube, tiktok, pinterest, dribbble, discord, slack, mastodon); value is a map of env-var-name → value. Postiz uses inconsistent env names per platform — see the bundle README for the exact key set per platform. Empty default = no platforms wired.
+          ui: advanced
+          sensitive: true
+
+        disable_registration:
+          type: bool
+          default: true
+          description: Disables Postiz's built-in self-registration form. OIDC is the intended sign-in path; leaving registration open lets anyone with the URL create an account.
+          ui: advanced
+
+        deployment_host_key:
+          type: string
+          default: apps
+          description: Which host (key in compute_hosts) Postiz runs on. Heavy stack — don't co-locate with nextcloud or decidim on a small host.
+          ui: advanced
+
+        access_level:
+          type: string
+          default: delegate
+          description: Authentik group key granting baseline access. Default delegate, not member — scheduling posts to org-owned social accounts is sensitive.
+          ui: advanced
+
+        tier_cascade_enabled:
+          type: bool
+          default: true
+          description: Derive authorized groups from the platform tier cascade (member→delegate→treasurer→admin; each tier inherits all lower). Set false to fall back to access_level + extra_authorized_groups.
+          ui: advanced
+
+        tier_access_level:
+          type: string
+          default: delegate
+          description: Cascade tier required for baseline access. Users in this tier and any higher are admitted. Only consulted when tier_cascade_enabled = true. Default delegate.
+          ui: advanced
+
+        monitoring_enabled:
+          type: bool
+          default: true
+          description: Wire Postiz log paths into the monitoring stack.
+          ui: advanced
+
+        category_group:
+          type: string
+          default: Productivity
+          description: Section the app appears under in the Authentik portal.
+          ui: advanced
+
   # ── Backrest ────────────────────────────────────────────────────────────
   # Restic-based backups per host (each host = its own instance + bucket).
   # Forward-auth via the embedded outpost. Multi-instance: consumers

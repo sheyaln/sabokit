@@ -104,6 +104,12 @@ output "enabled_apps" {
       ansible_group = module.n8n.ansible.host_group
       monitoring    = module.n8n.monitoring
     } : null
+    postiz = module.postiz.enabled ? {
+      url           = module.postiz.app_url
+      ansible_vars  = module.postiz.ansible.vars
+      ansible_group = module.postiz.ansible.host_group
+      monitoring    = module.postiz.monitoring
+    } : null
     prometheus = module.prometheus.enabled ? {
       ansible_vars  = module.prometheus.ansible.vars
       ansible_group = module.prometheus.ansible.host_group

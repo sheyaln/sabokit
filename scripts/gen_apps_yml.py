@@ -50,6 +50,7 @@ BUNDLES = [
     ("jitsi",          "jitsi",           "jitsi"),
     ("espocrm",        "espocrm",         "espocrm"),
     ("n8n",            "n8n",             "n8n"),
+    ("postiz",         "postiz",          "postiz"),
     ("backrest",       "backrest_mgmt",   "backrest"),
     ("prometheus",     "prometheus",      "prometheus"),
     ("loki",           "loki",            "loki"),
