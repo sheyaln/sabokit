@@ -2,6 +2,18 @@
 
 All notable changes to sabokit go here. Versioning follows semver; major bumps signal breaking contract changes for consumers.
 
+## v3.1.0 — 2026-05-25
+
+Consumer-declared DNS records at the base layer. Inbound mail setup (MX) no longer requires hand-managing records in Scaleway DNS.
+
+### Added
+- **`var.custom_dns_records` at base layer.** Map of zone-name → list of `{subdomain, type, target/server, ttl}` records. Supports A, AAAA, CNAME, MX, TXT, SRV. Reuses `modules/infrastructure/app_dns` (same prevent_destroy + skip-on-missing-zone semantics). Common use: MX records pointing at your inbound mail provider, additional TXT verifications, SRV records.
+- **`app_dns` module gained MX, TXT, SRV, AAAA support.** Was: A + CNAME only. New types follow the same per-type `for_each` shape with `prevent_destroy = true`.
+- **`custom_dns_records` passthrough** in consumer-template/modules/stack/base.tf + commented example block in environments/_template/terraform.tfvars.example.
+
+### Changed
+- **`scripts/release.sh` chore commit subject is now plain English** (was `chore(consumer-template): bump refs to vX.Y.Z`, now `Bumped consumer-template refs to vX.Y.Z`). Matches the standing rule applied to hand-written commits.
+
 ## v3.0.3 — 2026-05-25
 
 Two consumer step-3 blockers — bucket name preservation (data-loss risk) and per-app DNS zone derivation (split-domain support).
