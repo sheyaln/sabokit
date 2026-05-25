@@ -29,6 +29,10 @@ Consumers don't usually invoke this dir directly. They use `consumer-template/en
 
 Each app's `import_playbook` in `apps.yml` is gated on `enabled_apps.<name> is not none`, so disabled apps are silently skipped.
 
+## `[secrets]` tag — rotation path
+
+Tasks tagged `[secrets]` form the secret-rotation path — running `ansible-playbook ... --tags secrets` re-fetches secrets, re-renders env/config files, and the restart handler fires when content changes. Apply at host scope via `--limit`; per-app scope via `--tags secrets,<app-slug>` is UNION not intersection — that runs all of `<app>` AND all secrets tasks, which is fine but heavier. For true per-app rotation, just run `--tags <app-slug>` (the full role is idempotent and re-fetches secrets along the way).
+
 ## Adding a new app
 
 1. Ship the app bundle under `platform/apps/<new-app>/`.
