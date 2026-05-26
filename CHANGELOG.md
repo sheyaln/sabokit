@@ -2,6 +2,19 @@
 
 All notable changes to sabokit go here. Versioning follows semver; major bumps signal breaking contract changes for consumers.
 
+## v3.1.11 — 2026-05-26
+
+Icon-default layering fix + two perpetual-drift kills on the identity layer.
+
+### Fixed
+- **`icon_filename` defaults moved from `consumer-template/modules/stack/apps.tf` down to each bundle's `platform/apps/<slug>/terraform/variables.tf`** for notifuse, nextcloud, jitsi, backrest, and wazuh. v3.1.10 put the `<slug>-icon.png` defaults in the wrong layer: consumers with their own `modules/stack/apps.tf` (the standard fork pattern — dciww-consumer etc.) get `var.icon_filename = ""` flowing through to the bundle and fall back to Authentik's `default-logo.png`. Putting the default at the bundle layer means consumers always inherit the branded icon unless they explicitly override. The consumer-template's `try(..., "<slug>-icon.png")` defaults are now redundant but kept as docs-of-shape.
+- **`authentik_stage_email` perpetual drift killed (FR-A).** The Authentik server back-fills `host`, `port`, and `from_address` to `"localhost"` / `25` / `"system@authentik.local"` on every email stage regardless of `use_global_settings = true`. Previous TF emitted `null` for these when `smtp_enabled = false` → server filled → next plan re-showed drift. All six `authentik_stage_email` resources (mfa_reset, password_reset, invitation_email_verification, send_user_invitation, manual_enrollment_email_verification) now ternary-resolve to those server defaults when `smtp_enabled = false`. Values are cosmetic-only when `use_global_settings = true`; runtime behaviour is unchanged.
+- **`activation_notification_sent` attribute drift on service accounts killed (FR-B).** Authentik back-fills `attributes.activation_notification_sent = true` after the welcome-email path runs, even on service-account users that shouldn't be receiving welcomes in the first place. TF never declared the attribute → drift on every plan. Both service-account `authentik_user` resources (n8n, steward) now pre-declare it via `attributes = jsonencode({ activation_notification_sent = true })`. Investigation note: the `goauthentik/authentik` Terraform provider does **not** expose a `skip_activation_email` / `notify_user` / `send_welcome` flag on `authentik_user` (verified against the provider's `pkg/provider/resource_user.go` schema — only `username`, `name`, `type`, `password`, `is_active`, `email`, `path`, `groups`, `roles`, `attributes`). The activation email is policy-driven server-side, so the pre-declared attribute is the only TF-only remediation.
+
+### Operator notes
+- **FR-D — consumer `icon_url` passthrough**: per-app `icon_url` (defined on every app bundle's `variables.tf` and forwarded via the consumer-template `modules/stack/apps.tf`) takes precedence over the bundle's `icon_filename` default. Set it on a consumer to point at a fully-qualified URL when you want custom branding without forking `sabokit-assets` — useful for orgs running their own CDN, white-labelling, or pinning a specific icon version.
+- **FR-E — drift after upgrade can be stale Scaleway secret bags, not new code**: if a `terraform plan` after a sabokit version bump shows drift on `scaleway_secret`/`scaleway_secret_version` resources but the diff doesn't match the changelog, suspect a partial-apply leftover from an earlier failed run rather than a regression in the new release. Quick diagnosis: compare `terraform state show <addr>` timestamps against `scw secret list --output json | jq '.[] | {name, created_at, updated_at}'` for the project — secrets created before the relevant state entries are almost always orphans from a half-applied run.
+
 ## v3.1.10 — 2026-05-26
 
 Consumer config now committable + Authentik dashboard cleanup + service-account convention codified.
