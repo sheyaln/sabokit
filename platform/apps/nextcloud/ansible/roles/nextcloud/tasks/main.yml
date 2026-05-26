@@ -43,8 +43,8 @@
     path: "{{ nextcloud_install_dir }}"
     state: directory
     mode: "0750"
-    owner: root
-    group: root
+    owner: "{{ nextcloud_file_owner }}"
+    group: "{{ nextcloud_file_group }}"
 
 - name: Normalize Scaleway secret IDs (strip leading region/ prefix)
   ansible.builtin.set_fact:
@@ -82,8 +82,8 @@
     src: nextcloud-custom.ini
     dest: "{{ nextcloud_install_dir }}/nextcloud-custom.ini"
     mode: "0644"
-    owner: root
-    group: root
+    owner: "{{ nextcloud_file_owner }}"
+    group: "{{ nextcloud_file_group }}"
   notify: Restart nextcloud
 
 - name: Render docker-compose.yml
@@ -91,8 +91,8 @@
     src: docker-compose.yml.j2
     dest: "{{ nextcloud_install_dir }}/docker-compose.yml"
     mode: "0644"
-    owner: root
-    group: root
+    owner: "{{ nextcloud_file_owner }}"
+    group: "{{ nextcloud_file_group }}"
   notify: Restart nextcloud
 
 - name: Render Nextcloud environment file
@@ -100,8 +100,8 @@
     src: env.j2
     dest: "{{ nextcloud_install_dir }}/.env"
     mode: "0600"
-    owner: root
-    group: root
+    owner: "{{ nextcloud_file_owner }}"
+    group: "{{ nextcloud_file_group }}"
   notify: Restart nextcloud
   no_log: true
   tags: [secrets]
@@ -157,8 +157,8 @@
     src: configure-nextcloud.sh
     dest: "{{ nextcloud_install_dir }}/configure-nextcloud.sh"
     mode: "0750"
-    owner: root
-    group: root
+    owner: "{{ nextcloud_file_owner }}"
+    group: "{{ nextcloud_file_group }}"
 
 - name: Run occ post-install configuration (idempotent)
   ansible.builtin.command:
