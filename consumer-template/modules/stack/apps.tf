@@ -391,6 +391,7 @@ locals {
   # paths, alert rules. Coalesce nulls then split by destination key for the
   # prometheus + grafana + loki bundles to consume.
   _monitoring_contribs = [for c in [
+    module.identity.monitoring,
     module.outline.monitoring,
     module.steward.monitoring,
     module.vikunja.monitoring,
