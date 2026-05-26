@@ -40,11 +40,12 @@ locals {
 module "database" {
   source = "../../../modules/infrastructure/storage/postgres_database"
 
-  instance_id       = var.postgres_instance_id
-  instance_endpoint = var.postgres_endpoint
-  database_name     = "authentik"
-  engine            = var.postgres_engine
-  tags              = local.secret_tags
+  instance_id          = var.postgres_instance_id
+  instance_endpoint    = var.postgres_endpoint
+  database_name        = "authentik"
+  engine               = var.postgres_engine
+  tags                 = local.secret_tags
+  credentials_preserve = var.credentials_preserve
 }
 
 # ── Bootstrap admin password ────────────────────────────────────────────────
