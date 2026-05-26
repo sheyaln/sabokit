@@ -208,6 +208,27 @@ module "nextcloud" {
   bucket_name_override    = try(var.apps.nextcloud.bucket_name_override, "")
   dns_zone_override       = try(var.apps.nextcloud.dns_zone_override, "")
 
+  # Resource + branding + per-app knobs. Defaults mirror the bundle's own.
+  instance_name            = try(var.apps.nextcloud.instance_name, "Nextcloud")
+  maintenance_window_start = try(var.apps.nextcloud.maintenance_window_start, 2)
+  enabled_apps = try(var.apps.nextcloud.enabled_apps, [
+    "groupfolders", "notify_push", "notes", "tasks", "forms",
+    "polls", "epubviewer", "webhook_listeners",
+  ])
+  disabled_apps        = try(var.apps.nextcloud.disabled_apps, ["photos"])
+  n8n_form_webhook_url = try(var.apps.nextcloud.n8n_form_webhook_url, "")
+
+  # OnlyOffice + Talk container tuning.
+  onlyoffice_image_tag    = try(var.apps.nextcloud.onlyoffice_image_tag, "latest")
+  onlyoffice_memory_limit = try(var.apps.nextcloud.onlyoffice_memory_limit, "2G")
+  onlyoffice_cpu_limit    = try(var.apps.nextcloud.onlyoffice_cpu_limit, "2.0")
+  talk_image_tag          = try(var.apps.nextcloud.talk_image_tag, "latest")
+  talk_turn_port          = try(var.apps.nextcloud.talk_turn_port, 3478)
+  talk_relay_port_min     = try(var.apps.nextcloud.talk_relay_port_min, 49152)
+  talk_relay_port_max     = try(var.apps.nextcloud.talk_relay_port_max, 49252)
+  talk_memory_limit       = try(var.apps.nextcloud.talk_memory_limit, "1G")
+  talk_cpu_limit          = try(var.apps.nextcloud.talk_cpu_limit, "1.0")
+
   credentials_preserve = try(var.apps.nextcloud.credentials_preserve, false)
 }
 

@@ -1017,6 +1017,90 @@ apps:
           description: Full icon URL override. When set, used verbatim and icon_filename is ignored.
           ui: advanced
 
+        instance_name:
+          type: string
+          default: Nextcloud
+          description: User-facing instance name (browser tab, email headers, mobile clients). Override for branded deployments (e.g. "Acme Cloud").
+          ui: advanced
+
+        maintenance_window_start:
+          type: number
+          default: 2
+          description: UTC hour (0-23) when Nextcloud runs its nightly background-job window. Pick a low-traffic hour for your user base.
+          ui: advanced
+
+        enabled_apps:
+          type: list(string)
+          default: [groupfolders, notify_push, notes, tasks, forms, polls, epubviewer, webhook_listeners]
+          description: Nextcloud apps the post-install script auto-installs and enables on every run. Default set turns Nextcloud into a full collaboration suite.
+          ui: advanced
+
+        disabled_apps:
+          type: list(string)
+          default: [photos]
+          description: Nextcloud apps the post-install script disables on every run. Default disables `photos` (heavy thumbnail jobs).
+          ui: advanced
+
+        n8n_form_webhook_url:
+          type: string
+          default: ""
+          description: Optional URL of an n8n webhook receiver for Nextcloud Forms submissions. Requires `webhook_listeners` in enabled_apps.
+          ui: advanced
+
+        onlyoffice_image_tag:
+          type: string
+          default: "latest"
+          description: OnlyOffice Document Server image tag. Bumping versions is generally safe.
+          ui: advanced
+
+        onlyoffice_memory_limit:
+          type: string
+          default: "2G"
+          description: Memory ceiling for OnlyOffice Document Server. Below ~1.5G, large-file conversions OOM mid-edit.
+          ui: advanced
+
+        onlyoffice_cpu_limit:
+          type: string
+          default: "2.0"
+          description: CPU ceiling for OnlyOffice Document Server.
+          ui: advanced
+
+        talk_image_tag:
+          type: string
+          default: "latest"
+          description: Tag for the ghcr.io/nextcloud-releases/aio-talk image. Bundles eturnal/Janus/signaling — treat as one moving target.
+          ui: advanced
+
+        talk_turn_port:
+          type: number
+          default: 3478
+          description: Public TCP/UDP port for the bundled eturnal TURN server. 3478 is the IANA TURN port.
+          ui: advanced
+
+        talk_relay_port_min:
+          type: number
+          default: 49152
+          description: Lower bound of the UDP port range eturnal allocates for media relay. Must be open in the security group.
+          ui: advanced
+
+        talk_relay_port_max:
+          type: number
+          default: 49252
+          description: Upper bound of the UDP relay range. Keep tight (101 ports handles small-org video).
+          ui: advanced
+
+        talk_memory_limit:
+          type: string
+          default: "1G"
+          description: Memory ceiling for the Talk HPB container.
+          ui: advanced
+
+        talk_cpu_limit:
+          type: string
+          default: "1.0"
+          description: CPU ceiling for the Talk HPB container. WebRTC media doesn't pass through once peers connect.
+          ui: advanced
+
   # ── Decidim ─────────────────────────────────────────────────────────────
   # Participatory democracy platform. Multi-container (web + sidekiq),
   # postgres + S3, OIDC.
