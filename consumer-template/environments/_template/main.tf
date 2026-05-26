@@ -71,3 +71,7 @@ output "enabled_apps" {
 output "split_dns_overrides" {
   value = module.stack.split_dns_overrides
 }
+
+output "monitoring_loki_push_url" {
+  value = module.stack.monitoring_loki_push_url
+}

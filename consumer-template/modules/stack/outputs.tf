@@ -31,6 +31,11 @@ output "infra_email" {
   value       = var.infra_email
 }
 
+output "monitoring_loki_push_url" {
+  description = "Push URL the bootstrap monitoring-agent role wires into Alloy. Empty when loki isn't deployed in-cluster; consumers shipping logs to an external Loki should override via extra ansible vars."
+  value       = module.loki.enabled ? module.loki.push_url : ""
+}
+
 output "split_dns_overrides" {
   description = "Map of public-hostname -> private-VPC-IP overrides aggregated from every enabled bundle's split_dns_entries. Consumed by the base split-dns ansible role on every host. Empty map when only one compute host exists (single-host topologies need no split-horizon)."
   value       = local.split_dns_overrides
@@ -118,6 +123,7 @@ output "enabled_apps" {
     loki = module.loki.enabled ? {
       ansible_vars  = module.loki.ansible.vars
       ansible_group = module.loki.ansible.host_group
+      push_url      = module.loki.push_url
     } : null
     grafana = module.grafana.enabled ? {
       url           = module.grafana.app_url
