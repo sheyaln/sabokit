@@ -39,8 +39,8 @@
     path: "{{ decidim_install_dir }}"
     state: directory
     mode: "0750"
-    owner: root
-    group: root
+    owner: "{{ decidim_file_owner }}"
+    group: "{{ decidim_file_group }}"
 
 - name: Normalize Scaleway secret IDs (strip leading region/ prefix)
   ansible.builtin.set_fact:
@@ -78,8 +78,8 @@
     src: Dockerfile.j2
     dest: "{{ decidim_install_dir }}/Dockerfile"
     mode: "0644"
-    owner: root
-    group: root
+    owner: "{{ decidim_file_owner }}"
+    group: "{{ decidim_file_group }}"
   when: decidim_extra_gems | default([]) | length > 0
   notify: Restart decidim
 
@@ -88,8 +88,8 @@
     src: docker-compose.yml.j2
     dest: "{{ decidim_install_dir }}/docker-compose.yml"
     mode: "0644"
-    owner: root
-    group: root
+    owner: "{{ decidim_file_owner }}"
+    group: "{{ decidim_file_group }}"
   notify: Restart decidim
 
 - name: Render Decidim environment file
@@ -97,8 +97,8 @@
     src: env.j2
     dest: "{{ decidim_install_dir }}/.env"
     mode: "0600"
-    owner: root
-    group: root
+    owner: "{{ decidim_file_owner }}"
+    group: "{{ decidim_file_group }}"
   notify: Restart decidim
   no_log: true
   tags: [secrets]
