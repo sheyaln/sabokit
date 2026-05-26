@@ -2164,6 +2164,48 @@ apps:
           description: Full icon URL override. When set, used verbatim and icon_filename is ignored.
           ui: advanced
 
+        prometheus_url:
+          type: string
+          default: "http://prometheus:9090"
+          description: URL Grafana uses to reach Prometheus. Default works when prometheus is co-deployed on the same host and they share the monitoring docker network.
+          ui: advanced
+
+        loki_url:
+          type: string
+          default: "http://loki:3100"
+          description: URL Grafana uses to reach Loki. Default works when loki is co-deployed on the same host.
+          ui: advanced
+
+        prometheus_scrape_interval:
+          type: string
+          default: "30s"
+          description: Scrape interval Grafana's Prometheus datasource expects. Should match the prometheus bundle's global.scrape_interval.
+          ui: advanced
+
+        jsm_api_key_secret_id:
+          type: string
+          default: ""
+          description: Scaleway secret ID holding the JSM Operations (heritage Opsgenie) API integration key as `{"api_key":"..."}`. Empty disables JSM provisioning. When set, Grafana provisions a `jsm-default` contact point routed from the root notification policy.
+          ui: advanced
+
+        jsm_api_region:
+          type: string
+          default: "us"
+          description: JSM API region — "us" or "eu". Pick the one matching your Atlassian site.
+          ui: advanced
+
+        jsm_priority_mapping:
+          type: map(string)
+          default: { critical: "P1", warning: "P3", info: "P5" }
+          description: Map of Grafana alert `severity` label value to JSM priority (P1-P5). Override per your on-call runbook.
+          ui: advanced
+
+        jsm_alert_tags:
+          type: list(string)
+          default: ["sabokit"]
+          description: Tags attached to every alert sent to JSM. Useful for JSM routing rules.
+          ui: advanced
+
   # ── Wazuh ───────────────────────────────────────────────────────────────
   # SIEM server stack: manager + indexer (OpenSearch) + dashboard. UI fronted
   # via Authentik forward-auth at the gateway (the dashboard's native SSO is

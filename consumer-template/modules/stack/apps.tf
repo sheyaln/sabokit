@@ -591,6 +591,19 @@ module "grafana" {
 
   dns_zone_override = try(var.apps.grafana.dns_zone_override, "")
 
+  # Datasource URLs + JSM alerting plumbing. Bundle vars are non-nullable
+  # strings/maps, so the try() fallback restates the bundle defaults rather
+  # than passing null. prometheus_url / loki_url defaults assume prometheus
+  # and loki are co-deployed on the same host and share the bundle's docker
+  # network; override per-consumer when shipping to external backends.
+  prometheus_url             = try(var.apps.grafana.prometheus_url, "http://prometheus:9090")
+  loki_url                   = try(var.apps.grafana.loki_url, "http://loki:3100")
+  prometheus_scrape_interval = try(var.apps.grafana.prometheus_scrape_interval, "30s")
+  jsm_api_key_secret_id      = try(var.apps.grafana.jsm_api_key_secret_id, "")
+  jsm_api_region             = try(var.apps.grafana.jsm_api_region, "us")
+  jsm_priority_mapping       = try(var.apps.grafana.jsm_priority_mapping, { critical = "P1", warning = "P3", info = "P5" })
+  jsm_alert_tags             = try(var.apps.grafana.jsm_alert_tags, ["sabokit"])
+
   credentials_preserve = try(var.apps.grafana.credentials_preserve, false)
 }
 
