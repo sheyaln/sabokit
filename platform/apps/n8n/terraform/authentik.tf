@@ -62,6 +62,11 @@ resource "authentik_user" "service_n8n" {
     [for g in var.service_account_extra_groups : var.base.authentik.groups[g]],
     var.service_account_extra_group_ids,
   )
+  # Pre-declare the activation flag the server back-fills after the welcome
+  # email path runs. Without this, every plan re-shows the attribute as drift.
+  attributes = jsonencode({
+    activation_notification_sent = true
+  })
 }
 
 resource "authentik_token" "service_n8n" {
