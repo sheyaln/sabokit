@@ -41,8 +41,8 @@
     path: "{{ item }}"
     state: directory
     mode: "0750"
-    owner: root
-    group: root
+    owner: "{{ backrest_file_owner }}"
+    group: "{{ backrest_file_group }}"
   loop:
     - "{{ backrest_install_dir }}"
     - "{{ backrest_install_dir }}/data"
@@ -65,8 +65,8 @@
     src: config.json.j2
     dest: "{{ backrest_install_dir }}/config/config.json"
     mode: "0600"
-    owner: root
-    group: root
+    owner: "{{ backrest_file_owner }}"
+    group: "{{ backrest_file_group }}"
   notify: Restart backrest
   no_log: true
   tags: [secrets]
@@ -76,8 +76,8 @@
     src: docker-compose.yml.j2
     dest: "{{ backrest_install_dir }}/docker-compose.yml"
     mode: "0644"
-    owner: root
-    group: root
+    owner: "{{ backrest_file_owner }}"
+    group: "{{ backrest_file_group }}"
   notify: Restart backrest
 
 - name: Render Backrest environment file
@@ -85,8 +85,8 @@
     src: env.j2
     dest: "{{ backrest_install_dir }}/.env"
     mode: "0600"
-    owner: root
-    group: root
+    owner: "{{ backrest_file_owner }}"
+    group: "{{ backrest_file_group }}"
   notify: Restart backrest
   no_log: true
   tags: [secrets]
