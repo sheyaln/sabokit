@@ -75,3 +75,7 @@ output "split_dns_overrides" {
 output "monitoring_loki_push_url" {
   value = module.stack.monitoring_loki_push_url
 }
+
+output "spf_include" {
+  value = module.stack.spf_include
+}

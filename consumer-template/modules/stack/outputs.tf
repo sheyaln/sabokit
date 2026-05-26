@@ -31,6 +31,11 @@ output "infra_email" {
   value       = var.infra_email
 }
 
+output "spf_include" {
+  description = "TEM SPF include directive (e.g. include:_spf.tem.scaleway.com). Compose into a single SPF TXT record via custom_dns_records alongside any other sender includes (protonmail, sendgrid, etc.)."
+  value       = module.base.spf_include
+}
+
 output "monitoring_loki_push_url" {
   description = "Push URL the bootstrap monitoring-agent role wires into Alloy. Empty when loki isn't deployed in-cluster; consumers shipping logs to an external Loki should override via extra ansible vars."
   value       = module.loki.enabled ? module.loki.push_url : ""
