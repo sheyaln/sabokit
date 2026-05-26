@@ -35,6 +35,12 @@ backrest_restic_prune_max_frequency_days: 7
 backrest_restic_check_max_frequency_days: 30
 backrest_restic_check_read_data_subset_pct: 5
 
+# Scaleway S3 storage class restic uploads pack/index objects into directly
+# via `--option s3.storage-class=<class>`. Matches the bucket's lifecycle
+# target so new uploads skip the STANDARD warm window entirely. Wired from
+# the bundle's Terraform `storage_class` variable.
+backrest_restic_s3_storage_class: "GLACIER"
+
 # Resource limits. restic compression + dedup is CPU-heavy during the first
 # snapshot of a large tree; subsequent snapshots are cheap. Defaults aim for
 # "won't starve the host's other services".
