@@ -60,7 +60,7 @@ variable "storage_class" {
 }
 
 variable "storage_class_transition_days" {
-  description = "Days after upload before snapshots move to `storage_class`. Default 90 to match Scaleway's GLACIER-tier 90-day-minimum transition requirement (S3 rejects shorter transitions for GLACIER with InvalidArgument). Setting to 0 is not supported by Scaleway; configuring restic itself to upload directly into the target class (via restic's S3 storage-class option) is the way to fully eliminate the warm window. Not wired in v2.10.3."
+  description = "Days after upload before snapshots move to `storage_class`. Default 90 to match Scaleway's GLACIER-tier 90-day-minimum transition requirement (S3 rejects shorter transitions for GLACIER with InvalidArgument). Restic is configured to upload directly into `storage_class` via `--option s3.storage-class=...`, so this lifecycle rule only catches pre-flag-wiring STANDARD objects — new snapshots skip the warm window entirely. Rule stays in place to migrate orphan STANDARD objects from before the cutover."
   type        = number
   default     = 90
 }

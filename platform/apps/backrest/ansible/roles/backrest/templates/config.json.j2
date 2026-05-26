@@ -14,7 +14,13 @@
         "AWS_ACCESS_KEY_ID={{ backrest_app_secrets.AWS_ACCESS_KEY_ID }}",
         "AWS_SECRET_ACCESS_KEY={{ backrest_app_secrets.AWS_SECRET_ACCESS_KEY }}"
       ],
-      "flags": ["--verbose"],
+      {# `--option s3.storage-class=<class>` tells restic's S3 backend to
+         upload pack/index/snapshot objects directly into the target Scaleway
+         storage class, skipping the STANDARD warm window the bucket's
+         lifecycle rule would otherwise transition out of after
+         `storage_class_transition_days`. Lifecycle rule stays in place to
+         migrate any pre-flag-wiring STANDARD objects. #}
+      "flags": ["--verbose", "--option", "s3.storage-class={{ backrest_restic_s3_storage_class }}"],
       "autoUnlock": true,
       "autoInitialize": true,
       "prunePolicy": {
