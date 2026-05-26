@@ -2,6 +2,31 @@
 
 All notable changes to sabokit go here. Versioning follows semver; major bumps signal breaking contract changes for consumers.
 
+## v3.2.0 - 2026-05-26
+
+Watchtower → diun migration (auto-update killed in favor of notify-only), identity role-name overrides surfaced through consumer-template, smtp_config bag preserve gate, and one consumer-template wiring fix that unbreaks `postgres_credentials_preserve` reach via `config.tf`.
+
+### Changed
+
+- **Watchtower bundle removed; replaced by diun (`crazy-max/diun`) image-monitoring.** Watchtower upstream archived 2025-12-17. Behavior shift: **containers no longer auto-update.** Diun watches all bundles by default (every bundle's `auto_update_enabled` renamed to `diun_watch_enabled`, defaulting `true`), emits new-image events to a webhook. When the n8n bundle is enabled, the consumer-template auto-wires diun's `n8n_webhook_url` to `<n8n_url>/webhook/diun-image-update` - consumers build the receiving workflow themselves (or set `n8n_webhook_url = ""` to suppress). `protonmail-bridge` and identity `authentik-server` default `diun_watch_enabled = false` (low-signal for manual-re-login + major-bump flows). New `var.diun_notif_extra` (`map(any)`) lets consumers add slack/email/discord/teams/telegram directly without forking. Affected: 19 app bundles + identity layer + protonmail-bridge bootstrap.
+- **`auto_update_enabled` → `diun_watch_enabled`** on every bundle's `variables.tf`, `outputs.tf`, ansible defaults, compose template guards. Compose label flipped from `com.centurylinklabs.watchtower.enable=true` to `diun.enable=true`.
+
+### Added
+
+- **`var.smtp_config_preserve` on base bundle.** Mirrors `credentials_preserve`. When `true`, count-gates `scaleway_secret.smtp_config` + `scaleway_secret_version.smtp_config`, reads the existing bag via `data "scaleway_secret"`, ternary-resolves through `local.smtp_config_secret_id`. Eliminates the manual `terraform import` step for in-place cutover consumers that already have a legacy ansible-managed SMTP config bag.
+- **Identity role-name overrides surfaced through consumer-template.** `admin_group_name`, `member_group_name`, `delegate_group_name`, `delegate_role_name` already existed on `platform/identity/terraform/` but `consumer-template/modules/stack/identity.tf` didn't pass them through - so consumers couldn't reach them via `var.identity.*` without forking the consumer-template. All four now plumbed with `try(var.identity.<name>, "<platform-default>")` passthroughs + example block in `consumer-template/environments/_template/config.tf.example`. Defaults match platform exactly, zero behavior change unless overridden.
+
+### Fixed
+
+- **`local.config.base` now plumbed through to `module "stack"` in `consumer-template/environments/_template/main.tf`.** Pre-existing wiring gap: `var.base` was already wired through `consumer-template/modules/stack/base.tf` (and consumed `postgres_credentials_preserve`), but the env root didn't pass `base = try(local.config.base, {})` to the stack module. Means `postgres_credentials_preserve` was unreachable via the documented `config.tf` path; consumers had to fork `_template/main.tf` to set it. One-line fix unblocks both `postgres_credentials_preserve` and the new `smtp_config_preserve`.
+
+### Operator migration notes
+
+- **One-time stack-down / stack-up per host** to drop watchtower labels + apply new `diun.enable=true` labels. Re-run `ansible-playbook` to lay down the diun bundle alongside the relabelled containers. Small per-host downtime window during restart; no data loss.
+- **`watchtower_apps` block in `var.apps` becomes a no-op.** `terraform init -upgrade` + `apply` will plan to destroy `module.watchtower_apps`. The container itself: if running from a previous deploy, manually `docker rm` it (or run the previous version's `down.yml --tags watchtower` first).
+- **Auto-update behavior change is load-bearing**: existing deployments that relied on watchtower silently pulling new images will now stay on pinned tags until the operator bumps `image_tag` (or compose pulls on next ansible-playbook run with a new tag). Build the n8n receiving workflow for diun events, or wire `var.apps.diun_mgmt.diun_notif_extra` to your existing alerting channel.
+- **Identity role-name renames force-replace `authentik_group` / `authentik_rbac_role` resources.** Coordinate renames at deploy time, not mid-cycle.
+
 ## v3.1.0 - 2026-05-26 (cycle-collapsed)
 
 v3.1.x cycle collapsed into one tag. The cycle iterated 13 patches through three threads: in-place legacy cutover support (`credentials_preserve` across every credential-generating bundle), regression port-forwards from the pre-OSP baseline that surfaced during a downstream audit, and post-cutover drift kills. v3.1.1 through v3.1.13 fossil tags still resolve to their original commits for archival; v3.1.0 moved forward to the cycle-end state so new consumers adopting v3.1 see one changelog block instead of 13.
