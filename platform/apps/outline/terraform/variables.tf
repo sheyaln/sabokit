@@ -186,6 +186,12 @@ variable "credentials_preserve" {
   default     = false
 }
 
+variable "extra_env_vars" {
+  description = "Extra environment variables rendered into Outline's container .env. Map of KEY → value. Use this for Google OAuth (GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET) or any other env-driven feature the bundle doesn't expose as a first-class knob."
+  type        = map(string)
+  default     = {}
+}
+
 variable "oidc_username_claim" {
   description = "OIDC claim Outline reads as the username. Authentik exposes both `preferred_username` (usually the email-local part or AK username) and `sub` (the stable UUID). Default matches Outline's documented expectation; switch to `sub` for installs where usernames change."
   type        = string
