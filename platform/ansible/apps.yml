@@ -361,6 +361,7 @@
     wazuh_manager_syslog_port: "{{ enabled_apps.wazuh.ansible_vars.wazuh_manager_syslog_port }}"
     wazuh_app_secret_id: "{{ enabled_apps.wazuh.ansible_vars.wazuh_app_secret_id }}"
     wazuh_oidc_admin_group: "{{ enabled_apps.wazuh.ansible_vars.wazuh_oidc_admin_group }}"
+    wazuh_oidc_readonly_group: "{{ enabled_apps.wazuh.ansible_vars.wazuh_oidc_readonly_group }}"
     wazuh_memory_limit: "{{ enabled_apps.wazuh.ansible_vars.wazuh_memory_limit }}"
     wazuh_memory_reservation: "{{ enabled_apps.wazuh.ansible_vars.wazuh_memory_reservation }}"
     wazuh_cpu_limit: "{{ enabled_apps.wazuh.ansible_vars.wazuh_cpu_limit }}"

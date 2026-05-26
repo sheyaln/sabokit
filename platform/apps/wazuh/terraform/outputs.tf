@@ -78,6 +78,7 @@ output "ansible" {
       wazuh_manager_syslog_port     = var.manager_syslog_port
       wazuh_app_secret_id           = local.app_secret_id
       wazuh_oidc_admin_group        = var.oidc_admin_group
+      wazuh_oidc_readonly_group     = var.oidc_readonly_group
       wazuh_memory_limit            = var.memory_limit
       wazuh_memory_reservation      = var.memory_reservation
       wazuh_cpu_limit               = var.cpu_limit

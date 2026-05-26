@@ -3,3 +3,24 @@
   community.docker.docker_compose_v2:
     project_src: "{{ wazuh_install_dir }}"
     state: restarted
+
+# A container restart re-reads opensearch-security YAMLs from disk only on
+# first start — once the security index is initialized it's authoritative.
+# Mutating config.yml / roles_mapping.yml / internal_users.yml therefore
+# requires pushing the new YAMLs into the live security index via
+# securityadmin.sh. Idempotent: rerunning with the same files is a no-op.
+- name: Apply opensearch security config
+  ansible.builtin.command: >
+    docker exec wazuh.indexer
+    /usr/share/wazuh-indexer/plugins/opensearch-security/tools/securityadmin.sh
+    -cd /usr/share/wazuh-indexer/opensearch-security/
+    -nhnv
+    -cacert /usr/share/wazuh-indexer/certs/root-ca.pem
+    -cert /usr/share/wazuh-indexer/certs/admin.pem
+    -key /usr/share/wazuh-indexer/certs/admin-key.pem
+    -h localhost
+  register: wazuh_securityadmin
+  changed_when: wazuh_securityadmin.rc == 0
+  retries: 10
+  delay: 6
+  until: wazuh_securityadmin.rc == 0

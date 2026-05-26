@@ -586,6 +586,7 @@ module "wazuh" {
   release_version         = try(var.apps.wazuh.release_version, "4.9.0")
   indexer_heap_size       = try(var.apps.wazuh.indexer_heap_size, "1g")
   oidc_admin_group        = try(var.apps.wazuh.oidc_admin_group, "admin")
+  oidc_readonly_group     = try(var.apps.wazuh.oidc_readonly_group, "")
   application_name        = try(var.apps.wazuh.application_name, "Wazuh")
   application_slug        = try(var.apps.wazuh.application_slug, "")
   category_group          = try(var.apps.wazuh.category_group, "Technical Management")

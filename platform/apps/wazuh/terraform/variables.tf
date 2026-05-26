@@ -109,6 +109,12 @@ variable "oidc_admin_group" {
   default     = "admin"
 }
 
+variable "oidc_readonly_group" {
+  description = "Optional Authentik group mapped to opensearch's `kibana_user` + `readall` roles — dashboard access without write/active-response privileges. Empty string disables (admin-only access)."
+  type        = string
+  default     = ""
+}
+
 variable "indexer_heap_size" {
   description = "JVM heap size for the indexer (OpenSearch). Rule of thumb: 50%% of host RAM, max 31g. Bump for larger event volumes."
   type        = string
