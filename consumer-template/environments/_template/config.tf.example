@@ -1,0 +1,236 @@
+# Per-env configuration. Copy to config.tf and edit; the whole file is
+# committable — secrets live in Scaleway Secret Manager and surface via
+# secrets.tf as data sources.
+#
+# Two things you do NOT put here:
+#   - scaleway_access_key / scaleway_secret_key — env vars only
+#     (SCW_ACCESS_KEY / SCW_SECRET_KEY or TF_VAR_scaleway_access_key /
+#     TF_VAR_scaleway_secret_key). _lib.sh exports them to the provider.
+#   - authentik_admin_token — fetched at runtime from the bootstrap admin
+#     secret by configure.sh; never set by hand.
+#
+# Everything else lives below. `up.sh` + `preflight.sh` shell out to awk
+# against this file to read gateway_domain / scaleway_project_id / infra_email
+# / base_domain / scaleway_region / scaleway_zone — keep those at the
+# top-level `key = "value"` shape (no interpolation, no multi-line) or the
+# shell-side helpers break.
+
+locals {
+  config = {
+    # ── Scaleway project + region ────────────────────────────────────────
+    scaleway_project_id = "00000000-0000-0000-0000-000000000000" # replace with your project UUID
+    scaleway_region     = "fr-par"
+    scaleway_zone       = "fr-par-1"
+
+    # ── Org identity (used in resource names + Authentik UI strings) ─────
+    org_slug    = "acme"
+    org_name    = "Acme Cooperative"
+    environment = "prod" # match the env directory name
+
+    # ── Domains ──────────────────────────────────────────────────────────
+    base_domain    = "example.org"
+    gateway_domain = "auth.example.org"
+    infra_email    = "ops@example.org"
+    # mgmt_domain  = "ops.example.org"  # optional; defaults to base_domain
+
+    # ── Network ──────────────────────────────────────────────────────────
+    private_network_subnet = "10.0.0.0/22"
+
+    # ── Compute hosts ────────────────────────────────────────────────────
+    # Override below if you need a different topology than the default
+    # (single "apps" DEV1-L host).
+    #
+    # Multi-host prod: one VM per role.
+    #   compute_hosts = {
+    #     apps     = { instance_type = "DEV1-L", role = "apps",     ansible_group = "apps" }
+    #     identity = { instance_type = "DEV1-M", role = "identity", ansible_group = "identity" }
+    #   }
+    #
+    # Single-VM staging/dev: one VM serves multiple Ansible plays. Use
+    # ansible_groups to list every group the play-selectors look for.
+    compute_hosts = {
+      apps = {
+        instance_type = "DEV1-L"
+        disk_size     = 100
+        role          = "apps"
+        ansible_group = "apps"
+        protected     = true
+      }
+    }
+
+    # ── Gateway DNS ──────────────────────────────────────────────────────
+    manage_gateway_dns       = true
+    gateway_compute_host_key = null
+
+    # ── Identity (REQUIRED) ──────────────────────────────────────────────
+    # Tier DAG. Models the org's authority hierarchy as a list of slots,
+    # each holding one or more peer roles at that rank. peer_name is the
+    # stable token bundles' tier_access_level matches against; group_name
+    # is the underlying Authentik group's display name.
+    #
+    # Cascade-up semantics: an app scoped to peer P in slot S admits P's
+    # own group + every group in every strictly-higher slot. Peers in the
+    # same slot do NOT see each other through the cascade.
+    identity = {
+      tier_slots = [
+        # Slot 1 (lowest privilege)
+        { name = "l1", peers = { member = "member" } },
+        # Slot 2
+        { name = "l2", peers = { delegate = "delegate" } },
+        # Slot 3 — add parallel peers here for parallel officer roles
+        { name = "l3", peers = { treasurer = "treasurer" } },
+        # Slot 4 (highest) — admin must exist as a peer in some slot
+        { name = "l4", peers = { admin = "admin" } },
+      ]
+    }
+
+    # ── SMTP (optional) ──────────────────────────────────────────────────
+    # Empty (default) means identity flows still apply but every email
+    # step no-ops at runtime — useful for first cold-start. To enable:
+    # create a Scaleway secret with {smtp_host, smtp_port, smtp_username,
+    # smtp_password}, set its name below, re-apply (no resource recreate).
+    smtp_secret_name = ""
+
+    # ── Bootstrap-tier bundles (optional) ────────────────────────────────
+    bootstrap = {
+      # protonmail_bridge = {
+      #   enabled                = true
+      #   imap_username          = "ops@example.org"
+      #   bridge_login_secret_id = "00000000-0000-0000-0000-000000000000"
+      # }
+    }
+
+    # ── Custom DNS records (optional) ────────────────────────────────────
+    # MX for inbound mail, additional TXT verifications, SRV records, etc.
+    # Each key must match a zone in base.domains.zones (currently
+    # {base_domain, mgmt_domain}); records for unknown zones are dropped
+    # silently. Co-exists with TEM's auto-managed SPF/DKIM/DMARC.
+    custom_dns_records = {
+      # "example.org" = [
+      #   { subdomain = "@", type = "MX",  target = "10 mail.protonmail.ch.",    ttl = 3600 },
+      #   { subdomain = "@", type = "MX",  target = "20 mailsec.protonmail.ch.", ttl = 3600 },
+      #   { subdomain = "@", type = "TXT", target = "v=spf1 include:_spf.protonmail.ch -all" },
+      # ]
+    }
+
+    # ── Apps ─────────────────────────────────────────────────────────────
+    # Per-app enable + overrides. See apps-manifest.yaml for the full input
+    # surface of each bundle. Disabled apps can be omitted entirely.
+    apps = {
+      outline = {
+        enabled  = true
+        hostname = "wiki.example.org"
+
+        # deployment_host_key must be a key in compute_hosts above. Defaults
+        # to "apps". Override when your topology renames hosts:
+        # deployment_host_key = "tools"
+
+        # credentials_preserve = true   # In-place legacy cutover only. When
+        #                                # true, the bundle skips random_*
+        #                                # generation and reads existing
+        #                                # secrets from the live
+        #                                # outline-app-secrets bag. Drop on
+        #                                # the next apply once cutover is
+        #                                # verified.
+      }
+
+      # Steward: simplified Authentik admin UI for non-technical org admins.
+      # Members of the `admin_group_name` group in Authentik can sign in.
+      # steward = {
+      #   enabled  = true
+      #   hostname = "members.example.org"
+      # }
+
+      # Vikunja: task and project tracker. OIDC-only by default.
+      # vikunja = {
+      #   enabled  = true
+      #   hostname = "tasks.example.org"
+      # }
+
+      # BentoPDF: browser PDF toolkit. Forward-auth (no OIDC inside the app).
+      # bentopdf = {
+      #   enabled  = true
+      #   hostname = "pdf.example.org"
+      # }
+
+      # Broadsheet: newsletters + transactional email. OIDC via Authentik;
+      # defaults to admin-only access. SECRET_KEY + root admin password
+      # immutable after first apply. See platform/apps/broadsheet/README.md.
+      # broadsheet = {
+      #   enabled          = true
+      #   hostname         = "email.example.org"
+      #   root_admin_email = "ops@example.org"
+      #   smtp_from_email  = "notify@example.org"
+      # }
+
+      # Privacy policy: public static page (no auth). Supply HTML + logo via
+      # the Ansible role vars.
+      # privacy_policy = {
+      #   enabled  = true
+      #   hostname = "privacy.example.org"
+      # }
+
+      # Nextcloud + OnlyOffice + Talk HPB. One stack, three hostnames.
+      # Talk HPB needs UDP/TCP 3478 + UDP 49152-49252 open in the security
+      # group on top of the host UFW. Pin image_tag to a major.
+      # nextcloud = {
+      #   enabled              = true
+      #   hostname             = "cloud.example.org"
+      #   onlyoffice_hostname  = "docs.example.org"
+      #   talk_hostname        = "talk.example.org"
+      #   smtp_from_email      = "cloud@example.org"
+      #   default_phone_region = "US"
+      # }
+
+      # Decidim: participatory democracy platform.
+      # decidim = {
+      #   enabled            = true
+      #   hostname           = "voting.example.org"
+      #   organization_name  = "Example Assembly"
+      #   system_admin_email = "ops@example.org"
+      #   smtp_from_email    = "voting@example.org"
+      #   image_tag          = "0.28"
+      # }
+
+      # Jitsi: video conferencing. Requires UDP 10000 open in the security
+      # group on top of the host UFW.
+      # jitsi = {
+      #   enabled  = true
+      #   hostname = "meet.example.org"
+      # }
+
+      # EspoCRM: PHP CRM. Member-entity bootstrap is opt-in.
+      # espocrm = {
+      #   enabled                        = true
+      #   hostname                       = "crm.example.org"
+      #   timezone                       = "America/New_York"
+      #   enable_member_entity_bootstrap = false
+      # }
+
+      # n8n: workflow automation.
+      # n8n = {
+      #   enabled  = true
+      #   hostname = "automate.example.org"
+      #   timezone = "America/New_York"
+      # }
+
+      # Backrest: restic-based per-host backups. ONE module instance per
+      # host to back up — see modules/stack/apps.tf to add more.
+      # backrest_mgmt = {
+      #   enabled       = true
+      #   hostname      = "backup.mgmt.example.org"
+      #   instance_name = "mgmt"
+      #   backup_plans = [
+      #     {
+      #       id       = "daily"
+      #       paths    = ["/backup-sources/opt", "/backup-sources/docker-volumes"]
+      #       schedule = { cron = "0 3 * * *" }
+      #       retention = {
+      #         hourly = 24, daily = 7, weekly = 4, monthly = 12, yearly = 3
+      #       }
+      #     },
+      #   ]
+      # }
+    }
+  }
+}

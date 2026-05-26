@@ -27,11 +27,11 @@ terraform {
 }
 
 # All Scaleway provider configuration is supplied via SCW_* environment
-# variables exported by _lib.sh from terraform.tfvars. We deliberately leave
-# this block empty so the provider sees exactly one credential source (env)
-# instead of three (env + provider-block + ~/.config/scw/config.yaml active
-# profile), which produces a noisy "Multiple variable sources detected"
-# warning on every plan/apply.
+# variables exported by _lib.sh (credentials from the env, project/region/zone
+# from config.tf). We deliberately leave this block empty so the provider
+# sees exactly one credential source (env) instead of three (env +
+# provider-block + ~/.config/scw/config.yaml active profile), which produces
+# a noisy "Multiple variable sources detected" warning on every plan/apply.
 provider "scaleway" {}
 
 # Aliased provider used by platform/base/terraform for the gateway DNS A
@@ -52,6 +52,6 @@ provider "scaleway" {
 }
 
 provider "authentik" {
-  url   = "https://${var.gateway_domain}"
+  url   = "https://${local.config.gateway_domain}"
   token = var.authentik_admin_token
 }

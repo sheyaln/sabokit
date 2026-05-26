@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Preflight checks. Run this once per env, after copying *.example files
-# and editing terraform.tfvars, BEFORE the first `./deploy.sh`.
+# and editing config.tf, BEFORE the first `./up.sh`.
 #
 # Idempotent — re-running is safe and only acts on the missing pieces:
 #   - required CLIs on PATH (terraform, ansible, ansible-playbook, jq, scw)
@@ -9,10 +9,10 @@
 #     scaleway.scaleway.scaleway_secret lookup needs it server-side)
 #   - SSH public key uploaded to the Scaleway IAM keystore for this project
 #   - DNS A record for ${gateway_domain} resolves to *something* (placeholder
-#     fine — the gateway IP only exists after `./deploy.sh` first phase). If
+#     fine — the gateway IP only exists after `./up.sh` first phase). If
 #     the zone lives in a different Scaleway project from the deploy project,
 #     export SCW_DNS_ACCESS_KEY and SCW_DNS_SECRET_KEY before running.
-#   - terraform.tfvars, backend.hcl, inventory.ini all exist
+#   - config.tf, backend.hcl, inventory.ini all exist
 #
 # Anything that fails prints the exact remediation command. Re-run preflight
 # after fixing — it stops at the first hard failure.
@@ -41,8 +41,11 @@ fatal() {
 
 # ── Helpers ─────────────────────────────────────────────────────────────────
 
-# Extract `key = "value"` from terraform.tfvars. String values only.
-tfvar() {
+# Extract `key = "value"` from config.tf. String values only. Same shape as
+# _lib.sh's config_value — works for any leaf string inside the
+# `locals { config = { ... } }` block since the regex anchors only on the
+# leading-whitespace `key = "..."` pattern.
+config_value() {
   local key="$1"
   awk -v key="$key" '
     $0 ~ "^[[:space:]]*" key "[[:space:]]*=" {
@@ -52,7 +55,7 @@ tfvar() {
       print
       exit
     }
-  ' terraform.tfvars
+  ' config.tf
 }
 
 # ── 1. Required CLIs ────────────────────────────────────────────────────────
@@ -79,7 +82,7 @@ fi
 
 section "Required config files in $ENV_DIR"
 
-required_files=(terraform.tfvars backend.hcl inventory.ini)
+required_files=(config.tf backend.hcl inventory.ini)
 missing_files=()
 for f in "${required_files[@]}"; do
   if [[ -f "$f" ]]; then
@@ -99,19 +102,19 @@ if [[ ${#missing_files[@]} -gt 0 ]]; then
   fatal "Create the missing files before continuing." "${msg[@]}"
 fi
 
-# ── 3. Read what we need from terraform.tfvars ──────────────────────────────
+# ── 3. Read what we need from config.tf ─────────────────────────────────────
 
-section "Parsing terraform.tfvars"
+section "Parsing config.tf"
 
-scw_project_id="$(tfvar scaleway_project_id || true)"
-base_domain="$(tfvar base_domain || true)"
-gateway_domain="$(tfvar gateway_domain || true)"
+scw_project_id="$(config_value scaleway_project_id || true)"
+base_domain="$(config_value base_domain || true)"
+gateway_domain="$(config_value gateway_domain || true)"
 
 for k in scw_project_id base_domain gateway_domain; do
   v="${!k}"
   if [[ -z "$v" ]]; then
-    fatal "terraform.tfvars is missing or empty: $k" \
-      "Open terraform.tfvars and set: $k = \"...\""
+    fatal "config.tf is missing or empty: $k" \
+      "Open config.tf and set: $k = \"...\""
   fi
   c_ok "$k = $v"
 done
@@ -124,7 +127,7 @@ if [[ -z "${SCW_ACCESS_KEY:-}" || -z "${SCW_SECRET_KEY:-}" ]]; then
   fatal "SCW_ACCESS_KEY / SCW_SECRET_KEY not set in env." \
     "export SCW_ACCESS_KEY=SCWXXXXXXXXXXXXXXXXX" \
     "export SCW_SECRET_KEY=xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" \
-    "(These are the same values Terraform reads via TF_VAR_scaleway_access_key / TF_VAR_scaleway_secret_key.)"
+    "(These are the same values Terraform reads via TF_VAR_scaleway_access_key / TF_VAR_scaleway_secret_key. Credentials cannot live in config.tf — supply via env only.)"
 fi
 c_ok "SCW_ACCESS_KEY/SCW_SECRET_KEY exported"
 
@@ -254,7 +257,7 @@ c_ok "Zone $zone exists"
 # confirmed actually owns the record terraform is about to write).
 subdomain="${gateway_domain%."$zone"}"
 if [[ "$subdomain" == "$gateway_domain" ]]; then
-  c_warn "gateway_domain ($gateway_domain) doesn't sit under base_domain ($base_domain). terraform will refuse to manage this record — either set manage_gateway_dns = false in your tfvars and manage it yourself, or fix base_domain."
+  c_warn "gateway_domain ($gateway_domain) doesn't sit under base_domain ($base_domain). terraform will refuse to manage this record — either set manage_gateway_dns = false in your config.tf and manage it yourself, or fix base_domain."
 else
   c_ok "Gateway A record will be managed by terraform (subdomain \"$subdomain\" under zone \"$zone\")"
 fi

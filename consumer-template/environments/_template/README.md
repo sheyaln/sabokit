@@ -11,10 +11,20 @@ Then per env:
 
 ```bash
 cd environments/prod
-cp terraform.tfvars.example terraform.tfvars    # fill in
-cp backend.hcl.example      backend.hcl         # fill in (bucket + key)
+cp config.tf.example  config.tf                  # the consumer's authoritative config — commit this
+cp backend.hcl.example backend.hcl               # remote state config (gitignored)
+cp inventory.ini.example inventory.ini           # placeholder; up.sh rebuilds from terraform output
 chmod +x preflight.sh up.sh configure.sh
 ```
+
+`config.tf` is committable. It carries the entire infra spec for this env as
+a `locals { config = {...} }` block. The only things that stay out of git
+are runtime credentials (`SCW_ACCESS_KEY` / `SCW_SECRET_KEY` via env) and
+the Authentik admin token (auto-fetched by `configure.sh` after `up.sh`).
+
+Need a value from Scaleway Secret Manager wired through Terraform? Add a
+`data "scaleway_secret_version"` block in `secrets.tf` — bag UUIDs are
+committable, payloads stay in Scaleway.
 
 ## Deploy in three steps
 
@@ -44,7 +54,7 @@ ansible-playbook \
   -i inventory.ini \
   -e @.ansible-vars.json \
   -e env_name="$(basename "$PWD")" \
-  -e gateway_domain="$(awk -F= '/^[[:space:]]*gateway_domain/{gsub(/[ "#]/, "", $2); print $2; exit}' terraform.tfvars)"
+  -e gateway_domain="$(awk -F= '/^[[:space:]]*gateway_domain/{gsub(/[ "#]/, "", $2); print $2; exit}' config.tf)"
 ```
 
 Common variants:
@@ -74,8 +84,8 @@ done
 ## Re-deploys
 
 Day-to-day work usually only needs `apps.yml`. Re-run `configure.sh` when you
-add/remove an app in `terraform.tfvars` or change platform/identity config.
-Re-run `up.sh` only when the VPC/host topology or Authentik install changes —
+add/remove an app in `config.tf` or change platform/identity config. Re-run
+`up.sh` only when the VPC/host topology or Authentik install changes —
 usually after a sabokit version bump.
 
 `./up.sh` accepts trailing args that get forwarded to `ansible-playbook

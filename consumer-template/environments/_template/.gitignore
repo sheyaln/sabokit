@@ -1,7 +1,8 @@
-# Per-env secrets and runtime artifacts. Anything not .example or .sh.
+# Per-env runtime artifacts. config.tf, secrets.tf, and sibling consumer .tf
+# files ARE committable (and should be committed) — they're the auditable
+# infra spec. Only generated state + remote-backend config stays out of git.
 .terraform/
 .terraform.lock.hcl
-terraform.tfvars
 backend.hcl
 inventory.ini
 .tf-output.json

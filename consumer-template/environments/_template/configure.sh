@@ -25,7 +25,7 @@
 #     "$FED_COMMONS_DIR/platform/ansible/apps.yml" \
 #     -i inventory.ini -e @.ansible-vars.json \
 #     -e env_name="$(basename "$PWD")" \
-#     -e gateway_domain="$(awk '/^[[:space:]]*gateway_domain/{...}' terraform.tfvars)"
+#     -e gateway_domain="$(awk '/^[[:space:]]*gateway_domain/{...}' config.tf)"
 # (full one-liner in README.md)
 #
 # Idempotent: re-run any time platform/identity config or app terraform changes.
@@ -88,7 +88,7 @@ fi
 
 c_phase "3/3  Terraform apply (identity config + app infra)"
 
-# -var beats both TF_VAR_* and any value lingering in terraform.tfvars.
+# -var beats both TF_VAR_* and any value lingering elsewhere.
 # -parallelism=3 default keeps a fresh Authentik (small tier, still warming
 # caches + indexing blueprints) from collapsing under 10 concurrent API calls.
 # Override via env for beefier deployments: TF_PARALLELISM=10 ./configure.sh.
