@@ -2,7 +2,7 @@
 //
 // Pass `image_version` explicitly when building a release (typically the
 // sabokit git tag without the `v`). Source image defaults to the current
-// Debian stable cloud qcow2 — override `source_image_url` /
+// Ubuntu 22.04 LTS (jammy) cloud qcow2 — override `source_image_url` /
 // `source_image_checksum` to pin a specific point release.
 
 variable "image_version" {
@@ -18,14 +18,14 @@ variable "image_name_prefix" {
 
 variable "source_image_url" {
   type        = string
-  description = "URL of the upstream cloud qcow2 used as the build seed. Defaults to current Debian stable (trixie) generic-amd64. Override with a `file://` URL to use a locally cached image."
-  default     = "https://cloud.debian.org/images/cloud/trixie/latest/debian-13-generic-amd64.qcow2"
+  description = "URL of the upstream cloud qcow2 used as the build seed. Defaults to current Ubuntu 22.04 LTS (jammy) server cloud image (amd64). Matches the Scaleway `ubuntu_jammy` marketplace image so the pre-baked and fallback paths share an OS family. Override with a `file://` URL to use a locally cached image."
+  default     = "https://cloud-images.ubuntu.com/jammy/current/jammy-server-cloudimg-amd64.img"
 }
 
 variable "source_image_checksum" {
   type        = string
-  description = "Checksum for the source qcow2 in the form packer expects (e.g. `file:<url-to-SHA512SUMS>` or `sha256:<hex>`). The `file:` form auto-resolves from Debian's published SHA512SUMS so re-pointing to a newer point release just works."
-  default     = "file:https://cloud.debian.org/images/cloud/trixie/latest/SHA512SUMS"
+  description = "Checksum for the source qcow2 in the form packer expects (e.g. `file:<url-to-SHA256SUMS>` or `sha256:<hex>`). The `file:` form auto-resolves from Ubuntu's published SHA256SUMS so re-pointing to a newer build just works."
+  default     = "file:https://cloud-images.ubuntu.com/jammy/current/SHA256SUMS"
 }
 
 variable "output_directory" {

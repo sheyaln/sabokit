@@ -9,21 +9,14 @@ set -euo pipefail
 ARCH="$(dpkg --print-architecture)"
 . /etc/os-release
 CODENAME="${VERSION_CODENAME}"
-# Docker hosts separate apt repos per distro family. The packer build can run
-# against either a Debian or Ubuntu cloud qcow2 — pick the right one.
-case "${ID}" in
-  debian) DOCKER_DISTRO="debian" ;;
-  ubuntu) DOCKER_DISTRO="ubuntu" ;;
-  *) echo "Unsupported distro: ${ID}"; exit 1 ;;
-esac
 
 install -m 0755 -d /etc/apt/keyrings
-curl -fsSL "https://download.docker.com/linux/${DOCKER_DISTRO}/gpg" \
+curl -fsSL https://download.docker.com/linux/ubuntu/gpg \
   -o /etc/apt/keyrings/docker.asc
 chmod a+r /etc/apt/keyrings/docker.asc
 
 cat >/etc/apt/sources.list.d/docker.list <<EOF
-deb [arch=${ARCH} signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/${DOCKER_DISTRO} ${CODENAME} stable
+deb [arch=${ARCH} signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu ${CODENAME} stable
 EOF
 
 apt-get update

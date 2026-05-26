@@ -6,8 +6,9 @@
 #   - manual dispatch with explicit image_version (for ad-hoc rebuilds)
 #
 # Required repo secrets:
-#   none — the qemu builder runs offline against an upstream Debian cloud
-#   qcow2. Only the default GITHUB_TOKEN is used (for `gh release upload`).
+#   none — the qemu builder runs offline against the upstream Ubuntu 22.04
+#   LTS cloud image. Only the default GITHUB_TOKEN is used (for
+#   `gh release upload`).
 #
 # Notes:
 #   - `ubuntu-latest` runners ship /dev/kvm enabled, so the qemu builder
