@@ -1,8 +1,10 @@
 # packer/ — Pre-baked base image for sabokit
 
-This directory builds a Scaleway custom image that ships the static, version-agnostic bits of the host setup (docker engine + compose, ufw, fail2ban, unattended-upgrades, node_exporter + cadvisor binaries, scw CLI, jq, python3 + Scaleway SDK, monitoring container images pre-pulled).
+This directory builds a **portable qcow2** that ships the static, version-agnostic bits of the host setup (docker engine + compose, ufw, fail2ban, unattended-upgrades, node_exporter + cadvisor binaries, scw CLI, jq, python3 + Scaleway SDK, monitoring container images pre-pulled).
 
-Cold deploys against this image skip the slow apt-install steps in `bootstrap.yml` and finish roughly 5× faster. The Packer flow is **optional** — consumers who don't import the image stay on the `ubuntu_jammy` marketplace image and get the same result, just slower.
+Cold deploys against this image skip the slow apt-install steps in `bootstrap.yml` and finish roughly 5× faster. The Packer flow is **optional** — consumers who don't import the image stay on the Scaleway `ubuntu_jammy` marketplace image and get the same result, just slower.
+
+The builder is **qemu**: the build runs offline against an upstream Debian cloud qcow2 — no Scaleway project, no API key, no object-storage bucket. Consumers import the resulting qcow2 into their own Scaleway project once per release via `consumer-template/scripts/import-base-image.sh`.
 
 ## Contents
 
@@ -19,13 +21,29 @@ Cold deploys against this image skip the slow apt-install steps in `bootstrap.ym
 
 Services are intentionally **stopped + disabled** in the image — every clone of the image runs Ansible on first boot, which configures and starts them with the right per-env config.
 
+## Source OS
+
+The qemu source qcow2 is the current Debian stable cloud image:
+
+```
+https://cloud.debian.org/images/cloud/trixie/latest/debian-13-generic-amd64.qcow2
+```
+
+Override `source_image_url` + `source_image_checksum` to pin a specific point release or swap to a different upstream image (e.g. Ubuntu cloud images). The Docker provisioner (`02-docker.sh`) picks the right Docker apt repo from `/etc/os-release`, so the build works against either family.
+
+Consumers who skip the qcow2 and stay on `ubuntu_jammy` get a different OS than the pre-baked image. Both paths converge to identical post-bootstrap state thanks to the Ansible role guards — but if you want exact parity, pin both sides to the same family.
+
+## Cloud-init seed
+
+The qemu builder boots the source qcow2 with a `cidata` CD attached carrying `http/user-data` + `http/meta-data`. That seed creates a build-time `packer` user with a fixed password and passwordless sudo so the shell provisioners can run over SSH. `99-cleanup.sh` locks the account and wipes cloud-init state before the qcow2 ships, so the rendered image has no live `packer` login. Consumer-side cloud-init (from `up.sh`) seeds the real `root`/`deploy` accounts on first boot.
+
 ## Build (maintainers only)
 
 Prerequisites:
 
 - Packer ≥ 1.10
-- Scaleway API key with project-scoped permissions
-- `SCW_ACCESS_KEY`, `SCW_SECRET_KEY`, `SCW_DEFAULT_PROJECT_ID` exported
+- qemu-system-x86 + qemu-utils (`apt install qemu-system-x86 qemu-utils` on Debian/Ubuntu)
+- KVM acceleration (`/dev/kvm` present and writable) — strongly recommended; falls back to slow TCG if `accelerator=tcg` is set
 
 ```bash
 cd packer
@@ -34,20 +52,21 @@ packer validate -var image_version=2.0.0 .
 packer build -var image_version=2.0.0 .
 ```
 
-Packer creates a temporary build instance, runs the provisioners, snapshots it, and registers the snapshot as a Scaleway image named `fc-base-2.1.0`. The temporary instance and snapshot intermediates are cleaned up automatically.
+Packer downloads the source qcow2, boots a temp VM, runs the provisioners over SSH, snapshots the disk, and writes `output/fc-base-<version>/fc-base-<version>.qcow2`. The temp VM is torn down automatically.
+
+On a host without KVM (macOS, CI without nested virt) override the accelerator:
+
+```bash
+packer build -var image_version=2.0.0 -var accelerator=tcg .
+```
+
+TCG is roughly 10× slower; expect ~2 hours instead of ~15 minutes.
 
 ### Releasing
 
-The `.github/workflows/packer-publish.yml` workflow runs on every `v*` tag push (or via manual dispatch). It builds the image, exports the snapshot to qcow2, and attaches the qcow2 plus a metadata JSON to the matching GitHub Release.
+The `.github/workflows/packer-publish.yml` workflow runs on every `v*` tag push (or via manual dispatch). It installs qemu + Packer on the GitHub-hosted runner (which ships `/dev/kvm` enabled), builds the qcow2, and attaches it plus a metadata JSON to the matching GitHub Release.
 
-Required repo secrets (one-time setup):
-
-| Secret | What it is |
-| --- | --- |
-| `PACKER_SCW_ACCESS_KEY`     | Scaleway API access key for the build project. |
-| `PACKER_SCW_SECRET_KEY`     | Scaleway API secret key for the build project. |
-| `PACKER_SCW_PROJECT_ID`     | Scaleway project where the build VM, snapshot, and intermediate object live. |
-| `PACKER_SCW_PUBLISH_BUCKET` | Existing Scaleway object-storage bucket the workflow uses as the qcow2 export staging area. |
+No repo secrets needed — the qemu builder runs offline. Only the default `GITHUB_TOKEN` is consumed for `gh release upload`.
 
 Release asset URL the consumer import script expects:
 `https://github.com/sheyaln/sabokit/releases/download/<TAG>/fc-base-<TAG>.qcow2`
@@ -56,20 +75,11 @@ For ad-hoc rebuilds without tagging, trigger the workflow manually and pass `ima
 
 #### Manual fallback
 
-When the workflow can't run (CI down, secret rotation in progress) the same steps work by hand:
+When the workflow can't run (CI down) the same steps work by hand on any Linux box with KVM:
 
 ```bash
-# Build (SCW_* env vars set).
 cd packer && packer init . && packer build -var image_version=2.0.0 .
-
-# Resolve snapshot via the image's root_volume.
-IMAGE_ID="<id printed by packer>"
-SNAPSHOT_ID=$(scw instance image get "$IMAGE_ID" -o json | jq -r '.image.root_volume.id')
-
-# Export → download → upload.
-scw block snapshot export-to-object-storage snapshot-id="$SNAPSHOT_ID" bucket=<bucket> key=fc-base-2.1.0.qcow2
-scw object-storage object download bucket=<bucket> key=fc-base-2.1.0.qcow2 > fc-base-2.1.0.qcow2
-gh release upload v2.0.0 fc-base-2.1.0.qcow2 --clobber
+gh release upload v2.0.0 output/fc-base-2.0.0/fc-base-2.0.0.qcow2 --clobber
 ```
 
 ## Consumer import flow
@@ -102,10 +112,11 @@ Consumers who skip the import keep `image = "ubuntu_jammy"` and pay the apt-inst
 2. Make the change idempotent (re-running the provisioner on an already-configured host must be a no-op).
 3. **Do not start services** — the image is cloned across many VMs. Ansible owns service lifecycle.
 4. If the addition replaces an Ansible install step, add a guard in the corresponding role that keys on the binary/marker file you're shipping. Keep the install step working for `ubuntu_jammy` users.
-5. Bump `image_version`. The version is baked into `/etc/sabokit-base-image`, surfaces in Scaleway image tags, and is the contract consumers pin against.
+5. Bump `image_version`. The version is baked into `/etc/sabokit-base-image`, surfaces as the qcow2 filename, and is the contract consumers pin against.
 
 ## Trade-offs
 
 - **Storage cost.** A Scaleway custom image lives in the consumer's project. The qcow2 is ~3 GB.
 - **Version skew.** A consumer pinning an older image still gets a working deploy — the Ansible guards detect missing components (e.g. an old image without alloy) and run the install path for those.
 - **Updates.** Refreshing the base image is a maintainer task. Apt security updates land via `unattended-upgrades` on every host regardless.
+- **OS skew.** The qcow2 ships Debian; the `ubuntu_jammy` fallback is Ubuntu. Provisioners + Ansible roles work on both, but exotic per-distro behaviour (apt package names, systemd unit paths) is the maintainer's responsibility to verify.
