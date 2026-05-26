@@ -73,14 +73,16 @@ resource "authentik_stage_email" "invitation_email_verification" {
   name                = "invitation-email-verification"
   use_global_settings = !var.smtp_enabled
 
-  host         = var.smtp_enabled ? var.smtp_host : null
-  port         = var.smtp_enabled ? var.smtp_port : null
+  # When smtp_enabled is false, host/port/from_address match the server-side
+  # defaults the Authentik API back-fills, which otherwise cause perpetual drift.
+  host         = var.smtp_enabled ? var.smtp_host : "localhost"
+  port         = var.smtp_enabled ? var.smtp_port : 25
   username     = var.smtp_enabled ? var.smtp_username : null
   password     = var.smtp_enabled ? var.smtp_password : null
   use_tls      = false
   use_ssl      = true
   timeout      = 30
-  from_address = local.gateway_email
+  from_address = var.smtp_enabled ? local.gateway_email : "system@authentik.local"
 
   subject                  = "Verify your email - ${var.organisation_name}"
   activate_user_on_success = true
@@ -293,14 +295,16 @@ resource "authentik_stage_email" "send_user_invitation" {
   name                = "email-stage-send-invitation"
   use_global_settings = !var.smtp_enabled
 
-  host         = var.smtp_enabled ? var.smtp_host : null
-  port         = var.smtp_enabled ? var.smtp_port : null
+  # When smtp_enabled is false, host/port/from_address match the server-side
+  # defaults the Authentik API back-fills, which otherwise cause perpetual drift.
+  host         = var.smtp_enabled ? var.smtp_host : "localhost"
+  port         = var.smtp_enabled ? var.smtp_port : 25
   username     = var.smtp_enabled ? var.smtp_username : null
   password     = var.smtp_enabled ? var.smtp_password : null
   use_tls      = false
   use_ssl      = true
   timeout      = 30
-  from_address = local.gateway_email
+  from_address = var.smtp_enabled ? local.gateway_email : "system@authentik.local"
 
   subject                  = "You're invited to join ${var.organisation_name}!"
   activate_user_on_success = false

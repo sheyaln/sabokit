@@ -98,16 +98,18 @@ resource "authentik_stage_user_write" "manual_enrollment_user_write" {
 
 # Email Verification Stage
 resource "authentik_stage_email" "manual_enrollment_email_verification" {
-  name                     = "manual-enrollment-email-verification"
-  use_global_settings      = !var.smtp_enabled
-  host                     = var.smtp_enabled ? var.smtp_host : null
-  port                     = var.smtp_enabled ? var.smtp_port : null
+  name                = "manual-enrollment-email-verification"
+  use_global_settings = !var.smtp_enabled
+  # When smtp_enabled is false, host/port/from_address match the server-side
+  # defaults the Authentik API back-fills, which otherwise cause perpetual drift.
+  host                     = var.smtp_enabled ? var.smtp_host : "localhost"
+  port                     = var.smtp_enabled ? var.smtp_port : 25
   username                 = var.smtp_enabled ? var.smtp_username : null
   password                 = var.smtp_enabled ? var.smtp_password : null
   use_tls                  = false
   use_ssl                  = true
   timeout                  = 30
-  from_address             = local.gateway_email
+  from_address             = var.smtp_enabled ? local.gateway_email : "system@authentik.local"
   subject                  = "Verify your email address - ${var.organisation_name} Gateway"
   template                 = "email/account_confirmation.html"
   activate_user_on_success = false
