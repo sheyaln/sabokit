@@ -2,6 +2,17 @@
 
 All notable changes to sabokit go here. Versioning follows semver; major bumps signal breaking contract changes for consumers.
 
+## v3.1.13 - 2026-05-26
+
+Three independent wins bundled into one tag.
+
+### Changed
+- **Packer base-image build moved from `scaleway` builder to `qemu` builder.** Drops the four `PACKER_SCW_*` GitHub secrets and the implicit coupling to a specific Scaleway tenancy/billing project. Source qcow2 is now `https://cloud-images.ubuntu.com/jammy/current/jammy-server-cloudimg-amd64.img` (Ubuntu 22.04 LTS, same as the historical `ubuntu_jammy` pin). Output qcow2 lands directly on GHA runner via packer's qemu builder, attached to the GitHub Release as before. Consumers' `import-base-image.sh` unchanged - still imports the qcow2 into their own Scaleway project. Workflow drops the "install scaleway CLI / resolve snapshot / export-to-object-storage / download" detour entirely.
+- **Wazuh dashboard moved from traefik forward-auth to native OIDC via opensearch-security.** Structural OIDC scaffolding had landed earlier but the admin group binding was broken: the `roles_key: groups` claim translates to `backend_roles`, not `users`, and the role-mapping template put the admin group under `users:` - so admin OIDC logins arrived with no privileged role. Fixed to `backend_roles`. Added a `securityadmin` handler that pushes config changes into the live security index via `docker exec`, since restarting the stack doesn't reload security config once the index is bootstrapped. New `oidc_readonly_group` variable (default empty) maps a named Authentik group to opensearch `kibana_user` + `readall` for read-only dashboard access. Existing deployments: `ansible-playbook` re-run applies the corrected mapping in-place, no container rebuild, sessions persist.
+
+### Added
+- **`s3.storage-class` threaded through restic invocations in the backrest bundle.** Backups now upload directly to the bucket's configured storage class (GLACIER by default) instead of landing in STANDARD and waiting on the 90-day lifecycle rule to transition. New `var.storage_class` (TF) → `backrest_restic_s3_storage_class` (ansible.vars) → `flags` array in backrest's per-repo config flows the value into every restic subcommand (backup, forget, prune, check, restore). Existing STANDARD-tier objects still drain on the existing lifecycle rule; new uploads skip the warm window entirely.
+
 ## v3.1.12 — 2026-05-26
 
 DB password charset hotfix — re-added `@` and `!` to `override_special` and set `min_special` to the full charset length so generated passwords draw broadly across the set instead of clustering on `._-`. Lifecycle `ignore_changes` extended to include `min_special` so existing deployments don't churn. Applies to both `modules/infrastructure/storage/postgres` (admin + per-user passwords) and `modules/infrastructure/storage/postgres_database` (per-bundle DB passwords).
