@@ -2422,6 +2422,18 @@ apps:
           description: UDP port the Wazuh manager listens on for syslog ingestion.
           ui: advanced
 
+        oidc_admin_group:
+          type: string
+          default: admin
+          description: Authentik group whose members are mapped to opensearch's all_access role (full dashboard + active-response). Matches against the OIDC `groups` claim.
+          ui: advanced
+
+        oidc_readonly_group:
+          type: string
+          default: ""
+          description: Optional Authentik group mapped to opensearch's kibana_user + readall (dashboard access without write/active-response privileges). Empty disables (admin-only).
+          ui: advanced
+
   # ── Wazuh Agent ─────────────────────────────────────────────────────────
   # Host-network container that ships logs to a Wazuh manager. Multi-instance
   # like backrest — one block per host you want monitored.
