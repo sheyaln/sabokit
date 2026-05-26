@@ -10,7 +10,7 @@ output "enabled" {
 # bound to a specific private_ip_bind. Empty when disabled.
 output "push_url" {
   description = "URL Loki accepts pushes on. Wire this into monitoring-agent's monitoring_loki_push_url. null when disabled."
-  value = var.enabled ? "http://${coalesce(var.private_ip_bind, var.base.compute.hosts[var.deployment_host_key].private_ip)}:3100/loki/api/v1/push" : null
+  value       = var.enabled ? "http://${coalesce(var.private_ip_bind, var.base.compute.hosts[var.deployment_host_key].private_ip)}:3100/loki/api/v1/push" : null
 }
 
 output "ansible" {

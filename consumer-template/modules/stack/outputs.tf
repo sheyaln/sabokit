@@ -12,7 +12,7 @@ output "authentik_gateway_domain" {
 }
 
 output "postgres_admin_credentials_secret_id" {
-  description = "Scaleway secret holding Postgres admin credentials. App bundles use this for emergency access; routine per-app DBs are owned by the app bundles."
+  description = "Scaleway secret holding Postgres admin credentials. Operator-only emergency access; not consumed by any ansible role. Per-app DBs are provisioned by their bundle with their own least-privilege credentials."
   value       = module.base.scaleway.postgres_admin_credentials_secret_id
 }
 
