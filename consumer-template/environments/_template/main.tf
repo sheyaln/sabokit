@@ -34,6 +34,7 @@ module "stack" {
   identity         = local.config.identity
   apps             = try(local.config.apps, {})
   bootstrap        = try(local.config.bootstrap, {})
+  base             = try(local.config.base, {})
   smtp_secret_name = try(local.config.smtp_secret_name, "")
 
   manage_gateway_dns       = try(local.config.manage_gateway_dns, true)
