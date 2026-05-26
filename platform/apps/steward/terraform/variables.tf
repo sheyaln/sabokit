@@ -103,8 +103,8 @@ variable "deployment_host_key" {
 
 # ── Steward-specific inputs ─────────────────────────────────────────────────
 
-variable "auto_update_enabled" {
-  description = "Whether the Watchtower platform bundle (if deployed) auto-pulls newer Steward image versions. Default true — Steward is the maintainer's own app with a stable migration contract; the qcluster sidecar pulls in lockstep."
+variable "diun_watch_enabled" {
+  description = "Whether Diun watches this app's containers for upstream image updates. When true (default) the bundle emits a `diun.enable=true` label on each compose service, opting it into the platform Diun bundle's registry polling. Flip false to silence notifications for this app."
   type        = bool
   default     = true
 }

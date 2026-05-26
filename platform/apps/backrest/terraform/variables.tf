@@ -118,8 +118,8 @@ variable "instance_name" {
   }
 }
 
-variable "auto_update_enabled" {
-  description = "Whether the Watchtower platform bundle (if deployed on this host) auto-pulls newer Backrest image versions. Default true — Backrest is a backup tool with stable migration story; staying current matters for security patches."
+variable "diun_watch_enabled" {
+  description = "Whether Diun watches this app's containers for upstream image updates (POSTs to the n8n webhook on new tag-digest). Default true — opt out only if this app's image registry has a non-functional tag scheme or you don't want notification noise."
   type        = bool
   default     = true
 }

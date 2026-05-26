@@ -1,6 +1,0 @@
----
-- name: Deploy Watchtower
-  hosts: "{{ watchtower_host_group | default('apps') }}"
-  become: true
-  roles:
-    - role: watchtower

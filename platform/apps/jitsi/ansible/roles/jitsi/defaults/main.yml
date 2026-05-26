@@ -40,7 +40,7 @@ jitsi_traefik_docker_network: "traefik"
 # Ops-bundle opt-in labels.
 # auto_update default false: 5 lockstep containers (web, prosody, jicofo, jvb,
 # oidc-adapter); mixed versions break calls.
-jitsi_auto_update_enabled: false
+jitsi_diun_watch_enabled: true
 jitsi_autoheal_enabled: true
 
 # Filesystem owner/group for /opt/<slug>/ artifacts (compose file, .env).

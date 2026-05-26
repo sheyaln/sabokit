@@ -109,10 +109,10 @@ variable "image_tag" {
   default     = "latest"
 }
 
-variable "auto_update_enabled" {
-  description = "Whether the Watchtower platform bundle (if deployed) auto-pulls newer Decidim image versions. Default FALSE — Decidim is a Rails app with non-trivial schema migrations and the locally-built image (when extra_gems is non-empty) wouldn't be touched by Watchtower anyway. Consumers bump image_tag explicitly."
+variable "diun_watch_enabled" {
+  description = "Whether Diun watches this app's containers for upstream image updates. When true (default) the bundle emits a `diun.enable=true` label on each compose service, opting it into the platform Diun bundle's registry polling. Flip false to silence notifications for this app."
   type        = bool
-  default     = false
+  default     = true
 }
 
 variable "autoheal_enabled" {

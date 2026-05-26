@@ -25,8 +25,8 @@ services:
       - "traefik.http.routers.privacy-policy.tls.certresolver=le"
       - "traefik.http.routers.privacy-policy.service=privacy-policy"
       # No auth middleware — privacy policies are public by definition.
-{% if privacy_policy_auto_update_enabled | default(false) %}
-      - "com.centurylinklabs.watchtower.enable=true"
+{% if privacy_policy_diun_watch_enabled | default(true) %}
+      - "diun.enable=true"
 {% endif %}
 {% if privacy_policy_autoheal_enabled | default(false) %}
       - "autoheal=true"

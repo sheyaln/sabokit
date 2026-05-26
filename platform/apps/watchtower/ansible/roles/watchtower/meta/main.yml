@@ -1,6 +1,0 @@
----
-galaxy_info:
-  role_name: watchtower
-  description: Auto-update opted-in Docker containers via containrrr/watchtower
-  min_ansible_version: "2.14"
-dependencies: []

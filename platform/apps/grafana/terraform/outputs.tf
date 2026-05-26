@@ -57,7 +57,7 @@ output "ansible" {
       grafana_memory_reservation         = var.memory_reservation
       grafana_cpu_limit                  = var.cpu_limit
       grafana_cpu_reservation            = var.cpu_reservation
-      grafana_auto_update_enabled        = var.auto_update_enabled
+      grafana_diun_watch_enabled         = var.diun_watch_enabled
       grafana_autoheal_enabled           = var.autoheal_enabled
       grafana_dashboards                 = var.grafana_dashboards
       grafana_jsm_api_key_secret_id      = var.jsm_api_key_secret_id

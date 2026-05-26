@@ -288,22 +288,6 @@
         state: absent
       when: enabled_apps.grafana is defined and enabled_apps.grafana is not none
       ignore_errors: true  # compose file may already be gone
-- name: "down: watchtower"
-  hosts: "{{ (enabled_apps.watchtower_apps | default({})).ansible_group | default('all') }}"
-  become: true
-  gather_facts: false
-  tags: [down, watchtower_apps]
-  tasks:
-    - name: Load role defaults
-      ansible.builtin.include_vars:
-        file: "../apps/watchtower/ansible/roles/watchtower/defaults/main.yml"
-      when: enabled_apps.watchtower_apps is defined and enabled_apps.watchtower_apps is not none
-    - name: Stop and remove the compose stack
-      community.docker.docker_compose_v2:
-        project_src: "{{ watchtower_install_dir | default('/opt/watchtower') }}"
-        state: absent
-      when: enabled_apps.watchtower_apps is defined and enabled_apps.watchtower_apps is not none
-      ignore_errors: true  # compose file may already be gone
 - name: "down: diun"
   hosts: "{{ (enabled_apps.diun_mgmt | default({})).ansible_group | default('all') }}"
   become: true

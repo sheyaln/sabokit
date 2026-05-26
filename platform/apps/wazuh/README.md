@@ -26,7 +26,7 @@ Agent role for monitored hosts ships separately. The bundle opens the manager's 
 | `manager_syslog_port` | `number` | `514` | UDP port for syslog ingestion. |
 | `memory_limit` / `memory_reservation` | `string` | `"2G"` / `"512M"` | Manager container memory. |
 | `cpu_limit` / `cpu_reservation` | `string` | `"2.0"` / `"0.5"` | Manager container CPU. |
-| `auto_update_enabled` | `bool` | `false` | Off by default — 3 images move in lockstep + occasional index schema migration. |
+| `diun_watch_enabled` | `bool` | `true` | Diun new-image notification opt-in. Bump the 3 images lockstep when notified. |
 | `autoheal_enabled` | `bool` | `true` | |
 | `backup_enabled` | `bool` | `true` | Indexer data + manager state backed up by default. |
 | `backup_extra_paths` / `backup_schedule_cron` / `backup_retention` | (see vars) | — | |

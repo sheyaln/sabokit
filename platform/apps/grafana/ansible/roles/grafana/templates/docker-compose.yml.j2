@@ -39,8 +39,8 @@ services:
       - "traefik.http.routers.grafana.entrypoints=websecure"
       - "traefik.http.routers.grafana.tls.certresolver=le"
       - "traefik.http.routers.grafana.service=grafana"
-{% if grafana_auto_update_enabled | default(false) %}
-      - "com.centurylinklabs.watchtower.enable=true"
+{% if grafana_diun_watch_enabled | default(true) %}
+      - "diun.enable=true"
 {% endif %}
 {% if grafana_autoheal_enabled | default(false) %}
       - "autoheal=true"

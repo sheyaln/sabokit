@@ -103,10 +103,10 @@ variable "image_tag" {
   default     = "latest"
 }
 
-variable "auto_update_enabled" {
-  description = "Whether the Watchtower platform bundle (if deployed) auto-pulls newer EspoCRM image versions. Default FALSE — EspoCRM customizations live in the database AND in `custom/` on a host bind mount; new image versions occasionally need post-upgrade DB rebuild + cache clear. Consumers bump image_tag explicitly so Ansible can run the upgrade steps."
+variable "diun_watch_enabled" {
+  description = "Whether Diun watches this app's containers for upstream image updates. When true (default) the bundle emits a `diun.enable=true` label on each compose service, opting it into the platform Diun bundle's registry polling. Flip false to silence notifications for this app."
   type        = bool
-  default     = false
+  default     = true
 }
 
 variable "autoheal_enabled" {

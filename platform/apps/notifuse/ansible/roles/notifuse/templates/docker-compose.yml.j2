@@ -26,8 +26,8 @@ services:
       - "traefik.http.routers.notifuse.entrypoints=websecure"
       - "traefik.http.routers.notifuse.tls.certresolver=le"
       - "traefik.http.routers.notifuse.service=notifuse"
-{% if notifuse_auto_update_enabled | default(false) %}
-      - "com.centurylinklabs.watchtower.enable=true"
+{% if notifuse_diun_watch_enabled | default(true) %}
+      - "diun.enable=true"
 {% endif %}
 {% if notifuse_autoheal_enabled | default(false) %}
       - "autoheal=true"

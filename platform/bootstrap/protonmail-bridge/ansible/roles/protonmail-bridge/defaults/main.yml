@@ -16,7 +16,7 @@ protonmail_bridge_memory_reservation: "64M"
 protonmail_bridge_cpu_limit: "0.5"
 protonmail_bridge_cpu_reservation: "0.05"
 
-protonmail_bridge_auto_update_enabled: false
+protonmail_bridge_diun_watch_enabled: false
 protonmail_bridge_autoheal_enabled: true
 
 # Filesystem owner/group for /opt/<slug>/ artifacts (compose file, .env).

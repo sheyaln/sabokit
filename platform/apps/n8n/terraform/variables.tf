@@ -115,10 +115,10 @@ variable "image_tag" {
   default     = "latest"
 }
 
-variable "auto_update_enabled" {
-  description = "Whether the Watchtower platform bundle (if deployed) auto-pulls newer n8n image versions. Default FALSE — n8n schema migrations and the lock-step runner version requirement (n8nio/runners must match n8n exactly) make blind updates risky. Consumers bump image_tag explicitly and Ansible restarts both n8n + n8n-runners together."
+variable "diun_watch_enabled" {
+  description = "Whether Diun watches this app's containers for upstream image updates. When true (default) the bundle emits a `diun.enable=true` label on each compose service, opting it into the platform Diun bundle's registry polling. Flip false to silence notifications for this app."
   type        = bool
-  default     = false
+  default     = true
 }
 
 variable "autoheal_enabled" {

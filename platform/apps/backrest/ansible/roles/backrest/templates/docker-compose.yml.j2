@@ -33,8 +33,8 @@ services:
       - "traefik.http.routers.backrest-{{ backrest_instance_name }}.tls.certresolver=le"
       - "traefik.http.routers.backrest-{{ backrest_instance_name }}.service=backrest-{{ backrest_instance_name }}"
       - "traefik.http.routers.backrest-{{ backrest_instance_name }}.middlewares={{ backrest_authentik_middleware }}"
-{% if backrest_auto_update_enabled | default(false) %}
-      - "com.centurylinklabs.watchtower.enable=true"
+{% if backrest_diun_watch_enabled | default(true) %}
+      - "diun.enable=true"
 {% endif %}
 {% if backrest_autoheal_enabled | default(false) %}
       - "autoheal=true"

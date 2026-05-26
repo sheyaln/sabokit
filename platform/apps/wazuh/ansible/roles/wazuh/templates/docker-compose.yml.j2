@@ -93,8 +93,8 @@ services:
           memory: "{{ wazuh_memory_reservation }}"
           cpus: "{{ wazuh_cpu_reservation }}"
     labels:
-{% if wazuh_auto_update_enabled | default(false) %}
-      - "com.centurylinklabs.watchtower.enable=true"
+{% if wazuh_diun_watch_enabled | default(true) %}
+      - "diun.enable=true"
 {% endif %}
 {% if wazuh_autoheal_enabled | default(false) %}
       - "autoheal=true"

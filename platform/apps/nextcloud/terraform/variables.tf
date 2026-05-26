@@ -158,10 +158,10 @@ variable "disabled_apps" {
   default     = ["photos"]
 }
 
-variable "auto_update_enabled" {
-  description = "Whether the Watchtower platform bundle (if deployed) auto-pulls newer Nextcloud image versions. Default FALSE — Nextcloud only supports one-major-at-a-time upgrades and major bumps require post-upgrade occ steps. Consumers should bump image_tag explicitly and let Ansible handle the upgrade path."
+variable "diun_watch_enabled" {
+  description = "Whether Diun watches this app's containers for upstream image updates. When true (default) the bundle emits a `diun.enable=true` label on each compose service, opting it into the platform Diun bundle's registry polling. Flip false to silence notifications for this app."
   type        = bool
-  default     = false
+  default     = true
 }
 
 variable "autoheal_enabled" {

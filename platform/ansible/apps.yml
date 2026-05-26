@@ -25,7 +25,7 @@
     protonmail_bridge_memory_reservation: "{{ enabled_apps.protonmail_bridge.ansible_vars.protonmail_bridge_memory_reservation }}"
     protonmail_bridge_cpu_limit: "{{ enabled_apps.protonmail_bridge.ansible_vars.protonmail_bridge_cpu_limit }}"
     protonmail_bridge_cpu_reservation: "{{ enabled_apps.protonmail_bridge.ansible_vars.protonmail_bridge_cpu_reservation }}"
-    protonmail_bridge_auto_update_enabled: "{{ enabled_apps.protonmail_bridge.ansible_vars.protonmail_bridge_auto_update_enabled }}"
+    protonmail_bridge_diun_watch_enabled: "{{ enabled_apps.protonmail_bridge.ansible_vars.protonmail_bridge_diun_watch_enabled }}"
     protonmail_bridge_autoheal_enabled: "{{ enabled_apps.protonmail_bridge.ansible_vars.protonmail_bridge_autoheal_enabled }}"
   when: enabled_apps.protonmail_bridge is defined and enabled_apps.protonmail_bridge is not none
   tags: [apps, protonmail_bridge]
@@ -37,7 +37,7 @@
     outline_app_secret_id: "{{ enabled_apps.outline.ansible_vars.outline_app_secret_id }}"
     outline_db_credentials_secret_id: "{{ enabled_apps.outline.ansible_vars.outline_db_credentials_secret_id }}"
     outline_smtp_secret_name: "{{ enabled_apps.outline.ansible_vars.outline_smtp_secret_name }}"
-    outline_auto_update_enabled: "{{ enabled_apps.outline.ansible_vars.outline_auto_update_enabled }}"
+    outline_diun_watch_enabled: "{{ enabled_apps.outline.ansible_vars.outline_diun_watch_enabled }}"
     outline_autoheal_enabled: "{{ enabled_apps.outline.ansible_vars.outline_autoheal_enabled }}"
   when: enabled_apps.outline is defined and enabled_apps.outline is not none
   tags: [apps, outline]
@@ -53,7 +53,7 @@
     steward_memory_reservation: "{{ enabled_apps.steward.ansible_vars.steward_memory_reservation }}"
     steward_cpu_limit: "{{ enabled_apps.steward.ansible_vars.steward_cpu_limit }}"
     steward_cpu_reservation: "{{ enabled_apps.steward.ansible_vars.steward_cpu_reservation }}"
-    steward_auto_update_enabled: "{{ enabled_apps.steward.ansible_vars.steward_auto_update_enabled }}"
+    steward_diun_watch_enabled: "{{ enabled_apps.steward.ansible_vars.steward_diun_watch_enabled }}"
     steward_autoheal_enabled: "{{ enabled_apps.steward.ansible_vars.steward_autoheal_enabled }}"
   when: enabled_apps.steward is defined and enabled_apps.steward is not none
   tags: [apps, steward]
@@ -69,7 +69,7 @@
     vikunja_db_credentials_secret_id: "{{ enabled_apps.vikunja.ansible_vars.vikunja_db_credentials_secret_id }}"
     vikunja_smtp_secret_name: "{{ enabled_apps.vikunja.ansible_vars.vikunja_smtp_secret_name }}"
     vikunja_default_week_start: "{{ enabled_apps.vikunja.ansible_vars.vikunja_default_week_start }}"
-    vikunja_auto_update_enabled: "{{ enabled_apps.vikunja.ansible_vars.vikunja_auto_update_enabled }}"
+    vikunja_diun_watch_enabled: "{{ enabled_apps.vikunja.ansible_vars.vikunja_diun_watch_enabled }}"
     vikunja_autoheal_enabled: "{{ enabled_apps.vikunja.ansible_vars.vikunja_autoheal_enabled }}"
   when: enabled_apps.vikunja is defined and enabled_apps.vikunja is not none
   tags: [apps, vikunja]
@@ -78,7 +78,7 @@
     bentopdf_host_group: "{{ enabled_apps.bentopdf.ansible_group }}"
     bentopdf_hostname: "{{ enabled_apps.bentopdf.ansible_vars.bentopdf_hostname }}"
     bentopdf_image: "{{ enabled_apps.bentopdf.ansible_vars.bentopdf_image }}"
-    bentopdf_auto_update_enabled: "{{ enabled_apps.bentopdf.ansible_vars.bentopdf_auto_update_enabled }}"
+    bentopdf_diun_watch_enabled: "{{ enabled_apps.bentopdf.ansible_vars.bentopdf_diun_watch_enabled }}"
     bentopdf_autoheal_enabled: "{{ enabled_apps.bentopdf.ansible_vars.bentopdf_autoheal_enabled }}"
   when: enabled_apps.bentopdf is defined and enabled_apps.bentopdf is not none
   tags: [apps, bentopdf]
@@ -94,7 +94,7 @@
     notifuse_app_secret_id: "{{ enabled_apps.notifuse.ansible_vars.notifuse_app_secret_id }}"
     notifuse_db_credentials_secret_id: "{{ enabled_apps.notifuse.ansible_vars.notifuse_db_credentials_secret_id }}"
     notifuse_smtp_secret_name: "{{ enabled_apps.notifuse.ansible_vars.notifuse_smtp_secret_name }}"
-    notifuse_auto_update_enabled: "{{ enabled_apps.notifuse.ansible_vars.notifuse_auto_update_enabled }}"
+    notifuse_diun_watch_enabled: "{{ enabled_apps.notifuse.ansible_vars.notifuse_diun_watch_enabled }}"
     notifuse_autoheal_enabled: "{{ enabled_apps.notifuse.ansible_vars.notifuse_autoheal_enabled }}"
   when: enabled_apps.notifuse is defined and enabled_apps.notifuse is not none
   tags: [apps, notifuse]
@@ -110,7 +110,7 @@
     broadsheet_app_secret_id: "{{ enabled_apps.broadsheet.ansible_vars.broadsheet_app_secret_id }}"
     broadsheet_db_credentials_secret_id: "{{ enabled_apps.broadsheet.ansible_vars.broadsheet_db_credentials_secret_id }}"
     broadsheet_smtp_secret_name: "{{ enabled_apps.broadsheet.ansible_vars.broadsheet_smtp_secret_name }}"
-    broadsheet_auto_update_enabled: "{{ enabled_apps.broadsheet.ansible_vars.broadsheet_auto_update_enabled }}"
+    broadsheet_diun_watch_enabled: "{{ enabled_apps.broadsheet.ansible_vars.broadsheet_diun_watch_enabled }}"
     broadsheet_autoheal_enabled: "{{ enabled_apps.broadsheet.ansible_vars.broadsheet_autoheal_enabled }}"
   when: enabled_apps.broadsheet is defined and enabled_apps.broadsheet is not none
   tags: [apps, broadsheet]
@@ -119,7 +119,7 @@
     privacy_policy_host_group: "{{ enabled_apps.privacy_policy.ansible_group }}"
     privacy_policy_hostname: "{{ enabled_apps.privacy_policy.ansible_vars.privacy_policy_hostname }}"
     privacy_policy_page_title: "{{ enabled_apps.privacy_policy.ansible_vars.privacy_policy_page_title }}"
-    privacy_policy_auto_update_enabled: "{{ enabled_apps.privacy_policy.ansible_vars.privacy_policy_auto_update_enabled }}"
+    privacy_policy_diun_watch_enabled: "{{ enabled_apps.privacy_policy.ansible_vars.privacy_policy_diun_watch_enabled }}"
     privacy_policy_autoheal_enabled: "{{ enabled_apps.privacy_policy.ansible_vars.privacy_policy_autoheal_enabled }}"
   when: enabled_apps.privacy_policy is defined and enabled_apps.privacy_policy is not none
   tags: [apps, privacy_policy]
@@ -136,7 +136,7 @@
     nextcloud_enabled_apps: "{{ enabled_apps.nextcloud.ansible_vars.nextcloud_enabled_apps }}"
     nextcloud_disabled_apps: "{{ enabled_apps.nextcloud.ansible_vars.nextcloud_disabled_apps }}"
     nextcloud_n8n_form_webhook_url: "{{ enabled_apps.nextcloud.ansible_vars.nextcloud_n8n_form_webhook_url }}"
-    nextcloud_auto_update_enabled: "{{ enabled_apps.nextcloud.ansible_vars.nextcloud_auto_update_enabled }}"
+    nextcloud_diun_watch_enabled: "{{ enabled_apps.nextcloud.ansible_vars.nextcloud_diun_watch_enabled }}"
     nextcloud_autoheal_enabled: "{{ enabled_apps.nextcloud.ansible_vars.nextcloud_autoheal_enabled }}"
     nextcloud_onlyoffice_hostname: "{{ enabled_apps.nextcloud.ansible_vars.nextcloud_onlyoffice_hostname }}"
     nextcloud_onlyoffice_image_tag: "{{ enabled_apps.nextcloud.ansible_vars.nextcloud_onlyoffice_image_tag }}"
@@ -163,7 +163,7 @@
     decidim_sidekiq_concurrency: "{{ enabled_apps.decidim.ansible_vars.decidim_sidekiq_concurrency }}"
     decidim_max_upload_size_bytes: "{{ enabled_apps.decidim.ansible_vars.decidim_max_upload_size_bytes }}"
     decidim_smtp_secret_name: "{{ enabled_apps.decidim.ansible_vars.decidim_smtp_secret_name }}"
-    decidim_auto_update_enabled: "{{ enabled_apps.decidim.ansible_vars.decidim_auto_update_enabled }}"
+    decidim_diun_watch_enabled: "{{ enabled_apps.decidim.ansible_vars.decidim_diun_watch_enabled }}"
     decidim_autoheal_enabled: "{{ enabled_apps.decidim.ansible_vars.decidim_autoheal_enabled }}"
     decidim_org_admin_name: "{{ enabled_apps.decidim.ansible_vars.decidim_org_admin_name }}"
     decidim_org_admin_nickname: "{{ enabled_apps.decidim.ansible_vars.decidim_org_admin_nickname }}"
@@ -185,7 +185,7 @@
     jitsi_oidc_log_level: "{{ enabled_apps.jitsi.ansible_vars.jitsi_oidc_log_level }}"
     jitsi_authentik_gateway: "{{ enabled_apps.jitsi.ansible_vars.jitsi_authentik_gateway }}"
     jitsi_app_secret_id: "{{ enabled_apps.jitsi.ansible_vars.jitsi_app_secret_id }}"
-    jitsi_auto_update_enabled: "{{ enabled_apps.jitsi.ansible_vars.jitsi_auto_update_enabled }}"
+    jitsi_diun_watch_enabled: "{{ enabled_apps.jitsi.ansible_vars.jitsi_diun_watch_enabled }}"
     jitsi_autoheal_enabled: "{{ enabled_apps.jitsi.ansible_vars.jitsi_autoheal_enabled }}"
   when: enabled_apps.jitsi is defined and enabled_apps.jitsi is not none
   tags: [apps, jitsi]
@@ -204,7 +204,7 @@
     espocrm_member_entity_webhooks: "{{ enabled_apps.espocrm.ansible_vars.espocrm_member_entity_webhooks }}"
     espocrm_app_secret_id: "{{ enabled_apps.espocrm.ansible_vars.espocrm_app_secret_id }}"
     espocrm_db_credentials_secret_id: "{{ enabled_apps.espocrm.ansible_vars.espocrm_db_credentials_secret_id }}"
-    espocrm_auto_update_enabled: "{{ enabled_apps.espocrm.ansible_vars.espocrm_auto_update_enabled }}"
+    espocrm_diun_watch_enabled: "{{ enabled_apps.espocrm.ansible_vars.espocrm_diun_watch_enabled }}"
     espocrm_autoheal_enabled: "{{ enabled_apps.espocrm.ansible_vars.espocrm_autoheal_enabled }}"
   when: enabled_apps.espocrm is defined and enabled_apps.espocrm is not none
   tags: [apps, espocrm]
@@ -220,7 +220,7 @@
     n8n_webhook_rate_limit_avg: "{{ enabled_apps.n8n.ansible_vars.n8n_webhook_rate_limit_avg }}"
     n8n_webhook_rate_limit_burst: "{{ enabled_apps.n8n.ansible_vars.n8n_webhook_rate_limit_burst }}"
     n8n_webhook_rate_limit_per: "{{ enabled_apps.n8n.ansible_vars.n8n_webhook_rate_limit_per }}"
-    n8n_auto_update_enabled: "{{ enabled_apps.n8n.ansible_vars.n8n_auto_update_enabled }}"
+    n8n_diun_watch_enabled: "{{ enabled_apps.n8n.ansible_vars.n8n_diun_watch_enabled }}"
     n8n_autoheal_enabled: "{{ enabled_apps.n8n.ansible_vars.n8n_autoheal_enabled }}"
     n8n_app_secret_id: "{{ enabled_apps.n8n.ansible_vars.n8n_app_secret_id }}"
     n8n_db_credentials_secret_id: "{{ enabled_apps.n8n.ansible_vars.n8n_db_credentials_secret_id }}"
@@ -241,7 +241,7 @@
     backrest_restic_check_max_frequency_days: "{{ enabled_apps.backrest_mgmt.ansible_vars.backrest_restic_check_max_frequency_days }}"
     backrest_restic_check_read_data_subset_pct: "{{ enabled_apps.backrest_mgmt.ansible_vars.backrest_restic_check_read_data_subset_pct }}"
     backrest_restic_s3_storage_class: "{{ enabled_apps.backrest_mgmt.ansible_vars.backrest_restic_s3_storage_class }}"
-    backrest_auto_update_enabled: "{{ enabled_apps.backrest_mgmt.ansible_vars.backrest_auto_update_enabled }}"
+    backrest_diun_watch_enabled: "{{ enabled_apps.backrest_mgmt.ansible_vars.backrest_diun_watch_enabled }}"
     backrest_autoheal_enabled: "{{ enabled_apps.backrest_mgmt.ansible_vars.backrest_autoheal_enabled }}"
   when: enabled_apps.backrest_mgmt is defined and enabled_apps.backrest_mgmt is not none
   tags: [apps, backrest_mgmt]
@@ -262,7 +262,7 @@
     prometheus_cpu_limit: "{{ enabled_apps.prometheus.ansible_vars.prometheus_cpu_limit }}"
     prometheus_cpu_reservation: "{{ enabled_apps.prometheus.ansible_vars.prometheus_cpu_reservation }}"
     prometheus_timezone: "{{ enabled_apps.prometheus.ansible_vars.prometheus_timezone }}"
-    prometheus_auto_update_enabled: "{{ enabled_apps.prometheus.ansible_vars.prometheus_auto_update_enabled }}"
+    prometheus_diun_watch_enabled: "{{ enabled_apps.prometheus.ansible_vars.prometheus_diun_watch_enabled }}"
     prometheus_autoheal_enabled: "{{ enabled_apps.prometheus.ansible_vars.prometheus_autoheal_enabled }}"
     prometheus_blackbox_exporter_enabled: "{{ enabled_apps.prometheus.ansible_vars.prometheus_blackbox_exporter_enabled }}"
     prometheus_blackbox_exporter_image_tag: "{{ enabled_apps.prometheus.ansible_vars.prometheus_blackbox_exporter_image_tag }}"
@@ -289,7 +289,7 @@
     loki_cpu_limit: "{{ enabled_apps.loki.ansible_vars.loki_cpu_limit }}"
     loki_cpu_reservation: "{{ enabled_apps.loki.ansible_vars.loki_cpu_reservation }}"
     loki_timezone: "{{ enabled_apps.loki.ansible_vars.loki_timezone }}"
-    loki_auto_update_enabled: "{{ enabled_apps.loki.ansible_vars.loki_auto_update_enabled }}"
+    loki_diun_watch_enabled: "{{ enabled_apps.loki.ansible_vars.loki_diun_watch_enabled }}"
     loki_autoheal_enabled: "{{ enabled_apps.loki.ansible_vars.loki_autoheal_enabled }}"
   when: enabled_apps.loki is defined and enabled_apps.loki is not none
   tags: [apps, loki]
@@ -310,7 +310,7 @@
     grafana_memory_reservation: "{{ enabled_apps.grafana.ansible_vars.grafana_memory_reservation }}"
     grafana_cpu_limit: "{{ enabled_apps.grafana.ansible_vars.grafana_cpu_limit }}"
     grafana_cpu_reservation: "{{ enabled_apps.grafana.ansible_vars.grafana_cpu_reservation }}"
-    grafana_auto_update_enabled: "{{ enabled_apps.grafana.ansible_vars.grafana_auto_update_enabled }}"
+    grafana_diun_watch_enabled: "{{ enabled_apps.grafana.ansible_vars.grafana_diun_watch_enabled }}"
     grafana_autoheal_enabled: "{{ enabled_apps.grafana.ansible_vars.grafana_autoheal_enabled }}"
     grafana_dashboards: "{{ enabled_apps.grafana.ansible_vars.grafana_dashboards }}"
     grafana_jsm_api_key_secret_id: "{{ enabled_apps.grafana.ansible_vars.grafana_jsm_api_key_secret_id }}"
@@ -319,21 +319,6 @@
     grafana_jsm_alert_tags: "{{ enabled_apps.grafana.ansible_vars.grafana_jsm_alert_tags }}"
   when: enabled_apps.grafana is defined and enabled_apps.grafana is not none
   tags: [apps, grafana]
-- import_playbook: ../apps/watchtower/ansible/playbook.yml
-  vars:
-    watchtower_host_group: "{{ enabled_apps.watchtower_apps.ansible_group }}"
-    watchtower_image: "{{ enabled_apps.watchtower_apps.ansible_vars.watchtower_image }}"
-    watchtower_image_tag: "{{ enabled_apps.watchtower_apps.ansible_vars.watchtower_image_tag }}"
-    watchtower_schedule: "{{ enabled_apps.watchtower_apps.ansible_vars.watchtower_schedule }}"
-    watchtower_label_enable: "{{ enabled_apps.watchtower_apps.ansible_vars.watchtower_label_enable }}"
-    watchtower_scope: "{{ enabled_apps.watchtower_apps.ansible_vars.watchtower_scope }}"
-    watchtower_cleanup: "{{ enabled_apps.watchtower_apps.ansible_vars.watchtower_cleanup }}"
-    watchtower_rolling_restart: "{{ enabled_apps.watchtower_apps.ansible_vars.watchtower_rolling_restart }}"
-    watchtower_include_stopped: "{{ enabled_apps.watchtower_apps.ansible_vars.watchtower_include_stopped }}"
-    watchtower_timezone: "{{ enabled_apps.watchtower_apps.ansible_vars.watchtower_timezone }}"
-    watchtower_notifications_slack_webhook: "{{ enabled_apps.watchtower_apps.ansible_vars.watchtower_notifications_slack_webhook }}"
-  when: enabled_apps.watchtower_apps is defined and enabled_apps.watchtower_apps is not none
-  tags: [apps, watchtower_apps]
 - import_playbook: ../apps/diun/ansible/playbook.yml
   vars:
     diun_host_group: "{{ enabled_apps.diun_mgmt.ansible_group }}"
@@ -347,7 +332,9 @@
     diun_default_watch_repo: "{{ enabled_apps.diun_mgmt.ansible_vars.diun_default_watch_repo }}"
     diun_include_swarm_services: "{{ enabled_apps.diun_mgmt.ansible_vars.diun_include_swarm_services }}"
     diun_notification_targets: "{{ enabled_apps.diun_mgmt.ansible_vars.diun_notification_targets }}"
-    diun_auto_update_enabled: "{{ enabled_apps.diun_mgmt.ansible_vars.diun_auto_update_enabled }}"
+    diun_n8n_webhook_url: "{{ enabled_apps.diun_mgmt.ansible_vars.diun_n8n_webhook_url }}"
+    diun_notif_extra: "{{ enabled_apps.diun_mgmt.ansible_vars.diun_notif_extra }}"
+    diun_watch_enabled: "{{ enabled_apps.diun_mgmt.ansible_vars.diun_watch_enabled }}"
     diun_autoheal_enabled: "{{ enabled_apps.diun_mgmt.ansible_vars.diun_autoheal_enabled }}"
   when: enabled_apps.diun_mgmt is defined and enabled_apps.diun_mgmt is not none
   tags: [apps, diun_mgmt]
@@ -367,7 +354,7 @@
     wazuh_memory_reservation: "{{ enabled_apps.wazuh.ansible_vars.wazuh_memory_reservation }}"
     wazuh_cpu_limit: "{{ enabled_apps.wazuh.ansible_vars.wazuh_cpu_limit }}"
     wazuh_cpu_reservation: "{{ enabled_apps.wazuh.ansible_vars.wazuh_cpu_reservation }}"
-    wazuh_auto_update_enabled: "{{ enabled_apps.wazuh.ansible_vars.wazuh_auto_update_enabled }}"
+    wazuh_diun_watch_enabled: "{{ enabled_apps.wazuh.ansible_vars.wazuh_diun_watch_enabled }}"
     wazuh_autoheal_enabled: "{{ enabled_apps.wazuh.ansible_vars.wazuh_autoheal_enabled }}"
   when: enabled_apps.wazuh is defined and enabled_apps.wazuh is not none
   tags: [apps, wazuh]
@@ -378,7 +365,7 @@
     wazuh_agent_release_version: "{{ enabled_apps.wazuh_agent_apps.ansible_vars.wazuh_agent_release_version }}"
     wazuh_agent_name: "{{ enabled_apps.wazuh_agent_apps.ansible_vars.wazuh_agent_name }}"
     wazuh_agent_manager_address: "{{ enabled_apps.wazuh_agent_apps.ansible_vars.wazuh_agent_manager_address }}"
-    wazuh_agent_auto_update_enabled: "{{ enabled_apps.wazuh_agent_apps.ansible_vars.wazuh_agent_auto_update_enabled }}"
+    wazuh_agent_diun_watch_enabled: "{{ enabled_apps.wazuh_agent_apps.ansible_vars.wazuh_agent_diun_watch_enabled }}"
     wazuh_agent_autoheal_enabled: "{{ enabled_apps.wazuh_agent_apps.ansible_vars.wazuh_agent_autoheal_enabled }}"
     wazuh_agent_fim_enabled: "{{ enabled_apps.wazuh_agent_apps.ansible_vars.wazuh_agent_fim_enabled }}"
     wazuh_agent_fim_extra_paths: "{{ enabled_apps.wazuh_agent_apps.ansible_vars.wazuh_agent_fim_extra_paths }}"

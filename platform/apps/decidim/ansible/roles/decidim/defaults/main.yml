@@ -58,7 +58,7 @@ decidim_memcached_cpu_reservation: "0.1"
 # Ops-bundle opt-in labels.
 # auto_update default false: schema migrations + (when extra_gems set) a
 # locally-built image Watchtower can't update anyway.
-decidim_auto_update_enabled: false
+decidim_diun_watch_enabled: true
 decidim_autoheal_enabled: true
 
 # Filesystem owner/group for /opt/<slug>/ artifacts (compose file, .env).

@@ -54,7 +54,7 @@ output "ansible" {
       n8n_webhook_rate_limit_avg   = var.webhook_rate_limit_average
       n8n_webhook_rate_limit_burst = var.webhook_rate_limit_burst
       n8n_webhook_rate_limit_per   = var.webhook_rate_limit_period
-      n8n_auto_update_enabled      = var.auto_update_enabled
+      n8n_diun_watch_enabled       = var.diun_watch_enabled
       n8n_autoheal_enabled         = var.autoheal_enabled
       n8n_app_secret_id            = local.app_secret_id
       n8n_db_credentials_secret_id = module.database[0].secret_id

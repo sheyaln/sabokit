@@ -17,7 +17,7 @@ File Integrity Monitoring is **on by default**: a custom `ossec.conf` is mounted
 | `release_version` | `string` | `"4.9.0"` | Image tag. MUST match the manager's `release_version`. |
 | `agent_name` | `string` | `""` (falls back to `deployment_host_key`) | Stable name registered with the manager. |
 | `manager_address` | `string` | — (required when enabled) | Manager's network address (private IP or DNS). |
-| `auto_update_enabled` | `bool` | `false` | Off by default — agent version must match manager; bump lockstep. |
+| `diun_watch_enabled` | `bool` | `true` | Diun new-image notification opt-in. Agent must match manager version though, so bump lockstep when notified. |
 | `autoheal_enabled` | `bool` | `true` | |
 | `fim_enabled` | `bool` | `true` | FIM master toggle. Disable only if shipping FIM out-of-band. |
 | `fim_extra_paths` | `list(string)` | `[]` | Extra absolute paths to monitor (added to auditd rules + syscheck). |

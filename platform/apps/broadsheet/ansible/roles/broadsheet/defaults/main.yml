@@ -14,7 +14,7 @@ broadsheet_data_dir: "/opt/broadsheet/data"
 broadsheet_traefik_docker_network: "traefik"
 
 # Ops-bundle opt-in labels.
-broadsheet_auto_update_enabled: true
+broadsheet_diun_watch_enabled: true
 broadsheet_autoheal_enabled: true
 
 broadsheet_timezone: "UTC"

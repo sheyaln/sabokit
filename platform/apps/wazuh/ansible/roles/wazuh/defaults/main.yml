@@ -20,7 +20,7 @@ wazuh_memory_reservation: "512M"
 wazuh_cpu_limit: "2.0"
 wazuh_cpu_reservation: "0.5"
 
-wazuh_auto_update_enabled: false
+wazuh_diun_watch_enabled: true
 wazuh_autoheal_enabled: true
 
 # Set true on next play to throw away the existing certs and re-generate.

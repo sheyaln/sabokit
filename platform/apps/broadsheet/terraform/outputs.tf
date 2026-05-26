@@ -52,7 +52,7 @@ output "ansible" {
       broadsheet_app_secret_id            = local.app_secret_id
       broadsheet_db_credentials_secret_id = module.database[0].secret_id
       broadsheet_smtp_secret_name         = var.smtp_from_email == "" ? "" : "smtp-config"
-      broadsheet_auto_update_enabled      = var.auto_update_enabled
+      broadsheet_diun_watch_enabled       = var.diun_watch_enabled
       broadsheet_autoheal_enabled         = var.autoheal_enabled
     }
   } : null

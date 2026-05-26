@@ -63,9 +63,10 @@ authentik_worker_cpu_reservation: "0.25"
 # Set to the host's private IP if you want metrics bound to it. Empty = 0.0.0.0.
 authentik_metrics_bind_ip: ""
 
-# Ops-bundle opt-in labels for Watchtower + Autoheal sidecars on the same host.
-# auto_update default false — Authentik has breaking changes between releases
-# and post-upgrade DB migrations; consumers bump AUTHENTIK_TAG explicitly and
-# let Ansible handle the upgrade flow.
-authentik_auto_update_enabled: false
+# Ops-bundle opt-in labels for Diun (notify-on-new-image) + Autoheal sidecars
+# on the same host. diun_watch_enabled defaults false — Authentik has breaking
+# changes between releases and post-upgrade DB migrations; bumping unattended
+# is dangerous and even notification noise here is low-signal vs operator
+# routine, since Authentik upgrades are scheduled work.
+authentik_diun_watch_enabled: false
 authentik_autoheal_enabled: true

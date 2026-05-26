@@ -23,7 +23,7 @@ prometheus_timezone: "UTC"
 prometheus_internal_network: "monitoring_internal"
 
 # Ops labels (forwarded from terraform).
-prometheus_auto_update_enabled: false
+prometheus_diun_watch_enabled: true
 prometheus_autoheal_enabled: true
 
 # Image tags for the optional sidecars (only used when exporters_enabled).

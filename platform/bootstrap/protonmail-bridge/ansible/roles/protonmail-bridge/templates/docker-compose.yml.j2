@@ -36,8 +36,8 @@ services:
           memory: "{{ protonmail_bridge_memory_reservation }}"
           cpus: "{{ protonmail_bridge_cpu_reservation }}"
     labels:
-{% if protonmail_bridge_auto_update_enabled | default(false) %}
-      - "com.centurylinklabs.watchtower.enable=true"
+{% if protonmail_bridge_diun_watch_enabled | default(false) %}
+      - "diun.enable=true"
 {% endif %}
 {% if protonmail_bridge_autoheal_enabled | default(false) %}
       - "autoheal=true"

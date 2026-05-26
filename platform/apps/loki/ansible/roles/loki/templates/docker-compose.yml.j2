@@ -36,8 +36,8 @@ services:
           memory: "{{ loki_memory_reservation }}"
           cpus: "{{ loki_cpu_reservation }}"
     labels:
-{% if loki_auto_update_enabled | default(false) %}
-      - "com.centurylinklabs.watchtower.enable=true"
+{% if loki_diun_watch_enabled | default(true) %}
+      - "diun.enable=true"
 {% endif %}
 {% if loki_autoheal_enabled | default(false) %}
       - "autoheal=true"

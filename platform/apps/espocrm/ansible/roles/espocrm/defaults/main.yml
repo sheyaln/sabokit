@@ -50,7 +50,7 @@ espocrm_daemon_cpu_reservation: "0.1"
 # Ops-bundle opt-in labels.
 # auto_update default false: PHP customizations + occasional post-upgrade
 # DB rebuild; let Ansible handle bumps.
-espocrm_auto_update_enabled: false
+espocrm_diun_watch_enabled: true
 espocrm_autoheal_enabled: true
 
 # Filesystem owner/group for /opt/<slug>/ artifacts (compose file, .env).

@@ -127,8 +127,8 @@ variable "image_source_ref" {
   default     = "main"
 }
 
-variable "auto_update_enabled" {
-  description = "Whether the Watchtower platform bundle (if deployed) auto-pulls newer Broadsheet image versions. Default true. Only takes effect for pull-mode deploys — Watchtower can't update a locally-built image when `build_from_source = true`."
+variable "diun_watch_enabled" {
+  description = "Whether Diun watches this app's containers for upstream image updates. When true (default) the bundle emits a `diun.enable=true` label on each compose service, opting it into the platform Diun bundle's registry polling. Flip false to silence notifications for this app."
   type        = bool
   default     = true
 }

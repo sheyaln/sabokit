@@ -52,7 +52,7 @@ backrest_cpu_reservation: "0.25"
 backrest_timezone: "UTC"
 
 # Ops-bundle opt-in labels.
-backrest_auto_update_enabled: true
+backrest_diun_watch_enabled: true
 backrest_autoheal_enabled: true
 
 # Filesystem owner/group for /opt/<slug>/ artifacts (compose file, .env).

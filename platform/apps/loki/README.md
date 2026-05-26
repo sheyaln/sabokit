@@ -20,7 +20,7 @@ Headless — port 3100 binds to 127.0.0.1 by default. Set `private_ip_bind` to a
 | `memory_limit` / `memory_reservation` | `string` | `"1G"` / `"256M"` | Container memory. |
 | `cpu_limit` / `cpu_reservation` | `string` | `"1.0"` / `"0.25"` | Container CPU. |
 | `timezone` | `string` | `"UTC"` | IANA timezone. |
-| `auto_update_enabled` | `bool` | `false` | Watchtower opt-in. Default off — Loki has schema migration on major bumps. |
+| `diun_watch_enabled` | `bool` | `true` | Diun new-image notification opt-in. |
 | `autoheal_enabled` | `bool` | `true` | Autoheal opt-in. |
 | `backup_enabled` | `bool` | `true` | Backrest plan emission. |
 | `backup_extra_paths` / `backup_schedule_cron` / `backup_retention` | (see vars) | — | Standard backup knobs. Chunks + index volume included by default. |

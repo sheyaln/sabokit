@@ -16,7 +16,7 @@ loki_cpu_reservation: "0.25"
 loki_timezone: "UTC"
 loki_internal_network: "monitoring_internal"
 
-loki_auto_update_enabled: false
+loki_diun_watch_enabled: true
 loki_autoheal_enabled: true
 
 # Filesystem owner/group for /opt/<slug>/ artifacts (compose file, .env).

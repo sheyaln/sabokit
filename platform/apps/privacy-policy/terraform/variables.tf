@@ -49,8 +49,8 @@ variable "page_title" {
   default     = "Privacy Policy"
 }
 
-variable "auto_update_enabled" {
-  description = "Whether the Watchtower platform bundle (if deployed) auto-pulls newer nginx image versions. Default true — pure static-content nginx, image bumps are routine."
+variable "diun_watch_enabled" {
+  description = "Whether Diun watches this app's containers for upstream image updates. When true (default) the bundle emits a `diun.enable=true` label on each compose service, opting it into the platform Diun bundle's registry polling. Flip false to silence notifications for this app."
   type        = bool
   default     = true
 }

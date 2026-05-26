@@ -26,7 +26,7 @@ output "ansible" {
       prometheus_cpu_limit                     = var.cpu_limit
       prometheus_cpu_reservation               = var.cpu_reservation
       prometheus_timezone                      = var.timezone
-      prometheus_auto_update_enabled           = var.auto_update_enabled
+      prometheus_diun_watch_enabled            = var.diun_watch_enabled
       prometheus_autoheal_enabled              = var.autoheal_enabled
       prometheus_blackbox_exporter_enabled     = var.blackbox_exporter_enabled
       prometheus_blackbox_exporter_image_tag   = var.blackbox_exporter_image_tag

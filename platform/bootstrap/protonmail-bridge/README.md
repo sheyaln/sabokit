@@ -21,7 +21,7 @@ See `ARCHITECTURE.md` → "Tiers" for what makes a bundle bootstrap-tier vs apps
 | `memory_limit` / `memory_reservation` | `string` | `"256M"` / `"64M"` | |
 | `cpu_limit` / `cpu_reservation` | `string` | `"0.5"` / `"0.05"` | |
 | `timezone` | `string` | `"UTC"` | |
-| `auto_update_enabled` | `bool` | `false` | Off by default — bridge schema migrations between minor versions need re-login. |
+| `diun_watch_enabled` | `bool` | `false` | Off by default — bridge schema migrations between minor versions need re-login, so notification noise isn't actionable. |
 | `autoheal_enabled` | `bool` | `true` | |
 | `backup_enabled` | `bool` | `true` | Backs up the bridge data volume (contains login state). |
 | `backup_extra_paths` / `backup_schedule_cron` / `backup_retention` | (see vars) | — | |

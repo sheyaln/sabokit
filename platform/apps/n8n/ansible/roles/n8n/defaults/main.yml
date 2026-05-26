@@ -10,7 +10,7 @@ n8n_install_dir: "/opt/n8n"
 # Ops-bundle opt-in labels.
 # auto_update default false: schema migrations + lockstep n8n/runners version
 # requirement; let Ansible bump both together.
-n8n_auto_update_enabled: false
+n8n_diun_watch_enabled: true
 n8n_autoheal_enabled: true
 
 n8n_timezone: "UTC"

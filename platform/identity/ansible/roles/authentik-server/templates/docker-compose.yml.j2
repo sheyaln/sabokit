@@ -48,8 +48,8 @@ services:
       - "traefik.http.routers.authentik-main.tls.certresolver={{ authentik_traefik_cert_resolver }}"
       - "traefik.http.routers.authentik-main.service=authentik"
       - "traefik.http.routers.authentik-main.priority=10"
-{% if authentik_auto_update_enabled | default(false) %}
-      - "com.centurylinklabs.watchtower.enable=true"
+{% if authentik_diun_watch_enabled | default(false) %}
+      - "diun.enable=true"
 {% endif %}
 {% if authentik_autoheal_enabled | default(false) %}
       - "autoheal=true"

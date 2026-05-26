@@ -31,7 +31,7 @@ Scrape configs and alert rules are aggregated by the consumer from each enabled 
 | `memory_limit` / `memory_reservation` | `string` | `"2G"` / `"512M"` | Container memory. |
 | `cpu_limit` / `cpu_reservation` | `string` | `"2.0"` / `"0.5"` | Container CPU. |
 | `timezone` | `string` | `"UTC"` | IANA timezone. |
-| `auto_update_enabled` | `bool` | `false` | Watchtower opt-in. Default off — Prometheus has TSDB compatibility quirks; let Ansible drive bumps. |
+| `diun_watch_enabled` | `bool` | `true` | Diun new-image notification opt-in. |
 | `autoheal_enabled` | `bool` | `true` | Autoheal opt-in. |
 | `backup_enabled` | `bool` | `true` | Backrest plan emission. TSDB is in the named volume; restic backs up by default. |
 | `backup_extra_paths` / `backup_schedule_cron` / `backup_retention` | (see vars) | — | Standard backup knobs. |

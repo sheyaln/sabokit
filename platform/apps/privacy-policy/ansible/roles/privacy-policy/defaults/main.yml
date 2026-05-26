@@ -31,7 +31,7 @@ privacy_policy_cpu_limit: "0.25"
 privacy_policy_cpu_reservation: "0.05"
 
 # Ops-bundle opt-in labels.
-privacy_policy_auto_update_enabled: true
+privacy_policy_diun_watch_enabled: true
 privacy_policy_autoheal_enabled: true
 
 # Filesystem owner/group for /opt/<slug>/ artifacts (compose file, .env).

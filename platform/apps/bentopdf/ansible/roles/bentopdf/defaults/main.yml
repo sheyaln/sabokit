@@ -6,10 +6,10 @@ bentopdf_install_dir: "/opt/bentopdf"
 bentopdf_traefik_docker_network: "traefik"
 bentopdf_authentik_middleware: "authentik-auth@docker"
 
-# Ops-bundle opt-in labels. true = labelled for the platform's watchtower /
-# autoheal sidecars on the same host (if deployed); false = unlabelled, those
-# services skip it.
-bentopdf_auto_update_enabled: true
+# Ops-bundle opt-in labels. true = labelled for the platform's diun / autoheal
+# sidecars on the same host (if deployed); false = unlabelled, those services
+# skip it.
+bentopdf_diun_watch_enabled: true
 bentopdf_autoheal_enabled: true
 
 # Resource limits — PDF rendering is mostly CPU. Default conservative; bump

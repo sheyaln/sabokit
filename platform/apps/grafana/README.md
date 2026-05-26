@@ -31,7 +31,7 @@ Grafana UI behind Authentik OIDC, with Prometheus + Loki datasources pre-provisi
 | `prometheus_scrape_interval` | `string` | `"30s"` | Match the prometheus bundle's `global.scrape_interval`. |
 | `memory_limit` / `memory_reservation` | `string` | `"1G"` / `"256M"` | |
 | `cpu_limit` / `cpu_reservation` | `string` | `"1.0"` / `"0.1"` | |
-| `auto_update_enabled` | `bool` | `false` | Off by default — plugin pins can break on minor bumps. |
+| `diun_watch_enabled` | `bool` | `true` | Diun new-image notification opt-in. |
 | `autoheal_enabled` | `bool` | `true` | |
 | `backup_enabled` | `bool` | `true` | SQLite + dashboards backed up by default. |
 | `backup_extra_paths` / `backup_schedule_cron` / `backup_retention` | (see vars) | — | |

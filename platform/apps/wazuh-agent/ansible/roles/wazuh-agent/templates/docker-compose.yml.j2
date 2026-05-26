@@ -25,8 +25,8 @@ services:
       - /var/log/audit:/var/log/audit:ro
 {% endif %}
     labels:
-{% if wazuh_agent_auto_update_enabled | default(false) %}
-      - "com.centurylinklabs.watchtower.enable=true"
+{% if wazuh_agent_diun_watch_enabled | default(true) %}
+      - "diun.enable=true"
 {% endif %}
 {% if wazuh_agent_autoheal_enabled | default(false) %}
       - "autoheal=true"

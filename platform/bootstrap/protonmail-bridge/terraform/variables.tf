@@ -82,8 +82,8 @@ variable "timezone" {
   default     = "UTC"
 }
 
-variable "auto_update_enabled" {
-  description = "Whether the Watchtower platform bundle auto-pulls newer Bridge image versions. Default FALSE — bridge schema migrations between minor versions need the manual re-login flow."
+variable "diun_watch_enabled" {
+  description = "Whether Diun watches the bridge container for upstream image updates. Default false — bridge schema migrations between minor versions need the manual re-login flow, so notification noise isn't actionable."
   type        = bool
   default     = false
 }

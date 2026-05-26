@@ -105,7 +105,7 @@ nextcloud_talk_cpu_reservation: "0.1"
 # Ops-bundle opt-in labels.
 # auto_update default false: Nextcloud is one-major-at-a-time and needs
 # post-upgrade occ steps; let Ansible handle the bumps.
-nextcloud_auto_update_enabled: false
+nextcloud_diun_watch_enabled: true
 nextcloud_autoheal_enabled: true
 
 # Filesystem owner/group for /opt/<slug>/ artifacts (compose file, .env).

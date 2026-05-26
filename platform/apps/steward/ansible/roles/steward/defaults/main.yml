@@ -26,7 +26,7 @@ steward_gunicorn_workers: 3
 steward_qcluster_workers: 2
 
 # Ops-bundle opt-in labels.
-steward_auto_update_enabled: true
+steward_diun_watch_enabled: true
 steward_autoheal_enabled: true
 
 # Filesystem owner/group for /opt/<slug>/ artifacts (compose file, .env).

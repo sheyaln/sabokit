@@ -31,7 +31,7 @@ output "ansible" {
       loki_cpu_limit               = var.cpu_limit
       loki_cpu_reservation         = var.cpu_reservation
       loki_timezone                = var.timezone
-      loki_auto_update_enabled     = var.auto_update_enabled
+      loki_diun_watch_enabled      = var.diun_watch_enabled
       loki_autoheal_enabled        = var.autoheal_enabled
     }
   } : null

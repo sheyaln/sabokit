@@ -188,8 +188,8 @@ services:
       - "traefik.http.middlewares.decidim-buffering.buffering.maxRequestBodyBytes={{ decidim_max_upload_size_bytes }}"
       - "traefik.http.middlewares.decidim-buffering.buffering.maxResponseBodyBytes={{ decidim_max_upload_size_bytes }}"
       - "traefik.http.routers.decidim.middlewares=decidim-buffering@docker"
-{% if decidim_auto_update_enabled | default(false) %}
-      - "com.centurylinklabs.watchtower.enable=true"
+{% if decidim_diun_watch_enabled | default(true) %}
+      - "diun.enable=true"
 {% endif %}
 {% if decidim_autoheal_enabled | default(false) %}
       - "autoheal=true"

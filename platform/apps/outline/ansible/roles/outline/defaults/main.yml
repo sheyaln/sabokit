@@ -22,7 +22,7 @@ outline_smtp_secret_name: ""
 outline_traefik_docker_network: "traefik"
 
 # Ops-bundle opt-in labels.
-outline_auto_update_enabled: true
+outline_diun_watch_enabled: true
 outline_autoheal_enabled: true
 
 # Resource limits.

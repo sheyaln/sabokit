@@ -20,7 +20,7 @@ grafana_memory_reservation: "256M"
 grafana_cpu_limit: "1.0"
 grafana_cpu_reservation: "0.1"
 
-grafana_auto_update_enabled: false
+grafana_diun_watch_enabled: true
 grafana_autoheal_enabled: true
 
 # Dashboards provisioned via the file provider. Populated from the aggregated

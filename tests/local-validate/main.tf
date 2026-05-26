@@ -219,16 +219,17 @@ module "backrest_mgmt" {
   base = local.base
 }
 
-module "watchtower_apps" {
-  source              = "../../platform/apps/watchtower/terraform"
+module "autoheal_apps" {
+  source              = "../../platform/apps/autoheal/terraform"
   enabled             = true
   deployment_host_key = "apps"
   base                = local.base
 }
 
-module "autoheal_apps" {
-  source              = "../../platform/apps/autoheal/terraform"
+module "diun_mgmt" {
+  source              = "../../platform/apps/diun/terraform"
   enabled             = true
+  instance_name       = "apps"
   deployment_host_key = "apps"
   base                = local.base
 }
