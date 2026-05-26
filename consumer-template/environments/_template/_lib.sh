@@ -5,18 +5,26 @@
 #
 # After sourcing, the following are available:
 #   ENV_DIR, ENV_NAME, FED_COMMONS_DIR  — set + verified
-#   GATEWAY_DOMAIN, SCW_PROJECT_ID, INFRA_EMAIL  — read from terraform.tfvars
+#   GATEWAY_DOMAIN, SCW_PROJECT_ID, INFRA_EMAIL  — read from config.tf
 #   SCW_ACCESS_KEY, SCW_SECRET_KEY, SCW_DEFAULT_PROJECT_ID,
 #     SCW_DEFAULT_REGION, SCW_DEFAULT_ZONE  — exported (single credential
 #     source for the Scaleway provider; suppresses the "Multiple variable
 #     sources detected" warning)
 #   SCW_CONFIG_PATH=/dev/null  — disables operator's ~/.config/scw/config.yaml
 #   c_phase, c_ok, c_warn, c_err, c_info  — pretty output
-#   tfvar <key>  — extract a string value from terraform.tfvars
+#   config_value <key>  — extract a string value from config.tf locals
 #   require_files <paths...>  — assert files exist or exit
 #
 # We also `terraform init` so the rest of the script can assume modules and
 # providers are present.
+#
+# Config layout (v3.1.10+):
+#   config.tf     — `locals { config = { ... } }` block. Committable.
+#   secrets.tf    — Scaleway Secret Manager data sources. Committable.
+#   variables.tf  — runtime credentials only (SCW keys, authentik admin token).
+#
+# Credentials NEVER live in config.tf. SCW_ACCESS_KEY + SCW_SECRET_KEY must
+# come from the env (or TF_VAR_scaleway_access_key / TF_VAR_scaleway_secret_key).
 
 set -euo pipefail
 
@@ -43,14 +51,17 @@ c_info()  { printf "  → %s\n" "$*"; }
 
 # ── Helpers ─────────────────────────────────────────────────────────────────
 
-# Extract `key = "value"` from terraform.tfvars. Strings only.
-tfvar() {
+# Extract `key = "value"` from config.tf. Strings only. Works for any leaf
+# string inside `locals { config = { ... } }` because the regex anchors only
+# on the leading-whitespace `key = "..."` shape — keeps `config.tf` flat
+# enough for shell to read without HCL parsing.
+config_value() {
   awk -v key="$1" '
     $0 ~ "^[[:space:]]*" key "[[:space:]]*=" {
       sub(/^[^=]*=[[:space:]]*/, ""); gsub(/^"|"[[:space:]]*$/, "")
       sub(/[[:space:]]*#.*$/, ""); print; exit
     }
-  ' terraform.tfvars
+  ' config.tf
 }
 
 require_files() {
@@ -64,25 +75,20 @@ require_files() {
 
 # ── Required files + values ─────────────────────────────────────────────────
 
-require_files terraform.tfvars backend.hcl
+require_files config.tf backend.hcl
 
-GATEWAY_DOMAIN="$(tfvar gateway_domain || true)"
-SCW_PROJECT_ID="$(tfvar scaleway_project_id || true)"
-INFRA_EMAIL="$(tfvar infra_email || true)"
-[[ -n "$GATEWAY_DOMAIN" ]] || { c_err "gateway_domain not set in terraform.tfvars.";   exit 1; }
-[[ -n "$SCW_PROJECT_ID" ]] || { c_err "scaleway_project_id not set in terraform.tfvars."; exit 1; }
-[[ -n "$INFRA_EMAIL"    ]] || { c_err "infra_email not set in terraform.tfvars.";       exit 1; }
+GATEWAY_DOMAIN="$(config_value gateway_domain || true)"
+SCW_PROJECT_ID="$(config_value scaleway_project_id || true)"
+INFRA_EMAIL="$(config_value infra_email || true)"
+[[ -n "$GATEWAY_DOMAIN" ]] || { c_err "gateway_domain not set in config.tf.";   exit 1; }
+[[ -n "$SCW_PROJECT_ID" ]] || { c_err "scaleway_project_id not set in config.tf."; exit 1; }
+[[ -n "$INFRA_EMAIL"    ]] || { c_err "infra_email not set in config.tf.";       exit 1; }
 
-# Configure the Scaleway provider entirely via SCW_* env vars, exported here
-# from terraform.tfvars (with TF_VAR_* / pre-existing SCW_* as overrides for
-# CI). The provider.tf block is intentionally empty.
-#
-# Why: the Scaleway provider emits a multi-line "Multiple variable sources
-# detected" warning on every plan/apply when more than one of {active profile
-# in ~/.config/scw/config.yaml, provider{} block, environment variable}
-# supplies the same credential. Funneling everything through env vars (and
-# disabling the operator's config.yaml below) collapses that to a single
-# source per variable, so the warning never fires.
+# Configure the Scaleway provider entirely via SCW_* env vars. The provider.tf
+# block is intentionally empty so the provider sees exactly one credential
+# source (env) instead of three (env + provider-block + ~/.config/scw/config.yaml
+# active profile), which produces a noisy "Multiple variable sources detected"
+# warning on every plan/apply.
 #
 # Side benefit: the same SCW_* values also drive the `scw` CLI calls in
 # up.sh / configure.sh (DNS record updates, secret reads), so there's exactly
@@ -95,33 +101,32 @@ INFRA_EMAIL="$(tfvar infra_email || true)"
 export SCW_CONFIG_PATH=/dev/null
 unset SCW_PROFILE
 
-# Pull a Scaleway value from the first source that defines it:
-#   1. SCW_<NAME>            (already in env)
-#   2. TF_VAR_<tfvar_name>   (terraform's standard override)
-#   3. terraform.tfvars      (project-pinned default)
-_resolve_scw() {
-  local scw_env="$1" tf_var="$2"
-  if [[ -n "${!scw_env:-}" ]]; then printf '%s' "${!scw_env}"; return; fi
-  local tfvar_env="TF_VAR_${tf_var}"
-  if [[ -n "${!tfvar_env:-}" ]]; then printf '%s' "${!tfvar_env}"; return; fi
-  tfvar "$tf_var"
+# Credentials MUST come from env (SCW_* or TF_VAR_*) — config.tf is
+# committable and cannot hold secrets. Region/zone may come from config.tf
+# as a project-pinned default.
+_first_nonempty() {
+  for v in "$@"; do [[ -n "$v" ]] && { printf '%s' "$v"; return; }; done
 }
 
-SCW_ACCESS_KEY_RESOLVED="$(_resolve_scw SCW_ACCESS_KEY scaleway_access_key)"
-SCW_SECRET_KEY_RESOLVED="$(_resolve_scw SCW_SECRET_KEY scaleway_secret_key)"
-SCW_REGION_RESOLVED="$(_resolve_scw SCW_DEFAULT_REGION scaleway_region)"
-SCW_ZONE_RESOLVED="$(_resolve_scw SCW_DEFAULT_ZONE scaleway_zone)"
+SCW_ACCESS_KEY_RESOLVED="$(_first_nonempty "${SCW_ACCESS_KEY:-}" "${TF_VAR_scaleway_access_key:-}")"
+SCW_SECRET_KEY_RESOLVED="$(_first_nonempty "${SCW_SECRET_KEY:-}" "${TF_VAR_scaleway_secret_key:-}")"
+SCW_REGION_RESOLVED="$(_first_nonempty "${SCW_DEFAULT_REGION:-}" "${TF_VAR_scaleway_region:-}" "$(config_value scaleway_region || true)")"
+SCW_ZONE_RESOLVED="$(_first_nonempty "${SCW_DEFAULT_ZONE:-}" "${TF_VAR_scaleway_zone:-}" "$(config_value scaleway_zone || true)")"
 
-[[ -n "$SCW_ACCESS_KEY_RESOLVED" ]] || { c_err "scaleway_access_key not set (env SCW_ACCESS_KEY, TF_VAR_scaleway_access_key, or terraform.tfvars)."; exit 1; }
-[[ -n "$SCW_SECRET_KEY_RESOLVED" ]] || { c_err "scaleway_secret_key not set (env SCW_SECRET_KEY, TF_VAR_scaleway_secret_key, or terraform.tfvars)."; exit 1; }
+[[ -n "$SCW_ACCESS_KEY_RESOLVED" ]] || { c_err "SCW_ACCESS_KEY not set (env SCW_ACCESS_KEY or TF_VAR_scaleway_access_key). Credentials cannot live in config.tf — supply via env."; exit 1; }
+[[ -n "$SCW_SECRET_KEY_RESOLVED" ]] || { c_err "SCW_SECRET_KEY not set (env SCW_SECRET_KEY or TF_VAR_scaleway_secret_key). Credentials cannot live in config.tf — supply via env."; exit 1; }
 
 export SCW_ACCESS_KEY="$SCW_ACCESS_KEY_RESOLVED"
 export SCW_SECRET_KEY="$SCW_SECRET_KEY_RESOLVED"
-# Project is always pinned to terraform.tfvars — defeats operator's daily
+# Project is always pinned to config.tf — defeats operator's daily
 # SCW_DEFAULT_PROJECT_ID leaking in and applying staging into prod.
 export SCW_DEFAULT_PROJECT_ID="$SCW_PROJECT_ID"
 export SCW_DEFAULT_REGION="${SCW_REGION_RESOLVED:-fr-par}"
 export SCW_DEFAULT_ZONE="${SCW_ZONE_RESOLVED:-fr-par-1}"
+# TF_VAR_* mirrors so the per-env variables.tf credentials picks up the same
+# values without forcing operators to export TWO sets of env vars.
+export TF_VAR_scaleway_access_key="$SCW_ACCESS_KEY"
+export TF_VAR_scaleway_secret_key="$SCW_SECRET_KEY"
 
 # Always init — cheap when warm, recovers from a fresh clone otherwise.
 terraform init -backend-config=backend.hcl -input=false >/dev/null

@@ -1,9 +1,12 @@
-# Per-env root. Calls the shared stack module with this env's variables.
+# Per-env root. Wires `local.config` (from config.tf) into the shared stack
+# module. Upstream-maintained — consumers should not need to edit this file
+# during normal operation. Add sibling .tf files in this directory for
+# consumer-owned resources (Cloudflare records, custom IAM, etc.).
 #
-# `terraform.tfvars`  → env-specific values (gitignored)
-# `backend.hcl`       → remote state config (gitignored if it contains the bucket name)
-# `inventory.ini`     → Ansible inventory (gitignored; built from `terraform output compute_hosts`)
-# `deploy.sh`         → `terraform apply && ansible-playbook …`
+# `config.tf`     → consumer's authoritative committable config
+# `secrets.tf`    → Scaleway secret data sources (bag IDs committable; payloads not)
+# `backend.hcl`   → remote state config (gitignored)
+# `inventory.ini` → Ansible inventory (gitignored; built from `terraform output compute_hosts`)
 
 module "stack" {
   source = "../../modules/stack"
@@ -12,30 +15,31 @@ module "stack" {
     scaleway.dns = scaleway.dns
   }
 
-  org_slug    = var.org_slug
-  org_name    = var.org_name
-  environment = var.environment
+  org_slug    = local.config.org_slug
+  org_name    = local.config.org_name
+  environment = local.config.environment
 
-  scaleway_project_id = var.scaleway_project_id
-  scaleway_region     = var.scaleway_region
-  scaleway_zone       = var.scaleway_zone
+  scaleway_project_id = local.config.scaleway_project_id
+  scaleway_region     = local.config.scaleway_region
+  scaleway_zone       = local.config.scaleway_zone
 
-  base_domain    = var.base_domain
-  mgmt_domain    = var.mgmt_domain
-  gateway_domain = var.gateway_domain
-  infra_email    = var.infra_email
+  base_domain    = local.config.base_domain
+  mgmt_domain    = try(local.config.mgmt_domain, null)
+  gateway_domain = local.config.gateway_domain
+  infra_email    = local.config.infra_email
 
-  compute_hosts          = var.compute_hosts
-  private_network_subnet = var.private_network_subnet
+  compute_hosts          = local.config.compute_hosts
+  private_network_subnet = try(local.config.private_network_subnet, "10.0.0.0/22")
 
-  apps             = var.apps
-  bootstrap        = var.bootstrap
-  smtp_secret_name = var.smtp_secret_name
+  identity         = local.config.identity
+  apps             = try(local.config.apps, {})
+  bootstrap        = try(local.config.bootstrap, {})
+  smtp_secret_name = try(local.config.smtp_secret_name, "")
 
-  manage_gateway_dns       = var.manage_gateway_dns
-  gateway_compute_host_key = var.gateway_compute_host_key
+  manage_gateway_dns       = try(local.config.manage_gateway_dns, true)
+  gateway_compute_host_key = try(local.config.gateway_compute_host_key, null)
 
-  custom_dns_records = var.custom_dns_records
+  custom_dns_records = try(local.config.custom_dns_records, {})
 }
 
 # Surface stack outputs so `terraform output` / `terraform output -json` works

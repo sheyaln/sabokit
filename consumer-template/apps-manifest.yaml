@@ -109,7 +109,7 @@ apps:
 
         category_group:
           type: string
-          default: Knowledge
+          default: Collaboration
           description: Section the app appears under in the Authentik portal.
           ui: advanced
 
@@ -235,7 +235,7 @@ apps:
 
         category_group:
           type: string
-          default: Administration
+          default: Member Operations
           description: Section the app appears under in the Authentik portal.
           ui: advanced
 
@@ -374,7 +374,7 @@ apps:
 
         category_group:
           type: string
-          default: Productivity
+          default: Collaboration
           description: Section the app appears under in the Authentik portal.
           ui: advanced
 
@@ -474,7 +474,7 @@ apps:
 
         category_group:
           type: string
-          default: Tools
+          default: Collaboration
           description: Section the app appears under in the Authentik portal.
           ui: advanced
 
@@ -606,7 +606,7 @@ apps:
 
         category_group:
           type: string
-          default: Productivity
+          default: Member Engagement
           description: Section the app appears under in the Authentik portal.
           ui: advanced
 
@@ -746,7 +746,7 @@ apps:
 
         category_group:
           type: string
-          default: Productivity
+          default: Member Engagement
           description: Section the app appears under in the Authentik portal.
           ui: advanced
 
@@ -977,7 +977,7 @@ apps:
 
         category_group:
           type: string
-          default: Knowledge
+          default: Collaboration
           description: Section the app appears under in the Authentik portal.
           ui: advanced
 
@@ -1216,7 +1216,7 @@ apps:
 
         category_group:
           type: string
-          default: Knowledge
+          default: Member Engagement
           description: Section the app appears under in the Authentik portal.
           ui: advanced
 
@@ -1358,7 +1358,7 @@ apps:
 
         category_group:
           type: string
-          default: Communication
+          default: Collaboration
           description: Section the app appears under in the Authentik portal.
           ui: advanced
 
@@ -1487,13 +1487,13 @@ apps:
 
         category_group:
           type: string
-          default: Administration
+          default: Member Operations
           description: Section the app appears under in the Authentik portal.
           ui: advanced
 
         application_name:
           type: string
-          default: CRM (EspoCRM)
+          default: EspoCRM
           description: Display name for the Authentik portal entry. Override for branded portals.
           ui: advanced
 
@@ -1610,13 +1610,13 @@ apps:
 
         category_group:
           type: string
-          default: Productivity
+          default: Technical Management
           description: Section the app appears under in the Authentik portal.
           ui: advanced
 
         application_name:
           type: string
-          default: Workflows (n8n)
+          default: n8n Workflows
           description: Display name for the Authentik portal entry. Override for branded portals.
           ui: advanced
 
@@ -1800,7 +1800,7 @@ apps:
 
         category_group:
           type: string
-          default: Operations
+          default: Technical Management
           description: Section the app appears under in the Authentik portal.
           ui: advanced
 
@@ -2214,7 +2214,7 @@ apps:
 
         category_group:
           type: string
-          default: Operations
+          default: Technical Management
           description: Authentik portal category.
           ui: advanced
 
@@ -2370,7 +2370,7 @@ apps:
 
         category_group:
           type: string
-          default: Security
+          default: Technical Management
           description: Authentik portal category.
           ui: advanced
 

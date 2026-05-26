@@ -44,10 +44,11 @@ resource "authentik_user" "service_steward" {
 
   # Username = email per the platform "username = email always" invariant
   # (v2.15.0 established it for human users; v2.15.3 aligned service accounts).
-  username  = "svc-${local.slug}@${var.base.domains.base_domain}"
-  name      = "Steward service account"
-  email     = "svc-${local.slug}@${var.base.domains.base_domain}"
-  type      = "service_account"
+  username = "svc-${local.slug}@${var.base.domains.base_domain}"
+  name     = "Steward service account"
+  email    = "svc-${local.slug}@${var.base.domains.base_domain}"
+  type     = "service_account"
+  # Service accounts ship active so the issued API token works immediately on first apply.
   is_active = true
   path      = "service-accounts"
   # admin group always present; consumer-supplied extras merged in from
