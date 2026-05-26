@@ -42,8 +42,8 @@ variable "timezone" {
   default     = "UTC"
 }
 
-variable "auto_update_enabled" {
-  description = "Whether the Watchtower bundle (if running on the same host) auto-pulls newer Diun image versions. Default false — Diun's own purpose is to give you control over image updates, so auto-updating Diun itself defeats the point. Bump it manually when you've reviewed the upstream changelog."
+variable "diun_watch_enabled" {
+  description = "Whether Diun watches this Diun container for upstream image updates. Default false — auto-bumping the tool whose job is to gate image updates defeats the point. Bump it manually after reviewing the upstream changelog."
   type        = bool
   default     = false
 }
@@ -91,9 +91,22 @@ variable "include_swarm_services" {
 }
 
 variable "notification_targets" {
-  description = "List of Diun notifier configs. Each entry is `{ type = string, config = map(any) }` where `type` is one of Diun's supported notifiers (amqp, discord, gotify, mail, matrix, mqtt, ntfy, opsgenie, pushover, rocketchat, script, slack, teams, telegram, twilio, webhook) and `config` is passed through verbatim to that notifier's block in Diun's diun.yml (option names and shapes preserved). Empty default = Diun logs new-image events to stdout only. Typical setup: one webhook entry pointing at n8n's `/webhook/diun-new-image`, then fan out from there. See https://crazymax.dev/diun/notif/ for per-type config schemas."
+  description = "Legacy list-shaped notifier config kept for backwards compatibility with pre-v3.2 consumers. Each entry is `{ type = string, config = map(any) }`. New consumers should use `n8n_webhook_url` (auto-derived from the n8n bundle) plus `diun_notif_extra` (map keyed by notifier type) instead. Empty default."
   type        = list(any)
   default     = []
+  sensitive   = true
+}
+
+variable "n8n_webhook_url" {
+  description = "Webhook URL Diun POSTs new-image events to. The consumer-template auto-derives this from `module.n8n.app_url` + `/webhook/diun-image-update` when the n8n bundle is enabled. Empty default means no webhook target is added; Diun runs but stays dormant unless `notification_targets` or `diun_notif_extra` supply a target. Override here to point at a non-n8n receiver."
+  type        = string
+  default     = ""
+}
+
+variable "diun_notif_extra" {
+  description = "Extra notification providers, keyed by Diun notifier type (slack, mail, discord, telegram, teams, matrix, gotify, ntfy, opsgenie, pushover, rocketchat, script, twilio, amqp, mqtt). Each value is passed through verbatim to that notifier's block under `notif:` in diun.yml. Shape mirrors https://crazymax.dev/diun/notif/ — e.g. `{ slack = { webhook_url = \"...\" }, mail = { host = \"...\", port = 587, ... } }`. Lets consumers add channels alongside the auto-wired n8n webhook without forking the bundle."
+  type        = map(any)
+  default     = {}
   sensitive   = true
 }
 

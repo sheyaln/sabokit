@@ -2,7 +2,9 @@
 
 [Diun](https://github.com/crazy-max/diun) — receive notifications when a new image is available on a registry for any container running on the host. One container per host; watches the local Docker daemon, polls each image's registry on a schedule, fires a notification when a tag's digest changes. Pure host-service: no DB, no S3, no Authentik, no public hostname.
 
-Multi-instance: instantiate this module once per host you want notification coverage on. Pairs with Watchtower as a deliberate split — Diun notifies, an operator (or the consumer's automation) decides whether/when to pull. `auto_update_enabled` defaults to false on this bundle on purpose.
+Replaces the legacy `apps/watchtower` bundle (Watchtower upstream was archived 2025-12-17). Behaviour shift: Diun **notifies**, it does NOT pull or restart. Operator (or an n8n workflow) decides whether/when to apply each update.
+
+Multi-instance: instantiate this module once per host you want notification coverage on.
 
 ## Inputs
 
@@ -20,8 +22,10 @@ Multi-instance: instantiate this module once per host you want notification cove
 | `watch_by_default` | `bool` | `true` | Watch every container without needing per-container opt-in label. |
 | `default_watch_repo` | `bool` | `false` | Watch all tags of every image vs only the exact tag in use. |
 | `include_swarm_services` | `bool` | `false` | Enable docker-swarm-mode provider. |
-| `notification_targets` | `list(any)` | `[]` | Diun notifier configs — see Notes. |
-| `auto_update_enabled` | `bool` | `false` | Whether Watchtower auto-updates Diun itself. |
+| `n8n_webhook_url` | `string` | `""` | Webhook URL Diun POSTs new-image events to. Auto-derived from the n8n bundle by the consumer-template when n8n is enabled. |
+| `diun_notif_extra` | `map(any)` | `{}` | Extra notification providers keyed by Diun notifier type (slack, mail, …). Value passed verbatim into `notif:` in diun.yml. |
+| `notification_targets` | `list(any)` | `[]` | Legacy list-shaped notifier config kept for pre-v3.2 consumers. |
+| `diun_watch_enabled` | `bool` | `false` | Whether Diun watches its own image for updates. |
 | `autoheal_enabled` | `bool` | `true` | Whether Autoheal restarts Diun on healthcheck failure. |
 | `monitoring_enabled` | `bool` | `true` | Wire log paths into Loki when monitoring is enabled. |
 
@@ -37,10 +41,10 @@ Multi-instance: instantiate this module once per host you want notification cove
 
 ## Notes
 
-- **Notify, don't restart.** Diun fires notifications when a tag's digest changes upstream. It does NOT pull or restart anything — that's Watchtower's job, and the two bundles ship side-by-side on purpose. Use Diun when you want visibility + control over when updates land; use Watchtower when you want unattended auto-update for specific containers.
-- `watch_by_default = true` (default) means Diun watches every container on the host without per-container labels. Bundles can still override with `diun.*` container labels — see https://crazymax.dev/diun/providers/docker/ for the full label set.
-- `notification_targets` shape: each entry is `{ type = "<notifier>", config = { ... } }`. Supported notifier types: `amqp`, `discord`, `gotify`, `mail`, `matrix`, `mqtt`, `ntfy`, `opsgenie`, `pushover`, `rocketchat`, `script`, `slack`, `teams`, `telegram`, `twilio`, `webhook`. `config` is passed through to Diun's `diun.yml` verbatim — option names and shapes preserved. See https://crazymax.dev/diun/notif/ for per-type schemas.
-- **Empty `notification_targets` = stdout-only.** Diun still logs new-image events; Loki picks them up via `loki_log_paths`. Useful for getting started; wire a real notifier when you want pushed alerts.
-- **Recommended integration**: one `webhook` entry pointing at the n8n bundle's `/webhook/diun-new-image` workflow (`platform/apps/n8n/.../files/workflows/diun-notification-router.json`), then fan out from n8n to Slack / email / JSM. Mirrors the `grafana-alert-router` pattern.
-- `auto_update_enabled` defaults false on this bundle specifically. Auto-updating the tool whose job is to gate updates defeats the point — bump Diun manually after reviewing the upstream changelog.
-- Diun needs `/var/run/docker.sock` (read-only) to introspect sibling containers. Same root-equivalent trust posture as Watchtower; only run on hosts you fully trust the Diun image + its registry on.
+- **Notify, don't restart.** Diun fires notifications when a tag's digest changes upstream. It does NOT pull or restart anything. This is the deliberate v3.2 shift away from Watchtower's auto-update model — visibility + operator control over update timing.
+- **Per-bundle opt-in.** Every app bundle ships a `diun_watch_enabled` knob (default true) that emits a `diun.enable=true` compose label. Combined with `watch_by_default=true` (this bundle's default) every container on the host is watched out of the box; flip `watch_by_default=false` to require explicit labels.
+- **n8n webhook auto-wire.** The consumer-template auto-derives `n8n_webhook_url` as `<n8n_url>/webhook/diun-image-update` when the n8n bundle is enabled (mirrors the TEM → n8n auto-wire pattern). The recommended fan-out target is an n8n workflow that routes to Slack / email / JSM.
+- **Empty notif targets = stdout-only.** If neither `n8n_webhook_url`, `notification_targets`, nor `diun_notif_extra` is populated, Diun still logs new-image events to stdout; Loki picks them up.
+- **`diun_notif_extra` shape** mirrors Diun's YAML config exactly: `{ slack = { webhook_url = "..." }, mail = { host = "...", port = 587, ... } }`. Pass-through to `notif:` in diun.yml. See https://crazymax.dev/diun/notif/ for per-notifier schemas.
+- `diun_watch_enabled` on this bundle defaults false — auto-monitoring the tool whose job is to gate updates is low-signal; bump Diun manually after reviewing the upstream changelog.
+- Diun needs `/var/run/docker.sock` (read-only) to introspect sibling containers. Root-equivalent trust posture; only run on hosts where you trust the Diun image + its registry.

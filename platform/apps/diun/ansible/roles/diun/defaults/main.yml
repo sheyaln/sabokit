@@ -16,8 +16,8 @@ diun_install_dir: "/opt/{{ diun_qualified_name }}"
 diun_timezone: "UTC"
 
 # Polling schedule (6-field cron, seconds first). Default daily at 06:00 UTC,
-# offset from backrest (02:00) and watchtower's typical 04:00 so registry
-# polls don't pile on top of backup/restart windows.
+# offset from backrest's 02:00 backup window so registry polls don't pile on
+# top of nightly maintenance.
 diun_watch_schedule: "0 0 6 * * *"
 
 # Concurrent image-check workers (Diun's upstream default is 10).
@@ -37,14 +37,22 @@ diun_default_watch_repo: false
 # Docker-swarm-mode service discovery — sabokit does not ship Swarm.
 diun_include_swarm_services: false
 
-# List of `{ type, config }` dicts; rendered into diun.yml's notif: block
-# verbatim. Empty = stdout/log-only.
+# Legacy list-shaped notifier config. Each entry is `{ type, config }`,
+# rendered into diun.yml's notif: block verbatim. Empty = no legacy targets.
 diun_notification_targets: []
 
-# Whether watchtower (if on the same host) auto-pulls newer Diun image
-# versions. Default false — Diun is "tell me about updates", auto-updating
-# Diun itself contradicts the design.
-diun_auto_update_enabled: false
+# Auto-derived webhook URL (n8n's app_url + /webhook/diun-image-update). When
+# non-empty, the role injects a webhook entry into diun.yml's notif: block
+# pointing here. Empty = no auto-wired webhook target.
+diun_n8n_webhook_url: ""
+
+# Extra notification providers keyed by Diun notifier type (slack, mail, …).
+# Merged into diun.yml's notif: block verbatim. See platform/apps/diun/README.md.
+diun_notif_extra: {}
+
+# Whether Diun watches its own image for updates. Default false — auto-bumping
+# the tool whose job is to gate updates defeats the point.
+diun_watch_enabled: false
 
 # Whether autoheal restarts Diun on healthcheck failure.
 diun_autoheal_enabled: true

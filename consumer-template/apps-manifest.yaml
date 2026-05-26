@@ -1834,61 +1834,14 @@ apps:
           description: Override the DNS zone for this app's A record. Default empty derives from hostname suffix matching against base.domains.zones. Set only for edge cases.
           ui: advanced
 
-  # ── Watchtower ──────────────────────────────────────────────────────────
-  # Platform host-service: auto-pulls newer Docker image versions for
-  # containers that opt in via the standard com.centurylinklabs.watchtower
-  # label. Multi-instance — one block per host that needs auto-updates.
-  # Per-app auto_update_enabled knobs (on every app bundle) decide which
-  # containers are labelled, so consumers don't manage labels by hand.
-  - id: watchtower
-    display_name: Watchtower
-    category: ops
-    description_short: Auto-update opted-in containers
-    description: |
-      One container per host. Watches the local Docker daemon for newer
-      image versions of containers carrying com.centurylinklabs.watchtower.enable=true,
-      pulls them, restarts rolling. Apps bundles set the label from their
-      own auto_update_enabled knob — safe-to-update apps (bentopdf, vikunja,
-      etc.) default on; breaking-change apps (nextcloud, decidim, etc.)
-      default off. No DB, no S3, no Authentik.
-    icon: icons/watchtower.svg
-    upstream_url: https://github.com/containrrr/watchtower
-
-    tfvars:
-      key: watchtower_apps
-      schema:
-        enabled:
-          type: bool
-          default: true
-          description: Whether this Watchtower instance is deployed.
-          ui: hidden
-
-        deployment_host_key:
-          type: string
-          default: apps
-          description: Which host (key in compute_hosts) this Watchtower instance runs on.
-          ui: advanced
-
-        schedule:
-          type: string
-          default: "0 0 4 * * *"
-          description: Cron (6-field, seconds first) governing how often Watchtower polls. Default 04:00 UTC daily — offset from backrest 02:00.
-          ui: advanced
-
-        notifications_slack_webhook:
-          type: string
-          default: ""
-          description: Optional Slack incoming-webhook URL for post-update summaries. Empty disables notifications.
-          ui: advanced
-          sensitive: true
-
   # ── Diun ────────────────────────────────────────────────────────────────
   # Platform host-service: notifies when a new image is available on the
   # registry for any container running on the host. Notify-only — does NOT
-  # pull or restart. Pairs with Watchtower as a deliberate split: Diun gives
-  # operators control + visibility over update timing, Watchtower handles
-  # unattended updates for whitelisted containers. Multi-instance — one per
-  # host you want coverage on.
+  # pull or restart. Replaces Watchtower (archived upstream Dec 2025).
+  # Multi-instance — one per host you want coverage on. Per-app
+  # diun_watch_enabled knobs decide which containers get the diun.enable=true
+  # label; default is opt-in for every bundle so out-of-the-box Diun watches
+  # the whole stack.
   - id: diun
     display_name: Diun
     category: ops
@@ -1960,10 +1913,10 @@ apps:
           description: Watch ALL tags of every image vs only the exact tag in use. Heavy on registries when true.
           ui: advanced
 
-        auto_update_enabled:
+        diun_watch_enabled:
           type: bool
           default: false
-          description: Whether Watchtower auto-pulls newer Diun image versions. Default false on purpose — auto-updating the tool whose job is to gate updates defeats the point.
+          description: Whether Diun watches its own image for upstream updates. Default false — auto-bumping the tool whose job is to gate updates defeats the point.
           ui: advanced
 
         autoheal_enabled:
@@ -1972,10 +1925,23 @@ apps:
           description: Whether Autoheal restarts Diun on healthcheck failure.
           ui: advanced
 
+        n8n_webhook_url:
+          type: string
+          default: ""
+          description: Webhook URL Diun POSTs new-image events to. Auto-derived from `module.n8n.app_url` + `/webhook/diun-image-update` when the n8n bundle is enabled — set explicitly to point at a non-n8n receiver.
+          ui: advanced
+
+        diun_notif_extra:
+          type: map
+          default: {}
+          description: Extra notification providers keyed by Diun notifier type (slack, mail, discord, telegram, teams, matrix, gotify, ntfy, opsgenie, pushover, rocketchat, script, twilio, amqp, mqtt). Value passed verbatim to that notifier's block in diun.yml. See https://crazymax.dev/diun/notif/ for per-type schemas.
+          ui: advanced
+          sensitive: true
+
         notification_targets:
           type: list
           default: []
-          description: List of `{ type, config }` Diun notifier configs. type ∈ {amqp, discord, gotify, mail, matrix, mqtt, ntfy, opsgenie, pushover, rocketchat, script, slack, teams, telegram, twilio, webhook}; config passed verbatim to Diun's diun.yml. Empty = stdout-only. See https://crazymax.dev/diun/notif/ for per-type schemas.
+          description: Legacy list-shaped notifier config kept for pre-v3.2 consumers. New consumers should use `n8n_webhook_url` + `diun_notif_extra` instead. Empty default.
           ui: advanced
           sensitive: true
 
@@ -2561,10 +2527,10 @@ bootstrap:
           description: Scaleway secret name this bundle writes. Override only when running multiple bridge instances per env.
           ui: advanced
 
-        auto_update_enabled:
+        diun_watch_enabled:
           type: bool
           default: false
-          description: Whether Watchtower auto-pulls newer bridge images. Default false — bridge schema migrations between minor versions need the manual re-login flow.
+          description: Whether Diun watches the bridge container for upstream image updates. Default false — bridge schema migrations between minor versions need the manual re-login flow, so notification noise isn't actionable.
           ui: advanced
 
         autoheal_enabled:

@@ -49,7 +49,9 @@ output "ansible" {
       diun_default_watch_repo      = var.default_watch_repo
       diun_include_swarm_services  = var.include_swarm_services
       diun_notification_targets    = var.notification_targets
-      diun_auto_update_enabled     = var.auto_update_enabled
+      diun_n8n_webhook_url         = var.n8n_webhook_url
+      diun_notif_extra             = var.diun_notif_extra
+      diun_watch_enabled           = var.diun_watch_enabled
       diun_autoheal_enabled        = var.autoheal_enabled
     }
   } : null

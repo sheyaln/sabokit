@@ -28,10 +28,24 @@ defaults:
     - new
     - update
 
-{% if diun_notification_targets | length > 0 %}
+{# Notification block is emitted only when at least one target source is set.
+   Sources merged in order: auto-wired n8n webhook, list-shaped legacy
+   targets, then map-shaped extras (extras win on key collision). #}
+{% set _has_notif = (diun_n8n_webhook_url | length > 0) or (diun_notification_targets | length > 0) or (diun_notif_extra | length > 0) %}
+{% if _has_notif %}
 notif:
+{% if diun_n8n_webhook_url | length > 0 %}
+  webhook:
+    endpoint: "{{ diun_n8n_webhook_url }}"
+    method: POST
+    timeout: 10s
+{% endif %}
 {% for target in diun_notification_targets %}
   {{ target.type }}:
 {{ target.config | to_nice_yaml(indent=2, width=4096) | indent(width=4, first=True) }}
+{% endfor %}
+{% for notif_type, notif_cfg in diun_notif_extra.items() %}
+  {{ notif_type }}:
+{{ notif_cfg | to_nice_yaml(indent=2, width=4096) | indent(width=4, first=True) }}
 {% endfor %}
 {% endif %}

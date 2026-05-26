@@ -687,27 +687,21 @@ module "backrest_mgmt" {
 }
 
 # ── Platform host-services (one container per host) ─────────────────────────
-# Watchtower auto-updates opted-in app containers; Autoheal restarts unhealthy
-# ones. Multi-instance like backrest — one block per host you want them on.
-# Each app bundle's per-app `auto_update_enabled` / `autoheal_enabled` knobs
-# decide which containers are labelled for these to act on.
+# Diun watches container images on each host and fires a webhook when a new
+# tag-digest lands upstream; Autoheal restarts containers stuck unhealthy.
+# Multi-instance like backrest — one block per host you want them on. Each
+# app bundle's per-app `diun_watch_enabled` / `autoheal_enabled` knobs decide
+# which containers are labelled for these to act on.
 
-module "watchtower_apps" {
-  source = "git::https://github.com/sheyaln/sabokit.git//platform/apps/watchtower/terraform?ref=v3.1.13"
-
-  enabled = try(var.apps.watchtower_apps.enabled, false)
-  base    = local.base
-
-  deployment_host_key         = try(var.apps.watchtower_apps.deployment_host_key, "apps")
-  image_tag                   = try(var.apps.watchtower_apps.image_tag, "latest")
-  schedule                    = try(var.apps.watchtower_apps.schedule, "0 0 4 * * *")
-  notifications_slack_webhook = try(var.apps.watchtower_apps.notifications_slack_webhook, "")
-}
-
-# Diun — notify-on-new-image companion (or replacement) for Watchtower.
-# Multi-instance like backrest: one block per host you want notification
-# coverage on. Convention: a single "mgmt" instance on the management host
-# covers a small fleet; large fleets get one per host. See platform/apps/diun.
+# Diun — notify-on-new-image watcher. Multi-instance like backrest: one block
+# per host you want notification coverage on. Convention: a single "mgmt"
+# instance on the management host covers a small fleet; large fleets get one
+# per host. See platform/apps/diun.
+#
+# Auto-wires its webhook target to the n8n bundle when n8n is enabled (mirrors
+# the TEM-webhook → n8n auto-wire pattern in platform/base/terraform/tem_webhook.tf).
+# When n8n is disabled and no targets are supplied, Diun runs but only logs
+# new-image events to stdout — effectively dormant until a target is wired.
 module "diun_mgmt" {
   source = "git::https://github.com/sheyaln/sabokit.git//platform/apps/diun/terraform?ref=v3.1.13"
 
@@ -725,9 +719,20 @@ module "diun_mgmt" {
   default_watch_repo      = try(var.apps.diun_mgmt.default_watch_repo, false)
   include_swarm_services  = try(var.apps.diun_mgmt.include_swarm_services, false)
   notification_targets    = try(var.apps.diun_mgmt.notification_targets, [])
-  auto_update_enabled     = try(var.apps.diun_mgmt.auto_update_enabled, false)
+  diun_notif_extra        = try(var.apps.diun_mgmt.diun_notif_extra, {})
+  diun_watch_enabled      = try(var.apps.diun_mgmt.diun_watch_enabled, false)
   autoheal_enabled        = try(var.apps.diun_mgmt.autoheal_enabled, true)
   monitoring_enabled      = try(var.apps.diun_mgmt.monitoring_enabled, true)
+
+  # Auto-wire webhook target to n8n when n8n is enabled and no explicit
+  # override is set. Mirrors the TEM → n8n auto-wire in
+  # platform/base/terraform/tem_webhook.tf. Consumer can override with
+  # `var.apps.diun_mgmt.n8n_webhook_url` to point at a non-n8n receiver,
+  # or leave empty and rely on `notification_targets` / `diun_notif_extra`.
+  n8n_webhook_url = try(
+    var.apps.diun_mgmt.n8n_webhook_url,
+    module.n8n.enabled ? "${coalesce(module.n8n.app_url, "")}/webhook/diun-image-update" : "",
+  )
 }
 
 # Wazuh agent — host-network container that ships logs to the wazuh manager.
@@ -768,7 +773,7 @@ module "protonmail_bridge" {
   image_tag               = try(var.bootstrap.protonmail_bridge.image_tag, "latest")
   timezone                = try(var.bootstrap.protonmail_bridge.timezone, "UTC")
   imap_config_secret_name = try(var.bootstrap.protonmail_bridge.imap_config_secret_name, "imap-config")
-  auto_update_enabled     = try(var.bootstrap.protonmail_bridge.auto_update_enabled, false)
+  diun_watch_enabled      = try(var.bootstrap.protonmail_bridge.diun_watch_enabled, false)
   autoheal_enabled        = try(var.bootstrap.protonmail_bridge.autoheal_enabled, true)
 }
 
