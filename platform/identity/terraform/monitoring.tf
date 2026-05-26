@@ -17,8 +17,11 @@ variable "monitoring_enabled" {
 locals {
   monitoring_contribution = var.monitoring_enabled ? {
     prometheus_scrape_configs = []
-    grafana_dashboards        = []
-    loki_log_paths            = []
+    grafana_dashboards = [
+      "${path.module}/../monitoring/dashboards/authentik-metrics.json",
+      "${path.module}/../monitoring/dashboards/authentik-stack-monitoring.json",
+    ]
+    loki_log_paths = []
     alert_rules = [
       {
         name     = "authentik-availability"

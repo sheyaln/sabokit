@@ -1,0 +1,383 @@
+{
+    "id": null,
+    "uid": "traefik-overview",
+    "title": "Traefik Overview",
+    "tags": ["traefik", "proxy", "http", "infrastructure"],
+    "style": "dark",
+    "timezone": "browser",
+    "editable": true,
+    "graphTooltip": 1,
+    "time": {
+        "from": "now-1h",
+        "to": "now"
+    },
+    "refresh": "30s",
+    "templating": {
+        "list": [
+            {
+                "name": "server",
+                "type": "query",
+                "datasource": {
+                    "type": "prometheus",
+                    "uid": "prometheus"
+                },
+                "query": "label_values(traefik_config_reloads_total, server)",
+                "refresh": 1,
+                "includeAll": true,
+                "multi": true,
+                "current": {
+                    "selected": true,
+                    "text": "All",
+                    "value": "$__all"
+                }
+            }
+        ]
+    },
+    "panels": [
+        {
+            "id": 1,
+            "title": "Traefik Instance Status",
+            "type": "stat",
+            "gridPos": {"h": 4, "w": 24, "x": 0, "y": 0},
+            "targets": [
+                {
+                    "datasource": {"type": "prometheus", "uid": "prometheus"},
+                    "expr": "up{job=~\"traefik-.*\", server=~\"$server\"}",
+                    "legendFormat": "{{ server }}",
+                    "refId": "A"
+                }
+            ],
+            "fieldConfig": {
+                "defaults": {
+                    "mappings": [
+                        {"options": {"0": {"color": "red", "index": 1, "text": "DOWN"}}, "type": "value"},
+                        {"options": {"1": {"color": "green", "index": 0, "text": "UP"}}, "type": "value"}
+                    ],
+                    "thresholds": {
+                        "mode": "absolute",
+                        "steps": [
+                            {"color": "red", "value": null},
+                            {"color": "green", "value": 1}
+                        ]
+                    },
+                    "color": {"mode": "thresholds"}
+                }
+            },
+            "options": {
+                "colorMode": "background",
+                "graphMode": "none",
+                "orientation": "horizontal",
+                "reduceOptions": {
+                    "calcs": ["lastNotNull"],
+                    "fields": "",
+                    "values": false
+                }
+            }
+        },
+        {
+            "id": 2,
+            "title": "Requests per Second by Server",
+            "type": "timeseries",
+            "gridPos": {"h": 8, "w": 12, "x": 0, "y": 4},
+            "targets": [
+                {
+                    "datasource": {"type": "prometheus", "uid": "prometheus"},
+                    "expr": "sum by(server) (rate(traefik_entrypoint_requests_total{server=~\"$server\"}[5m]))",
+                    "legendFormat": "{{ server }}",
+                    "refId": "A"
+                }
+            ],
+            "fieldConfig": {
+                "defaults": {
+                    "unit": "reqps"
+                }
+            }
+        },
+        {
+            "id": 3,
+            "title": "Response Time (95th Percentile)",
+            "type": "timeseries",
+            "gridPos": {"h": 8, "w": 12, "x": 12, "y": 4},
+            "targets": [
+                {
+                    "datasource": {"type": "prometheus", "uid": "prometheus"},
+                    "expr": "histogram_quantile(0.95, sum by(le, server) (rate(traefik_entrypoint_request_duration_seconds_bucket{server=~\"$server\"}[5m])))",
+                    "legendFormat": "{{ server }}",
+                    "refId": "A"
+                }
+            ],
+            "fieldConfig": {
+                "defaults": {
+                    "unit": "s",
+                    "thresholds": {
+                        "mode": "absolute",
+                        "steps": [
+                            {"color": "green", "value": null},
+                            {"color": "yellow", "value": 0.5},
+                            {"color": "red", "value": 2}
+                        ]
+                    }
+                }
+            }
+        },
+        {
+            "id": 4,
+            "title": "HTTP Status Codes by Server",
+            "type": "timeseries",
+            "gridPos": {"h": 8, "w": 12, "x": 0, "y": 12},
+            "targets": [
+                {
+                    "datasource": {"type": "prometheus", "uid": "prometheus"},
+                    "expr": "sum by(server, code) (rate(traefik_entrypoint_requests_total{server=~\"$server\"}[5m]))",
+                    "legendFormat": "{{ server }} - {{ code }}",
+                    "refId": "A"
+                }
+            ],
+            "fieldConfig": {
+                "defaults": {
+                    "unit": "reqps"
+                }
+            }
+        },
+        {
+            "id": 5,
+            "title": "Error Rate (4xx + 5xx)",
+            "type": "timeseries",
+            "gridPos": {"h": 8, "w": 12, "x": 12, "y": 12},
+            "targets": [
+                {
+                    "datasource": {"type": "prometheus", "uid": "prometheus"},
+                    "expr": "sum by(server) (rate(traefik_entrypoint_requests_total{code=~\"4..|5..\", server=~\"$server\"}[5m])) / sum by(server) (rate(traefik_entrypoint_requests_total{server=~\"$server\"}[5m])) * 100",
+                    "legendFormat": "{{ server }}",
+                    "refId": "A"
+                }
+            ],
+            "fieldConfig": {
+                "defaults": {
+                    "unit": "percent",
+                    "min": 0,
+                    "thresholds": {
+                        "mode": "absolute",
+                        "steps": [
+                            {"color": "green", "value": null},
+                            {"color": "yellow", "value": 1},
+                            {"color": "red", "value": 5}
+                        ]
+                    }
+                }
+            }
+        },
+        {
+            "id": 6,
+            "title": "Open Connections by Server",
+            "type": "timeseries",
+            "gridPos": {"h": 6, "w": 12, "x": 0, "y": 20},
+            "targets": [
+                {
+                    "datasource": {"type": "prometheus", "uid": "prometheus"},
+                    "expr": "sum by(server) (traefik_entrypoint_open_connections{server=~\"$server\"})",
+                    "legendFormat": "{{ server }}",
+                    "refId": "A"
+                }
+            ],
+            "fieldConfig": {
+                "defaults": {
+                    "unit": "short"
+                }
+            }
+        },
+        {
+            "id": 7,
+            "title": "Active Services by Server",
+            "type": "stat",
+            "gridPos": {"h": 6, "w": 12, "x": 12, "y": 20},
+            "targets": [
+                {
+                    "datasource": {"type": "prometheus", "uid": "prometheus"},
+                    "expr": "count by(server) (traefik_service_server_up{server=~\"$server\"} == 1)",
+                    "legendFormat": "{{ server }}",
+                    "refId": "A"
+                }
+            ],
+            "fieldConfig": {
+                "defaults": {
+                    "color": {"mode": "thresholds"},
+                    "thresholds": {
+                        "mode": "absolute",
+                        "steps": [
+                            {"color": "red", "value": null},
+                            {"color": "green", "value": 1}
+                        ]
+                    }
+                }
+            },
+            "options": {
+                "colorMode": "background",
+                "graphMode": "none"
+            }
+        },
+        {
+            "id": 8,
+            "title": "Config Reloads",
+            "type": "timeseries",
+            "gridPos": {"h": 6, "w": 12, "x": 0, "y": 26},
+            "targets": [
+                {
+                    "datasource": {"type": "prometheus", "uid": "prometheus"},
+                    "expr": "rate(traefik_config_reloads_total{server=~\"$server\"}[5m]) * 60",
+                    "legendFormat": "{{ server }} - Reloads/min",
+                    "refId": "A"
+                },
+                {
+                    "datasource": {"type": "prometheus", "uid": "prometheus"},
+                    "expr": "rate(traefik_config_reloads_failure_total{server=~\"$server\"}[5m]) * 60",
+                    "legendFormat": "{{ server }} - Failed/min",
+                    "refId": "B"
+                }
+            ],
+            "fieldConfig": {
+                "defaults": {
+                    "unit": "short"
+                }
+            }
+        },
+        {
+            "id": 9,
+            "title": "TLS Certificate Expiration",
+            "type": "stat",
+            "gridPos": {"h": 6, "w": 12, "x": 12, "y": 26},
+            "targets": [
+                {
+                    "datasource": {"type": "prometheus", "uid": "prometheus"},
+                    "expr": "(traefik_tls_certs_not_after{server=~\"$server\"} - time()) / 86400",
+                    "legendFormat": "{{ cn }} ({{ server }})",
+                    "refId": "A"
+                }
+            ],
+            "fieldConfig": {
+                "defaults": {
+                    "unit": "d",
+                    "thresholds": {
+                        "mode": "absolute",
+                        "steps": [
+                            {"color": "red", "value": null},
+                            {"color": "yellow", "value": 14},
+                            {"color": "green", "value": 30}
+                        ]
+                    },
+                    "color": {"mode": "thresholds"}
+                }
+            },
+            "options": {
+                "colorMode": "value",
+                "graphMode": "none",
+                "orientation": "horizontal",
+                "reduceOptions": {
+                    "calcs": ["lastNotNull"],
+                    "fields": "",
+                    "values": false
+                }
+            }
+        },
+        {
+            "id": 10,
+            "title": "Requests per Service (Top 10)",
+            "type": "timeseries",
+            "gridPos": {"h": 8, "w": 12, "x": 0, "y": 32},
+            "targets": [
+                {
+                    "datasource": {"type": "prometheus", "uid": "prometheus"},
+                    "expr": "topk(10, sum by(service, server) (rate(traefik_service_requests_total{server=~\"$server\"}[5m])))",
+                    "legendFormat": "{{ server }} - {{ service }}",
+                    "refId": "A"
+                }
+            ],
+            "fieldConfig": {
+                "defaults": {
+                    "unit": "reqps"
+                }
+            }
+        },
+        {
+            "id": 11,
+            "title": "Service Response Time (95th)",
+            "type": "timeseries",
+            "gridPos": {"h": 8, "w": 12, "x": 12, "y": 32},
+            "targets": [
+                {
+                    "datasource": {"type": "prometheus", "uid": "prometheus"},
+                    "expr": "topk(10, histogram_quantile(0.95, sum by(le, service, server) (rate(traefik_service_request_duration_seconds_bucket{server=~\"$server\"}[5m]))))",
+                    "legendFormat": "{{ server }} - {{ service }}",
+                    "refId": "A"
+                }
+            ],
+            "fieldConfig": {
+                "defaults": {
+                    "unit": "s",
+                    "thresholds": {
+                        "mode": "absolute",
+                        "steps": [
+                            {"color": "green", "value": null},
+                            {"color": "yellow", "value": 1},
+                            {"color": "red", "value": 3}
+                        ]
+                    }
+                }
+            }
+        },
+        {
+            "id": 12,
+            "title": "Service Health Status",
+            "type": "table",
+            "gridPos": {"h": 8, "w": 24, "x": 0, "y": 40},
+            "targets": [
+                {
+                    "datasource": {"type": "prometheus", "uid": "prometheus"},
+                    "expr": "traefik_service_server_up{server=~\"$server\"}",
+                    "legendFormat": "",
+                    "refId": "A",
+                    "format": "table",
+                    "instant": true
+                }
+            ],
+            "fieldConfig": {
+                "defaults": {
+                    "mappings": [
+                        {"options": {"0": {"color": "red", "index": 1, "text": "Down"}}, "type": "value"},
+                        {"options": {"1": {"color": "green", "index": 0, "text": "Up"}}, "type": "value"}
+                    ],
+                    "color": {"mode": "thresholds"},
+                    "thresholds": {
+                        "mode": "absolute",
+                        "steps": [
+                            {"color": "red", "value": null},
+                            {"color": "green", "value": 1}
+                        ]
+                    }
+                },
+                "overrides": [
+                    {
+                        "matcher": {"id": "byName", "options": "Value"},
+                        "properties": [
+                            {"id": "custom.cellOptions", "value": {"mode": "basic", "type": "color-background"}}
+                        ]
+                    }
+                ]
+            },
+            "options": {
+                "showHeader": true,
+                "sortBy": [{"displayName": "service", "desc": false}]
+            },
+            "transformations": [
+                {
+                    "id": "organize",
+                    "options": {
+                        "excludeByName": {"Time": true, "__name__": true, "job": true},
+                        "indexByName": {},
+                        "renameByName": {"Value": "Status", "server": "Server", "service": "Service", "url": "Backend URL"}
+                    }
+                }
+            ]
+        }
+    ]
+}
