@@ -6,6 +6,17 @@ All notable changes to sabokit go here. Versioning follows semver; major bumps s
 
 Non-downstream-requested improvements, accumulating until the next downstream-driven patch folds them in.
 
+## v3.1.8 — 2026-05-26
+
+Systemic credentials_preserve gate bug: silently broken since v3.1.1; only the random_* generators and the data-source reads were gated, never the wrapping `scaleway_secret` / `scaleway_secret_version` resources themselves. Result on every preserve=true consumer: TF tried to CREATE the `<slug>-app-secrets` bag in parallel with the data source reading it → name collision at apply, iter19-class plan blocked at "secret already exists" for the live bag. Same shape was present in the v3.1.4 base postgres and identity_bootstrap layers. Plan-validated against a real Scaleway project with `credentials_preserve=true` for vikunja + identity_bootstrap + base postgres — confirmed the `scaleway_secret.app[0]`, `scaleway_secret.admin`, `scaleway_secret.server`, `scaleway_secret.admin_credentials`, `scaleway_secret.db_credentials[*]` resource addresses are absent from the create list; data sources resolve correctly; baseline run with preserve=false still creates everything as before.
+
+### Fixed
+- **`scaleway_secret.app` and `scaleway_secret_version.app` now gated on `credentials_preserve` across all 13 app bundles.** outline, nextcloud, vikunja, jitsi, n8n, espocrm, grafana, notifuse, broadsheet, wazuh, decidim, steward, backrest. Each bundle gains a new `app_secret_id` local that ternary-resolves to the data-source ID when preserve=true and the resource ID when preserve=false; the bundle's `outputs.tf` ansible-vars map switches from `scaleway_secret.app[0].id` to `local.app_secret_id` so the downstream render layer sees the correct secret either way. Steward additionally exposes `app_secret_name` for its `service_steward_token_secret_hint` output.
+- **`scaleway_secret.admin` / `scaleway_secret.server` + matching versions gated on `credentials_preserve` in `platform/identity/bootstrap/main.tf`.** Adds `admin_secret_id` + `server_secret_id` locals so the bundle's `identity_bootstrap` aggregate output and the standalone `admin_secret_id` / `server_secret_id` outputs return the correct ID under both paths.
+- **`scaleway_secret.admin_credentials` + `scaleway_secret.db_credentials[*]` gated on `credentials_preserve` in `modules/infrastructure/storage/postgres`.** `admin_credentials_secret_id` and the (previously unused) `database_credentials_secrets` outputs now ternary-resolve through the preserved data sources when preserve=true. `database_credentials_secrets` shape narrowed to `{id, name}` for parity across both paths (it had no consumers in the tree).
+- **`scaleway_secret.this` + `scaleway_secret_version.this` gated on `credentials_preserve` in `modules/infrastructure/storage/postgres_database`.** `secret_id` output ternary-resolves through `data.scaleway_secret.preserved[0].id` when preserve=true.
+- **`platform/identity/bootstrap` now forwards `credentials_preserve` into its `module "database"` (postgres_database) call.** Pre-existing wiring gap: the parent bundle had `var.credentials_preserve` but never passed it down, so the authentik DB bag was being re-created on every preserve=true apply even before the gate fixes above. Every app bundle's `database.tf` already forwarded correctly; identity_bootstrap was the lone gap.
+
 ## v3.1.7 — 2026-05-26
 
 DKIM regression fix plus a batch of TF↔Ansible wiring gaps the v3.1.5 audit surfaced, plus a v3.1.6 knob walked back per upstream stance.
