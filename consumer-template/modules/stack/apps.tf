@@ -505,9 +505,10 @@ module "prometheus" {
   private_ip_bind      = try(var.apps.prometheus.private_ip_bind, "")
   # Auto-aggregated from every enabled app's monitoring.prometheus_scrape_configs
   # + monitoring.alert_rules + monitoring.blackbox_targets.
-  scrape_configs   = concat(local.aggregated_scrape_configs, try(var.apps.prometheus.scrape_configs, []))
-  alert_rules      = concat(local.aggregated_alert_rules, try(var.apps.prometheus.alert_rules, []))
-  blackbox_targets = concat(local.aggregated_blackbox_targets, try(var.apps.prometheus.blackbox_targets, []))
+  scrape_configs       = concat(local.aggregated_scrape_configs, try(var.apps.prometheus.scrape_configs, []))
+  alert_rules          = concat(local.aggregated_alert_rules, try(var.apps.prometheus.alert_rules, []))
+  blackbox_targets     = concat(local.aggregated_blackbox_targets, try(var.apps.prometheus.blackbox_targets, []))
+  extra_scrape_targets = try(var.apps.prometheus.extra_scrape_targets, {})
 
   # Blackbox exporter sidecar — actively probes every public hostname on the
   # platform. Opt-out per the plug-and-play-owns-networking philosophy.

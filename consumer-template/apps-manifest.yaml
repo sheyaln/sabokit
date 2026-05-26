@@ -1999,6 +1999,12 @@ apps:
           description: Rolling window the TEM exporter uses for per-flag / per-status counts (drives bounce-rate, spam-rate alerts).
           ui: advanced
 
+        extra_scrape_targets:
+          type: map(list(string))
+          default: {}
+          description: Extra Prometheus scrape jobs as job_name → list(host:port). For cross-host base-exporter scrapes (node_exporter, cadvisor, traefik metrics on every infra host) when the management host needs to scrape over the VPC. Consumer fills from their host inventory.
+          ui: advanced
+
   # ── Loki ────────────────────────────────────────────────────────────────
   - id: loki
     display_name: Loki

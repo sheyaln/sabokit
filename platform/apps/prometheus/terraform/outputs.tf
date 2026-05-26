@@ -16,6 +16,7 @@ output "ansible" {
       prometheus_image_tag                     = var.image_tag
       prometheus_retention                     = var.retention
       prometheus_scrape_configs                = var.scrape_configs
+      prometheus_extra_scrape_targets          = var.extra_scrape_targets
       prometheus_alert_rules                   = var.alert_rules
       prometheus_exporters_enabled             = var.exporters_enabled
       prometheus_remote_write_enabled          = var.remote_write_enabled

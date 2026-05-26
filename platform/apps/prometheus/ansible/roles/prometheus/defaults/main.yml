@@ -5,6 +5,7 @@ prometheus_install_dir: "/opt/prometheus"
 
 prometheus_retention: "30d"
 prometheus_scrape_configs: []
+prometheus_extra_scrape_targets: {}
 prometheus_alert_rules: []
 prometheus_exporters_enabled: true
 prometheus_remote_write_enabled: true

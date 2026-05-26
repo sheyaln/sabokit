@@ -61,6 +61,12 @@ variable "remote_write_enabled" {
   default     = true
 }
 
+variable "extra_scrape_targets" {
+  description = "Extra Prometheus scrape jobs as `job_name → list(target_endpoint)`. Each entry becomes a scrape_config with a single static_configs targets list. Typical use: cross-host base-exporter scrapes (node_exporter, cadvisor, traefik metrics on every infra host) when the management host needs to scrape over the VPC. Consumer-template doesn't auto-aggregate this — supply directly from your host inventory."
+  type        = map(list(string))
+  default     = {}
+}
+
 variable "blackbox_exporter_enabled" {
   description = "Deploy the bundled Prometheus Blackbox Exporter sidecar — actively probes URLs over HTTP(S)/TCP/ICMP and exposes probe_success, probe_http_status_code, probe_ssl_earliest_cert_expiry, probe_duration_seconds. Default true; opt-out. Consumer-aggregated `blackbox_targets` from every enabled bundle plus this module's `blackbox_targets` input are rendered into a Prometheus file_sd target list. Sidecar is internal-only (monitoring_internal network, port 9115)."
   type        = bool
