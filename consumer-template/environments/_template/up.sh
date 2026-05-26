@@ -132,6 +132,7 @@ ansible-playbook "$FED_COMMONS_DIR/platform/ansible/bootstrap.yml" \
   -e "env_name=$ENV_NAME" \
   -e "gateway_domain=$GATEWAY_DOMAIN" \
   -e "scaleway_project_id=$SCW_PROJECT_ID" \
+  -e "scaleway_region=$SCW_DEFAULT_REGION" \
   -e "traefik_acme_email=$INFRA_EMAIL" \
   "$@"
 c_ok "Bootstrap complete"
