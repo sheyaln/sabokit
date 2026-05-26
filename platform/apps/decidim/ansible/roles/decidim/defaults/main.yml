@@ -60,3 +60,11 @@ decidim_memcached_cpu_reservation: "0.1"
 # locally-built image Watchtower can't update anyway.
 decidim_auto_update_enabled: false
 decidim_autoheal_enabled: true
+
+# Filesystem owner/group for /opt/<slug>/ artifacts (compose file, .env).
+# Defaults to the deploy user (ubuntu on stock cloud images) so the role
+# doesn't leave the install dir root-owned. The deploy user is already in
+# the docker group via the base/docker role and can therefore run
+# `docker compose` against the rendered files without escalation.
+decidim_file_owner: "ubuntu"
+decidim_file_group: "ubuntu"

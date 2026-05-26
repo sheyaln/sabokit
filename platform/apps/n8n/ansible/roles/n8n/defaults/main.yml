@@ -61,3 +61,11 @@ n8n_extra_env_vars: {}
 # listed here must be marked `external: true` and must already exist on the
 # host (created by whichever bundle owns them).
 n8n_extra_docker_networks: []
+
+# Filesystem owner/group for /opt/<slug>/ artifacts (compose file, .env).
+# Defaults to the deploy user (ubuntu on stock cloud images) so the role
+# doesn't leave the install dir root-owned. The deploy user is already in
+# the docker group via the base/docker role and can therefore run
+# `docker compose` against the rendered files without escalation.
+n8n_file_owner: "ubuntu"
+n8n_file_group: "ubuntu"

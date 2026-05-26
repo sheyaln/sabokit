@@ -13,8 +13,8 @@
     path: "{{ item }}"
     state: directory
     mode: "0755"
-    owner: root
-    group: root
+    owner: "{{ loki_file_owner }}"
+    group: "{{ loki_file_group }}"
   loop:
     - "{{ loki_install_dir }}"
     - "{{ loki_install_dir }}/config"
@@ -29,8 +29,8 @@
     src: loki-config.yml.j2
     dest: "{{ loki_install_dir }}/config/loki-config.yml"
     mode: "0644"
-    owner: root
-    group: root
+    owner: "{{ loki_file_owner }}"
+    group: "{{ loki_file_group }}"
   notify: Restart loki
 
 - name: Render docker-compose.yml
@@ -38,8 +38,8 @@
     src: docker-compose.yml.j2
     dest: "{{ loki_install_dir }}/docker-compose.yml"
     mode: "0644"
-    owner: root
-    group: root
+    owner: "{{ loki_file_owner }}"
+    group: "{{ loki_file_group }}"
   notify: Restart loki
 
 - name: Ensure Loki is running

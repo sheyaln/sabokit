@@ -39,8 +39,8 @@
     path: "{{ n8n_install_dir }}"
     state: directory
     mode: "0750"
-    owner: root
-    group: root
+    owner: "{{ n8n_file_owner }}"
+    group: "{{ n8n_file_group }}"
 
 - name: Normalize Scaleway secret IDs (strip leading region/ prefix)
   ansible.builtin.set_fact:
@@ -69,8 +69,8 @@
     src: hooks.js
     dest: "{{ n8n_install_dir }}/hooks.js"
     mode: "0644"
-    owner: root
-    group: root
+    owner: "{{ n8n_file_owner }}"
+    group: "{{ n8n_file_group }}"
   notify: Restart n8n
 
 # Upstream's launcher config is locked down to the point of being unusable
@@ -81,8 +81,8 @@
     src: n8n-task-runners.json.j2
     dest: "{{ n8n_install_dir }}/n8n-task-runners.json"
     mode: "0644"
-    owner: root
-    group: root
+    owner: "{{ n8n_file_owner }}"
+    group: "{{ n8n_file_group }}"
   notify: Restart n8n
 
 - name: Render docker-compose.yml
@@ -90,8 +90,8 @@
     src: docker-compose.yml.j2
     dest: "{{ n8n_install_dir }}/docker-compose.yml"
     mode: "0644"
-    owner: root
-    group: root
+    owner: "{{ n8n_file_owner }}"
+    group: "{{ n8n_file_group }}"
   notify: Restart n8n
 
 - name: Render n8n environment file
@@ -99,8 +99,8 @@
     src: env.j2
     dest: "{{ n8n_install_dir }}/.env"
     mode: "0600"
-    owner: root
-    group: root
+    owner: "{{ n8n_file_owner }}"
+    group: "{{ n8n_file_group }}"
   notify: Restart n8n
   no_log: true
   tags: [secrets]

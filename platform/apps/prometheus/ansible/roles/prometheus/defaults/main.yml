@@ -52,3 +52,11 @@ prometheus_tem_scaleway_region: "fr-par"
 prometheus_tem_exporter_poll_interval: 60
 prometheus_tem_exporter_lookback_minutes: 60
 prometheus_tem_exporter_port: 9111
+
+# Filesystem owner/group for /opt/<slug>/ artifacts (compose file, .env).
+# Defaults to the deploy user (ubuntu on stock cloud images) so the role
+# doesn't leave the install dir root-owned. The deploy user is already in
+# the docker group via the base/docker role and can therefore run
+# `docker compose` against the rendered files without escalation.
+prometheus_file_owner: "ubuntu"
+prometheus_file_group: "ubuntu"

@@ -14,10 +14,15 @@
   changed_when: false
   failed_when: protonmail_bridge_docker_check.rc != 0
 
+# Operator runs protonmail-init.sh interactively as ubuntu, so the install
+# dir + rendered files must be ubuntu-owned. Without this they default to
+# root via the play-level become, forcing sudo for every operator op.
 - name: Ensure bridge directory
   ansible.builtin.file:
     path: "{{ protonmail_bridge_install_dir }}"
     state: directory
+    owner: "{{ protonmail_bridge_file_owner }}"
+    group: "{{ protonmail_bridge_file_group }}"
     mode: "0755"
 
 - name: Ensure shared bridge network exists
@@ -29,6 +34,8 @@
   ansible.builtin.template:
     src: docker-compose.yml.j2
     dest: "{{ protonmail_bridge_install_dir }}/docker-compose.yml"
+    owner: "{{ protonmail_bridge_file_owner }}"
+    group: "{{ protonmail_bridge_file_group }}"
     mode: "0644"
   notify: Restart protonmail-bridge
 
