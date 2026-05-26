@@ -82,6 +82,17 @@ locals {
         # Slot 4 (highest) — admin must exist as a peer in some slot
         { name = "l4", peers = { admin = "admin" } },
       ]
+
+      # Named-group pointers. Each must match a group_name that exists in
+      # tier_slots above. Defaults are "admin" / "member" / "delegate" /
+      # "delegate". Override when the org uses different terminology — e.g.
+      # rename the delegate tier to "Steward" or "Coordinator" and point
+      # delegate_group_name + delegate_role_name at it.
+      #
+      # admin_group_name    = "admin"
+      # member_group_name   = "member"
+      # delegate_group_name = "delegate"
+      # delegate_role_name  = "delegate"
     }
 
     # ── SMTP (optional) ──────────────────────────────────────────────────
