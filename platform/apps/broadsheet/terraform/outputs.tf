@@ -49,7 +49,7 @@ output "ansible" {
       broadsheet_build_from_source        = var.build_from_source
       broadsheet_image_source_repo        = var.image_source_repo
       broadsheet_image_source_ref         = var.image_source_ref
-      broadsheet_app_secret_id            = scaleway_secret.app[0].id
+      broadsheet_app_secret_id            = local.app_secret_id
       broadsheet_db_credentials_secret_id = module.database[0].secret_id
       broadsheet_smtp_secret_name         = var.smtp_from_email == "" ? "" : "smtp-config"
       broadsheet_auto_update_enabled      = var.auto_update_enabled

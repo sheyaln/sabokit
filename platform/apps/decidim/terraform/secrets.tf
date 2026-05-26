@@ -36,7 +36,7 @@ resource "random_password" "organization_admin" {
 }
 
 resource "scaleway_secret" "app" {
-  count = var.enabled ? 1 : 0
+  count = var.enabled && !var.credentials_preserve ? 1 : 0
 
   name        = "${local.slug}-app-secrets"
   description = "Decidim application secrets (SECRET_KEY_BASE, system + org admin, OIDC, S3 keys, SMTP from-address)."
@@ -61,10 +61,11 @@ locals {
   secret_key_base             = var.enabled ? (var.credentials_preserve ? local._preserved.SECRET_KEY_BASE : random_password.secret_key_base[0].result) : ""
   system_admin_password       = var.enabled ? (var.credentials_preserve ? local._preserved.DECIDIM_SYSTEM_PASSWORD : random_password.system_admin[0].result) : ""
   organization_admin_password = var.enabled ? (var.credentials_preserve ? local._preserved.DECIDIM_ORG_ADMIN_PASSWORD : random_password.organization_admin[0].result) : ""
+  app_secret_id               = var.enabled ? (var.credentials_preserve ? data.scaleway_secret.preserved[0].id : scaleway_secret.app[0].id) : ""
 }
 
 resource "scaleway_secret_version" "app" {
-  count = var.enabled ? 1 : 0
+  count = var.enabled && !var.credentials_preserve ? 1 : 0
 
   secret_id = scaleway_secret.app[0].id
   data = jsonencode({

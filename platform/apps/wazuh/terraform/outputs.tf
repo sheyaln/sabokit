@@ -76,7 +76,7 @@ output "ansible" {
       wazuh_manager_agent_port      = var.manager_agent_port
       wazuh_manager_enrollment_port = var.manager_enrollment_port
       wazuh_manager_syslog_port     = var.manager_syslog_port
-      wazuh_app_secret_id           = scaleway_secret.app[0].id
+      wazuh_app_secret_id           = local.app_secret_id
       wazuh_oidc_admin_group        = var.oidc_admin_group
       wazuh_memory_limit            = var.memory_limit
       wazuh_memory_reservation      = var.memory_reservation

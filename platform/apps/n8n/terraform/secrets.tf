@@ -27,7 +27,7 @@ resource "random_password" "runners_auth_token" {
 }
 
 resource "scaleway_secret" "app" {
-  count = var.enabled ? 1 : 0
+  count = var.enabled && !var.credentials_preserve ? 1 : 0
 
   name        = "${local.slug}-app-secrets"
   description = "n8n application secrets (encryption key, runners auth token, OIDC bag)."
@@ -54,10 +54,11 @@ locals {
   encryption_key      = var.enabled ? (var.credentials_preserve ? local._preserved.N8N_ENCRYPTION_KEY : random_password.encryption_key[0].result) : ""
   runners_auth_token  = var.enabled ? (var.credentials_preserve ? local._preserved.N8N_RUNNERS_AUTH_TOKEN : random_password.runners_auth_token[0].result) : ""
   authentik_api_token = var.enabled ? authentik_token.service_n8n[0].key : ""
+  app_secret_id       = var.enabled ? (var.credentials_preserve ? data.scaleway_secret.preserved[0].id : scaleway_secret.app[0].id) : ""
 }
 
 resource "scaleway_secret_version" "app" {
-  count = var.enabled ? 1 : 0
+  count = var.enabled && !var.credentials_preserve ? 1 : 0
 
   secret_id = scaleway_secret.app[0].id
   data = jsonencode({

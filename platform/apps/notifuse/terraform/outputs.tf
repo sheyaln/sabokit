@@ -49,7 +49,7 @@ output "ansible" {
       notifuse_build_from_source        = var.build_from_source
       notifuse_image_source_repo        = var.image_source_repo
       notifuse_image_source_ref         = var.image_source_ref
-      notifuse_app_secret_id            = scaleway_secret.app[0].id
+      notifuse_app_secret_id            = local.app_secret_id
       notifuse_db_credentials_secret_id = module.database[0].secret_id
       notifuse_smtp_secret_name         = var.smtp_from_email == "" ? "" : "smtp-config"
       notifuse_auto_update_enabled      = var.auto_update_enabled

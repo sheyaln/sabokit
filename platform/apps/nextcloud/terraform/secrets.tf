@@ -93,7 +93,7 @@ resource "random_password" "talk_internal_secret" {
 }
 
 resource "scaleway_secret" "app" {
-  count = var.enabled ? 1 : 0
+  count = var.enabled && !var.credentials_preserve ? 1 : 0
 
   name        = "${local.slug}-app-secrets"
   description = "Nextcloud application secrets (admin bootstrap password, Redis password, OIDC + S3 bag)."
@@ -123,10 +123,11 @@ locals {
   talk_turn_secret       = var.enabled ? (var.credentials_preserve ? local._preserved.TALK_TURN_SECRET : random_password.talk_turn_secret[0].result) : ""
   talk_signaling_secret  = var.enabled ? (var.credentials_preserve ? local._preserved.TALK_SIGNALING_SECRET : random_password.talk_signaling_secret[0].result) : ""
   talk_internal_secret   = var.enabled ? (var.credentials_preserve ? local._preserved.TALK_INTERNAL_SECRET : random_password.talk_internal_secret[0].result) : ""
+  app_secret_id          = var.enabled ? (var.credentials_preserve ? data.scaleway_secret.preserved[0].id : scaleway_secret.app[0].id) : ""
 }
 
 resource "scaleway_secret_version" "app" {
-  count = var.enabled ? 1 : 0
+  count = var.enabled && !var.credentials_preserve ? 1 : 0
 
   secret_id = scaleway_secret.app[0].id
   data = jsonencode({

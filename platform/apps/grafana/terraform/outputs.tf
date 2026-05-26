@@ -52,7 +52,7 @@ output "ansible" {
       grafana_prometheus_url             = var.prometheus_url
       grafana_loki_url                   = var.loki_url
       grafana_prometheus_scrape_interval = var.prometheus_scrape_interval
-      grafana_app_secret_id              = scaleway_secret.app[0].id
+      grafana_app_secret_id              = local.app_secret_id
       grafana_memory_limit               = var.memory_limit
       grafana_memory_reservation         = var.memory_reservation
       grafana_cpu_limit                  = var.cpu_limit

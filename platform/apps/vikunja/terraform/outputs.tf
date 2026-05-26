@@ -50,7 +50,7 @@ output "ansible" {
       vikunja_timezone                 = var.timezone
       vikunja_enable_registration      = var.enable_registration
       vikunja_enable_local_auth        = var.enable_local_auth
-      vikunja_app_secret_id            = scaleway_secret.app[0].id
+      vikunja_app_secret_id            = local.app_secret_id
       vikunja_db_credentials_secret_id = module.database[0].secret_id
       vikunja_smtp_secret_name         = var.smtp_from_email == "" ? "" : "smtp-config"
       vikunja_default_week_start       = var.default_week_start
