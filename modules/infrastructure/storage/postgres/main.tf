@@ -61,7 +61,7 @@ resource "random_password" "db_passwords" {
   for_each         = var.credentials_preserve ? toset([]) : toset(local.users)
   length           = 32
   special          = true
-  override_special = "@+=:,._-"
+  override_special = "._-"
   min_numeric      = 1
 
   lifecycle {
