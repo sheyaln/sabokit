@@ -39,8 +39,8 @@
     path: "{{ item }}"
     state: directory
     mode: "0750"
-    owner: root
-    group: root
+    owner: "{{ vikunja_file_owner }}"
+    group: "{{ vikunja_file_group }}"
   loop:
     - "{{ vikunja_install_dir }}"
     - "{{ vikunja_files_dir }}"
@@ -81,8 +81,8 @@
     src: docker-compose.yml.j2
     dest: "{{ vikunja_install_dir }}/docker-compose.yml"
     mode: "0644"
-    owner: root
-    group: root
+    owner: "{{ vikunja_file_owner }}"
+    group: "{{ vikunja_file_group }}"
   notify: Restart vikunja
 
 - name: Render Vikunja environment file
@@ -90,8 +90,8 @@
     src: env.j2
     dest: "{{ vikunja_install_dir }}/.env"
     mode: "0600"
-    owner: root
-    group: root
+    owner: "{{ vikunja_file_owner }}"
+    group: "{{ vikunja_file_group }}"
   notify: Restart vikunja
   no_log: true
   tags: [secrets]
