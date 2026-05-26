@@ -61,6 +61,11 @@ output "domains" {
 
 # Convenience flat outputs (most consumers prefer the structured maps above)
 
+output "spf_include" {
+  description = "TEM SPF include directive (e.g. include:_spf.tem.scaleway.com). Compose into your full SPF record via custom_dns_records; the module no longer manages an SPF record because real-world SPF needs to combine multiple sender includes (TEM + protonmail/sendgrid/etc.) which can't be done by emitting a bare TEM-only record."
+  value       = var.tem_enabled ? scaleway_tem_domain.this[0].spf_config : null
+}
+
 output "private_network_id" {
   description = "Convenience alias for scaleway.private_network_id."
   value       = module.network.id

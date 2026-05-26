@@ -26,25 +26,21 @@ resource "scaleway_tem_domain" "this" {
   accept_tos = true
 }
 
-# DKIM + SPF + DMARC records Scaleway TEM emits for the sending domain to
-# pass receiver verification. Without these, TEM-sent mail lands in spam
-# or gets rejected outright by Gmail/Microsoft/etc.
-
-resource "scaleway_domain_record" "tem_spf" {
-  count = var.tem_enabled ? 1 : 0
-
-  dns_zone = var.base_domain
-  name     = local.tem_subdomain_label
-  type     = "TXT"
-  data     = scaleway_tem_domain.this[0].spf_config
-  ttl      = 3600
-}
+# DKIM + DMARC records Scaleway TEM emits for the sending domain to pass
+# receiver verification. Without these, TEM-sent mail lands in spam or gets
+# rejected outright by Gmail/Microsoft/etc.
+#
+# SPF is intentionally NOT managed here. Real-world SPF needs to combine
+# multiple sender includes (TEM + protonmail/sendgrid/etc.) into a single
+# TXT record per RFC 7208; emitting a bare TEM-only record collides with
+# whatever else the consumer needs to authorize. Consumers compose the
+# full SPF via custom_dns_records using the spf_include output.
 
 resource "scaleway_domain_record" "tem_dkim" {
   count = var.tem_enabled ? 1 : 0
 
   dns_zone = var.base_domain
-  name     = "${scaleway_tem_domain.this[0].dkim_config}._domainkey${local.tem_subdomain_suffix}"
+  name     = "${scaleway_tem_domain.this[0].dkim_name}._domainkey${local.tem_subdomain_suffix}"
   type     = "TXT"
   data     = scaleway_tem_domain.this[0].dkim_config
   ttl      = 3600
@@ -56,7 +52,7 @@ resource "scaleway_domain_record" "tem_dmarc" {
   dns_zone = var.base_domain
   name     = "_dmarc${local.tem_subdomain_suffix}"
   type     = "TXT"
-  data     = "v=DMARC1; p=quarantine; rua=mailto:${local.tem_from_email_resolved}"
+  data     = var.dmarc_rua_email != "" ? "v=DMARC1; p=quarantine; rua=mailto:${var.dmarc_rua_email}" : "v=DMARC1; p=quarantine"
   ttl      = 3600
 }
 
