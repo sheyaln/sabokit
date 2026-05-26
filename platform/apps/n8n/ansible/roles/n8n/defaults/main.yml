@@ -54,3 +54,10 @@ n8n_cpu_reservation: "0.25"
 # JSONs in platform/identity/n8n-workflows/ stay org-agnostic and reference
 # them via $env.KEY.
 n8n_extra_env_vars: {}
+
+# Extra docker networks attached to the n8n container alongside the bundle's
+# default networks. For cross-bundle integration with sidecars (e.g.
+# protonmail-bridge) that live in their own bootstrap-tier network. Networks
+# listed here must be marked `external: true` and must already exist on the
+# host (created by whichever bundle owns them).
+n8n_extra_docker_networks: []

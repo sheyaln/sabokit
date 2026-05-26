@@ -31,6 +31,9 @@ services:
     networks:
       - "{{ n8n_traefik_docker_network }}"
       - n8n_internal
+{% for net in n8n_extra_docker_networks %}
+      - "{{ net }}"
+{% endfor %}
     labels:
       - "traefik.enable=true"
       - "traefik.docker.network={{ n8n_traefik_docker_network }}"
@@ -117,3 +120,7 @@ networks:
   # http://n8n:5679. Not exposed externally.
   n8n_internal:
     driver: bridge
+{% for net in n8n_extra_docker_networks %}
+  "{{ net }}":
+    external: true
+{% endfor %}

@@ -1618,6 +1618,12 @@ apps:
           description: Ad-hoc env vars merged into n8n's container .env. Merged AFTER the platform-wired vars above, so consumer entries with the same key win.
           ui: advanced
 
+        extra_docker_networks:
+          type: list(string)
+          default: []
+          description: Extra docker networks to attach n8n's container to (beyond the bundle's defaults). For cross-bundle integration with sidecars like protonmail-bridge that live in their own bootstrap-tier network. Networks must already exist on the host.
+          ui: advanced
+
   # ── Backrest ────────────────────────────────────────────────────────────
   # Restic-based backups per host (each host = its own instance + bucket).
   # Forward-auth via the embedded outpost. Multi-instance: consumers
