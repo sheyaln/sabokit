@@ -50,7 +50,7 @@ variable "icon_url" {
 variable "icon_filename" {
   description = "Icon filename fetched from `base.authentik.icon_base_url`. Empty disables the icon. Overridden by `icon_url`."
   type        = string
-  default     = ""
+  default     = "backrest-icon.png"
 }
 
 variable "storage_class" {
