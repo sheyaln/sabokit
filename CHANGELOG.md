@@ -12,6 +12,18 @@ Non-downstream-requested improvements, accumulating until the next downstream-dr
 ### Fixed
 - **EspoCRM upsert workflow `executeWorkflowTrigger` needs `inputSource: passthrough`.** Without it live n8n refuses to activate the workflow ("Trigger node has no input schema"). Set on `platform/identity/n8n-workflows/espocrm-member-upsert.json`'s entry node so a freshly imported workflow goes straight to active on first apply.
 
+## v3.1.5 — 2026-05-26
+
+Downstream-driven patch — four DNS-default changes that align the module with what real prod DNS state actually looks like. No flags, no `lifecycle ignore_changes`, just better defaults.
+
+### Changed
+- **Per-app DNS record TTL default raised from 300 to 3600** across every `platform/apps/*/terraform/dns.tf` (15 bundles, including all three nextcloud records). 300s is debug-territory; production DNS for app hostnames doesn't churn that fast and the extra resolver-cache hits aren't worth the noise. Gateway record left alone — `var.gateway_dns_ttl` default 60 is intentional (fast propagation on re-provisions).
+- **TEM DKIM record now uses `scaleway_tem_domain.dkim_name`** for the record name, not `dkim_config`. `dkim_config` returns the full DKIM public key (the TXT value); the live record name needs the selector that Scaleway's API exposes as `dkim_name`. Without this fix the record was created with a multi-line public key as its name — never matched the upstream selector, mail signing silently failed verification.
+- **TEM DMARC record `rua=` is now opt-in via `var.dmarc_rua_email`** (default empty). Empty default emits the conservative baseline `v=DMARC1; p=quarantine`; setting an address composes `rua=mailto:<addr>`. Old behaviour blindly pointed `rua` at `notify@<sender_domain>` — that mailbox doesn't actually process DMARC aggregate reports for most consumers; reports land in /dev/null and confuse the picture when something actually breaks.
+
+### Removed
+- **`scaleway_domain_record.tem_spf` from base.** Real-world SPF needs to combine multiple sender includes (TEM + protonmail/sendgrid/etc.) into a single TXT record per RFC 7208; emitting a bare TEM-only record collides with whatever else the consumer needs to authorize. New `base.spf_include` output exposes the TEM include directive — compose it into the consumer's full SPF via `custom_dns_records`. Existing TEM-managed SPF records need to be `terraform state rm`'d on first apply (they aren't destroyed — the resource just disappears from the module) then re-declared via `custom_dns_records`.
+
 ## v3.1.4 — 2026-05-25
 
 Two more credentials_preserve extensions to surrounding layers — base postgres + identity_bootstrap.

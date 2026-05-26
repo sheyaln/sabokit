@@ -222,3 +222,9 @@ variable "tem_smtp_config_secret_name" {
   type        = string
   default     = "smtp-config"
 }
+
+variable "dmarc_rua_email" {
+  description = "Email address for DMARC aggregate reports (rua=). Default empty = no rua, matching the conservative `v=DMARC1; p=quarantine` baseline. Set only if you actually process DMARC reports — otherwise reports go into a black hole."
+  type        = string
+  default     = ""
+}

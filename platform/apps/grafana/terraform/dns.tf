@@ -28,5 +28,5 @@ resource "scaleway_domain_record" "this" {
   name     = local.dns_record_name
   type     = "A"
   data     = var.base.compute.hosts[var.deployment_host_key].public_ip
-  ttl      = 300
+  ttl      = 3600
 }

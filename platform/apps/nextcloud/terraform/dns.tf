@@ -50,7 +50,7 @@ resource "scaleway_domain_record" "this" {
   name     = local.nc_dns_record_name
   type     = "A"
   data     = var.base.compute.hosts[var.deployment_host_key].public_ip
-  ttl      = 300
+  ttl      = 3600
 }
 
 # OnlyOffice runs on the same host as Nextcloud, but the browser loads the
@@ -70,7 +70,7 @@ resource "scaleway_domain_record" "onlyoffice" {
   name     = local.oo_dns_record_name
   type     = "A"
   data     = var.base.compute.hosts[var.deployment_host_key].public_ip
-  ttl      = 300
+  ttl      = 3600
 }
 
 # Talk HPB. Same A record covers two things: HTTPS WSS signaling routed via
@@ -90,5 +90,5 @@ resource "scaleway_domain_record" "talk" {
   name     = local.talk_dns_record_name
   type     = "A"
   data     = var.base.compute.hosts[var.deployment_host_key].public_ip
-  ttl      = 300
+  ttl      = 3600
 }
