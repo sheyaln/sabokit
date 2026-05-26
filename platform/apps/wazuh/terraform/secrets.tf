@@ -22,7 +22,7 @@ resource "random_password" "dashboard" {
 }
 
 resource "scaleway_secret" "app" {
-  count       = var.enabled ? 1 : 0
+  count       = var.enabled && !var.credentials_preserve ? 1 : 0
   name        = "${local.slug}-app-secrets"
   description = "Wazuh internal-user passwords (indexer admin, API, dashboard)"
   tags        = ["automated", local.slug]
@@ -47,10 +47,11 @@ locals {
   indexer_password   = var.enabled ? (var.credentials_preserve ? local._preserved.WAZUH_INDEXER_PASSWORD : random_password.indexer_admin[0].result) : ""
   api_password       = var.enabled ? (var.credentials_preserve ? local._preserved.WAZUH_API_PASSWORD : random_password.api[0].result) : ""
   dashboard_password = var.enabled ? (var.credentials_preserve ? local._preserved.WAZUH_DASHBOARD_PASSWORD : random_password.dashboard[0].result) : ""
+  app_secret_id      = var.enabled ? (var.credentials_preserve ? data.scaleway_secret.preserved[0].id : scaleway_secret.app[0].id) : ""
 }
 
 resource "scaleway_secret_version" "app" {
-  count = var.enabled ? 1 : 0
+  count = var.enabled && !var.credentials_preserve ? 1 : 0
 
   secret_id = scaleway_secret.app[0].id
   data = jsonencode({

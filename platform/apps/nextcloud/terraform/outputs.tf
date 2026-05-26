@@ -84,7 +84,7 @@ output "ansible" {
     vars = {
       nextcloud_hostname                 = var.hostname
       nextcloud_image_tag                = var.image_tag
-      nextcloud_app_secret_id            = scaleway_secret.app[0].id
+      nextcloud_app_secret_id            = local.app_secret_id
       nextcloud_db_credentials_secret_id = module.database[0].secret_id
       # SMTP is opt-in: empty smtp_from_email means SMTP is off and the role
       # skips the lookup entirely.

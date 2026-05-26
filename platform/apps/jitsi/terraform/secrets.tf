@@ -48,7 +48,7 @@ resource "random_password" "jibri_recorder" {
 }
 
 resource "scaleway_secret" "app" {
-  count = var.enabled ? 1 : 0
+  count = var.enabled && !var.credentials_preserve ? 1 : 0
 
   name        = "${local.slug}-app-secrets"
   description = "Jitsi application secrets (JWT signing key, XMPP component passwords, OIDC bag)."
@@ -76,10 +76,11 @@ locals {
   jvb_auth_password       = var.enabled ? (var.credentials_preserve ? local._preserved.JITSI_JVB_AUTH_PASSWORD : random_password.jvb_auth[0].result) : ""
   jibri_xmpp_password     = var.enabled ? (var.credentials_preserve ? local._preserved.JITSI_JIBRI_XMPP_PASSWORD : random_password.jibri_xmpp[0].result) : ""
   jibri_recorder_password = var.enabled ? (var.credentials_preserve ? local._preserved.JITSI_JIBRI_RECORDER_PASSWORD : random_password.jibri_recorder[0].result) : ""
+  app_secret_id           = var.enabled ? (var.credentials_preserve ? data.scaleway_secret.preserved[0].id : scaleway_secret.app[0].id) : ""
 }
 
 resource "scaleway_secret_version" "app" {
-  count = var.enabled ? 1 : 0
+  count = var.enabled && !var.credentials_preserve ? 1 : 0
 
   secret_id = scaleway_secret.app[0].id
   data = jsonencode({

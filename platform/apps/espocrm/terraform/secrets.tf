@@ -12,7 +12,7 @@ resource "random_password" "admin" {
 }
 
 resource "scaleway_secret" "app" {
-  count = var.enabled ? 1 : 0
+  count = var.enabled && !var.credentials_preserve ? 1 : 0
 
   name        = "${local.slug}-app-secrets"
   description = "EspoCRM application secrets (admin fallback password, OIDC bag, SMTP from-address)."
@@ -35,10 +35,11 @@ data "scaleway_secret_version" "preserved" {
 locals {
   _preserved     = (var.enabled && var.credentials_preserve) ? jsondecode(base64decode(data.scaleway_secret_version.preserved[0].data)) : {}
   admin_password = var.enabled ? (var.credentials_preserve ? local._preserved.ADMIN_PASSWORD : random_password.admin[0].result) : ""
+  app_secret_id  = var.enabled ? (var.credentials_preserve ? data.scaleway_secret.preserved[0].id : scaleway_secret.app[0].id) : ""
 }
 
 resource "scaleway_secret_version" "app" {
-  count = var.enabled ? 1 : 0
+  count = var.enabled && !var.credentials_preserve ? 1 : 0
 
   secret_id = scaleway_secret.app[0].id
   data = jsonencode({

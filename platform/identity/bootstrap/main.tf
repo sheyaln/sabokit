@@ -40,11 +40,12 @@ locals {
 module "database" {
   source = "../../../modules/infrastructure/storage/postgres_database"
 
-  instance_id       = var.postgres_instance_id
-  instance_endpoint = var.postgres_endpoint
-  database_name     = "authentik"
-  engine            = var.postgres_engine
-  tags              = local.secret_tags
+  instance_id          = var.postgres_instance_id
+  instance_endpoint    = var.postgres_endpoint
+  database_name        = "authentik"
+  engine               = var.postgres_engine
+  tags                 = local.secret_tags
+  credentials_preserve = var.credentials_preserve
 }
 
 # ── Bootstrap admin password ────────────────────────────────────────────────
@@ -78,6 +79,8 @@ resource "random_password" "admin_api_token" {
 }
 
 resource "scaleway_secret" "admin" {
+  count = var.credentials_preserve ? 0 : 1
+
   name        = "${local.secret_name_prefix}-admin"
   description = "Authentik bootstrap admin credentials + AUTHENTIK_BOOTSTRAP_TOKEN. Read by the authentik-server Ansible role to render .env."
   type        = "key_value"
@@ -85,7 +88,9 @@ resource "scaleway_secret" "admin" {
 }
 
 resource "scaleway_secret_version" "admin" {
-  secret_id = scaleway_secret.admin.id
+  count = var.credentials_preserve ? 0 : 1
+
+  secret_id = scaleway_secret.admin[0].id
   data = jsonencode({
     username  = var.admin_username
     email     = var.infra_email
@@ -147,9 +152,14 @@ locals {
   admin_password  = var.credentials_preserve ? local._preserved_admin.password : random_password.admin[0].result
   admin_api_token = var.credentials_preserve ? local._preserved_admin.api_token : random_password.admin_api_token[0].result
   server_key      = var.credentials_preserve ? local._preserved_server.secret_key : random_id.server_key[0].hex
+
+  admin_secret_id  = var.credentials_preserve ? data.scaleway_secret.preserved_admin[0].id : scaleway_secret.admin[0].id
+  server_secret_id = var.credentials_preserve ? data.scaleway_secret.preserved_server[0].id : scaleway_secret.server[0].id
 }
 
 resource "scaleway_secret" "server" {
+  count = var.credentials_preserve ? 0 : 1
+
   name        = "${local.secret_name_prefix}-server"
   description = "Authentik server-side secret_key (cookie signing, internal crypto)."
   type        = "key_value"
@@ -157,7 +167,9 @@ resource "scaleway_secret" "server" {
 }
 
 resource "scaleway_secret_version" "server" {
-  secret_id = scaleway_secret.server.id
+  count = var.credentials_preserve ? 0 : 1
+
+  secret_id = scaleway_secret.server[0].id
   data = jsonencode({
     secret_key = local.server_key
   })

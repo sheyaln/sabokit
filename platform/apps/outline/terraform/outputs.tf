@@ -47,7 +47,7 @@ output "ansible" {
     vars = {
       outline_hostname                 = var.hostname
       outline_image_tag                = var.image_tag
-      outline_app_secret_id            = scaleway_secret.app[0].id
+      outline_app_secret_id            = local.app_secret_id
       outline_db_credentials_secret_id = module.database[0].secret_id
       # SMTP is opt-in: empty smtp_from_email means SMTP is off and Outline
       # should skip the lookup entirely. The Ansible role guards on this.

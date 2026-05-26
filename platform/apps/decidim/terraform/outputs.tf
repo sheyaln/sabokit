@@ -49,7 +49,7 @@ output "ansible" {
       decidim_image                    = var.image
       decidim_image_tag                = var.image_tag
       decidim_extra_gems               = var.extra_gems
-      decidim_app_secret_id            = scaleway_secret.app[0].id
+      decidim_app_secret_id            = local.app_secret_id
       decidim_db_credentials_secret_id = module.database[0].secret_id
       decidim_sidekiq_concurrency      = var.sidekiq_concurrency
       decidim_max_upload_size_bytes    = var.max_upload_size_bytes

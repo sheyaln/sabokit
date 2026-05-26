@@ -8,7 +8,7 @@ resource "random_id" "django_secret_key" {
 }
 
 resource "scaleway_secret" "app" {
-  count = var.enabled ? 1 : 0
+  count = var.enabled && !var.credentials_preserve ? 1 : 0
 
   name        = "${local.slug}-app-secrets"
   description = "Steward application secrets (Django SECRET_KEY, OIDC creds, Authentik API token)."
@@ -33,10 +33,12 @@ locals {
   _preserved          = (var.enabled && var.credentials_preserve) ? jsondecode(base64decode(data.scaleway_secret_version.preserved[0].data)) : {}
   django_secret_key   = var.enabled ? (var.credentials_preserve ? local._preserved.DJANGO_SECRET_KEY : random_id.django_secret_key[0].b64_url) : ""
   authentik_api_token = var.enabled ? authentik_token.service_steward[0].key : ""
+  app_secret_id       = var.enabled ? (var.credentials_preserve ? data.scaleway_secret.preserved[0].id : scaleway_secret.app[0].id) : ""
+  app_secret_name     = var.enabled ? (var.credentials_preserve ? data.scaleway_secret.preserved[0].name : scaleway_secret.app[0].name) : ""
 }
 
 resource "scaleway_secret_version" "app" {
-  count = var.enabled ? 1 : 0
+  count = var.enabled && !var.credentials_preserve ? 1 : 0
 
   secret_id = scaleway_secret.app[0].id
   data = jsonencode({

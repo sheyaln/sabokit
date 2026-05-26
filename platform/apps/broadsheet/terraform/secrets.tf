@@ -26,7 +26,7 @@ resource "random_password" "root_admin" {
 }
 
 resource "scaleway_secret" "app" {
-  count = var.enabled ? 1 : 0
+  count = var.enabled && !var.credentials_preserve ? 1 : 0
 
   name        = "${local.slug}-app-secrets"
   description = "Broadsheet application secrets (SECRET_KEY, root admin, OIDC, S3, SMTP from-address)."
@@ -50,10 +50,11 @@ locals {
   _preserved          = (var.enabled && var.credentials_preserve) ? jsondecode(base64decode(data.scaleway_secret_version.preserved[0].data)) : {}
   secret_key          = var.enabled ? (var.credentials_preserve ? local._preserved.SECRET_KEY : random_password.secret_key[0].result) : ""
   root_admin_password = var.enabled ? (var.credentials_preserve ? local._preserved.ROOT_ADMIN_PASSWORD : random_password.root_admin[0].result) : ""
+  app_secret_id       = var.enabled ? (var.credentials_preserve ? data.scaleway_secret.preserved[0].id : scaleway_secret.app[0].id) : ""
 }
 
 resource "scaleway_secret_version" "app" {
-  count = var.enabled ? 1 : 0
+  count = var.enabled && !var.credentials_preserve ? 1 : 0
 
   secret_id = scaleway_secret.app[0].id
   data = jsonencode({

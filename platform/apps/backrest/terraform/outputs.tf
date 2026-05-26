@@ -48,7 +48,7 @@ output "ansible" {
       backrest_instance_name                     = var.instance_name
       backrest_hostname                          = var.hostname
       backrest_image_tag                         = var.image_tag
-      backrest_app_secret_id                     = scaleway_secret.app[0].id
+      backrest_app_secret_id                     = local.app_secret_id
       backrest_backup_plans                      = var.backup_plans
       backrest_backup_sources                    = var.backup_sources
       backrest_restic_prune_max_frequency_days   = var.restic_prune_max_frequency_days

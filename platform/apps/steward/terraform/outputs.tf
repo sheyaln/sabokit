@@ -43,7 +43,7 @@ output "ansible" {
       steward_hostname                 = var.hostname
       steward_image_repository         = var.image_repository
       steward_image_tag                = var.image_tag
-      steward_app_secret_id            = scaleway_secret.app[0].id
+      steward_app_secret_id            = local.app_secret_id
       steward_db_credentials_secret_id = module.database[0].secret_id
       steward_memory_limit             = var.memory_limit
       steward_memory_reservation       = var.memory_reservation
@@ -67,7 +67,7 @@ output "database_name" {
 
 output "service_steward_token_secret_hint" {
   description = "Hint pointing to where the Authentik API token lives (inside the app_secret_id bag under AUTHENTIK_API_TOKEN). The token itself is not exported. Renamed from service_account_token_secret_hint in v2.15.1 to match the platform service-account naming convention (`service_<thing>` / `svc-<thing>`)."
-  value       = var.enabled ? "Inside ${scaleway_secret.app[0].name}, key AUTHENTIK_API_TOKEN" : null
+  value       = var.enabled ? "Inside ${local.app_secret_name}, key AUTHENTIK_API_TOKEN" : null
 }
 
 output "backup_plan" {
