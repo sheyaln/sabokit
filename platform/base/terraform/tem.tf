@@ -95,7 +95,7 @@ resource "scaleway_iam_api_key" "tem" {
 }
 
 resource "scaleway_secret" "smtp_config" {
-  count = var.tem_enabled ? 1 : 0
+  count = var.tem_enabled && !var.smtp_config_preserve ? 1 : 0
 
   name        = var.tem_smtp_config_secret_name
   description = "Outbound SMTP credentials apps consume by name. Written by base from Scaleway TEM."
@@ -105,7 +105,7 @@ resource "scaleway_secret" "smtp_config" {
 }
 
 resource "scaleway_secret_version" "smtp_config" {
-  count = var.tem_enabled ? 1 : 0
+  count = var.tem_enabled && !var.smtp_config_preserve ? 1 : 0
 
   secret_id = scaleway_secret.smtp_config[0].id
   data = jsonencode({
@@ -129,4 +129,19 @@ resource "scaleway_secret_version" "smtp_config" {
     # tainting scaleway_iam_api_key.tem AND this resource together.
     ignore_changes = [data]
   }
+}
+
+# In-place cutover: legacy ansible-managed deploys already own the
+# `smtp-config` bag. Reading it here avoids the manual `terraform import`
+# block consumers otherwise need to write before the first apply.
+data "scaleway_secret" "preserved_smtp" {
+  count      = var.tem_enabled && var.smtp_config_preserve ? 1 : 0
+  name       = var.tem_smtp_config_secret_name
+  project_id = var.scaleway_project_id
+}
+
+locals {
+  smtp_config_secret_id = var.tem_enabled ? (
+    var.smtp_config_preserve ? data.scaleway_secret.preserved_smtp[0].id : scaleway_secret.smtp_config[0].id
+  ) : null
 }
