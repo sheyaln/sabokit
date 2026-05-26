@@ -2,175 +2,66 @@
 
 All notable changes to sabokit go here. Versioning follows semver; major bumps signal breaking contract changes for consumers.
 
-## v3.1.13 - 2026-05-26
+## v3.1.0 - 2026-05-26 (cycle-collapsed)
 
-Three independent wins bundled into one tag.
+v3.1.x cycle collapsed into one tag. The cycle iterated 13 patches through three threads: in-place legacy cutover support (`credentials_preserve` across every credential-generating bundle), regression port-forwards from the pre-OSP baseline that surfaced during a downstream audit, and post-cutover drift kills. v3.1.1 through v3.1.13 fossil tags still resolve to their original commits for archival; v3.1.0 moved forward to the cycle-end state so new consumers adopting v3.1 see one changelog block instead of 13.
+
+### Added (cumulative)
+
+- **`var.custom_dns_records` at base layer.** Map of zone-name to list of `{subdomain, type, target/server, ttl}` records. MX/TXT/SRV/AAAA support added to `modules/infrastructure/app_dns`. Common use: MX records pointing at inbound mail provider, additional TXT verifications, SRV records.
+- **`var.credentials_preserve` (bool, default false) on every credential-generating bundle + shared module.** In-place legacy cutover support - reads existing `<slug>-app-secrets` bag via `data "scaleway_secret_version"`, plumbs preserved values through locals. Bundles touched: outline, nextcloud, vikunja, jitsi, n8n, espocrm, grafana, notifuse, broadsheet, wazuh, decidim, steward, backrest. Shared modules: `modules/authentik/{oidc-app,saml-app}`, `modules/infrastructure/storage/{postgres,postgres_database}`, base postgres + identity_bootstrap. Short-lived knob - removal slated for v4.0 once everyone's past their initial v3 cutover.
+- **n8n service account auto-joins broadsheet's per-app Authentik group** when both bundles are deployed. Opt out with `var.apps.n8n.broadsheet_membership = false`. `var.service_account_extra_group_ids` exposes direct Authentik group ID wiring.
+- **`extra_docker_networks` knob on n8n bundle** for cross-bundle integration with sidecars in other bootstrap-tier networks (protonmail-bridge etc.).
+- **`extra_scrape_targets` knob on prometheus bundle.** `map(job_name to list(host:port))` rendered as additional `scrape_configs` jobs.
+- **`extra_env_vars` wiring in consumer-template's n8n module call + 9 manifest entries** under `apps.n8n` - auto-derives `BROADSHEET_BASE_URL` and `ESPOCRM_BASE_URL` when those bundles are enabled.
+- **TEM delivery webhook to SNS to n8n pipeline at base layer.** `platform/base/terraform/tem_webhook.tf` provisions activation + topic + HTTPS subscription. Auto-wired when both TEM and n8n are enabled.
+- **`member_id` field on user-settings update flow.** Optional text prompt at order 30, stored as `user.attributes.member_id`. Enrollment-flow port + uniqueness validation deferred to v3.2.0.
+- **`s3.storage-class` threaded through restic invocations** in the backrest bundle. Backups upload directly to bucket's configured storage class (GLACIER by default), skipping the 90-day STANDARD warm window.
+- **`oidc_readonly_group` variable on wazuh bundle.** Maps named Authentik group to opensearch `kibana_user` + `readall` for read-only dashboard access.
+- **5 grafana dashboards from the pre-v2 baseline.** Authentik metrics + stack monitoring under identity bundle; infrastructure overview + logs explorer + traefik overview under prometheus bundle.
+- **4 authentik alert rule groups via identity bundle's monitoring contribution** - availability/latency/login-failures/success-rate.
+- **protonmail-bridge bootstrap bundle wired into consumer-template** + `BOOTSTRAP_BUNDLES` list added to `gen_apps_yml.py`.
 
 ### Changed
-- **Packer base-image build moved from `scaleway` builder to `qemu` builder.** Drops the four `PACKER_SCW_*` GitHub secrets and the implicit coupling to a specific Scaleway tenancy/billing project. Source qcow2 is now `https://cloud-images.ubuntu.com/jammy/current/jammy-server-cloudimg-amd64.img` (Ubuntu 22.04 LTS, same as the historical `ubuntu_jammy` pin). Output qcow2 lands directly on GHA runner via packer's qemu builder, attached to the GitHub Release as before. Consumers' `import-base-image.sh` unchanged - still imports the qcow2 into their own Scaleway project. Workflow drops the "install scaleway CLI / resolve snapshot / export-to-object-storage / download" detour entirely.
-- **Wazuh dashboard moved from traefik forward-auth to native OIDC via opensearch-security.** Structural OIDC scaffolding had landed earlier but the admin group binding was broken: the `roles_key: groups` claim translates to `backend_roles`, not `users`, and the role-mapping template put the admin group under `users:` - so admin OIDC logins arrived with no privileged role. Fixed to `backend_roles`. Added a `securityadmin` handler that pushes config changes into the live security index via `docker exec`, since restarting the stack doesn't reload security config once the index is bootstrapped. New `oidc_readonly_group` variable (default empty) maps a named Authentik group to opensearch `kibana_user` + `readall` for read-only dashboard access. Existing deployments: `ansible-playbook` re-run applies the corrected mapping in-place, no container rebuild, sessions persist.
 
-### Added
-- **`s3.storage-class` threaded through restic invocations in the backrest bundle.** Backups now upload directly to the bucket's configured storage class (GLACIER by default) instead of landing in STANDARD and waiting on the 90-day lifecycle rule to transition. New `var.storage_class` (TF) → `backrest_restic_s3_storage_class` (ansible.vars) → `flags` array in backrest's per-repo config flows the value into every restic subcommand (backup, forget, prune, check, restore). Existing STANDARD-tier objects still drain on the existing lifecycle rule; new uploads skip the warm window entirely.
-
-## v3.1.12 — 2026-05-26
-
-DB password charset hotfix — re-added `@` and `!` to `override_special` and set `min_special` to the full charset length so generated passwords draw broadly across the set instead of clustering on `._-`. Lifecycle `ignore_changes` extended to include `min_special` so existing deployments don't churn. Applies to both `modules/infrastructure/storage/postgres` (admin + per-user passwords) and `modules/infrastructure/storage/postgres_database` (per-bundle DB passwords).
-
-## v3.1.11 — 2026-05-26
-
-Icon-default layering fix + two perpetual-drift kills on the identity layer.
+- **consumer-template environments use `locals { config = {...} }` in `config.tf` instead of `terraform.tfvars`.** Consumer config is now committable. New layout: `config.tf` (consumer's authoritative config), `main.tf` (module wiring), `secrets.tf` (Scaleway data refs only). Migration guide at `consumer-template/environments/MIGRATION-v3.1.10-config-tf.md`.
+- **Packer base-image build moved from `scaleway` builder to `qemu` builder.** Drops the four `PACKER_SCW_*` GitHub secrets and the implicit Scaleway-tenancy coupling. Source qcow2 is `cloud-images.ubuntu.com/jammy/current/jammy-server-cloudimg-amd64.img` (Ubuntu 22.04 LTS, same as historical `ubuntu_jammy` pin).
+- **Wazuh dashboard moved from traefik forward-auth to native OIDC via opensearch-security.** Admin OIDC users now bind to `all_access` correctly. `securityadmin` handler added so config changes apply to the live indexer without container rebuild.
+- **Authentik dashboard categories condensed to four**: Collaboration (Outline, Nextcloud, Jitsi, Vikunja, BentoPDF), Member Engagement (Decidim, Broadsheet, Notifuse), Member Operations (EspoCRM, Steward), Technical Management (n8n Workflows, Grafana, Wazuh, Backrest).
+- **App display-name defaults shortened**: `EspoCRM`, `n8n Workflows` (was `CRM (EspoCRM)`, `Workflows (n8n)`).
+- **`icon_filename` defaults at bundle layer** (was consumer-template layer) for notifuse, nextcloud, jitsi, backrest, wazuh - so consumers with custom `modules/stack/apps.tf` still inherit branded icons.
+- **DB password `override_special = "._-@!"` with `min_special = 5`** - broad coverage across the shell-safe charset, with `min_special` in lifecycle `ignore_changes` so existing deployments don't churn.
+- **Per-app DNS TTL default raised from 300 to 3600** across every `platform/apps/*/terraform/dns.tf`.
+- **TEM DKIM record uses `var.scaleway_project_id`** as the selector (was `scaleway_tem_domain.this[0].dkim_name`, which returns the full FQDN and produced malformed records).
+- **TEM DMARC record `rua=` opt-in via `var.dmarc_rua_email`** (default empty).
+- **`scripts/release.sh` chore commit subject is plain English** (was `chore(consumer-template): bump refs to vX.Y.Z`).
+- **Decidim org-admin name + nickname env-var overrides** with empty default falling back to `<organization_name> Admin` / `admin`.
+- **App-role install dirs + rendered compose/.env files owned by deploy user** (`ubuntu` default) instead of `root:root`. Restored baseline behaviour across 19 app roles + protonmail-bridge bootstrap. New `<slug>_file_owner` / `<slug>_file_group` defaults.
 
 ### Fixed
-- **`icon_filename` defaults moved from `consumer-template/modules/stack/apps.tf` down to each bundle's `platform/apps/<slug>/terraform/variables.tf`** for notifuse, nextcloud, jitsi, backrest, and wazuh. v3.1.10 put the `<slug>-icon.png` defaults in the wrong layer: consumers with their own `modules/stack/apps.tf` (the standard fork pattern — dciww-consumer etc.) get `var.icon_filename = ""` flowing through to the bundle and fall back to Authentik's `default-logo.png`. Putting the default at the bundle layer means consumers always inherit the branded icon unless they explicitly override. The consumer-template's `try(..., "<slug>-icon.png")` defaults are now redundant but kept as docs-of-shape.
-- **`authentik_stage_email` perpetual drift killed (FR-A).** The Authentik server back-fills `host`, `port`, and `from_address` to `"localhost"` / `25` / `"system@authentik.local"` on every email stage regardless of `use_global_settings = true`. Previous TF emitted `null` for these when `smtp_enabled = false` → server filled → next plan re-showed drift. All six `authentik_stage_email` resources (mfa_reset, password_reset, invitation_email_verification, send_user_invitation, manual_enrollment_email_verification) now ternary-resolve to those server defaults when `smtp_enabled = false`. Values are cosmetic-only when `use_global_settings = true`; runtime behaviour is unchanged.
-- **`activation_notification_sent` attribute drift on service accounts killed (FR-B).** Authentik back-fills `attributes.activation_notification_sent = true` after the welcome-email path runs, even on service-account users that shouldn't be receiving welcomes in the first place. TF never declared the attribute → drift on every plan. Both service-account `authentik_user` resources (n8n, steward) now pre-declare it via `attributes = jsonencode({ activation_notification_sent = true })`. Investigation note: the `goauthentik/authentik` Terraform provider does **not** expose a `skip_activation_email` / `notify_user` / `send_welcome` flag on `authentik_user` (verified against the provider's `pkg/provider/resource_user.go` schema — only `username`, `name`, `type`, `password`, `is_active`, `email`, `path`, `groups`, `roles`, `attributes`). The activation email is policy-driven server-side, so the pre-declared attribute is the only TF-only remediation.
 
-### Operator notes
-- **FR-D — consumer `icon_url` passthrough**: per-app `icon_url` (defined on every app bundle's `variables.tf` and forwarded via the consumer-template `modules/stack/apps.tf`) takes precedence over the bundle's `icon_filename` default. Set it on a consumer to point at a fully-qualified URL when you want custom branding without forking `sabokit-assets` — useful for orgs running their own CDN, white-labelling, or pinning a specific icon version.
-- **FR-E — drift after upgrade can be stale Scaleway secret bags, not new code**: if a `terraform plan` after a sabokit version bump shows drift on `scaleway_secret`/`scaleway_secret_version` resources but the diff doesn't match the changelog, suspect a partial-apply leftover from an earlier failed run rather than a regression in the new release. Quick diagnosis: compare `terraform state show <addr>` timestamps against `scw secret list --output json | jq '.[] | {name, created_at, updated_at}'` for the project — secrets created before the relevant state entries are almost always orphans from a half-applied run.
+- **`scaleway_secret.app` + `_version.app` gated on `credentials_preserve` across all 13 app bundles.** Silently broken since v3.1.1 - only the random_* generators were gated, never the wrapping secret resources, producing apply-time "secret already exists" on every preserve=true consumer. Same shape gated in `platform/identity/bootstrap` (admin_credentials, server_credentials) and `modules/infrastructure/storage/postgres{,_database}`.
+- **`authentik_token` resources ungated from `credentials_preserve`.** v3.1.1 gated them; gating planned a destroy on preserve=true which destroyed live tokens in Authentik. Now always exist with `lifecycle { ignore_changes = [key] }`.
+- **`authentik_stage_email` perpetual drift killed.** Server back-fills `host`/`port`/`from_address` regardless of `use_global_settings = true`; TF emitted nulls when `smtp_enabled = false` so plan re-showed drift. All six email stage resources now ternary-resolve to server defaults (`"localhost"` / `25` / `"system@authentik.local"`) when `smtp_enabled = false`.
+- **`activation_notification_sent` attribute drift on service accounts.** Pre-declared on n8n + steward `authentik_user` resources. Provider exposes no `skip_activation_email` flag - pre-declaring the attribute is the only TF-only remediation.
+- **Wazuh OIDC admin group mapping** - was placing the admin group under `users:` should have been `backend_roles:` (the `roles_key: groups` claim translates to backend_roles). Admin OIDC logins had no privileged role.
+- **Authentik dashboard icons restored.** Identity `icon_base_url` repointed from `sabokit-assets/v1.0.0/...` (never tagged - every URL 404'd) to `sabokit-assets/master/...`. Bookmark module's `lifecycle { ignore_changes = [meta_icon] }` removed so existing bookmarks reconcile.
+- **Backrest `storage_class_transition_days` default 1 to 90** to match Scaleway's GLACIER 90-day-minimum transition requirement.
+- **Loki `push_url`, `media_s3_secret_id`, `smtp_secret_id`, `spf_include`, `scaleway_region`, 14 nextcloud knobs, 3 wazuh manager ports, 7 grafana knobs** all plumbed through stack module + consumer-template + apps-manifest after the v3.1.5 audit surfaced TF-to-Ansible wiring gaps.
 
-## v3.1.10 — 2026-05-26
+### Removed
 
-Consumer config now committable + Authentik dashboard cleanup + service-account convention codified.
-
-### Changed
-- **consumer-template environments now use `locals { config = {...} }` in `config.tf` instead of `terraform.tfvars`.** Root cause: `.tfvars` carries secrets → can't be committed → entire consumer infra config was invisible to git (no PR review, no diff on rotate, no audit trail). New layout splits responsibilities: `config.tf` (consumer's authoritative committable config), `main.tf` (module wiring, upstream-maintained), `secrets.tf` (Scaleway data source refs, committable bag IDs only). Stack module gains `validation` blocks on every variable so plan-time errors pinpoint bad values. Migration guide at `consumer-template/environments/MIGRATION-v3.1.10-config-tf.md`. Refactor is byte-identical to module inputs — `terraform plan` expects zero diff post-migration. Latent bug fixed in passing: the previous `_template/main.tf` never wired `var.identity` through to the stack module (the variable wasn't declared in `variables.tf`), so the required `identity = {...}` block in `terraform.tfvars.example` was being silently ignored. New template wires `local.config.identity` through correctly.
-- **Authentik dashboard categories condensed to four**: `Collaboration` (Outline, Nextcloud, Jitsi, Vikunja, BentoPDF), `Member Engagement` (Decidim, Broadsheet, Notifuse), `Member Operations` (EspoCRM, Steward), `Technical Management` (n8n Workflows, Grafana, Wazuh, Backrest). Replaces the previous sprawl (Knowledge/Productivity/Tools/Communication/Administration/Security/Operations). Closer to baseline 2-category convention but preserves the member-tool/admin-tool split + a real collaboration tier. Privacy Policy stays category-less — it ships no Authentik application (public static page, no auth integration) so it never appears in the dashboard. Defaults updated in both `consumer-template/modules/stack/apps.tf` (with `try()` override path preserved) and `consumer-template/apps-manifest.yaml`.
-- **App display-name defaults**: `CRM (EspoCRM)` → `EspoCRM`; `Workflows (n8n)` → `n8n Workflows`. Other renames (`Wiki (Outline)`, `Tasks (Vikunja)`, `PDF Tools (BentoPDF)`, `Video Meetings (Jitsi)`, etc.) unchanged.
+- **`scaleway_domain_record.tem_spf`** from base. Multi-include SPF needs composition via `custom_dns_records` (new `base.spf_include` output exposes the TEM directive).
+- **`extra_env_vars` knob on outline bundle.** v3.1.6 shipped it for Google/Slack OAuth; Authentik is the only identity provider the bundle is expected to wire.
 
 ### Conventions
-- **Codified: every `authentik_user { type = "service_account" }` MUST set `is_active = true` explicitly.** Default-off would require a manual UI flip to make the bundle's API token usable on first apply. Both existing instances (n8n, steward) audited; inline comments added; rule lives in `CONTRIBUTING.md`.
 
-### Added
-- **`icon_filename` defaults flipped from `""` to `<bundle>-icon.png` for notifuse, nextcloud, jitsi, backrest, and wazuh** now that those icons are present in `sheyaln/sabokit-assets/application-icons/`. Previous default of `""` fell through to Authentik's `default-logo.png`; with these flips the bundles render their canonical branded icons on the dashboard out of the box.
+- **Every `authentik_user { type = "service_account" }` MUST set `is_active = true` explicitly.** Default-off requires manual UI flip; rule in `CONTRIBUTING.md`.
 
-## v3.1.9 — 2026-05-26
+### Operator notes
 
-Post-iter19-cutover cleanup: missing-icons fix + a downstream FR + privilege hygiene + db password charset tightening + the user-settings field that was sitting in [Unreleased].
-
-### Fixed
-- **Authentik dashboard icons restored: identity `icon_base_url` default repointed from `sabokit-assets/v1.0.0/application-icons` (never tagged → every composed URL 404'd) to `sabokit-assets/master/application-icons`.** Affected every app whose icon resolved via the `icon_base_url + icon_filename` composition (~9 bundles). The Authentik provider's `meta_icon` field fetches external URLs directly with no media-S3 indirection — fix takes effect on next apply for OIDC + SAML apps. Bookmark module's `lifecycle { ignore_changes = [meta_icon] }` removed in the same patch so existing bookmarks reconcile to the correct URL on next apply too (no manual `terraform state rm` needed).
-- **consumer-template stack `icon_url` fallback switched from `""` to `null`** so bundle defaults actually take effect when a consumer hasn't overridden.
-- **Backrest `storage_class_transition_days` default 1 → 90** to match Scaleway's GLACIER 90-day-minimum transition requirement. Previous default produced `InvalidArgument: Transition rule for storage-class "GLACIER" must be at least 90 days` at apply time for the default `storage_class = "GLACIER"` case. Reported by downstream after iter19 cutover.
-- **DB password `override_special` tightened to `._-` (was `!@+=:,._-`)** so generated values contain only `[A-Za-z0-9._-]` — shell-safe in any quoting context including `.env` sourcing, eliminates a class of subtle quoting bugs. ~190 bits of entropy at length=32 on a 65-char alphabet. Lifecycle `ignore_changes = [override_special]` means existing passwords are unaffected; only newly-generated resources from this point use the tighter set.
-
-### Added
-- **`member_id` field on the user-settings update flow.** Optional text prompt at order 30 (after locale), stored as `user.attributes.member_id`. Editable from Authentik's user-settings UI. Empty by default; users can set or clear freely. Enrollment-flow equivalent + uniqueness validation are deferred to v3.2.0 backlog.
-
-### Restored (privilege/ownership hygiene)
-- **App-role install dirs + rendered compose/.env files now owned by the deploy user (`ubuntu` default) instead of `root:root`.** v3 had a uniform deviation from the pre-OSP baseline where every `apps/*` role chowned `/opt/<slug>/` artifacts to root. That forced operators to escalate for every compose op + left secrets world-unreadable root-owned. Restored baseline behavior across 19 app roles + the protonmail-bridge bootstrap role. New `<slug>_file_owner` / `<slug>_file_group` defaults (default `"ubuntu"`) allow consumers running under a non-ubuntu deploy user to override. Wazuh + wazuh-agent intentionally NOT changed — legitimate root-tier roles per baseline.
-
-## v3.1.8 — 2026-05-26
-
-Systemic credentials_preserve gate bug: silently broken since v3.1.1; only the random_* generators and the data-source reads were gated, never the wrapping `scaleway_secret` / `scaleway_secret_version` resources themselves. Result on every preserve=true consumer: TF tried to CREATE the `<slug>-app-secrets` bag in parallel with the data source reading it → name collision at apply, iter19-class plan blocked at "secret already exists" for the live bag. Same shape was present in the v3.1.4 base postgres and identity_bootstrap layers. Plan-validated against a real Scaleway project with `credentials_preserve=true` for vikunja + identity_bootstrap + base postgres — confirmed the `scaleway_secret.app[0]`, `scaleway_secret.admin`, `scaleway_secret.server`, `scaleway_secret.admin_credentials`, `scaleway_secret.db_credentials[*]` resource addresses are absent from the create list; data sources resolve correctly; baseline run with preserve=false still creates everything as before.
-
-### Fixed
-- **`scaleway_secret.app` and `scaleway_secret_version.app` now gated on `credentials_preserve` across all 13 app bundles.** outline, nextcloud, vikunja, jitsi, n8n, espocrm, grafana, notifuse, broadsheet, wazuh, decidim, steward, backrest. Each bundle gains a new `app_secret_id` local that ternary-resolves to the data-source ID when preserve=true and the resource ID when preserve=false; the bundle's `outputs.tf` ansible-vars map switches from `scaleway_secret.app[0].id` to `local.app_secret_id` so the downstream render layer sees the correct secret either way. Steward additionally exposes `app_secret_name` for its `service_steward_token_secret_hint` output.
-- **`scaleway_secret.admin` / `scaleway_secret.server` + matching versions gated on `credentials_preserve` in `platform/identity/bootstrap/main.tf`.** Adds `admin_secret_id` + `server_secret_id` locals so the bundle's `identity_bootstrap` aggregate output and the standalone `admin_secret_id` / `server_secret_id` outputs return the correct ID under both paths.
-- **`scaleway_secret.admin_credentials` + `scaleway_secret.db_credentials[*]` gated on `credentials_preserve` in `modules/infrastructure/storage/postgres`.** `admin_credentials_secret_id` and the (previously unused) `database_credentials_secrets` outputs now ternary-resolve through the preserved data sources when preserve=true. `database_credentials_secrets` shape narrowed to `{id, name}` for parity across both paths (it had no consumers in the tree).
-- **`scaleway_secret.this` + `scaleway_secret_version.this` gated on `credentials_preserve` in `modules/infrastructure/storage/postgres_database`.** `secret_id` output ternary-resolves through `data.scaleway_secret.preserved[0].id` when preserve=true.
-- **`platform/identity/bootstrap` now forwards `credentials_preserve` into its `module "database"` (postgres_database) call.** Pre-existing wiring gap: the parent bundle had `var.credentials_preserve` but never passed it down, so the authentik DB bag was being re-created on every preserve=true apply even before the gate fixes above. Every app bundle's `database.tf` already forwarded correctly; identity_bootstrap was the lone gap.
-
-## v3.1.7 — 2026-05-26
-
-DKIM regression fix plus a batch of TF↔Ansible wiring gaps the v3.1.5 audit surfaced, plus a v3.1.6 knob walked back per upstream stance.
-
-### Fixed
-- **TEM DKIM record name now uses `var.scaleway_project_id`** as the selector, matching Scaleway TEM's actual on-the-wire convention (`<project_id>._domainkey`). v3.1.5 switched to `scaleway_tem_domain.this[0].dkim_name` thinking that attribute returns the relative selector — empirically it returns the full FQDN with trailing dot (`<project_id>._domainkey.example.org.`), which when concatenated with the `._domainkey` suffix produced a malformed `<fqdn>.._domainkey` record name and a `forces replacement` diff on every plan. Verified against a real `terraform plan` against `consumer-template/environments/_template/` — rendered name now matches the live shape.
-- **Loki `push_url` plumbed from bundle through stack** as a top-level `monitoring_loki_push_url` output and into the consumer-template's `up.sh` jq projection, so the bootstrap monitoring-agent role's `monitoring_loki_push_url` extra-var actually gets a value when loki is co-deployed. Previously: silent default `""` → Alloy collects logs locally, never ships them. Empty string when loki isn't deployed; consumers shipping to an external Loki override via extra ansible vars.
-- **`identity_bootstrap` output widened with `media_s3_secret_id` + `smtp_secret_id`.** Both are new optional inputs on `platform/identity/bootstrap` (default empty); they flow through to the `identity_bootstrap` map `platform/ansible/bootstrap.yml` reads. Empty default leaves the corresponding Authentik feature off; consumers provision the underlying Scaleway secrets out-of-band (they hold operator-managed credentials) and pass the IDs through `var.identity.media_s3_secret_id` / `var.identity.smtp_secret_id`. Previously `bootstrap.yml` ran `| default('')` against keys that didn't exist on the map.
-- **`spf_include` re-exported from `consumer-template/modules/stack`** so consumers can compose TEM's SPF include into a single SPF TXT record via `custom_dns_records` without poking at module internals. v3.1.5 added the base-layer output but forgot the stack re-export.
-- **`scaleway_region` passed as ansible extra-var from `up.sh`**, so the `scw-secrets` role's `scw_secrets_region: "{{ scaleway_region | default('fr-par') }}"` actually picks up the value instead of always falling back to the hardcoded default. Aligns with the existing `scaleway_project_id` extra-var.
-- **protonmail-bridge bootstrap bundle wired into consumer-template.** The bundle existed under `platform/bootstrap/protonmail-bridge/` with full TF outputs + ansible role but had zero references in `consumer-template/modules/stack/apps.tf` and zero entries in `platform/ansible/apps.yml`. Added a `module "protonmail_bridge"` block keyed off a new `var.bootstrap` map (sibling to `var.apps`); extended `scripts/gen_apps_yml.py` with a `BOOTSTRAP_BUNDLES` list so apps.yml + down.yml regen pulls bootstrap-tier bundles from `platform/bootstrap/`. Manifest entry added under a new top-level `bootstrap:` section.
-- **Grafana datasource URLs + JSM alerting + scrape interval surfaced.** `prometheus_url`, `loki_url`, `prometheus_scrape_interval`, `jsm_api_key_secret_id`, `jsm_api_region`, `jsm_priority_mapping`, `jsm_alert_tags` — all defined on the bundle, all mapped in `platform/ansible/apps.yml`, but unreadable from `var.apps.grafana.*`. Added 7 `try()` pass-throughs in the stack module + 7 entries in `apps-manifest.yaml`.
-- **Nextcloud OnlyOffice + Talk + maintenance + per-app knobs surfaced.** 14 vars the bundle defines and forwards (`onlyoffice_image_tag/memory_limit/cpu_limit`, `talk_image_tag/turn_port/relay_port_min/relay_port_max/memory_limit/cpu_limit`, `maintenance_window_start`, `enabled_apps`, `disabled_apps`, `n8n_form_webhook_url`, `instance_name`) added to the stack module call + manifest.
-- **Wazuh manager listen ports surfaced** (`manager_agent_port`, `manager_enrollment_port`, `manager_syslog_port`) — 3 pass-throughs + manifest entries. Needed for wazuh-agent bundles connecting from other hosts when the consumer wants non-default ports.
-
-### Removed
-- **`extra_env_vars` knob on outline bundle.** v3.1.6 shipped it for Google/Slack OAuth, but Authentik is the only identity provider the bundle is expected to wire — social OAuth is out of scope. Stripped from `platform/apps/outline/terraform/variables.tf`, the bundle's ansible role + env.j2 template, consumer-template, `platform/ansible/apps.yml`, and `apps-manifest.yaml`. Bundle was the only env-driven escape hatch, so removing it is a behaviour change for any consumer that filled the map between v3.1.6 and v3.1.7 — none expected.
-
-### Notes
-- `consumer-template/modules/stack/outputs.tf`'s `postgres_admin_credentials_secret_id` description corrected: it's operator-only emergency access, not consumed by any ansible role. Per-app DBs are owned by the app bundles with their own least-privilege credentials.
-
-## v3.1.6 — 2026-05-26
-
-Two peer-filed FRs that unblocked downstream apply, plus a batch of regression port-forwards uncovered by a side-by-side audit against the dciww-commons pre-v2 baseline.
-
-### Added
-- **`extra_docker_networks` knob on n8n bundle.** Map analogue to v3.1.3's `service_account_extra_group_ids` — extra docker networks attached to the n8n container alongside the bundle's defaults. For cross-bundle integration with sidecars (protonmail-bridge etc.) that live in their own bootstrap-tier network. Networks listed here must already exist on the host. Wired through consumer-template + `apps-manifest.yaml`.
-- **`extra_env_vars` knob on outline bundle.** Map of `KEY → value` rendered into Outline's container `.env`. Use for env-driven features the bundle doesn't expose first-class — typical: Google OAuth (`GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`). Wired through consumer-template + `apps-manifest.yaml`.
-- **`extra_scrape_targets` knob on prometheus bundle.** `map(job_name → list(host:port))` rendered as additional `scrape_configs` jobs alongside the bundle's localhost scrapes. For cross-host base-exporter scrapes (node_exporter, cadvisor, traefik metrics on every infra host) when the management host needs to scrape over the VPC. Consumer-template doesn't auto-aggregate this — supply directly from the host inventory.
-- **`extra_env_vars` wiring in consumer-template's n8n module call + 9 new `apps-manifest.yaml` entries** under `apps.n8n`. The consumer-template now merges per-app context (Slack channels, Broadsheet workspace/list IDs, captured workflow IDs, plus auto-derived `BROADSHEET_BASE_URL` and `ESPOCRM_BASE_URL` when those bundles are enabled) into n8n's container `.env`. Lets the bundled workflows under `platform/identity/n8n-workflows/` stay org-agnostic and reference everything via `$env.KEY`. Workflow IDs are captured AFTER first import (operator reads them from the n8n UI URL and re-applies); the platform-wired keys lose to any consumer-supplied `extra_env_vars` of the same name.
-
-### Restored
-- **TEM delivery webhook → SNS → n8n pipeline at base layer.** New `platform/base/terraform/tem_webhook.tf` provisions `scaleway_mnq_sns` activation + a `tem-delivery-events` topic + an HTTPS subscription pointed at `<n8n_url><tem_webhook_n8n_path>` + the `scaleway_tem_webhook` itself. Gate is `var.tem_enabled && var.tem_webhook_n8n_url != ""` — either off and the whole pipeline emits zero resources. Consumer-template auto-wires `tem_webhook_n8n_url` from `module.n8n.app_url` when n8n is enabled, so toggling n8n drives the pipeline too. Event types default to `email_deferred`/`email_delivered`/`email_dropped`/`email_queued`.
-- **Five grafana dashboards from the pre-v2 baseline.** Authentik dashboards (`authentik-metrics.json`, `authentik-stack-monitoring.json`) land under `platform/identity/monitoring/dashboards/` and ship via a new `identity.monitoring` contribution. Infrastructure dashboards (`infrastructure-overview.json`, `logs-explorer.json`, `traefik-overview.json`) land under `platform/apps/prometheus/monitoring/dashboards/` and ship via the prometheus bundle's existing `grafana_dashboards` contribution. Baseline's `${prometheus_uid}` / `${loki_uid}` `templatefile()` placeholders are substituted to the literal `prometheus` / `loki` UIDs that Grafana auto-generates from the provisioned datasource names. The two `tools-prod-application-*` dashboards from the baseline are intentionally NOT ported — names are org-specific.
-- **Four authentik alert rule groups via identity bundle's new monitoring contribution.** `authentik-availability` / `authentik-latency` / `authentik-login-failures` / `authentik-success-rate` ship as Prometheus alert rules (not Grafana-managed) — consumer-template aggregates them via the existing `aggregated_alert_rules` path into the prometheus bundle. New `var.monitoring_enabled = true` on the identity module gates the whole contribution. Baseline shipped these as `grafana_rule_group` resources via the TF provider; sabokit's grafana bundle uses file-based provisioning, so Prometheus-side rules are the better architectural fit.
-- **Decidim org-admin name + nickname env-var overrides** (`decidim_org_admin_name`, `decidim_org_admin_nickname` ansible vars; `organization_admin_name`, `organization_admin_nickname` terraform variables). Empty defaults fall back to `"<organization_name> Admin"` / `'admin'` inside the seed runner so existing consumers don't see any behaviour change. Only consumed on the very first deploy (the db-init step creates the org-admin user once).
-
-### Notes
-- **`refresh-secrets.sh` from the baseline is not ported.** Confirmed by inspection: it's an interactive bash wrapper around `ansible-playbook playbook-refresh-secrets.yml` that prompts for host group + service, validates Scaleway env vars, and runs the play with `--extra-vars`. Sabokit's equivalent is the `secrets` tag every bundle's ansible role exposes: `ansible-playbook -i ansible-local/inventory.ini ansible-local/site.yml --tags secrets --limit <host_group>`. No need for a wrapper at this point — the consumer-template owns the playbook, and operators run ansible directly.
-- **Outline Slack OAuth env vars are deliberately not added.** Outline's Slack integration only works on their paid tier; consumers that need it can drop the relevant entries into the new `outline.extra_env_vars` map themselves.
-- **`postgres-local` staging role from the baseline is not ported.** Deliberately dropped.
-
-## v3.1.5 — 2026-05-26
-
-Downstream-driven patch — four DNS-default changes that align the module with what real prod DNS state actually looks like. No flags, no `lifecycle ignore_changes`, just better defaults.
-
-### Changed
-- **Per-app DNS record TTL default raised from 300 to 3600** across every `platform/apps/*/terraform/dns.tf` (15 bundles, including all three nextcloud records). 300s is debug-territory; production DNS for app hostnames doesn't churn that fast and the extra resolver-cache hits aren't worth the noise. Gateway record left alone — `var.gateway_dns_ttl` default 60 is intentional (fast propagation on re-provisions).
-- **TEM DKIM record now uses `scaleway_tem_domain.dkim_name`** for the record name, not `dkim_config`. `dkim_config` returns the full DKIM public key (the TXT value); the live record name needs the selector that Scaleway's API exposes as `dkim_name`. Without this fix the record was created with a multi-line public key as its name — never matched the upstream selector, mail signing silently failed verification.
-- **TEM DMARC record `rua=` is now opt-in via `var.dmarc_rua_email`** (default empty). Empty default emits the conservative baseline `v=DMARC1; p=quarantine`; setting an address composes `rua=mailto:<addr>`. Old behaviour blindly pointed `rua` at `notify@<sender_domain>` — that mailbox doesn't actually process DMARC aggregate reports for most consumers; reports land in /dev/null and confuse the picture when something actually breaks.
-
-### Removed
-- **`scaleway_domain_record.tem_spf` from base.** Real-world SPF needs to combine multiple sender includes (TEM + protonmail/sendgrid/etc.) into a single TXT record per RFC 7208; emitting a bare TEM-only record collides with whatever else the consumer needs to authorize. New `base.spf_include` output exposes the TEM include directive — compose it into the consumer's full SPF via `custom_dns_records`. Existing TEM-managed SPF records need to be `terraform state rm`'d on first apply (they aren't destroyed — the resource just disappears from the module) then re-declared via `custom_dns_records`.
-
-## v3.1.4 — 2026-05-25
-
-Two more credentials_preserve extensions to surrounding layers — base postgres + identity_bootstrap.
-
-### Fixed
-- **`postgres_credentials_preserve` on base layer.** Without this, in-place cutover apply silently rotates the live RDB instance admin password (the one underneath every app's per-db user). Blast radius: every non-app-bundle connection (DBA sessions, monitoring exporters, backup tooling) starts failing mid-apply. Wire-through is plumbing only — the data sources already exist inside `modules/infrastructure/storage/postgres`. Also added `password` to `scaleway_rdb_instance.this` lifecycle ignore_changes as defence-in-depth (defends against a stale plan triggering an unwanted UpdatePassword API call on imported instances).
-- **`credentials_preserve` on identity_bootstrap.** Without this, the first cutover apply collapses at Phase 3: bootstrap generates a fresh `random_password.admin_api_token`, configure.sh exports it as `TF_VAR_authentik_admin_token`, every `authentik_*` resource call in the apply hits live Authentik with the bogus token → 401 cascade. Full three-part pattern (count-gate randoms, data sources for preserved bags, ternary plumbing through locals). Server bag passes through `secret_key` from `random_id.server_key.hex` (matches the existing on-disk shape so re-renders stay byte-stable).
-
-## v3.1.3 — 2026-05-25
-
-### Added
-- **n8n service account auto-joins broadsheet's per-app Authentik group** when both bundles are deployed. Lets n8n workflows authenticate to broadsheet (e.g. for transactional email sends) without manual group membership wiring at the consumer-template layer. Opt out with `var.apps.n8n.broadsheet_membership = false`.
-- **`var.service_account_extra_group_ids` on n8n bundle** — direct Authentik group IDs (parallel to the existing `service_account_extra_groups` which takes names from `base.authentik.groups`). For cross-bundle wiring where the group is created by another bundle.
-
-## v3.1.2 — 2026-05-25
-
-### Fixed
-- **`authentik_token` resources ungated from `credentials_preserve` flag.** v3.1.1 gated `authentik_token.service_steward` and `authentik_token.service_n8n` with `count = !credentials_preserve ? 1 : 0` — but these are identity resources in Authentik, not value-only resources. Gating planned a destroy on preserve=true, which destroyed the live token in Authentik and broke container authentication. Now the resources always exist (`count = var.enabled ? 1 : 0`) with `lifecycle { ignore_changes = [key] }`. The `<slug>-app-secrets` bag's `AUTHENTIK_API_TOKEN` entry now always reads from `authentik_token.<service>[0].key` — works for both fresh generation (preserve=false) and import-from-legacy (preserve=true).
-
-### Known constraint (v3.1.1 + v3.1.2)
-- **`credentials_preserve = true` assumes the `<slug>-app-secrets` bag already exists with v3-canonical keys.** Greenfield deploys are fine — terraform creates the bag with the right shape on first apply. For in-place cutover from a legacy stack where credentials were managed via differently-named Scaleway secrets (`<slug>-admin-password`, etc.) or stored only in container ENV without Secret Manager, the bag must be pre-populated with v3-canonical keys before applying with preserve=true. Recipe: SSH to each affected container, dump its env, write a JSON bag matching the v3 module's expected key set into the named Scaleway secret. Slated for a cleaner solution in v3.2+ (post-stability-gate) — likely an opt-in "preserve from external source" mode that reads from a consumer-provided map instead of a Scaleway secret.
-
-## v3.1.1 — 2026-05-25
-
-In-place legacy cutover support. Without this, applying v3 against a legacy stack regenerates ~50 credential values for live apps — n8n ENCRYPTION_KEY rotation alone bricks every stored workflow credential (irrecoverable). v2.18.2's `ignore_changes=[data]` is a guard, not a wall.
-
-### Added
-- **`var.credentials_preserve` (bool, default false) on every credential-generating bundle + shared module.** Bundles touched: outline, nextcloud, vikunja, jitsi, n8n, espocrm, grafana, notifuse, broadsheet, wazuh, decidim, steward, backrest. Shared modules: `modules/authentik/{oidc-app,saml-app}`, `modules/infrastructure/storage/{postgres,postgres_database}`. When true: count-gates `random_password`/`random_id`/`random_uuid` to 0, reads the existing `<slug>-app-secrets` bag via `data "scaleway_secret_version"`, plumbs preserved values through locals to every downstream consumer (secret_version re-render, ansible outputs).
-- Consumer-template passthrough + apps-manifest schema entries per bundle.
-
-### Migration
-- For in-place legacy cutover: set `credentials_preserve = true` per bundle in tfvars, run apply. Live credentials preserved end-to-end; zero rotation. Drop the flag on the next apply when ready to do a deliberate coordinated rotation.
-- Short-lived knob: removal slated for v4.0 once everyone's past their initial v3 cutover.
-
-## v3.1.0 — 2026-05-25
-
-Consumer-declared DNS records at the base layer. Inbound mail setup (MX) no longer requires hand-managing records in Scaleway DNS.
-
-### Added
-- **`var.custom_dns_records` at base layer.** Map of zone-name → list of `{subdomain, type, target/server, ttl}` records. Supports A, AAAA, CNAME, MX, TXT, SRV. Reuses `modules/infrastructure/app_dns` (same prevent_destroy + skip-on-missing-zone semantics). Common use: MX records pointing at your inbound mail provider, additional TXT verifications, SRV records.
-- **`app_dns` module gained MX, TXT, SRV, AAAA support.** Was: A + CNAME only. New types follow the same per-type `for_each` shape with `prevent_destroy = true`.
-- **`custom_dns_records` passthrough** in consumer-template/modules/stack/base.tf + commented example block in environments/_template/terraform.tfvars.example.
-
-### Changed
-- **`scripts/release.sh` chore commit subject is now plain English** (was `chore(consumer-template): bump refs to vX.Y.Z`, now `Bumped consumer-template refs to vX.Y.Z`). Matches the standing rule applied to hand-written commits.
+- **Per-app `icon_url` passthrough takes precedence over bundle's `icon_filename` default.** Set on a consumer to point at a fully-qualified URL when you want custom branding without forking `sabokit-assets`.
+- **Drift after upgrade can be stale Scaleway secret bags, not new code.** If `terraform plan` shows drift on `scaleway_secret`/`scaleway_secret_version` that doesn't match the changelog, suspect a partial-apply leftover. Diagnose by comparing `terraform state show <addr>` timestamps against `scw secret list --output json | jq '.[] | {name, created_at, updated_at}'`.
 
 ## v3.0.3 — 2026-05-25
 
