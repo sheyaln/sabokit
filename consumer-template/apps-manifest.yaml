@@ -1075,6 +1075,18 @@ apps:
           example: ops@example.org
           ui: text
 
+        organization_admin_name:
+          type: string
+          default: ''
+          description: Display name for the bootstrap organization admin. Empty falls back to "<organization_name> Admin". Only consumed on first deploy.
+          ui: advanced
+
+        organization_admin_nickname:
+          type: string
+          default: ''
+          description: URL-safe handle for the bootstrap organization admin. Empty falls back to `admin`. Only consumed on first deploy.
+          ui: advanced
+
         smtp_from_email:
           type: string
           default: ''

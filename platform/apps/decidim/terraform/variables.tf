@@ -171,6 +171,18 @@ variable "organization_admin_email" {
   default     = ""
 }
 
+variable "organization_admin_name" {
+  description = "Display name for the bootstrap organization admin. Empty falls back to \"<organization_name> Admin\" inside the seed runner (pre-knob behaviour). Only consumed on first deploy when the admin user is created."
+  type        = string
+  default     = ""
+}
+
+variable "organization_admin_nickname" {
+  description = "Nickname (URL-safe handle) for the bootstrap organization admin. Empty falls back to `admin`. Only consumed on first deploy."
+  type        = string
+  default     = ""
+}
+
 variable "smtp_from_email" {
   description = "From: address for Decidim-sent transactional email. Empty disables SMTP wiring on the host. SMTP host/port/username/password come from the platform-wide smtp-config secret looked up by the Ansible role."
   type        = string

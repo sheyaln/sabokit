@@ -230,6 +230,8 @@ module "decidim" {
   available_locales             = try(var.apps.decidim.available_locales, ["en"])
   organization_reference_prefix = try(var.apps.decidim.organization_reference_prefix, "")
   organization_admin_email      = try(var.apps.decidim.organization_admin_email, "")
+  organization_admin_name       = try(var.apps.decidim.organization_admin_name, "")
+  organization_admin_nickname   = try(var.apps.decidim.organization_admin_nickname, "")
   smtp_from_email               = try(var.apps.decidim.smtp_from_email, "")
   sidekiq_concurrency           = try(var.apps.decidim.sidekiq_concurrency, 5)
   application_name              = try(var.apps.decidim.application_name, "Decidim")

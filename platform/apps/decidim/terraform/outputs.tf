@@ -58,6 +58,8 @@ output "ansible" {
       decidim_smtp_secret_name    = var.smtp_from_email == "" ? "" : "smtp-config"
       decidim_auto_update_enabled = var.auto_update_enabled
       decidim_autoheal_enabled    = var.autoheal_enabled
+      decidim_org_admin_name      = var.organization_admin_name
+      decidim_org_admin_nickname  = var.organization_admin_nickname
     }
   } : null
 }
