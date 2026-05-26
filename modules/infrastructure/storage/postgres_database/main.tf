@@ -58,6 +58,8 @@ resource "scaleway_rdb_privilege" "this" {
 }
 
 resource "scaleway_secret" "this" {
+  count = var.credentials_preserve ? 0 : 1
+
   name        = "postgres-${var.database_name}-credentials"
   description = "Database credentials for ${var.database_name}"
   tags        = distinct(concat(var.tags, ["postgres"]))
@@ -65,7 +67,9 @@ resource "scaleway_secret" "this" {
 }
 
 resource "scaleway_secret_version" "this" {
-  secret_id = scaleway_secret.this.id
+  count = var.credentials_preserve ? 0 : 1
+
+  secret_id = scaleway_secret.this[0].id
   data = jsonencode({
     dbname   = scaleway_rdb_database.this.name
     engine   = var.engine

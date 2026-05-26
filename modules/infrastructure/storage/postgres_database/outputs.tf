@@ -16,5 +16,5 @@ output "password" {
 
 output "secret_id" {
   description = "Scaleway secret holding {dbname, engine, username, password, host, port}."
-  value       = scaleway_secret.this.id
+  value       = var.credentials_preserve ? data.scaleway_secret.preserved[0].id : scaleway_secret.this[0].id
 }

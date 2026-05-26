@@ -118,6 +118,8 @@ resource "scaleway_rdb_user" "users" {
 }
 
 resource "scaleway_secret" "admin_credentials" {
+  count = var.credentials_preserve ? 0 : 1
+
   name        = "${var.instance_name}-admin-credentials"
   description = "Admin credentials for the ${var.instance_name} PostgreSQL instance. Used by downstream modules to provision per-app databases."
   tags        = distinct(concat(var.tags, ["postgres", "admin"]))
@@ -125,7 +127,9 @@ resource "scaleway_secret" "admin_credentials" {
 }
 
 resource "scaleway_secret_version" "admin_credentials" {
-  secret_id = scaleway_secret.admin_credentials.id
+  count = var.credentials_preserve ? 0 : 1
+
+  secret_id = scaleway_secret.admin_credentials[0].id
   # Schema is enforced because type=database_credentials. The dbname is the
   # default 'postgres' database; admin connects there to manage other DBs.
   data = jsonencode({
@@ -157,7 +161,7 @@ resource "scaleway_rdb_privilege" "privileges" {
 }
 
 resource "scaleway_secret" "db_credentials" {
-  for_each    = toset(local.dbs)
+  for_each    = var.credentials_preserve ? toset([]) : toset(local.dbs)
   name        = "postgres-${each.value}-credentials"
   description = "Database credentials for ${each.value}"
   tags        = ["postgres"]
@@ -165,7 +169,7 @@ resource "scaleway_secret" "db_credentials" {
 }
 
 resource "scaleway_secret_version" "db_credentials" {
-  for_each  = toset(local.dbs)
+  for_each  = var.credentials_preserve ? toset([]) : toset(local.dbs)
   secret_id = scaleway_secret.db_credentials[each.value].id
   data = jsonencode({
     dbname   = each.value
@@ -185,8 +189,8 @@ resource "scaleway_secret_version" "db_credentials" {
 }
 
 output "database_credentials_secrets" {
-  value       = scaleway_secret.db_credentials
-  description = "Database credentials secrets for all databases"
+  value       = var.credentials_preserve ? { for k, v in data.scaleway_secret.preserved_db : k => { id = v.id, name = v.name } } : { for k, v in scaleway_secret.db_credentials : k => { id = v.id, name = v.name } }
+  description = "Per-database Scaleway secret handles {id, name}. Unified shape across resource-managed and preserved paths."
 }
 
 output "database_passwords" {
@@ -222,5 +226,5 @@ output "admin_password" {
 
 output "admin_credentials_secret_id" {
   description = "Scaleway Secret Manager ID holding admin credentials (engine, username, password, host, port)."
-  value       = scaleway_secret.admin_credentials.id
+  value       = var.credentials_preserve ? data.scaleway_secret.preserved_admin[0].id : scaleway_secret.admin_credentials[0].id
 }
