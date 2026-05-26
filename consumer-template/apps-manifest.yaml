@@ -2404,6 +2404,24 @@ apps:
           description: Full icon URL override. When set, used verbatim and icon_filename is ignored.
           ui: advanced
 
+        manager_agent_port:
+          type: number
+          default: 1514
+          description: TCP port the Wazuh manager listens on for agent connections.
+          ui: advanced
+
+        manager_enrollment_port:
+          type: number
+          default: 1515
+          description: TCP port the Wazuh manager listens on for agent enrollment.
+          ui: advanced
+
+        manager_syslog_port:
+          type: number
+          default: 514
+          description: UDP port the Wazuh manager listens on for syslog ingestion.
+          ui: advanced
+
   # ── Wazuh Agent ─────────────────────────────────────────────────────────
   # Host-network container that ships logs to a Wazuh manager. Multi-instance
   # like backrest — one block per host you want monitored.

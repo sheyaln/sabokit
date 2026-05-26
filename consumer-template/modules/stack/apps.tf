@@ -581,6 +581,11 @@ module "wazuh" {
   icon_filename           = try(var.apps.wazuh.icon_filename, "")
   dns_zone_override       = try(var.apps.wazuh.dns_zone_override, "")
 
+  # Manager listening ports — wazuh-agent bundles connect on these.
+  manager_agent_port      = try(var.apps.wazuh.manager_agent_port, 1514)
+  manager_enrollment_port = try(var.apps.wazuh.manager_enrollment_port, 1515)
+  manager_syslog_port     = try(var.apps.wazuh.manager_syslog_port, 514)
+
   credentials_preserve = try(var.apps.wazuh.credentials_preserve, false)
 }
 
