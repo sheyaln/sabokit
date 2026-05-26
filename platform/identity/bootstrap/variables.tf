@@ -43,6 +43,18 @@ variable "admin_username" {
   default     = "akadmin"
 }
 
+variable "media_s3_secret_id" {
+  description = "Scaleway secret ID for Authentik media-storage S3 credentials. Empty disables — Authentik falls back to filesystem media. Operators provision the secret out-of-band (it carries Scaleway access keys); this module just plumbs the ID through to the authentik-server ansible role."
+  type        = string
+  default     = ""
+}
+
+variable "smtp_secret_id" {
+  description = "Scaleway secret ID for Authentik SMTP credentials. Empty disables outbound email — auth flows still apply but every email step no-ops. Provisioned out-of-band like media_s3_secret_id."
+  type        = string
+  default     = ""
+}
+
 variable "credentials_preserve" {
   description = "In-place legacy cutover support. When true, skips generating new admin password, admin API token, and server secret_key, and reads existing values from the live `<secret_name_prefix>-admin` and `<secret_name_prefix>-server` Scaleway secrets via data sources. Without this, the first cutover apply collapses at Phase 3 because configure.sh exports the freshly-generated api_token as TF_VAR_authentik_admin_token while live Authentik still authenticates the legacy one. Drop the flag on next apply once cutover is verified. Short-lived knob, removal slated for v4.x."
   type        = bool
