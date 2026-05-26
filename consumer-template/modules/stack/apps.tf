@@ -22,7 +22,6 @@ module "outline" {
   deployment_host_key     = try(var.apps.outline.deployment_host_key, "apps")
   bucket_name_override    = try(var.apps.outline.bucket_name_override, "")
   dns_zone_override       = try(var.apps.outline.dns_zone_override, "")
-  extra_env_vars          = try(var.apps.outline.extra_env_vars, {})
 
   credentials_preserve = try(var.apps.outline.credentials_preserve, false)
 }

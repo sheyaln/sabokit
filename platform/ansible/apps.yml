@@ -25,7 +25,6 @@
     outline_smtp_secret_name: "{{ enabled_apps.outline.ansible_vars.outline_smtp_secret_name }}"
     outline_auto_update_enabled: "{{ enabled_apps.outline.ansible_vars.outline_auto_update_enabled }}"
     outline_autoheal_enabled: "{{ enabled_apps.outline.ansible_vars.outline_autoheal_enabled }}"
-    outline_extra_env_vars: "{{ enabled_apps.outline.ansible_vars.outline_extra_env_vars }}"
   when: enabled_apps.outline is defined and enabled_apps.outline is not none
   tags: [apps, outline]
 - import_playbook: ../apps/steward/ansible/playbook.yml
