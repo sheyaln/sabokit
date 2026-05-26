@@ -16,6 +16,22 @@
 # Usage:
 #   ansible-playbook down.yml -i env/inventory.ini -e @env/enabled_apps.json
 #   ansible-playbook down.yml -i env/inventory.ini -e @env/enabled_apps.json --tags outline
+- name: "down: protonmail-bridge"
+  hosts: "{{ (enabled_apps.protonmail_bridge | default({})).ansible_group | default('all') }}"
+  become: true
+  gather_facts: false
+  tags: [down, protonmail_bridge]
+  tasks:
+    - name: Load role defaults
+      ansible.builtin.include_vars:
+        file: "../bootstrap/protonmail-bridge/ansible/roles/protonmail_bridge/defaults/main.yml"
+      when: enabled_apps.protonmail_bridge is defined and enabled_apps.protonmail_bridge is not none
+    - name: Stop and remove the compose stack
+      community.docker.docker_compose_v2:
+        project_src: "{{ protonmail_bridge_install_dir | default('/opt/protonmail-bridge') }}"
+        state: absent
+      when: enabled_apps.protonmail_bridge is defined and enabled_apps.protonmail_bridge is not none
+      ignore_errors: true  # compose file may already be gone
 - name: "down: outline"
   hosts: "{{ (enabled_apps.outline | default({})).ansible_group | default('all') }}"
   become: true

@@ -33,8 +33,3 @@ outline_cpu_reservation: "0.25"
 
 # File upload size (must match what was sent to terraform).
 outline_max_upload_size_bytes: 26214400
-
-# Extra env vars rendered verbatim into the container .env. Map of KEY →
-# value; used for env-driven features the bundle doesn't expose as a
-# first-class knob (e.g. Google OAuth — GOOGLE_CLIENT_ID/GOOGLE_CLIENT_SECRET).
-outline_extra_env_vars: {}

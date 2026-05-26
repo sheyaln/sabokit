@@ -36,11 +36,17 @@ resource "scaleway_tem_domain" "this" {
 # whatever else the consumer needs to authorize. Consumers compose the
 # full SPF via custom_dns_records using the spf_include output.
 
+# DKIM selector is the project_id per Scaleway TEM convention.
+# Don't use scaleway_tem_domain.this[0].dkim_name — despite its docstring it
+# returns the full FQDN with trailing dot (e.g.
+# "<project_id>._domainkey.example.org."), which when concatenated with the
+# _domainkey suffix produces a malformed "<fqdn>.._domainkey" record name
+# and forces replacement on every plan. v3.1.5 regression.
 resource "scaleway_domain_record" "tem_dkim" {
   count = var.tem_enabled ? 1 : 0
 
   dns_zone = var.base_domain
-  name     = "${scaleway_tem_domain.this[0].dkim_name}._domainkey${local.tem_subdomain_suffix}"
+  name     = "${var.scaleway_project_id}._domainkey${local.tem_subdomain_suffix}"
   type     = "TXT"
   data     = scaleway_tem_domain.this[0].dkim_config
   ttl      = 3600

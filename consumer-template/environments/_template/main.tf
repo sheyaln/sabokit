@@ -29,6 +29,7 @@ module "stack" {
   private_network_subnet = var.private_network_subnet
 
   apps             = var.apps
+  bootstrap        = var.bootstrap
   smtp_secret_name = var.smtp_secret_name
 
   manage_gateway_dns       = var.manage_gateway_dns
@@ -70,4 +71,12 @@ output "enabled_apps" {
 
 output "split_dns_overrides" {
   value = module.stack.split_dns_overrides
+}
+
+output "monitoring_loki_push_url" {
+  value = module.stack.monitoring_loki_push_url
+}
+
+output "spf_include" {
+  value = module.stack.spf_include
 }

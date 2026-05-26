@@ -6,6 +6,27 @@ All notable changes to sabokit go here. Versioning follows semver; major bumps s
 
 Non-downstream-requested improvements, accumulating until the next downstream-driven patch folds them in.
 
+## v3.1.7 — 2026-05-26
+
+DKIM regression fix plus a batch of TF↔Ansible wiring gaps the v3.1.5 audit surfaced, plus a v3.1.6 knob walked back per upstream stance.
+
+### Fixed
+- **TEM DKIM record name now uses `var.scaleway_project_id`** as the selector, matching Scaleway TEM's actual on-the-wire convention (`<project_id>._domainkey`). v3.1.5 switched to `scaleway_tem_domain.this[0].dkim_name` thinking that attribute returns the relative selector — empirically it returns the full FQDN with trailing dot (`<project_id>._domainkey.example.org.`), which when concatenated with the `._domainkey` suffix produced a malformed `<fqdn>.._domainkey` record name and a `forces replacement` diff on every plan. Verified against a real `terraform plan` against `consumer-template/environments/_template/` — rendered name now matches the live shape.
+- **Loki `push_url` plumbed from bundle through stack** as a top-level `monitoring_loki_push_url` output and into the consumer-template's `up.sh` jq projection, so the bootstrap monitoring-agent role's `monitoring_loki_push_url` extra-var actually gets a value when loki is co-deployed. Previously: silent default `""` → Alloy collects logs locally, never ships them. Empty string when loki isn't deployed; consumers shipping to an external Loki override via extra ansible vars.
+- **`identity_bootstrap` output widened with `media_s3_secret_id` + `smtp_secret_id`.** Both are new optional inputs on `platform/identity/bootstrap` (default empty); they flow through to the `identity_bootstrap` map `platform/ansible/bootstrap.yml` reads. Empty default leaves the corresponding Authentik feature off; consumers provision the underlying Scaleway secrets out-of-band (they hold operator-managed credentials) and pass the IDs through `var.identity.media_s3_secret_id` / `var.identity.smtp_secret_id`. Previously `bootstrap.yml` ran `| default('')` against keys that didn't exist on the map.
+- **`spf_include` re-exported from `consumer-template/modules/stack`** so consumers can compose TEM's SPF include into a single SPF TXT record via `custom_dns_records` without poking at module internals. v3.1.5 added the base-layer output but forgot the stack re-export.
+- **`scaleway_region` passed as ansible extra-var from `up.sh`**, so the `scw-secrets` role's `scw_secrets_region: "{{ scaleway_region | default('fr-par') }}"` actually picks up the value instead of always falling back to the hardcoded default. Aligns with the existing `scaleway_project_id` extra-var.
+- **protonmail-bridge bootstrap bundle wired into consumer-template.** The bundle existed under `platform/bootstrap/protonmail-bridge/` with full TF outputs + ansible role but had zero references in `consumer-template/modules/stack/apps.tf` and zero entries in `platform/ansible/apps.yml`. Added a `module "protonmail_bridge"` block keyed off a new `var.bootstrap` map (sibling to `var.apps`); extended `scripts/gen_apps_yml.py` with a `BOOTSTRAP_BUNDLES` list so apps.yml + down.yml regen pulls bootstrap-tier bundles from `platform/bootstrap/`. Manifest entry added under a new top-level `bootstrap:` section.
+- **Grafana datasource URLs + JSM alerting + scrape interval surfaced.** `prometheus_url`, `loki_url`, `prometheus_scrape_interval`, `jsm_api_key_secret_id`, `jsm_api_region`, `jsm_priority_mapping`, `jsm_alert_tags` — all defined on the bundle, all mapped in `platform/ansible/apps.yml`, but unreadable from `var.apps.grafana.*`. Added 7 `try()` pass-throughs in the stack module + 7 entries in `apps-manifest.yaml`.
+- **Nextcloud OnlyOffice + Talk + maintenance + per-app knobs surfaced.** 14 vars the bundle defines and forwards (`onlyoffice_image_tag/memory_limit/cpu_limit`, `talk_image_tag/turn_port/relay_port_min/relay_port_max/memory_limit/cpu_limit`, `maintenance_window_start`, `enabled_apps`, `disabled_apps`, `n8n_form_webhook_url`, `instance_name`) added to the stack module call + manifest.
+- **Wazuh manager listen ports surfaced** (`manager_agent_port`, `manager_enrollment_port`, `manager_syslog_port`) — 3 pass-throughs + manifest entries. Needed for wazuh-agent bundles connecting from other hosts when the consumer wants non-default ports.
+
+### Removed
+- **`extra_env_vars` knob on outline bundle.** v3.1.6 shipped it for Google/Slack OAuth, but Authentik is the only identity provider the bundle is expected to wire — social OAuth is out of scope. Stripped from `platform/apps/outline/terraform/variables.tf`, the bundle's ansible role + env.j2 template, consumer-template, `platform/ansible/apps.yml`, and `apps-manifest.yaml`. Bundle was the only env-driven escape hatch, so removing it is a behaviour change for any consumer that filled the map between v3.1.6 and v3.1.7 — none expected.
+
+### Notes
+- `consumer-template/modules/stack/outputs.tf`'s `postgres_admin_credentials_secret_id` description corrected: it's operator-only emergency access, not consumed by any ansible role. Per-app DBs are owned by the app bundles with their own least-privilege credentials.
+
 ## v3.1.6 — 2026-05-26
 
 Two peer-filed FRs that unblocked downstream apply, plus a batch of regression port-forwards uncovered by a side-by-side audit against the dciww-commons pre-v2 baseline.

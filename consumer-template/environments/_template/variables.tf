@@ -96,6 +96,11 @@ variable "apps" {
   default = {}
 }
 
+variable "bootstrap" {
+  type    = any
+  default = {}
+}
+
 variable "smtp_secret_name" {
   type    = string
   default = ""

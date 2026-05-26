@@ -12,7 +12,7 @@ output "authentik_gateway_domain" {
 }
 
 output "postgres_admin_credentials_secret_id" {
-  description = "Scaleway secret holding Postgres admin credentials. App bundles use this for emergency access; routine per-app DBs are owned by the app bundles."
+  description = "Scaleway secret holding Postgres admin credentials. Operator-only emergency access; not consumed by any ansible role. Per-app DBs are provisioned by their bundle with their own least-privilege credentials."
   value       = module.base.scaleway.postgres_admin_credentials_secret_id
 }
 
@@ -29,6 +29,16 @@ output "authentik_admin_secret_id" {
 output "infra_email" {
   description = "Operations contact email. Surfaced so deploy.sh can pass it through to Ansible's traefik role for the Let's Encrypt ACME registration email."
   value       = var.infra_email
+}
+
+output "spf_include" {
+  description = "TEM SPF include directive (e.g. include:_spf.tem.scaleway.com). Compose into a single SPF TXT record via custom_dns_records alongside any other sender includes (protonmail, sendgrid, etc.)."
+  value       = module.base.spf_include
+}
+
+output "monitoring_loki_push_url" {
+  description = "Push URL the bootstrap monitoring-agent role wires into Alloy. Empty when loki isn't deployed in-cluster; consumers shipping logs to an external Loki should override via extra ansible vars."
+  value       = module.loki.enabled ? module.loki.push_url : ""
 }
 
 output "split_dns_overrides" {
@@ -118,6 +128,7 @@ output "enabled_apps" {
     loki = module.loki.enabled ? {
       ansible_vars  = module.loki.ansible.vars
       ansible_group = module.loki.ansible.host_group
+      push_url      = module.loki.push_url
     } : null
     grafana = module.grafana.enabled ? {
       url           = module.grafana.app_url
@@ -153,6 +164,10 @@ output "enabled_apps" {
     autoheal_apps = module.autoheal_apps.enabled ? {
       ansible_vars  = module.autoheal_apps.ansible.vars
       ansible_group = module.autoheal_apps.ansible.host_group
+    } : null
+    protonmail_bridge = module.protonmail_bridge.enabled ? {
+      ansible_vars  = module.protonmail_bridge.ansible.vars
+      ansible_group = module.protonmail_bridge.ansible.host_group
     } : null
   }
 }

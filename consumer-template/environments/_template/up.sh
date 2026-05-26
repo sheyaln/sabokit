@@ -121,6 +121,7 @@ jq '{
   identity_bootstrap:         .identity_bootstrap.value,
   traefik_acme_email:         .infra_email.value,
   split_dns_overrides:        .split_dns_overrides.value,
+  monitoring_loki_push_url:   .monitoring_loki_push_url.value,
 }' .tf-output.json > .ansible-vars.json
 
 c_phase "3/4  Ansible bootstrap (docker, traefik, authentik-server)"
@@ -131,6 +132,7 @@ ansible-playbook "$FED_COMMONS_DIR/platform/ansible/bootstrap.yml" \
   -e "env_name=$ENV_NAME" \
   -e "gateway_domain=$GATEWAY_DOMAIN" \
   -e "scaleway_project_id=$SCW_PROJECT_ID" \
+  -e "scaleway_region=$SCW_DEFAULT_REGION" \
   -e "traefik_acme_email=$INFRA_EMAIL" \
   "$@"
 c_ok "Bootstrap complete"

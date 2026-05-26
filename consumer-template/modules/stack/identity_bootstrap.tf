@@ -19,4 +19,11 @@ module "identity_bootstrap" {
   postgres_engine      = module.base.scaleway.postgres_engine
 
   credentials_preserve = try(var.identity.bootstrap_credentials_preserve, false)
+
+  # Optional out-of-band secrets the authentik-server role reads. Operators
+  # provision the underlying Scaleway secrets (S3 creds, SMTP creds) themselves
+  # and pass the IDs here; empty (default) leaves the corresponding Authentik
+  # feature off. See platform/identity/bootstrap/README.md.
+  media_s3_secret_id = try(var.identity.media_s3_secret_id, "")
+  smtp_secret_id     = try(var.identity.smtp_secret_id, "")
 }

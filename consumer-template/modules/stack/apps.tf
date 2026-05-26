@@ -22,7 +22,6 @@ module "outline" {
   deployment_host_key     = try(var.apps.outline.deployment_host_key, "apps")
   bucket_name_override    = try(var.apps.outline.bucket_name_override, "")
   dns_zone_override       = try(var.apps.outline.dns_zone_override, "")
-  extra_env_vars          = try(var.apps.outline.extra_env_vars, {})
 
   credentials_preserve = try(var.apps.outline.credentials_preserve, false)
 }
@@ -208,6 +207,27 @@ module "nextcloud" {
   deployment_host_key     = try(var.apps.nextcloud.deployment_host_key, "apps")
   bucket_name_override    = try(var.apps.nextcloud.bucket_name_override, "")
   dns_zone_override       = try(var.apps.nextcloud.dns_zone_override, "")
+
+  # Resource + branding + per-app knobs. Defaults mirror the bundle's own.
+  instance_name            = try(var.apps.nextcloud.instance_name, "Nextcloud")
+  maintenance_window_start = try(var.apps.nextcloud.maintenance_window_start, 2)
+  enabled_apps = try(var.apps.nextcloud.enabled_apps, [
+    "groupfolders", "notify_push", "notes", "tasks", "forms",
+    "polls", "epubviewer", "webhook_listeners",
+  ])
+  disabled_apps        = try(var.apps.nextcloud.disabled_apps, ["photos"])
+  n8n_form_webhook_url = try(var.apps.nextcloud.n8n_form_webhook_url, "")
+
+  # OnlyOffice + Talk container tuning.
+  onlyoffice_image_tag    = try(var.apps.nextcloud.onlyoffice_image_tag, "latest")
+  onlyoffice_memory_limit = try(var.apps.nextcloud.onlyoffice_memory_limit, "2G")
+  onlyoffice_cpu_limit    = try(var.apps.nextcloud.onlyoffice_cpu_limit, "2.0")
+  talk_image_tag          = try(var.apps.nextcloud.talk_image_tag, "latest")
+  talk_turn_port          = try(var.apps.nextcloud.talk_turn_port, 3478)
+  talk_relay_port_min     = try(var.apps.nextcloud.talk_relay_port_min, 49152)
+  talk_relay_port_max     = try(var.apps.nextcloud.talk_relay_port_max, 49252)
+  talk_memory_limit       = try(var.apps.nextcloud.talk_memory_limit, "1G")
+  talk_cpu_limit          = try(var.apps.nextcloud.talk_cpu_limit, "1.0")
 
   credentials_preserve = try(var.apps.nextcloud.credentials_preserve, false)
 }
@@ -561,6 +581,11 @@ module "wazuh" {
   icon_filename           = try(var.apps.wazuh.icon_filename, "")
   dns_zone_override       = try(var.apps.wazuh.dns_zone_override, "")
 
+  # Manager listening ports — wazuh-agent bundles connect on these.
+  manager_agent_port      = try(var.apps.wazuh.manager_agent_port, 1514)
+  manager_enrollment_port = try(var.apps.wazuh.manager_enrollment_port, 1515)
+  manager_syslog_port     = try(var.apps.wazuh.manager_syslog_port, 514)
+
   credentials_preserve = try(var.apps.wazuh.credentials_preserve, false)
 }
 
@@ -591,6 +616,19 @@ module "grafana" {
   )
 
   dns_zone_override = try(var.apps.grafana.dns_zone_override, "")
+
+  # Datasource URLs + JSM alerting plumbing. Bundle vars are non-nullable
+  # strings/maps, so the try() fallback restates the bundle defaults rather
+  # than passing null. prometheus_url / loki_url defaults assume prometheus
+  # and loki are co-deployed on the same host and share the bundle's docker
+  # network; override per-consumer when shipping to external backends.
+  prometheus_url             = try(var.apps.grafana.prometheus_url, "http://prometheus:9090")
+  loki_url                   = try(var.apps.grafana.loki_url, "http://loki:3100")
+  prometheus_scrape_interval = try(var.apps.grafana.prometheus_scrape_interval, "30s")
+  jsm_api_key_secret_id      = try(var.apps.grafana.jsm_api_key_secret_id, "")
+  jsm_api_region             = try(var.apps.grafana.jsm_api_region, "us")
+  jsm_priority_mapping       = try(var.apps.grafana.jsm_priority_mapping, { critical = "P1", warning = "P3", info = "P5" })
+  jsm_alert_tags             = try(var.apps.grafana.jsm_alert_tags, ["sabokit"])
 
   credentials_preserve = try(var.apps.grafana.credentials_preserve, false)
 }
@@ -692,6 +730,31 @@ module "wazuh_agent_apps" {
   fim_enabled          = try(var.apps.wazuh_agent_apps.fim_enabled, true)
   fim_extra_paths      = try(var.apps.wazuh_agent_apps.fim_extra_paths, [])
   fim_extra_exclusions = try(var.apps.wazuh_agent_apps.fim_extra_exclusions, [])
+}
+
+# ProtonMail Bridge — IMAP inbound mail for apps that fetch (n8n workflows,
+# etc). SMTP outbound stays on TEM at the base tier. Lives in
+# platform/bootstrap/ rather than platform/apps/ — it's a host-service the
+# rest of the stack depends on, not a user-facing app.
+module "protonmail_bridge" {
+  source = "git::https://github.com/sheyaln/sabokit.git//platform/bootstrap/protonmail-bridge/terraform?ref=v3.1.6"
+
+  enabled = try(var.bootstrap.protonmail_bridge.enabled, false)
+  base    = local.base
+
+  # imap_username + bridge_login_secret_id are required when enabled = true.
+  # try() with a placeholder lets the module type-check when disabled; the
+  # bundle's `count = var.enabled ? 1 : 0` gating means the values are never
+  # consumed in that case.
+  imap_username          = try(var.bootstrap.protonmail_bridge.imap_username, "")
+  bridge_login_secret_id = try(var.bootstrap.protonmail_bridge.bridge_login_secret_id, "")
+
+  deployment_host_key     = try(var.bootstrap.protonmail_bridge.deployment_host_key, "management")
+  image_tag               = try(var.bootstrap.protonmail_bridge.image_tag, "latest")
+  timezone                = try(var.bootstrap.protonmail_bridge.timezone, "UTC")
+  imap_config_secret_name = try(var.bootstrap.protonmail_bridge.imap_config_secret_name, "imap-config")
+  auto_update_enabled     = try(var.bootstrap.protonmail_bridge.auto_update_enabled, false)
+  autoheal_enabled        = try(var.bootstrap.protonmail_bridge.autoheal_enabled, true)
 }
 
 module "autoheal_apps" {

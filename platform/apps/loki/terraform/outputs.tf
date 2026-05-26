@@ -5,6 +5,14 @@ output "enabled" {
   value       = var.enabled
 }
 
+# Loki push endpoint other bundles (monitoring-agent) wire into Alloy/Promtail.
+# Falls back to the deployment host's private IP when the loki bundle isn't
+# bound to a specific private_ip_bind. Empty when disabled.
+output "push_url" {
+  description = "URL Loki accepts pushes on. Wire this into monitoring-agent's monitoring_loki_push_url. null when disabled."
+  value       = var.enabled ? "http://${coalesce(var.private_ip_bind, var.base.compute.hosts[var.deployment_host_key].private_ip)}:3100/loki/api/v1/push" : null
+}
+
 output "ansible" {
   description = "Ansible deployment metadata. Consumed by the consumer's site.yml."
   value = var.enabled ? {

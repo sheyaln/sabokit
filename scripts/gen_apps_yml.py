@@ -43,6 +43,15 @@ REPO_ROOT = Path(__file__).resolve().parent.parent
 #   `enabled_apps`. Differs from dir only for multi-instance bundles where
 #   the example instance uses a suffix (e.g. backrest_mgmt).
 # - role-slug is the underscored prefix used in each role's defaults/vars.
+# Bootstrap-tier bundles. Live under platform/bootstrap/ rather than
+# platform/apps/ because they're host services apps depend on (inbound mail,
+# etc.) rather than user-facing apps. Same import-playbook shape, different
+# source directory.
+BOOTSTRAP_BUNDLES = [
+    # (dir, consumer-key, role-slug)
+    ("protonmail-bridge", "protonmail_bridge", "protonmail_bridge"),
+]
+
 BUNDLES = [
     # (dir, consumer-key, role-slug)
     ("outline",        "outline",         "outline"),
@@ -156,10 +165,10 @@ def extract_ansible_vars(outputs_tf: Path) -> list[str]:
 
 
 def render_bundle(dir_name: str, consumer_key: str, role_slug: str,
-                  vars: list[str]) -> str:
+                  vars: list[str], tier: str = "apps") -> str:
     """Render one import_playbook YAML block."""
     lines: list[str] = []
-    lines.append(f"- import_playbook: ../apps/{dir_name}/ansible/playbook.yml")
+    lines.append(f"- import_playbook: ../{tier}/{dir_name}/ansible/playbook.yml")
     lines.append("  vars:")
     lines.append(
         f'    {role_slug}_host_group: '
@@ -179,7 +188,7 @@ def render_bundle(dir_name: str, consumer_key: str, role_slug: str,
 
 
 def render_down_bundle(dir_name: str, consumer_key: str,
-                       role_slug: str) -> str:
+                       role_slug: str, tier: str = "apps") -> str:
     """Render one teardown play. Targets `all` and scopes via tags + a
     per-task `when:` so the play parses even when an app isn't enabled.
     Loads role defaults so <slug>_install_dir is resolvable, then runs
@@ -197,7 +206,7 @@ def render_down_bundle(dir_name: str, consumer_key: str,
     lines.append("    - name: Load role defaults")
     lines.append("      ansible.builtin.include_vars:")
     lines.append(
-        f'        file: "../apps/{dir_name}/ansible/roles/{role_slug}/defaults/main.yml"'
+        f'        file: "../{tier}/{dir_name}/ansible/roles/{role_slug}/defaults/main.yml"'
     )
     lines.append(
         f"      when: enabled_apps.{consumer_key} is defined "
@@ -220,28 +229,30 @@ def render_down_bundle(dir_name: str, consumer_key: str,
 
 def generate() -> str:
     out = [HEADER]
-    for dir_name, consumer_key, role_slug in BUNDLES:
-        outputs_tf = REPO_ROOT / f"platform/apps/{dir_name}/terraform/outputs.tf"
-        if not outputs_tf.exists():
-            raise SystemExit(
-                f"ERROR: {outputs_tf} not found (bundle dir mismatch?)"
-            )
-        vars = extract_ansible_vars(outputs_tf)
-        if not vars:
-            raise SystemExit(
-                f"ERROR: no ansible.vars block found in {outputs_tf} — "
-                "did the output shape change?"
-            )
-        out.append("")  # blank line between blocks
-        out.append(render_bundle(dir_name, consumer_key, role_slug, vars))
+    for tier, bundles in (("bootstrap", BOOTSTRAP_BUNDLES), ("apps", BUNDLES)):
+        for dir_name, consumer_key, role_slug in bundles:
+            outputs_tf = REPO_ROOT / f"platform/{tier}/{dir_name}/terraform/outputs.tf"
+            if not outputs_tf.exists():
+                raise SystemExit(
+                    f"ERROR: {outputs_tf} not found (bundle dir mismatch?)"
+                )
+            vars = extract_ansible_vars(outputs_tf)
+            if not vars:
+                raise SystemExit(
+                    f"ERROR: no ansible.vars block found in {outputs_tf} — "
+                    "did the output shape change?"
+                )
+            out.append("")  # blank line between blocks
+            out.append(render_bundle(dir_name, consumer_key, role_slug, vars, tier))
     return "".join(out)
 
 
 def generate_down() -> str:
     out = [DOWN_HEADER]
-    for dir_name, consumer_key, role_slug in BUNDLES:
-        out.append("")  # blank line between plays
-        out.append(render_down_bundle(dir_name, consumer_key, role_slug))
+    for tier, bundles in (("bootstrap", BOOTSTRAP_BUNDLES), ("apps", BUNDLES)):
+        for dir_name, consumer_key, role_slug in bundles:
+            out.append("")  # blank line between plays
+            out.append(render_down_bundle(dir_name, consumer_key, role_slug, tier))
     return "".join(out)
 
 
@@ -274,8 +285,9 @@ def main() -> int:
 
     OUTPUT_PATH.write_text(new_apps)
     DOWN_OUTPUT_PATH.write_text(new_down)
-    print(f"Wrote {OUTPUT_PATH.relative_to(REPO_ROOT)} ({len(BUNDLES)} bundles).")
-    print(f"Wrote {DOWN_OUTPUT_PATH.relative_to(REPO_ROOT)} ({len(BUNDLES)} bundles).")
+    total = len(BUNDLES) + len(BOOTSTRAP_BUNDLES)
+    print(f"Wrote {OUTPUT_PATH.relative_to(REPO_ROOT)} ({total} bundles).")
+    print(f"Wrote {DOWN_OUTPUT_PATH.relative_to(REPO_ROOT)} ({total} bundles).")
     return 0
 
 

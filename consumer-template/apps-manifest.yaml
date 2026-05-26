@@ -149,12 +149,6 @@ apps:
           description: Full icon URL override. When set, used verbatim and icon_filename is ignored.
           ui: advanced
 
-        extra_env_vars:
-          type: map(string)
-          default: {}
-          description: Extra environment variables rendered into Outline's container .env. Use for env-driven features the bundle doesn't expose first-class (e.g. Google OAuth — GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET).
-          ui: advanced
-
   # ── Steward ─────────────────────────────────────────────────────────────
   # Simplified Authentik admin UI for non-technical org admins. Members of
   # `admin_group_name` (matched against the OIDC `groups` claim) can sign in
@@ -1021,6 +1015,90 @@ apps:
           type: string
           default: ""
           description: Full icon URL override. When set, used verbatim and icon_filename is ignored.
+          ui: advanced
+
+        instance_name:
+          type: string
+          default: Nextcloud
+          description: User-facing instance name (browser tab, email headers, mobile clients). Override for branded deployments (e.g. "Acme Cloud").
+          ui: advanced
+
+        maintenance_window_start:
+          type: number
+          default: 2
+          description: UTC hour (0-23) when Nextcloud runs its nightly background-job window. Pick a low-traffic hour for your user base.
+          ui: advanced
+
+        enabled_apps:
+          type: list(string)
+          default: [groupfolders, notify_push, notes, tasks, forms, polls, epubviewer, webhook_listeners]
+          description: Nextcloud apps the post-install script auto-installs and enables on every run. Default set turns Nextcloud into a full collaboration suite.
+          ui: advanced
+
+        disabled_apps:
+          type: list(string)
+          default: [photos]
+          description: Nextcloud apps the post-install script disables on every run. Default disables `photos` (heavy thumbnail jobs).
+          ui: advanced
+
+        n8n_form_webhook_url:
+          type: string
+          default: ""
+          description: Optional URL of an n8n webhook receiver for Nextcloud Forms submissions. Requires `webhook_listeners` in enabled_apps.
+          ui: advanced
+
+        onlyoffice_image_tag:
+          type: string
+          default: "latest"
+          description: OnlyOffice Document Server image tag. Bumping versions is generally safe.
+          ui: advanced
+
+        onlyoffice_memory_limit:
+          type: string
+          default: "2G"
+          description: Memory ceiling for OnlyOffice Document Server. Below ~1.5G, large-file conversions OOM mid-edit.
+          ui: advanced
+
+        onlyoffice_cpu_limit:
+          type: string
+          default: "2.0"
+          description: CPU ceiling for OnlyOffice Document Server.
+          ui: advanced
+
+        talk_image_tag:
+          type: string
+          default: "latest"
+          description: Tag for the ghcr.io/nextcloud-releases/aio-talk image. Bundles eturnal/Janus/signaling — treat as one moving target.
+          ui: advanced
+
+        talk_turn_port:
+          type: number
+          default: 3478
+          description: Public TCP/UDP port for the bundled eturnal TURN server. 3478 is the IANA TURN port.
+          ui: advanced
+
+        talk_relay_port_min:
+          type: number
+          default: 49152
+          description: Lower bound of the UDP port range eturnal allocates for media relay. Must be open in the security group.
+          ui: advanced
+
+        talk_relay_port_max:
+          type: number
+          default: 49252
+          description: Upper bound of the UDP relay range. Keep tight (101 ports handles small-org video).
+          ui: advanced
+
+        talk_memory_limit:
+          type: string
+          default: "1G"
+          description: Memory ceiling for the Talk HPB container.
+          ui: advanced
+
+        talk_cpu_limit:
+          type: string
+          default: "1.0"
+          description: CPU ceiling for the Talk HPB container. WebRTC media doesn't pass through once peers connect.
           ui: advanced
 
   # ── Decidim ─────────────────────────────────────────────────────────────
@@ -2170,6 +2248,48 @@ apps:
           description: Full icon URL override. When set, used verbatim and icon_filename is ignored.
           ui: advanced
 
+        prometheus_url:
+          type: string
+          default: "http://prometheus:9090"
+          description: URL Grafana uses to reach Prometheus. Default works when prometheus is co-deployed on the same host and they share the monitoring docker network.
+          ui: advanced
+
+        loki_url:
+          type: string
+          default: "http://loki:3100"
+          description: URL Grafana uses to reach Loki. Default works when loki is co-deployed on the same host.
+          ui: advanced
+
+        prometheus_scrape_interval:
+          type: string
+          default: "30s"
+          description: Scrape interval Grafana's Prometheus datasource expects. Should match the prometheus bundle's global.scrape_interval.
+          ui: advanced
+
+        jsm_api_key_secret_id:
+          type: string
+          default: ""
+          description: Scaleway secret ID holding the JSM Operations (heritage Opsgenie) API integration key as `{"api_key":"..."}`. Empty disables JSM provisioning. When set, Grafana provisions a `jsm-default` contact point routed from the root notification policy.
+          ui: advanced
+
+        jsm_api_region:
+          type: string
+          default: "us"
+          description: JSM API region — "us" or "eu". Pick the one matching your Atlassian site.
+          ui: advanced
+
+        jsm_priority_mapping:
+          type: map(string)
+          default: { critical: "P1", warning: "P3", info: "P5" }
+          description: Map of Grafana alert `severity` label value to JSM priority (P1-P5). Override per your on-call runbook.
+          ui: advanced
+
+        jsm_alert_tags:
+          type: list(string)
+          default: ["sabokit"]
+          description: Tags attached to every alert sent to JSM. Useful for JSM routing rules.
+          ui: advanced
+
   # ── Wazuh ───────────────────────────────────────────────────────────────
   # SIEM server stack: manager + indexer (OpenSearch) + dashboard. UI fronted
   # via Authentik forward-auth at the gateway (the dashboard's native SSO is
@@ -2284,6 +2404,24 @@ apps:
           description: Full icon URL override. When set, used verbatim and icon_filename is ignored.
           ui: advanced
 
+        manager_agent_port:
+          type: number
+          default: 1514
+          description: TCP port the Wazuh manager listens on for agent connections.
+          ui: advanced
+
+        manager_enrollment_port:
+          type: number
+          default: 1515
+          description: TCP port the Wazuh manager listens on for agent enrollment.
+          ui: advanced
+
+        manager_syslog_port:
+          type: number
+          default: 514
+          description: UDP port the Wazuh manager listens on for syslog ingestion.
+          ui: advanced
+
   # ── Wazuh Agent ─────────────────────────────────────────────────────────
   # Host-network container that ships logs to a Wazuh manager. Multi-instance
   # like backrest — one block per host you want monitored.
@@ -2347,4 +2485,78 @@ apps:
           type: list(string)
           default: []
           description: Paths to suppress from FIM reporting (syscheck `<ignore>` entries).
+          ui: advanced
+
+# ── Bootstrap-tier bundles ────────────────────────────────────────────────
+# Host services apps depend on (inbound mail, etc). Sibling to `apps` —
+# separated because these aren't user-facing apps. Consumer-template wires
+# them via `var.bootstrap.<bundle>` in terraform.tfvars.
+bootstrap:
+  # ── ProtonMail Bridge ───────────────────────────────────────────────────
+  # IMAP gateway for apps that fetch mail from a ProtonMail account (e.g.
+  # n8n workflows polling an inbox). SMTP outbound stays on Scaleway TEM at
+  # the base tier.
+  - id: protonmail-bridge
+    display_name: ProtonMail Bridge
+    category: mail
+    description_short: IMAP gateway to a ProtonMail account
+    description: |
+      Runs the community ProtonMail Bridge image so apps inside the stack
+      can fetch mail from a ProtonMail account over IMAP. Apps read the
+      `imap-config` Scaleway secret this bundle writes.
+    tfvars:
+      key: protonmail_bridge
+      schema:
+        enabled:
+          type: bool
+          default: false
+          description: Master toggle.
+          ui: toggle
+
+        imap_username:
+          type: string
+          default: ""
+          description: ProtonMail account email. Apps use this as their IMAP username. REQUIRED when enabled.
+          ui: text
+
+        bridge_login_secret_id:
+          type: string
+          default: ""
+          description: Scaleway secret ID holding the bridge's service-specific password (NOT the ProtonMail account password). Generate via ProtonMail Settings → Bridge, store in Scaleway out-of-band, paste the ID here. REQUIRED when enabled.
+          ui: text
+
+        deployment_host_key:
+          type: string
+          default: "management"
+          description: Compute host the bridge runs on. Must be reachable from every host with apps that fetch mail through it.
+          ui: advanced
+
+        image_tag:
+          type: string
+          default: "latest"
+          description: Bridge image tag.
+          ui: advanced
+
+        timezone:
+          type: string
+          default: "UTC"
+          description: IANA timezone for the container.
+          ui: advanced
+
+        imap_config_secret_name:
+          type: string
+          default: "imap-config"
+          description: Scaleway secret name this bundle writes. Override only when running multiple bridge instances per env.
+          ui: advanced
+
+        auto_update_enabled:
+          type: bool
+          default: false
+          description: Whether Watchtower auto-pulls newer bridge images. Default false — bridge schema migrations between minor versions need the manual re-login flow.
+          ui: advanced
+
+        autoheal_enabled:
+          type: bool
+          default: true
+          description: Whether Autoheal restarts the container on healthcheck failure.
           ui: advanced
