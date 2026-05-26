@@ -10,7 +10,7 @@ resource "random_password" "this" {
   count            = var.credentials_preserve ? 0 : 1
   length           = 32
   special          = true
-  override_special = "!@+=:,._-"
+  override_special = "@+=:,._-"
   min_numeric      = 1
 
   lifecycle {
