@@ -223,6 +223,35 @@ variable "tem_smtp_config_secret_name" {
   default     = "smtp-config"
 }
 
+variable "tem_webhook_n8n_url" {
+  description = "Base URL of an n8n instance that should receive TEM delivery events (e.g. \"https://flows.example.org\"). Empty disables the whole TEM webhook → SNS → n8n pipeline. The consumer-template wires this from `module.n8n[0].app_url` so toggling n8n's `enabled` flag drives the pipeline too."
+  type        = string
+  default     = ""
+}
+
+variable "tem_webhook_n8n_path" {
+  description = "Path appended to `tem_webhook_n8n_url` to form the SNS HTTPS subscription endpoint. The matching n8n workflow lives at platform/identity/n8n-workflows/tem-delivery-alerting.json and listens on this path."
+  type        = string
+  default     = "/webhook/tem-delivery"
+}
+
+variable "tem_webhook_event_types" {
+  description = "TEM event types forwarded to SNS. Defaults cover delivery latency tracking and bounce alerting."
+  type        = list(string)
+  default = [
+    "email_deferred",
+    "email_delivered",
+    "email_dropped",
+    "email_queued",
+  ]
+}
+
+variable "tem_webhook_sns_topic_name" {
+  description = "Name of the SNS topic that receives TEM events. Resource is namespaced per project by Scaleway, so the bare topic name is fine."
+  type        = string
+  default     = "tem-delivery-events"
+}
+
 variable "dmarc_rua_email" {
   description = "Email address for DMARC aggregate reports (rua=). Default empty = no rua, matching the conservative `v=DMARC1; p=quarantine` baseline. Set only if you actually process DMARC reports — otherwise reports go into a black hole."
   type        = string

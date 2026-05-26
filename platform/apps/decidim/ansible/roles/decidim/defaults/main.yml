@@ -29,6 +29,13 @@ decidim_max_upload_size_bytes: 26214400
 # init marker volume and let the db-init step run again.
 decidim_force_db_init: false
 
+# Bootstrap admin display name + nickname. Both are only consumed on the very
+# first deploy (the db-init step creates the org-admin user once). Defaults
+# fall back to "<DECIDIM_ORG_NAME> Admin" / "admin" inside the seed runner,
+# matching the pre-knob behaviour.
+decidim_org_admin_name: ""
+decidim_org_admin_nickname: ""
+
 # Resource limits.
 decidim_app_memory_limit: "1G"
 decidim_app_memory_reservation: "512M"

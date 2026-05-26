@@ -1,0 +1,778 @@
+{
+    "id": null,
+    "title": "Authentik Stack Monitoring",
+    "tags": [
+        "authentik",
+        "sso",
+        "authentication",
+        "redis",
+        "production"
+    ],
+    "style": "dark",
+    "timezone": "browser",
+    "editable": true,
+    "graphTooltip": 1,
+    "time": {
+        "from": "now-1h",
+        "to": "now"
+    },
+    "refresh": "30s",
+    "panels": [
+        {
+            "id": 1,
+            "title": "Authentication Service Status",
+            "type": "stat",
+            "gridPos": {
+                "h": 6,
+                "w": 24,
+                "x": 0,
+                "y": 0
+            },
+            "targets": [
+                {
+                    "datasource": {
+                        "type": "prometheus",
+                        "uid": "prometheus"
+                    },
+                    "expr": "up{job=\"node-authentik\"}",
+                    "legendFormat": "Server Online",
+                    "refId": "A"
+                },
+                {
+                    "datasource": {
+                        "type": "prometheus",
+                        "uid": "prometheus"
+                    },
+                    "expr": "up{job=\"cadvisor-authentik\"}",
+                    "legendFormat": "Container Monitor",
+                    "refId": "B"
+                },
+                {
+                    "datasource": {
+                        "type": "prometheus",
+                        "uid": "prometheus"
+                    },
+                    "expr": "up{job=\"traefik-authentik\"}",
+                    "legendFormat": "Reverse Proxy",
+                    "refId": "C"
+                },
+                {
+                    "datasource": {
+                        "type": "prometheus",
+                        "uid": "prometheus"
+                    },
+                    "expr": "up{job=\"authentik-app\"}",
+                    "legendFormat": "Authentik App",
+                    "refId": "D"
+                }
+            ],
+            "fieldConfig": {
+                "defaults": {
+                    "color": {
+                        "mode": "thresholds"
+                    },
+                    "mappings": [
+                        {"options": {"0": {"color": "red", "index": 1, "text": "DOWN"}}, "type": "value"},
+                        {"options": {"1": {"color": "green", "index": 0, "text": "UP"}}, "type": "value"}
+                    ],
+                    "thresholds": {
+                        "steps": [
+                            {
+                                "color": "red",
+                                "value": null
+                            },
+                            {
+                                "color": "green",
+                                "value": 1
+                            }
+                        ]
+                    }
+                },
+                "overrides": [
+                    {
+                        "matcher": {
+                            "id": "byFrameRefID",
+                            "options": "A"
+                        },
+                        "properties": [
+                            {
+                                "id": "displayName",
+                                "value": "Server Status"
+                            }
+                        ]
+                    },
+                    {
+                        "matcher": {
+                            "id": "byFrameRefID",
+                            "options": "B"
+                        },
+                        "properties": [
+                            {
+                                "id": "displayName",
+                                "value": "Container Monitor"
+                            }
+                        ]
+                    },
+                    {
+                        "matcher": {
+                            "id": "byFrameRefID",
+                            "options": "C"
+                        },
+                        "properties": [
+                            {
+                                "id": "displayName",
+                                "value": "Reverse Proxy"
+                            }
+                        ]
+                    },
+                    {
+                        "matcher": {
+                            "id": "byFrameRefID",
+                            "options": "D"
+                        },
+                        "properties": [
+                            {
+                                "id": "displayName",
+                                "value": "Authentik App"
+                            }
+                        ]
+                    }
+                ]
+            },
+            "options": {
+                "reduceOptions": {
+                    "values": false,
+                    "calcs": [
+                        "lastNotNull"
+                    ],
+                    "fields": ""
+                },
+                "orientation": "horizontal",
+                "textMode": "name",
+                "colorMode": "background",
+                "justifyMode": "auto"
+            }
+        },
+        {
+            "id": 2,
+            "title": "Application CPU Usage",
+            "type": "timeseries",
+            "gridPos": {
+                "h": 8,
+                "w": 12,
+                "x": 0,
+                "y": 6
+            },
+            "targets": [
+                {
+                    "datasource": {
+                        "type": "prometheus",
+                        "uid": "prometheus"
+                    },
+                    "expr": "rate(container_cpu_usage_seconds_total{job=\"cadvisor-authentik\", name=~\"authentik.*\"}[5m]) * 100",
+                    "legendFormat": "{{name}}",
+                    "refId": "A"
+                }
+            ],
+            "fieldConfig": {
+                "defaults": {
+                    "unit": "percent",
+                    "min": 0,
+                    "custom": {
+                        "drawStyle": "line",
+                        "lineInterpolation": "linear",
+                        "lineWidth": 2,
+                        "fillOpacity": 10
+                    },
+                    "thresholds": {
+                        "steps": [
+                            {
+                                "color": "green",
+                                "value": null
+                            },
+                            {
+                                "color": "yellow",
+                                "value": 70
+                            },
+                            {
+                                "color": "red",
+                                "value": 80
+                            }
+                        ]
+                    }
+                }
+            },
+            "options": {
+                "tooltip": {
+                    "mode": "multi",
+                    "sort": "desc"
+                },
+                "legend": {
+                    "displayMode": "table",
+                    "values": [
+                        "last",
+                        "max"
+                    ]
+                }
+            }
+        },
+        {
+            "id": 3,
+            "title": "Application Memory Usage",
+            "type": "timeseries",
+            "gridPos": {
+                "h": 8,
+                "w": 12,
+                "x": 12,
+                "y": 6
+            },
+            "targets": [
+                {
+                    "datasource": {
+                        "type": "prometheus",
+                        "uid": "prometheus"
+                    },
+                    "expr": "container_memory_usage_bytes{job=\"cadvisor-authentik\", name=~\"authentik.*\"} / 1024 / 1024",
+                    "legendFormat": "{{name}}",
+                    "refId": "A"
+                }
+            ],
+            "fieldConfig": {
+                "defaults": {
+                    "unit": "mbytes",
+                    "custom": {
+                        "drawStyle": "line",
+                        "lineInterpolation": "linear",
+                        "lineWidth": 2,
+                        "fillOpacity": 10
+                    },
+                    "thresholds": {
+                        "steps": [
+                            {
+                                "color": "green",
+                                "value": null
+                            },
+                            {
+                                "color": "yellow",
+                                "value": 1000
+                            },
+                            {
+                                "color": "red",
+                                "value": 2000
+                            }
+                        ]
+                    }
+                }
+            },
+            "options": {
+                "tooltip": {
+                    "mode": "multi",
+                    "sort": "desc"
+                },
+                "legend": {
+                    "displayMode": "table",
+                    "values": [
+                        "last",
+                        "max"
+                    ]
+                }
+            }
+        },
+        {
+            "id": 4,
+            "title": "HTTP Requests by Status Code",
+            "type": "timeseries",
+            "gridPos": {
+                "h": 8,
+                "w": 12,
+                "x": 0,
+                "y": 14
+            },
+            "targets": [
+                {
+                    "datasource": {
+                        "type": "prometheus",
+                        "uid": "prometheus"
+                    },
+                    "expr": "sum(rate(traefik_entrypoint_requests_total{job=\"traefik-authentik\", code=~\"2..\"}[5m]))",
+                    "legendFormat": "Successful (2xx)",
+                    "refId": "A"
+                },
+                {
+                    "datasource": {
+                        "type": "prometheus",
+                        "uid": "prometheus"
+                    },
+                    "expr": "sum(rate(traefik_entrypoint_requests_total{job=\"traefik-authentik\", code=~\"4..\"}[5m]))",
+                    "legendFormat": "Client Errors (4xx)",
+                    "refId": "B"
+                },
+                {
+                    "datasource": {
+                        "type": "prometheus",
+                        "uid": "prometheus"
+                    },
+                    "expr": "sum(rate(traefik_entrypoint_requests_total{job=\"traefik-authentik\", code=~\"5..\"}[5m]))",
+                    "legendFormat": "Server Errors (5xx)",
+                    "refId": "C"
+                }
+            ],
+            "fieldConfig": {
+                "defaults": {
+                    "unit": "req/s",
+                    "custom": {
+                        "drawStyle": "line",
+                        "lineInterpolation": "linear",
+                        "lineWidth": 2,
+                        "fillOpacity": 10
+                    }
+                },
+                "overrides": [
+                    {
+                        "matcher": {"id": "byName", "options": "Successful (2xx)"},
+                        "properties": [{"id": "color", "value": {"mode": "fixed", "fixedColor": "green"}}]
+                    },
+                    {
+                        "matcher": {"id": "byName", "options": "Client Errors (4xx)"},
+                        "properties": [{"id": "color", "value": {"mode": "fixed", "fixedColor": "yellow"}}]
+                    },
+                    {
+                        "matcher": {"id": "byName", "options": "Server Errors (5xx)"},
+                        "properties": [{"id": "color", "value": {"mode": "fixed", "fixedColor": "red"}}]
+                    }
+                ]
+            },
+            "options": {
+                "tooltip": {
+                    "mode": "multi",
+                    "sort": "desc"
+                },
+                "legend": {
+                    "displayMode": "table",
+                    "values": [
+                        "last",
+                        "max"
+                    ]
+                }
+            }
+        },
+        {
+            "id": 5,
+            "title": "Response Times",
+            "type": "timeseries",
+            "gridPos": {
+                "h": 8,
+                "w": 12,
+                "x": 12,
+                "y": 14
+            },
+            "targets": [
+                {
+                    "datasource": {
+                        "type": "prometheus",
+                        "uid": "prometheus"
+                    },
+                    "expr": "clamp_min(histogram_quantile(0.50, sum by (entrypoint, le) (rate(traefik_entrypoint_request_duration_seconds_bucket{job=\"traefik-authentik\"}[5m]))), 0) or vector(0)",
+                    "legendFormat": "{{entrypoint}} Median",
+                    "refId": "A"
+                },
+                {
+                    "datasource": {
+                        "type": "prometheus",
+                        "uid": "prometheus"
+                    },
+                    "expr": "clamp_min(histogram_quantile(0.95, sum by (entrypoint, le) (rate(traefik_entrypoint_request_duration_seconds_bucket{job=\"traefik-authentik\"}[5m]))), 0) or vector(0)",
+                    "legendFormat": "{{entrypoint}} P95",
+                    "refId": "B"
+                }
+            ],
+            "fieldConfig": {
+                "defaults": {
+                    "unit": "s",
+                    "custom": {
+                        "drawStyle": "line",
+                        "lineInterpolation": "linear",
+                        "lineWidth": 2,
+                        "fillOpacity": 10
+                    },
+                    "thresholds": {
+                        "steps": [
+                            {"color": "green", "value": null},
+                            {"color": "yellow", "value": 1},
+                            {"color": "red", "value": 2}
+                        ]
+                    }
+                }
+            },
+            "options": {
+                "tooltip": {"mode": "multi", "sort": "desc"},
+                "legend": {"displayMode": "table", "values": ["last", "max"]}
+            }
+        },
+        {
+            "id": 6,
+            "title": "Container Restarts",
+            "type": "timeseries",
+            "gridPos": {
+                "h": 8,
+                "w": 12,
+                "x": 0,
+                "y": 22
+            },
+            "targets": [
+                {
+                    "datasource": {
+                        "type": "prometheus",
+                        "uid": "prometheus"
+                    },
+                    "expr": "clamp_min(changes(container_start_time_seconds{job=\"cadvisor-authentik\", name=~\"authentik.*\"}[1h]), 0)",
+                    "legendFormat": "{{name}}",
+                    "refId": "A"
+                }
+            ],
+            "fieldConfig": {
+                "defaults": {
+                    "unit": "short",
+                    "custom": {
+                        "drawStyle": "bars",
+                        "lineWidth": 1,
+                        "fillOpacity": 80
+                    },
+                    "thresholds": {
+                        "steps": [
+                            {"color": "green", "value": null},
+                            {"color": "yellow", "value": 1},
+                            {"color": "red", "value": 3}
+                        ]
+                    }
+                }
+            },
+            "options": {
+                "tooltip": {"mode": "multi", "sort": "desc"},
+                "legend": {"displayMode": "table", "values": ["last", "max"]}
+            }
+        },
+        {
+            "id": 7,
+            "title": "Authentik HTTP Activity",
+            "type": "stat",
+            "gridPos": {
+                "h": 8,
+                "w": 12,
+                "x": 12,
+                "y": 22
+            },
+            "targets": [
+                {
+                    "datasource": {
+                        "type": "prometheus",
+                        "uid": "prometheus"
+                    },
+                    "expr": "sum by(status) (rate(django_http_responses_total_by_status_total{job=\"authentik-app\"}[5m]))",
+                    "legendFormat": "HTTP {{ status }} (req/s)",
+                    "refId": "A"
+                },
+                {
+                    "datasource": {
+                        "type": "prometheus",
+                        "uid": "prometheus"
+                    },
+                    "expr": "sum(rate(traefik_entrypoint_requests_total{job=\"traefik-authentik\", code=~\"5..\"}[5m]))",
+                    "legendFormat": "Traefik 5xx (req/s)",
+                    "refId": "B"
+                }
+            ],
+            "fieldConfig": {
+                "defaults": {
+                    "unit": "short",
+                    "color": {"mode": "palette-classic"},
+                    "thresholds": {
+                        "steps": [
+                            {"color": "green", "value": null},
+                            {"color": "yellow", "value": 5},
+                            {"color": "red", "value": 20}
+                        ]
+                    }
+                },
+                "overrides": [
+                    {
+                        "matcher": {"id": "byName", "options": "Failed Logins/min"},
+                        "properties": [{"id": "color", "value": {"mode": "fixed", "fixedColor": "red"}}]
+                    }
+                ]
+            },
+            "options": {
+                "reduceOptions": {"values": false, "calcs": ["lastNotNull"]},
+                "orientation": "horizontal",
+                "textMode": "auto",
+                "colorMode": "background"
+            }
+        },
+        {
+            "id": 8,
+            "title": "Authentik Request Latency",
+            "type": "timeseries",
+            "gridPos": {
+                "h": 8,
+                "w": 12,
+                "x": 0,
+                "y": 30
+            },
+            "targets": [
+                {
+                    "datasource": {
+                        "type": "prometheus",
+                        "uid": "prometheus"
+                    },
+                    "expr": "histogram_quantile(0.50, sum by(le) (rate(authentik_main_request_duration_seconds_bucket{job=\"authentik-app\"}[5m])))",
+                    "legendFormat": "p50",
+                    "refId": "A"
+                },
+                {
+                    "datasource": {
+                        "type": "prometheus",
+                        "uid": "prometheus"
+                    },
+                    "expr": "histogram_quantile(0.95, sum by(le) (rate(authentik_main_request_duration_seconds_bucket{job=\"authentik-app\"}[5m])))",
+                    "legendFormat": "p95",
+                    "refId": "B"
+                }
+            ],
+            "fieldConfig": {
+                "defaults": {
+                    "unit": "s",
+                    "custom": {
+                        "drawStyle": "line",
+                        "lineInterpolation": "linear",
+                        "lineWidth": 2,
+                        "fillOpacity": 10
+                    },
+                    "thresholds": {
+                        "steps": [
+                            {"color": "green", "value": null},
+                            {"color": "yellow", "value": 2},
+                            {"color": "red", "value": 3}
+                        ]
+                    }
+                }
+            },
+            "options": {
+                "tooltip": {"mode": "multi", "sort": "desc"},
+                "legend": {"displayMode": "table", "values": ["last", "max"]}
+            }
+        },
+        {
+            "id": 9,
+            "title": "Host Resource Usage",
+            "type": "stat",
+            "gridPos": {
+                "h": 8,
+                "w": 12,
+                "x": 12,
+                "y": 30
+            },
+            "targets": [
+                {
+                    "datasource": {
+                        "type": "prometheus",
+                        "uid": "prometheus"
+                    },
+                    "expr": "100 - (avg(rate(node_cpu_seconds_total{mode=\"idle\", job=\"node-authentik\"}[5m])) * 100)",
+                    "legendFormat": "CPU Usage",
+                    "refId": "A"
+                },
+                {
+                    "datasource": {
+                        "type": "prometheus",
+                        "uid": "prometheus"
+                    },
+                    "expr": "(1 - (node_memory_MemAvailable_bytes{job=\"node-authentik\"} / node_memory_MemTotal_bytes{job=\"node-authentik\"})) * 100",
+                    "legendFormat": "Memory Usage",
+                    "refId": "B"
+                },
+                {
+                    "datasource": {
+                        "type": "prometheus",
+                        "uid": "prometheus"
+                    },
+                    "expr": "(1 - (node_filesystem_avail_bytes{job=\"node-authentik\", mountpoint=\"/\", fstype=~\"ext4|xfs\"} / node_filesystem_size_bytes{job=\"node-authentik\", mountpoint=\"/\", fstype=~\"ext4|xfs\"})) * 100",
+                    "legendFormat": "Disk Usage",
+                    "refId": "C"
+                },
+                {
+                    "datasource": {
+                        "type": "prometheus",
+                        "uid": "prometheus"
+                    },
+                    "expr": "node_load1{job=\"node-authentik\"}",
+                    "legendFormat": "Load Average",
+                    "refId": "D"
+                }
+            ],
+            "fieldConfig": {
+                "defaults": {
+                    "thresholds": {
+                        "steps": [
+                            {"color": "green", "value": null},
+                            {"color": "yellow", "value": 70},
+                            {"color": "red", "value": 85}
+                        ]
+                    },
+                    "color": {"mode": "thresholds"}
+                },
+                "overrides": [
+                    {"matcher": {"id": "byFrameRefID", "options": "A"}, "properties": [{"id": "unit", "value": "percent"}]},
+                    {"matcher": {"id": "byFrameRefID", "options": "B"}, "properties": [{"id": "unit", "value": "percent"}]},
+                    {"matcher": {"id": "byFrameRefID", "options": "C"}, "properties": [{"id": "unit", "value": "percent"}]},
+                    {"matcher": {"id": "byFrameRefID", "options": "D"}, "properties": [{"id": "unit", "value": "short"}, {"id": "thresholds", "value": {"steps": [{"color": "green", "value": null}, {"color": "yellow", "value": 2}, {"color": "red", "value": 4}]}}]}
+                ]
+            },
+            "options": {
+                "reduceOptions": {"values": false, "calcs": ["lastNotNull"], "fields": ""},
+                "orientation": "horizontal",
+                "textMode": "auto",
+                "colorMode": "background",
+                "justifyMode": "auto"
+            }
+        },
+        {
+            "id": 10,
+            "title": "HTTP Success Rate",
+            "type": "stat",
+            "gridPos": {
+                "h": 6,
+                "w": 8,
+                "x": 0,
+                "y": 38
+            },
+            "targets": [
+                {
+                    "datasource": {
+                        "type": "prometheus",
+                        "uid": "prometheus"
+                    },
+                    "expr": "(sum(rate(django_http_responses_total_by_status_total{job=\"authentik-app\", status=~\"2..|3..\"}[5m])) / clamp_min(sum(rate(django_http_responses_total_by_status_total{job=\"authentik-app\"}[5m])), 0.0001)) * 100",
+                    "legendFormat": "HTTP Success Rate",
+                    "refId": "A"
+                }
+            ],
+            "fieldConfig": {
+                "defaults": {
+                    "unit": "percent",
+                    "color": {"mode": "thresholds"},
+                    "thresholds": {
+                        "steps": [
+                            {"color": "red", "value": null},
+                            {"color": "yellow", "value": 99},
+                            {"color": "green", "value": 99.5}
+                        ]
+                    }
+                }
+            },
+            "options": {
+                "reduceOptions": {"values": false, "calcs": ["lastNotNull"]},
+                "orientation": "horizontal",
+                "textMode": "auto",
+                "colorMode": "background"
+            }
+        },
+        {
+            "id": 11,
+            "title": "Connected Outposts",
+            "type": "stat",
+            "gridPos": {
+                "h": 6,
+                "w": 8,
+                "x": 8,
+                "y": 38
+            },
+            "targets": [
+                {
+                    "datasource": {
+                        "type": "prometheus",
+                        "uid": "prometheus"
+                    },
+                    "expr": "sum(authentik_outposts_connected{job=\"authentik-app\"})",
+                    "legendFormat": "Connected Outposts",
+                    "refId": "A"
+                }
+            ],
+            "fieldConfig": {
+                "defaults": {
+                    "unit": "short",
+                    "color": {"mode": "palette-classic"}
+                }
+            },
+            "options": {
+                "reduceOptions": {"values": false, "calcs": ["lastNotNull"]},
+                "orientation": "horizontal",
+                "textMode": "auto",
+                "colorMode": "value"
+            }
+        },
+        {
+            "id": 12,
+            "title": "Outpost Connection Health",
+            "type": "stat",
+            "gridPos": {
+                "h": 6,
+                "w": 8,
+                "x": 16,
+                "y": 38
+            },
+            "targets": [
+                {
+                    "datasource": {
+                        "type": "prometheus",
+                        "uid": "prometheus"
+                    },
+                    "expr": "min(authentik_outpost_connection{job=\"authentik-app\"})",
+                    "legendFormat": "Outpost OK",
+                    "refId": "A"
+                }
+            ],
+            "fieldConfig": {
+                "defaults": {
+                    "unit": "short",
+                    "color": {"mode": "palette-classic"}
+                }
+            },
+            "options": {
+                "reduceOptions": {"values": false, "calcs": ["lastNotNull"]},
+                "orientation": "horizontal",
+                "textMode": "auto",
+                "colorMode": "value"
+            }
+        },
+        {
+            "id": 13,
+            "title": "Authentik Logs",
+            "type": "logs",
+            "gridPos": {
+                "h": 10,
+                "w": 24,
+                "x": 0,
+                "y": 44
+            },
+            "targets": [
+                {
+                    "datasource": {
+                        "type": "loki",
+                        "uid": "loki"
+                    },
+                    "expr": "{server_name=\"authentik\", container_name=~\"authentik-.*\"}",
+                    "refId": "A"
+                }
+            ],
+            "options": {
+                "showTime": true,
+                "showLabels": true,
+                "showCommonLabels": false,
+                "wrapLogMessage": true,
+                "prettifyLogMessage": false,
+                "enableLogDetails": true,
+                "sortOrder": "Descending"
+            }
+        }
+    ]
+}

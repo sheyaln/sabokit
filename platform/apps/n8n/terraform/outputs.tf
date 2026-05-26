@@ -59,6 +59,7 @@ output "ansible" {
       n8n_app_secret_id            = scaleway_secret.app[0].id
       n8n_db_credentials_secret_id = module.database[0].secret_id
       n8n_extra_env_vars           = var.extra_env_vars
+      n8n_extra_docker_networks    = var.extra_docker_networks
     }
   } : null
 }

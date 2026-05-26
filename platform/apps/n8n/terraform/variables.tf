@@ -181,6 +181,12 @@ variable "extra_env_vars" {
   default     = {}
 }
 
+variable "extra_docker_networks" {
+  description = "Extra docker networks to attach n8n's container to (beyond the bundle's default app network). For cross-bundle integration with sidecars like protonmail-bridge that live in their own bootstrap-tier network. Empty list = bundle-only network."
+  type        = list(string)
+  default     = []
+}
+
 variable "backup_enabled" {
   description = "Whether the Backrest platform bundle (if deployed on the same host) backs up this app's host-side state. Default true."
   type        = bool

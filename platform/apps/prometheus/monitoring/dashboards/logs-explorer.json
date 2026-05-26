@@ -1,0 +1,161 @@
+{
+    "id": null,
+    "uid": "logs-explorer",
+    "title": "Logs Explorer",
+    "tags": ["logs", "loki", "troubleshooting"],
+    "style": "dark",
+    "timezone": "browser",
+    "editable": true,
+    "graphTooltip": 1,
+    "time": {
+        "from": "now-1h",
+        "to": "now"
+    },
+    "refresh": "30s",
+    "templating": {
+        "list": [
+            {
+                "name": "server",
+                "type": "query",
+                "datasource": {
+                    "type": "loki",
+                    "uid": "loki"
+                },
+                "query": "label_values(server_name)",
+                "refresh": 1,
+                "includeAll": true,
+                "allValue": ".+",
+                "multi": false,
+                "current": {
+                    "selected": true,
+                    "text": "All",
+                    "value": "$__all"
+                }
+            },
+            {
+                "name": "service",
+                "type": "query",
+                "datasource": {
+                    "type": "loki",
+                    "uid": "loki"
+                },
+                "query": "label_values({server_name=~\"$server\"}, service_name)",
+                "refresh": 1,
+                "includeAll": true,
+                "allValue": ".+",
+                "multi": true,
+                "current": {
+                    "selected": true,
+                    "text": "All",
+                    "value": "$__all"
+                }
+            },
+            {
+                "name": "log_type",
+                "type": "query",
+                "datasource": {
+                    "type": "loki",
+                    "uid": "loki"
+                },
+                "query": "label_values(log_type)",
+                "refresh": 1,
+                "includeAll": true,
+                "allValue": ".+",
+                "multi": false,
+                "current": {
+                    "selected": true,
+                    "text": "All",
+                    "value": "$__all"
+                }
+            }
+        ]
+    },
+    "panels": [
+        {
+            "id": 1,
+            "title": "Log Volume",
+            "type": "timeseries",
+            "gridPos": {"h": 6, "w": 24, "x": 0, "y": 0},
+            "targets": [
+                {
+                    "datasource": {"type": "loki", "uid": "loki"},
+                    "expr": "sum by(server_name) (rate({server_name=~\"$server\", service_name=~\"$service\", log_type=~\"$log_type\"}[5m]))",
+                    "legendFormat": "{{ server_name }}",
+                    "refId": "A"
+                }
+            ],
+            "fieldConfig": {
+                "defaults": {
+                    "unit": "short"
+                }
+            }
+        },
+        {
+            "id": 2,
+            "title": "Log Volume by Service",
+            "type": "piechart",
+            "gridPos": {"h": 8, "w": 8, "x": 0, "y": 6},
+            "targets": [
+                {
+                    "datasource": {"type": "loki", "uid": "loki"},
+                    "expr": "sum by(service_name) (count_over_time({server_name=~\"$server\", service_name=~\"$service\"}[1h]))",
+                    "legendFormat": "{{ service_name }}",
+                    "refId": "A"
+                }
+            ],
+            "options": {
+                "legend": {
+                    "displayMode": "table",
+                    "placement": "right"
+                }
+            }
+        },
+        {
+            "id": 3,
+            "title": "Error Logs",
+            "type": "timeseries",
+            "gridPos": {"h": 8, "w": 16, "x": 8, "y": 6},
+            "targets": [
+                {
+                    "datasource": {"type": "loki", "uid": "loki"},
+                    "expr": "sum by(server_name) (rate({server_name=~\"$server\"} |~ \"(?i)(error|err|exception|fail)\"[5m]))",
+                    "legendFormat": "{{ server_name }} errors",
+                    "refId": "A"
+                }
+            ],
+            "fieldConfig": {
+                "defaults": {
+                    "unit": "short",
+                    "color": {"mode": "palette-classic"}
+                }
+            }
+        },
+        {
+            "id": 4,
+            "title": "Application Logs",
+            "type": "logs",
+            "gridPos": {"h": 16, "w": 24, "x": 0, "y": 14},
+            "targets": [
+                {
+                    "datasource": {"type": "loki", "uid": "loki"},
+                    "expr": "{server_name=~\"$server\", service_name=~\"$service\", log_type=~\"$log_type\"}",
+                    "refId": "A"
+                }
+            ],
+            "options": {
+                "showTime": true,
+                "showLabels": true,
+                "showCommonLabels": false,
+                "wrapLogMessage": true,
+                "prettifyLogMessage": false,
+                "enableLogDetails": true,
+                "sortOrder": "Descending"
+            }
+        }
+    ]
+}
+
+
+
+
+

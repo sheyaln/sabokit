@@ -1,0 +1,367 @@
+{
+    "id": null,
+    "uid": "authentik-metrics",
+    "title": "Authentik Metrics",
+    "tags": ["authentik", "security", "authentication", "sso"],
+    "style": "dark",
+    "timezone": "browser",
+    "editable": true,
+    "graphTooltip": 1,
+    "time": {
+        "from": "now-1h",
+        "to": "now"
+    },
+    "refresh": "30s",
+    "panels": [
+        {
+            "id": 1,
+            "title": "Authentik Status",
+            "type": "stat",
+            "gridPos": {"h": 4, "w": 6, "x": 0, "y": 0},
+            "targets": [
+                {
+                    "datasource": {"type": "prometheus", "uid": "prometheus"},
+                    "expr": "up{job=\"authentik-app\"}",
+                    "legendFormat": "Authentik",
+                    "refId": "A"
+                }
+            ],
+            "fieldConfig": {
+                "defaults": {
+                    "mappings": [
+                        {"options": {"0": {"color": "red", "index": 1, "text": "DOWN"}}, "type": "value"},
+                        {"options": {"1": {"color": "green", "index": 0, "text": "UP"}}, "type": "value"}
+                    ],
+                    "thresholds": {
+                        "mode": "absolute",
+                        "steps": [
+                            {"color": "red", "value": null},
+                            {"color": "green", "value": 1}
+                        ]
+                    },
+                    "color": {"mode": "thresholds"}
+                }
+            },
+            "options": {
+                "colorMode": "background",
+                "graphMode": "none",
+                "orientation": "horizontal"
+            }
+        },
+        {
+            "id": 2,
+            "title": "Outposts Connected",
+            "type": "stat",
+            "gridPos": {"h": 4, "w": 6, "x": 6, "y": 0},
+            "targets": [
+                {
+                    "datasource": {"type": "prometheus", "uid": "prometheus"},
+                    "expr": "sum(authentik_outposts_connected{job=\"authentik-app\"})",
+                    "legendFormat": "Connected Outposts",
+                    "refId": "A"
+                }
+            ],
+            "fieldConfig": {
+                "defaults": {
+                    "color": {"mode": "palette-classic"}
+                }
+            },
+            "options": {
+                "colorMode": "value",
+                "graphMode": "area"
+            }
+        },
+        {
+            "id": 3,
+            "title": "Outpost Connection Health",
+            "type": "stat",
+            "gridPos": {"h": 4, "w": 6, "x": 12, "y": 0},
+            "targets": [
+                {
+                    "datasource": {"type": "prometheus", "uid": "prometheus"},
+                    "expr": "min(authentik_outpost_connection{job=\"authentik-app\"})",
+                    "legendFormat": "Outpost OK",
+                    "refId": "A"
+                }
+            ],
+            "fieldConfig": {
+                "defaults": {
+                    "mappings": [
+                        {"options": {"0": {"color": "red", "index": 1, "text": "UNHEALTHY"}}, "type": "value"},
+                        {"options": {"1": {"color": "green", "index": 0, "text": "HEALTHY"}}, "type": "value"}
+                    ],
+                    "thresholds": {
+                        "mode": "absolute",
+                        "steps": [
+                            {"color": "red", "value": null},
+                            {"color": "green", "value": 1}
+                        ]
+                    },
+                    "color": {"mode": "thresholds"}
+                }
+            },
+            "options": {
+                "colorMode": "background",
+                "graphMode": "none"
+            }
+        },
+        {
+            "id": 4,
+            "title": "HTTP 5xx Rate (Traefik)",
+            "type": "gauge",
+            "gridPos": {"h": 4, "w": 6, "x": 18, "y": 0},
+            "targets": [
+                {
+                    "datasource": {"type": "prometheus", "uid": "prometheus"},
+                    "expr": "sum(rate(traefik_entrypoint_requests_total{job=\"traefik-authentik\", code=~\"5..\"}[5m])) / clamp_min(sum(rate(traefik_entrypoint_requests_total{job=\"traefik-authentik\"}[5m])), 0.0001) * 100",
+                    "legendFormat": "5xx %",
+                    "refId": "A"
+                }
+            ],
+            "fieldConfig": {
+                "defaults": {
+                    "unit": "percent",
+                    "min": 0,
+                    "max": 100,
+                    "thresholds": {
+                        "mode": "absolute",
+                        "steps": [
+                            {"color": "green", "value": null},
+                            {"color": "yellow", "value": 1},
+                            {"color": "red", "value": 5}
+                        ]
+                    }
+                }
+            }
+        },
+        {
+            "id": 5,
+            "title": "Django Responses by Status (req/s)",
+            "type": "timeseries",
+            "gridPos": {"h": 8, "w": 12, "x": 0, "y": 4},
+            "targets": [
+                {
+                    "datasource": {"type": "prometheus", "uid": "prometheus"},
+                    "expr": "sum by(status) (rate(django_http_responses_total_by_status_total{job=\"authentik-app\"}[5m]))",
+                    "legendFormat": "HTTP {{ status }}",
+                    "refId": "A"
+                }
+            ],
+            "fieldConfig": {
+                "defaults": {
+                    "unit": "short"
+                }
+            }
+        },
+        {
+            "id": 6,
+            "title": "Request Duration (95th Percentile)",
+            "type": "timeseries",
+            "gridPos": {"h": 8, "w": 12, "x": 12, "y": 4},
+            "targets": [
+                {
+                    "datasource": {"type": "prometheus", "uid": "prometheus"},
+                    "expr": "histogram_quantile(0.95, sum by(le) (rate(authentik_main_request_duration_seconds_bucket{job=\"authentik-app\"}[5m])))",
+                    "legendFormat": "p95",
+                    "refId": "A"
+                }
+            ],
+            "fieldConfig": {
+                "defaults": {
+                    "unit": "s",
+                    "thresholds": {
+                        "mode": "absolute",
+                        "steps": [
+                            {"color": "green", "value": null},
+                            {"color": "yellow", "value": 1},
+                            {"color": "red", "value": 3}
+                        ]
+                    }
+                }
+            }
+        },
+        {
+            "id": 7,
+            "title": "HTTP Requests by Method (req/s)",
+            "type": "timeseries",
+            "gridPos": {"h": 8, "w": 12, "x": 0, "y": 12},
+            "targets": [
+                {
+                    "datasource": {"type": "prometheus", "uid": "prometheus"},
+                    "expr": "sum by(method) (rate(django_http_requests_total_by_method_total{job=\"authentik-app\"}[5m]))",
+                    "legendFormat": "{{ method }}",
+                    "refId": "A"
+                }
+            ],
+            "fieldConfig": {
+                "defaults": {
+                    "unit": "short"
+                }
+            }
+        },
+        {
+            "id": 8,
+            "title": "System Task Duration (95th Percentile)",
+            "type": "timeseries",
+            "gridPos": {"h": 8, "w": 12, "x": 12, "y": 12},
+            "targets": [
+                {
+                    "datasource": {"type": "prometheus", "uid": "prometheus"},
+                    "expr": "histogram_quantile(0.95, sum by(task_name, le) (rate(authentik_system_tasks_time_seconds_bucket{job=\"authentik-app\"}[15m])))",
+                    "legendFormat": "{{ task_name }}",
+                    "refId": "A"
+                }
+            ],
+            "fieldConfig": {
+                "defaults": {
+                    "unit": "s"
+                }
+            }
+        },
+        {
+            "id": 9,
+            "title": "Outpost Health",
+            "type": "stat",
+            "gridPos": {"h": 4, "w": 12, "x": 0, "y": 20},
+            "targets": [
+                {
+                    "datasource": {"type": "prometheus", "uid": "prometheus"},
+                    "expr": "authentik_outpost_connection{job=\"authentik-app\"}",
+                    "legendFormat": "{{ outpost_name }}",
+                    "refId": "A"
+                }
+            ],
+            "fieldConfig": {
+                "defaults": {
+                    "mappings": [
+                        {"options": {"0": {"color": "red", "index": 1, "text": "Unhealthy"}}, "type": "value"},
+                        {"options": {"1": {"color": "green", "index": 0, "text": "Healthy"}}, "type": "value"}
+                    ],
+                    "thresholds": {
+                        "mode": "absolute",
+                        "steps": [
+                            {"color": "red", "value": null},
+                            {"color": "green", "value": 1}
+                        ]
+                    },
+                    "color": {"mode": "thresholds"}
+                }
+            },
+            "options": {
+                "colorMode": "background",
+                "graphMode": "none",
+                "orientation": "horizontal"
+            }
+        },
+        {
+            "id": 10,
+            "title": "Background Tasks Runtime (avg, 15m)",
+            "type": "timeseries",
+            "gridPos": {"h": 4, "w": 12, "x": 12, "y": 20},
+            "targets": [
+                {
+                    "datasource": {"type": "prometheus", "uid": "prometheus"},
+                    "expr": "sum by(task_name) (rate(authentik_system_tasks_time_seconds_sum{job=\"authentik-app\"}[15m]) / clamp_min(rate(authentik_system_tasks_time_seconds_count{job=\"authentik-app\"}[15m]), 0.0001))",
+                    "legendFormat": "{{ task_name }}",
+                    "refId": "A"
+                }
+            ],
+            "fieldConfig": {
+                "defaults": {
+                    "unit": "s"
+                }
+            }
+        },
+        {
+            "id": 11,
+            "title": "HTTP Response Codes from Authentik Server",
+            "type": "timeseries",
+            "gridPos": {"h": 8, "w": 12, "x": 0, "y": 24},
+            "targets": [
+                {
+                    "datasource": {"type": "prometheus", "uid": "prometheus"},
+                    "expr": "sum by(code) (rate(traefik_entrypoint_requests_total{job=\"traefik-authentik\"}[5m]))",
+                    "legendFormat": "{{ code }}",
+                    "refId": "A"
+                }
+            ],
+            "fieldConfig": {
+                "defaults": {
+                    "unit": "reqps"
+                }
+            }
+        },
+        {
+            "id": 12,
+            "title": "Server Resource Usage",
+            "type": "stat",
+            "gridPos": {"h": 8, "w": 12, "x": 12, "y": 24},
+            "targets": [
+                {
+                    "datasource": {"type": "prometheus", "uid": "prometheus"},
+                    "expr": "100 - (avg(rate(node_cpu_seconds_total{mode=\"idle\", job=\"node-authentik\"}[5m])) * 100)",
+                    "legendFormat": "CPU",
+                    "refId": "A"
+                },
+                {
+                    "datasource": {"type": "prometheus", "uid": "prometheus"},
+                    "expr": "(1 - (node_memory_MemAvailable_bytes{job=\"node-authentik\"} / node_memory_MemTotal_bytes{job=\"node-authentik\"})) * 100",
+                    "legendFormat": "Memory",
+                    "refId": "B"
+                },
+                {
+                    "datasource": {"type": "prometheus", "uid": "prometheus"},
+                    "expr": "(1 - (node_filesystem_avail_bytes{job=\"node-authentik\", mountpoint=\"/\", fstype=~\"ext4|xfs\"} / node_filesystem_size_bytes{job=\"node-authentik\", mountpoint=\"/\", fstype=~\"ext4|xfs\"})) * 100",
+                    "legendFormat": "Disk",
+                    "refId": "C"
+                }
+            ],
+            "fieldConfig": {
+                "defaults": {
+                    "unit": "percent",
+                    "thresholds": {
+                        "mode": "absolute",
+                        "steps": [
+                            {"color": "green", "value": null},
+                            {"color": "yellow", "value": 70},
+                            {"color": "red", "value": 85}
+                        ]
+                    },
+                    "color": {"mode": "thresholds"}
+                }
+            },
+            "options": {
+                "colorMode": "background",
+                "graphMode": "none",
+                "orientation": "horizontal",
+                "reduceOptions": {
+                    "calcs": ["lastNotNull"],
+                    "fields": "",
+                    "values": false
+                }
+            }
+        },
+        {
+            "id": 13,
+            "title": "Authentik Logs",
+            "type": "logs",
+            "gridPos": {"h": 10, "w": 24, "x": 0, "y": 32},
+            "targets": [
+                {
+                    "datasource": {"type": "loki", "uid": "loki"},
+                    "expr": "{server_name=\"authentik\", container_name=~\"authentik-.*\"}",
+                    "refId": "A"
+                }
+            ],
+            "options": {
+                "showTime": true,
+                "showLabels": true,
+                "showCommonLabels": false,
+                "wrapLogMessage": true,
+                "prettifyLogMessage": false,
+                "enableLogDetails": true,
+                "sortOrder": "Descending"
+            }
+        }
+    ]
+}

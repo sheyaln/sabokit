@@ -129,8 +129,8 @@ services:
               if admin_email && admin_password && !admin_email.empty?
                 admin = Decidim::User.new(
                   email: admin_email,
-                  name: \"#{ENV['DECIDIM_ORG_NAME']} Admin\",
-                  nickname: 'admin',
+                  name: ENV.fetch('DECIDIM_ORG_ADMIN_NAME', \"#{ENV['DECIDIM_ORG_NAME']} Admin\"),
+                  nickname: ENV.fetch('DECIDIM_ORG_ADMIN_NICKNAME', 'admin'),
                   organization: org,
                   admin: true,
                   password: admin_password,

@@ -149,6 +149,12 @@ apps:
           description: Full icon URL override. When set, used verbatim and icon_filename is ignored.
           ui: advanced
 
+        extra_env_vars:
+          type: map(string)
+          default: {}
+          description: Extra environment variables rendered into Outline's container .env. Use for env-driven features the bundle doesn't expose first-class (e.g. Google OAuth — GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET).
+          ui: advanced
+
   # ── Steward ─────────────────────────────────────────────────────────────
   # Simplified Authentik admin UI for non-technical org admins. Members of
   # `admin_group_name` (matched against the OIDC `groups` claim) can sign in
@@ -1069,6 +1075,18 @@ apps:
           example: ops@example.org
           ui: text
 
+        organization_admin_name:
+          type: string
+          default: ''
+          description: Display name for the bootstrap organization admin. Empty falls back to "<organization_name> Admin". Only consumed on first deploy.
+          ui: advanced
+
+        organization_admin_nickname:
+          type: string
+          default: ''
+          description: URL-safe handle for the bootstrap organization admin. Empty falls back to `admin`. Only consumed on first deploy.
+          ui: advanced
+
         smtp_from_email:
           type: string
           default: ''
@@ -1618,6 +1636,12 @@ apps:
           description: Ad-hoc env vars merged into n8n's container .env. Merged AFTER the platform-wired vars above, so consumer entries with the same key win.
           ui: advanced
 
+        extra_docker_networks:
+          type: list(string)
+          default: []
+          description: Extra docker networks to attach n8n's container to (beyond the bundle's defaults). For cross-bundle integration with sidecars like protonmail-bridge that live in their own bootstrap-tier network. Networks must already exist on the host.
+          ui: advanced
+
   # ── Backrest ────────────────────────────────────────────────────────────
   # Restic-based backups per host (each host = its own instance + bucket).
   # Forward-auth via the embedded outpost. Multi-instance: consumers
@@ -1985,6 +2009,12 @@ apps:
           type: number
           default: 60
           description: Rolling window the TEM exporter uses for per-flag / per-status counts (drives bounce-rate, spam-rate alerts).
+          ui: advanced
+
+        extra_scrape_targets:
+          type: map(list(string))
+          default: {}
+          description: Extra Prometheus scrape jobs as job_name → list(host:port). For cross-host base-exporter scrapes (node_exporter, cadvisor, traefik metrics on every infra host) when the management host needs to scrape over the VPC. Consumer fills from their host inventory.
           ui: advanced
 
   # ── Loki ────────────────────────────────────────────────────────────────

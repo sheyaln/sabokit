@@ -8,4 +8,8 @@ locals {
 
   postgres_instance_name = "${local.name_suffix}-postgres"
   postgres_admin_user    = "${var.org_slug}-admin"
+
+  # TEM webhook activates only when TEM itself is on AND an n8n URL is wired.
+  # No URL = nowhere to send events; emit nothing.
+  tem_webhook_enabled = var.tem_enabled && var.tem_webhook_n8n_url != ""
 }

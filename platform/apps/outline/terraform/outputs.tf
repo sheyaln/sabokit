@@ -54,6 +54,7 @@ output "ansible" {
       outline_smtp_secret_name    = var.smtp_from_email == "" ? "" : "smtp-config"
       outline_auto_update_enabled = var.auto_update_enabled
       outline_autoheal_enabled    = var.autoheal_enabled
+      outline_extra_env_vars      = var.extra_env_vars
     }
   } : null
 }

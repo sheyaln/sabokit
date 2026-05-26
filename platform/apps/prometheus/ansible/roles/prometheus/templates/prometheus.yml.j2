@@ -68,3 +68,11 @@ scrape_configs:
 {% for cfg in prometheus_scrape_configs | default([]) %}
   - {{ cfg | to_nice_yaml(indent=2) | indent(4) }}
 {% endfor %}
+
+{# Consumer-supplied cross-host scrapes (typically node_exporter / cadvisor
+   on infra hosts the management box scrapes over the VPC). #}
+{% for job_name, targets in (prometheus_extra_scrape_targets | default({})).items() %}
+  - job_name: {{ job_name }}
+    static_configs:
+      - targets: {{ targets | to_json }}
+{% endfor %}

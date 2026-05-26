@@ -22,6 +22,7 @@ module "outline" {
   deployment_host_key     = try(var.apps.outline.deployment_host_key, "apps")
   bucket_name_override    = try(var.apps.outline.bucket_name_override, "")
   dns_zone_override       = try(var.apps.outline.dns_zone_override, "")
+  extra_env_vars          = try(var.apps.outline.extra_env_vars, {})
 
   credentials_preserve = try(var.apps.outline.credentials_preserve, false)
 }
@@ -229,6 +230,8 @@ module "decidim" {
   available_locales             = try(var.apps.decidim.available_locales, ["en"])
   organization_reference_prefix = try(var.apps.decidim.organization_reference_prefix, "")
   organization_admin_email      = try(var.apps.decidim.organization_admin_email, "")
+  organization_admin_name       = try(var.apps.decidim.organization_admin_name, "")
+  organization_admin_nickname   = try(var.apps.decidim.organization_admin_nickname, "")
   smtp_from_email               = try(var.apps.decidim.smtp_from_email, "")
   sidekiq_concurrency           = try(var.apps.decidim.sidekiq_concurrency, 5)
   application_name              = try(var.apps.decidim.application_name, "Decidim")
@@ -336,9 +339,10 @@ module "n8n" {
     ? [module.broadsheet.authentik_application_group_id]
     : [],
   )
-  monitoring_enabled  = try(var.apps.n8n.monitoring_enabled, true)
-  deployment_host_key = try(var.apps.n8n.deployment_host_key, "apps")
-  dns_zone_override   = try(var.apps.n8n.dns_zone_override, "")
+  monitoring_enabled    = try(var.apps.n8n.monitoring_enabled, true)
+  deployment_host_key   = try(var.apps.n8n.deployment_host_key, "apps")
+  dns_zone_override     = try(var.apps.n8n.dns_zone_override, "")
+  extra_docker_networks = try(var.apps.n8n.extra_docker_networks, [])
 
   # Workflow IDs are populated AFTER first import — capture from n8n UI then re-apply.
   extra_env_vars = merge(
@@ -389,6 +393,7 @@ locals {
   # paths, alert rules. Coalesce nulls then split by destination key for the
   # prometheus + grafana + loki bundles to consume.
   _monitoring_contribs = [for c in [
+    module.identity.monitoring,
     module.outline.monitoring,
     module.steward.monitoring,
     module.vikunja.monitoring,
@@ -502,9 +507,10 @@ module "prometheus" {
   private_ip_bind      = try(var.apps.prometheus.private_ip_bind, "")
   # Auto-aggregated from every enabled app's monitoring.prometheus_scrape_configs
   # + monitoring.alert_rules + monitoring.blackbox_targets.
-  scrape_configs   = concat(local.aggregated_scrape_configs, try(var.apps.prometheus.scrape_configs, []))
-  alert_rules      = concat(local.aggregated_alert_rules, try(var.apps.prometheus.alert_rules, []))
-  blackbox_targets = concat(local.aggregated_blackbox_targets, try(var.apps.prometheus.blackbox_targets, []))
+  scrape_configs       = concat(local.aggregated_scrape_configs, try(var.apps.prometheus.scrape_configs, []))
+  alert_rules          = concat(local.aggregated_alert_rules, try(var.apps.prometheus.alert_rules, []))
+  blackbox_targets     = concat(local.aggregated_blackbox_targets, try(var.apps.prometheus.blackbox_targets, []))
+  extra_scrape_targets = try(var.apps.prometheus.extra_scrape_targets, {})
 
   # Blackbox exporter sidecar — actively probes every public hostname on the
   # platform. Opt-out per the plug-and-play-owns-networking philosophy.
