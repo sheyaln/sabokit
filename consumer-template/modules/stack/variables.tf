@@ -176,7 +176,7 @@ variable "bootstrap" {
 }
 
 variable "identity" {
-  description = "Identity-bundle inputs. Required fields: `tier_slots = list(object({ name, peers = map(string) }))` — the org's authority hierarchy as a DAG (lowest slot first, each peer_name → group_name). Optional fields: `extra_groups = map(object({ is_superuser, description }))` — additional Authentik groups beyond the tier_slots DAG; `icon_base_url` — where app icons are fetched from."
+  description = "Identity-bundle inputs. Required fields: `tier_slots = list(object({ name, peers = map(string) }))` — the org's authority hierarchy as a DAG (lowest slot first, each peer_name → group_name). Optional fields: `extra_groups = map(object({ is_superuser, description }))` — additional Authentik groups beyond the tier_slots DAG; `icon_base_url` — where app icons are fetched from; `admin_group_name` / `member_group_name` / `delegate_group_name` / `delegate_role_name` — override the named-group pointers when the tier_slots DAG uses different group_names than the platform defaults (\"admin\" / \"member\" / \"delegate\")."
   type        = any
 
   validation {

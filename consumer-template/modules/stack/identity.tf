@@ -29,6 +29,15 @@ module "identity" {
   # README.md for the cascade-up semantics.
   tier_slots = var.identity.tier_slots
 
+  # Named-group pointers. Each must match a group_name that exists in
+  # tier_slots above. Defaults track the platform-module defaults; override
+  # per consumer when the DAG names its groups differently (e.g. point
+  # delegate_group_name at a "Steward" or "Coordinator" group).
+  admin_group_name    = try(var.identity.admin_group_name, "admin")
+  member_group_name   = try(var.identity.member_group_name, "member")
+  delegate_group_name = try(var.identity.delegate_group_name, "delegate")
+  delegate_role_name  = try(var.identity.delegate_role_name, "delegate")
+
   # Extra Authentik groups beyond the tier_slots DAG (service-account scopes,
   # org-specific roles, etc.). Each entry produces an `authentik_group`
   # surfaced via `var.base.authentik.groups[<name>]`. Apps with service
