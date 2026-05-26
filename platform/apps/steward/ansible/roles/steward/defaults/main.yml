@@ -28,3 +28,11 @@ steward_qcluster_workers: 2
 # Ops-bundle opt-in labels.
 steward_auto_update_enabled: true
 steward_autoheal_enabled: true
+
+# Filesystem owner/group for /opt/<slug>/ artifacts (compose file, .env).
+# Defaults to the deploy user (ubuntu on stock cloud images) so the role
+# doesn't leave the install dir root-owned. The deploy user is already in
+# the docker group via the base/docker role and can therefore run
+# `docker compose` against the rendered files without escalation.
+steward_file_owner: "ubuntu"
+steward_file_group: "ubuntu"
