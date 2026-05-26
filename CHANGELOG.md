@@ -2,6 +2,18 @@
 
 All notable changes to sabokit go here. Versioning follows semver; major bumps signal breaking contract changes for consumers.
 
+## v3.1.10 — 2026-05-26
+
+Consumer config now committable + Authentik dashboard cleanup + service-account convention codified.
+
+### Changed
+- **consumer-template environments now use `locals { config = {...} }` in `config.tf` instead of `terraform.tfvars`.** Root cause: `.tfvars` carries secrets → can't be committed → entire consumer infra config was invisible to git (no PR review, no diff on rotate, no audit trail). New layout splits responsibilities: `config.tf` (consumer's authoritative committable config), `main.tf` (module wiring, upstream-maintained), `secrets.tf` (Scaleway data source refs, committable bag IDs only). Stack module gains `validation` blocks on every variable so plan-time errors pinpoint bad values. Migration guide at `consumer-template/environments/MIGRATION-v3.1.10-config-tf.md`. Refactor is byte-identical to module inputs — `terraform plan` expects zero diff post-migration. Latent bug fixed in passing: the previous `_template/main.tf` never wired `var.identity` through to the stack module (the variable wasn't declared in `variables.tf`), so the required `identity = {...}` block in `terraform.tfvars.example` was being silently ignored. New template wires `local.config.identity` through correctly.
+- **Authentik dashboard categories condensed to four**: `Collaboration` (Outline, Nextcloud, Jitsi, Vikunja, BentoPDF), `Member Engagement` (Decidim, Broadsheet, Notifuse), `Member Operations` (EspoCRM, Steward), `Technical Management` (n8n Workflows, Grafana, Wazuh, Backrest). Replaces the previous sprawl (Knowledge/Productivity/Tools/Communication/Administration/Security/Operations). Closer to baseline 2-category convention but preserves the member-tool/admin-tool split + a real collaboration tier. Privacy Policy stays category-less — it ships no Authentik application (public static page, no auth integration) so it never appears in the dashboard. Defaults updated in both `consumer-template/modules/stack/apps.tf` (with `try()` override path preserved) and `consumer-template/apps-manifest.yaml`.
+- **App display-name defaults**: `CRM (EspoCRM)` → `EspoCRM`; `Workflows (n8n)` → `n8n Workflows`. Other renames (`Wiki (Outline)`, `Tasks (Vikunja)`, `PDF Tools (BentoPDF)`, `Video Meetings (Jitsi)`, etc.) unchanged.
+
+### Conventions
+- **Codified: every `authentik_user { type = "service_account" }` MUST set `is_active = true` explicitly.** Default-off would require a manual UI flip to make the bundle's API token usable on first apply. Both existing instances (n8n, steward) audited; inline comments added; rule lives in `CONTRIBUTING.md`.
+
 ## v3.1.9 — 2026-05-26
 
 Post-iter19-cutover cleanup: missing-icons fix + a downstream FR + privilege hygiene + db password charset tightening + the user-settings field that was sitting in [Unreleased].
