@@ -2,6 +2,10 @@
 
 All notable changes to sabokit go here. Versioning follows semver; major bumps signal breaking contract changes for consumers.
 
+## v3.1.12 — 2026-05-26
+
+DB password charset hotfix — re-added `@` and `!` to `override_special` and set `min_special` to the full charset length so generated passwords draw broadly across the set instead of clustering on `._-`. Lifecycle `ignore_changes` extended to include `min_special` so existing deployments don't churn. Applies to both `modules/infrastructure/storage/postgres` (admin + per-user passwords) and `modules/infrastructure/storage/postgres_database` (per-bundle DB passwords).
+
 ## v3.1.11 — 2026-05-26
 
 Icon-default layering fix + two perpetual-drift kills on the identity layer.

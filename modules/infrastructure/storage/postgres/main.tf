@@ -61,11 +61,14 @@ resource "random_password" "db_passwords" {
   for_each         = var.credentials_preserve ? toset([]) : toset(local.users)
   length           = 32
   special          = true
-  override_special = "._-"
+  override_special = "._-@!"
   min_numeric      = 1
+  # Equal to len(override_special) — pushes generated passwords to draw
+  # broadly across the set so @ / ! show up, not just the safer ._- subset.
+  min_special = 5
 
   lifecycle {
-    ignore_changes = [override_special, min_numeric, length]
+    ignore_changes = [override_special, min_numeric, min_special, length]
   }
 }
 

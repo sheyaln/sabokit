@@ -10,11 +10,14 @@ resource "random_password" "this" {
   count            = var.credentials_preserve ? 0 : 1
   length           = 32
   special          = true
-  override_special = "._-"
+  override_special = "._-@!"
   min_numeric      = 1
+  # Equal to len(override_special) — pushes generated passwords to draw
+  # broadly across the set so @ / ! show up, not just the safer ._- subset.
+  min_special = 5
 
   lifecycle {
-    ignore_changes = [override_special, min_numeric, length]
+    ignore_changes = [override_special, min_numeric, min_special, length]
   }
 }
 
