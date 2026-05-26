@@ -223,6 +223,12 @@ variable "tem_smtp_config_secret_name" {
   default     = "smtp-config"
 }
 
+variable "smtp_config_preserve" {
+  description = "In-place legacy cutover support. When true, base skips writing the `smtp-config` Scaleway secret and reads the pre-existing bag via a data source instead. Use when migrating from a legacy ansible-managed deploy that already owns the bag — avoids the manual `terraform import` block. Drop the flag on next apply once cutover is verified. Parallel to `postgres_credentials_preserve`; short-lived knob, removal slated for v4.x."
+  type        = bool
+  default     = false
+}
+
 variable "tem_webhook_n8n_url" {
   description = "Base URL of an n8n instance that should receive TEM delivery events (e.g. \"https://flows.example.org\"). Empty disables the whole TEM webhook → SNS → n8n pipeline. The consumer-template wires this from `module.n8n[0].app_url` so toggling n8n's `enabled` flag drives the pipeline too."
   type        = string

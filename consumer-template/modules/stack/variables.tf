@@ -164,7 +164,7 @@ variable "apps" {
 }
 
 variable "base" {
-  description = "Base-layer overrides (postgres, network, etc). Currently exposes `postgres_credentials_preserve` (bool) for in-place legacy cutover. See platform/base/terraform/variables.tf."
+  description = "Base-layer overrides (postgres, network, etc). Currently exposes `postgres_credentials_preserve` and `smtp_config_preserve` (bools) for in-place legacy cutover. See platform/base/terraform/variables.tf."
   type        = any
   default     = {}
 }

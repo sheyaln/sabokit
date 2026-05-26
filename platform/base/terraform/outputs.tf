@@ -23,7 +23,9 @@ output "scaleway" {
 
     # Scaleway TEM outbound SMTP. Apps reference the smtp-config secret
     # by name; these outputs are for diagnostics + consumer-template wiring.
-    smtp_config_secret_id = var.tem_enabled ? scaleway_secret.smtp_config[0].id : null
+    # ID resolves to the live bag whether base wrote it or `smtp_config_preserve`
+    # is reading a pre-existing legacy-managed one — see tem.tf.
+    smtp_config_secret_id = local.smtp_config_secret_id
     smtp_from_email       = var.tem_enabled ? local.tem_from_email_resolved : null
   }
 }
