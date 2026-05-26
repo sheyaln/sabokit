@@ -1,8 +1,9 @@
 ---
 # {{ ansible_managed }}
 # Maps OIDC `groups` claim values + internal backend roles to opensearch
-# roles. The Authentik admin group is mapped straight to all_access so
-# admins get the full dashboard.
+# roles. `roles_key: groups` in config.yml means each entry in the OIDC
+# `groups` claim becomes a backend role on the request, so OIDC group names
+# match here under `backend_roles:` (NOT under `users:`).
 
 _meta:
   type: "rolesmapping"
@@ -13,9 +14,8 @@ all_access:
   hidden: false
   backend_roles:
     - "admin"
-  users:
     - "{{ wazuh_oidc_admin_group }}"
-  description: "Maps internal admin + the OIDC admin group to all_access"
+  description: "Internal admin user + the OIDC admin group get full access"
 
 own_index:
   reserved: false
@@ -24,20 +24,39 @@ own_index:
     - "*"
   description: "Allow full access to an index named like the username"
 
+# Baseline dashboard access for every authenticated user. The kibanaserver
+# service account (internal user) needs this to broker requests on behalf
+# of the logged-in user; OIDC users also land here so the dashboard loads.
 kibana_user:
   reserved: false
   hidden: false
   backend_roles:
     - "kibanauser"
+{% if wazuh_oidc_readonly_group | default('') | length > 0 %}
+    - "{{ wazuh_oidc_readonly_group }}"
+{% endif %}
   users:
-    - "*"
+    - "kibanaserver"
   description: "All authenticated users get baseline kibana access"
 
+{% if wazuh_oidc_readonly_group | default('') | length > 0 %}
+# Read-only OIDC group gets read access across all indices. Combined with
+# kibana_user above this gives them a usable dashboard without write or
+# active-response privileges.
 readall:
   reserved: true
   hidden: false
   backend_roles:
     - "readall"
+    - "{{ wazuh_oidc_readonly_group }}"
+  description: "Internal readall + OIDC read-only group"
+{% else %}
+readall:
+  reserved: true
+  hidden: false
+  backend_roles:
+    - "readall"
+{% endif %}
 
 manage_snapshots:
   reserved: true
