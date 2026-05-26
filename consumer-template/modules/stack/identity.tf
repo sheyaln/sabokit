@@ -1,5 +1,5 @@
 module "identity" {
-  source = "git::https://github.com/sheyaln/sabokit.git//platform/identity/terraform?ref=v3.1.6"
+  source = "git::https://github.com/sheyaln/sabokit.git//platform/identity/terraform?ref=v3.1.7"
 
   gateway_domain = module.base.domains.gateway_domain
   base_domain    = module.base.domains.base_domain
