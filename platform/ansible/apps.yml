@@ -15,6 +15,20 @@
 # Vars are spelled out per app — Ansible's `import_playbook` requires a
 # static dict, so we explicitly map each terraform-rendered var into the
 # role namespace.
+- import_playbook: ../bootstrap/protonmail-bridge/ansible/playbook.yml
+  vars:
+    protonmail_bridge_host_group: "{{ enabled_apps.protonmail_bridge.ansible_group }}"
+    protonmail_bridge_image: "{{ enabled_apps.protonmail_bridge.ansible_vars.protonmail_bridge_image }}"
+    protonmail_bridge_image_tag: "{{ enabled_apps.protonmail_bridge.ansible_vars.protonmail_bridge_image_tag }}"
+    protonmail_bridge_timezone: "{{ enabled_apps.protonmail_bridge.ansible_vars.protonmail_bridge_timezone }}"
+    protonmail_bridge_memory_limit: "{{ enabled_apps.protonmail_bridge.ansible_vars.protonmail_bridge_memory_limit }}"
+    protonmail_bridge_memory_reservation: "{{ enabled_apps.protonmail_bridge.ansible_vars.protonmail_bridge_memory_reservation }}"
+    protonmail_bridge_cpu_limit: "{{ enabled_apps.protonmail_bridge.ansible_vars.protonmail_bridge_cpu_limit }}"
+    protonmail_bridge_cpu_reservation: "{{ enabled_apps.protonmail_bridge.ansible_vars.protonmail_bridge_cpu_reservation }}"
+    protonmail_bridge_auto_update_enabled: "{{ enabled_apps.protonmail_bridge.ansible_vars.protonmail_bridge_auto_update_enabled }}"
+    protonmail_bridge_autoheal_enabled: "{{ enabled_apps.protonmail_bridge.ansible_vars.protonmail_bridge_autoheal_enabled }}"
+  when: enabled_apps.protonmail_bridge is defined and enabled_apps.protonmail_bridge is not none
+  tags: [apps, protonmail_bridge]
 - import_playbook: ../apps/outline/ansible/playbook.yml
   vars:
     outline_host_group: "{{ enabled_apps.outline.ansible_group }}"

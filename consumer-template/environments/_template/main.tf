@@ -29,6 +29,7 @@ module "stack" {
   private_network_subnet = var.private_network_subnet
 
   apps             = var.apps
+  bootstrap        = var.bootstrap
   smtp_secret_name = var.smtp_secret_name
 
   manage_gateway_dns       = var.manage_gateway_dns

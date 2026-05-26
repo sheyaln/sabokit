@@ -99,6 +99,12 @@ variable "base" {
   default     = {}
 }
 
+variable "bootstrap" {
+  description = "Bootstrap-tier bundles. Map of {<bundle> = { enabled = bool, ... }}. Currently houses protonmail_bridge (IMAP inbound mail). Sibling to var.apps but separated because these are host services apps depend on rather than user-facing apps. See platform/bootstrap/<bundle>/terraform/variables.tf for per-bundle inputs."
+  type        = any
+  default     = {}
+}
+
 variable "identity" {
   description = "Identity-bundle inputs. Required fields: `tier_slots = list(object({ name, peers = map(string) }))` — the org's authority hierarchy as a DAG (lowest slot first, each peer_name → group_name). Optional fields: `extra_groups = map(object({ is_superuser, description }))` — additional Authentik groups beyond the tier_slots DAG; `icon_base_url` — where app icons are fetched from."
   type        = any

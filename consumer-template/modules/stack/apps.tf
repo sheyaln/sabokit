@@ -693,6 +693,31 @@ module "wazuh_agent_apps" {
   fim_extra_exclusions = try(var.apps.wazuh_agent_apps.fim_extra_exclusions, [])
 }
 
+# ProtonMail Bridge — IMAP inbound mail for apps that fetch (n8n workflows,
+# etc). SMTP outbound stays on TEM at the base tier. Lives in
+# platform/bootstrap/ rather than platform/apps/ — it's a host-service the
+# rest of the stack depends on, not a user-facing app.
+module "protonmail_bridge" {
+  source = "git::https://github.com/sheyaln/sabokit.git//platform/bootstrap/protonmail-bridge/terraform?ref=v3.1.6"
+
+  enabled = try(var.bootstrap.protonmail_bridge.enabled, false)
+  base    = local.base
+
+  # imap_username + bridge_login_secret_id are required when enabled = true.
+  # try() with a placeholder lets the module type-check when disabled; the
+  # bundle's `count = var.enabled ? 1 : 0` gating means the values are never
+  # consumed in that case.
+  imap_username          = try(var.bootstrap.protonmail_bridge.imap_username, "")
+  bridge_login_secret_id = try(var.bootstrap.protonmail_bridge.bridge_login_secret_id, "")
+
+  deployment_host_key     = try(var.bootstrap.protonmail_bridge.deployment_host_key, "management")
+  image_tag               = try(var.bootstrap.protonmail_bridge.image_tag, "latest")
+  timezone                = try(var.bootstrap.protonmail_bridge.timezone, "UTC")
+  imap_config_secret_name = try(var.bootstrap.protonmail_bridge.imap_config_secret_name, "imap-config")
+  auto_update_enabled     = try(var.bootstrap.protonmail_bridge.auto_update_enabled, false)
+  autoheal_enabled        = try(var.bootstrap.protonmail_bridge.autoheal_enabled, true)
+}
+
 module "autoheal_apps" {
   source = "git::https://github.com/sheyaln/sabokit.git//platform/apps/autoheal/terraform?ref=v3.1.6"
 

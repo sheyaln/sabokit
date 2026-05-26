@@ -165,5 +165,9 @@ output "enabled_apps" {
       ansible_vars  = module.autoheal_apps.ansible.vars
       ansible_group = module.autoheal_apps.ansible.host_group
     } : null
+    protonmail_bridge = module.protonmail_bridge.enabled ? {
+      ansible_vars  = module.protonmail_bridge.ansible.vars
+      ansible_group = module.protonmail_bridge.ansible.host_group
+    } : null
   }
 }

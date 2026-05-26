@@ -2342,3 +2342,77 @@ apps:
           default: []
           description: Paths to suppress from FIM reporting (syscheck `<ignore>` entries).
           ui: advanced
+
+# ── Bootstrap-tier bundles ────────────────────────────────────────────────
+# Host services apps depend on (inbound mail, etc). Sibling to `apps` —
+# separated because these aren't user-facing apps. Consumer-template wires
+# them via `var.bootstrap.<bundle>` in terraform.tfvars.
+bootstrap:
+  # ── ProtonMail Bridge ───────────────────────────────────────────────────
+  # IMAP gateway for apps that fetch mail from a ProtonMail account (e.g.
+  # n8n workflows polling an inbox). SMTP outbound stays on Scaleway TEM at
+  # the base tier.
+  - id: protonmail-bridge
+    display_name: ProtonMail Bridge
+    category: mail
+    description_short: IMAP gateway to a ProtonMail account
+    description: |
+      Runs the community ProtonMail Bridge image so apps inside the stack
+      can fetch mail from a ProtonMail account over IMAP. Apps read the
+      `imap-config` Scaleway secret this bundle writes.
+    tfvars:
+      key: protonmail_bridge
+      schema:
+        enabled:
+          type: bool
+          default: false
+          description: Master toggle.
+          ui: toggle
+
+        imap_username:
+          type: string
+          default: ""
+          description: ProtonMail account email. Apps use this as their IMAP username. REQUIRED when enabled.
+          ui: text
+
+        bridge_login_secret_id:
+          type: string
+          default: ""
+          description: Scaleway secret ID holding the bridge's service-specific password (NOT the ProtonMail account password). Generate via ProtonMail Settings → Bridge, store in Scaleway out-of-band, paste the ID here. REQUIRED when enabled.
+          ui: text
+
+        deployment_host_key:
+          type: string
+          default: "management"
+          description: Compute host the bridge runs on. Must be reachable from every host with apps that fetch mail through it.
+          ui: advanced
+
+        image_tag:
+          type: string
+          default: "latest"
+          description: Bridge image tag.
+          ui: advanced
+
+        timezone:
+          type: string
+          default: "UTC"
+          description: IANA timezone for the container.
+          ui: advanced
+
+        imap_config_secret_name:
+          type: string
+          default: "imap-config"
+          description: Scaleway secret name this bundle writes. Override only when running multiple bridge instances per env.
+          ui: advanced
+
+        auto_update_enabled:
+          type: bool
+          default: false
+          description: Whether Watchtower auto-pulls newer bridge images. Default false — bridge schema migrations between minor versions need the manual re-login flow.
+          ui: advanced
+
+        autoheal_enabled:
+          type: bool
+          default: true
+          description: Whether Autoheal restarts the container on healthcheck failure.
+          ui: advanced
