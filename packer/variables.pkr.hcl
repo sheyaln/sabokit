@@ -1,56 +1,61 @@
 // Input variables for base.pkr.hcl.
 //
-// Credentials are read from env by default — set SCW_ACCESS_KEY, SCW_SECRET_KEY,
-// SCW_DEFAULT_PROJECT_ID before running. Pass `image_version` explicitly when
-// building a release (typically the sabokit git tag without the `v`).
-
-variable "scaleway_access_key" {
-  type        = string
-  description = "Scaleway API access key. Defaults to SCW_ACCESS_KEY env var."
-  default     = env("SCW_ACCESS_KEY")
-  sensitive   = true
-}
-
-variable "scaleway_secret_key" {
-  type        = string
-  description = "Scaleway API secret key. Defaults to SCW_SECRET_KEY env var."
-  default     = env("SCW_SECRET_KEY")
-  sensitive   = true
-}
-
-variable "scaleway_project_id" {
-  type        = string
-  description = "Scaleway project the build instance and resulting image live in."
-  default     = env("SCW_DEFAULT_PROJECT_ID")
-}
-
-variable "scaleway_zone" {
-  type        = string
-  description = "Scaleway zone the build instance runs in."
-  default     = "fr-par-1"
-}
-
-variable "source_image" {
-  type        = string
-  description = "Marketplace label of the source image. ubuntu_jammy = Ubuntu 22.04 LTS."
-  default     = "ubuntu_jammy"
-}
-
-variable "instance_type" {
-  type        = string
-  description = "Instance type used for the build. DEV1-S is cheap and plenty for an apt-install workload."
-  default     = "DEV1-S"
-}
-
-variable "image_name_prefix" {
-  type        = string
-  description = "Prefix for the resulting image name. Final name is `<prefix>-<version>`."
-  default     = "fc-base"
-}
+// Pass `image_version` explicitly when building a release (typically the
+// sabokit git tag without the `v`). Source image defaults to the current
+// Ubuntu 22.04 LTS (jammy) cloud qcow2 — override `source_image_url` /
+// `source_image_checksum` to pin a specific point release.
 
 variable "image_version" {
   type        = string
   description = "Version tag baked into the image name and into /etc/sabokit-base-image. Typically the sabokit release tag without the leading 'v' (e.g. \"1.4.0\"). Required."
+}
+
+variable "image_name_prefix" {
+  type        = string
+  description = "Prefix for the resulting image artefact. Final qcow2 is `<prefix>-<version>.qcow2`."
+  default     = "fc-base"
+}
+
+variable "source_image_url" {
+  type        = string
+  description = "URL of the upstream cloud qcow2 used as the build seed. Defaults to current Ubuntu 22.04 LTS (jammy) server cloud image (amd64). Matches the Scaleway `ubuntu_jammy` marketplace image so the pre-baked and fallback paths share an OS family. Override with a `file://` URL to use a locally cached image."
+  default     = "https://cloud-images.ubuntu.com/jammy/current/jammy-server-cloudimg-amd64.img"
+}
+
+variable "source_image_checksum" {
+  type        = string
+  description = "Checksum for the source qcow2 in the form packer expects (e.g. `file:<url-to-SHA256SUMS>` or `sha256:<hex>`). The `file:` form auto-resolves from Ubuntu's published SHA256SUMS so re-pointing to a newer build just works."
+  default     = "file:https://cloud-images.ubuntu.com/jammy/current/SHA256SUMS"
+}
+
+variable "output_directory" {
+  type        = string
+  description = "Directory the qcow2 is written to. Per-version subdirectory is created underneath so concurrent builds at different versions don't collide."
+  default     = "output"
+}
+
+variable "disk_size" {
+  type        = string
+  description = "Resulting qcow2 virtual disk size. Cloud qcow2s ship ~2 GB; we grow to fit the pre-pulled docker images + extra headroom for a consumer's first apt upgrade."
+  default     = "10G"
+}
+
+variable "memory" {
+  type        = number
+  description = "RAM (MB) given to the build VM. 2048 is enough for apt + docker pull workloads."
+  default     = 2048
+}
+
+variable "cpus" {
+  type        = number
+  description = "vCPUs given to the build VM."
+  default     = 2
+}
+
+variable "accelerator" {
+  type        = string
+  description = "Qemu accelerator. `kvm` on Linux hosts with /dev/kvm; `tcg` for a slow CPU-only fallback (CI without nested virt)."
+  default     = "kvm"
 }
 
 variable "node_exporter_version" {

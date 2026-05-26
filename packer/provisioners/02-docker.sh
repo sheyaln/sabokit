@@ -7,7 +7,8 @@
 set -euo pipefail
 
 ARCH="$(dpkg --print-architecture)"
-CODENAME="$(. /etc/os-release && echo "$VERSION_CODENAME")"
+. /etc/os-release
+CODENAME="${VERSION_CODENAME}"
 
 install -m 0755 -d /etc/apt/keyrings
 curl -fsSL https://download.docker.com/linux/ubuntu/gpg \

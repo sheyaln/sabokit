@@ -29,6 +29,14 @@ rm -rf /var/lib/cloud/instances/* /var/lib/cloud/instance 2>/dev/null || true
 rm -f /root/.bash_history /home/*/.bash_history 2>/dev/null || true
 history -c 2>/dev/null || true
 
+# Lock the build-time `packer` user so it can't log back in on the shipped
+# image. We can't `userdel` while a packer-owned shell is still alive (the
+# shutdown_command runs as packer); cloud-init on the consumer side seeds
+# the runtime accounts (root, deploy) afresh on first boot anyway.
+passwd -l packer 2>/dev/null || true
+rm -f /etc/sudoers.d/90-cloud-init-users
+chage -E 0 packer 2>/dev/null || true
+
 # Zero free space (optional, helps qcow2 compression).
 dd if=/dev/zero of=/EMPTY bs=1M status=none || true
 rm -f /EMPTY

@@ -1,0 +1,23 @@
+#cloud-config
+# Build-time cloud-init seed. Creates a `packer` user with passwordless sudo
+# and a fixed password so the shell provisioners can run over SSH. Both the
+# user and the cloud-init state are wiped by `99-cleanup.sh` before the qcow2
+# ships, so there's no live `packer` account on the rendered image.
+
+users:
+  - name: packer
+    sudo: ALL=(ALL) NOPASSWD:ALL
+    groups: sudo
+    shell: /bin/bash
+    lock_passwd: false
+    plain_text_passwd: packer
+
+ssh_pwauth: true
+
+chpasswd:
+  expire: false
+  list: |
+    packer:packer
+
+package_update: false
+package_upgrade: false
