@@ -15,8 +15,8 @@
     path: "{{ item }}"
     state: directory
     mode: "0755"
-    owner: root
-    group: root
+    owner: "{{ prometheus_file_owner }}"
+    group: "{{ prometheus_file_group }}"
   loop:
     - "{{ prometheus_install_dir }}"
     - "{{ prometheus_install_dir }}/config"
@@ -37,8 +37,8 @@
     src: prometheus.yml.j2
     dest: "{{ prometheus_install_dir }}/config/prometheus.yml"
     mode: "0644"
-    owner: root
-    group: root
+    owner: "{{ prometheus_file_owner }}"
+    group: "{{ prometheus_file_group }}"
   notify: Reload prometheus config
 
 - name: Render alert rules
@@ -46,8 +46,8 @@
     src: rules.yml.j2
     dest: "{{ prometheus_install_dir }}/rules/rules.yml"
     mode: "0644"
-    owner: root
-    group: root
+    owner: "{{ prometheus_file_owner }}"
+    group: "{{ prometheus_file_group }}"
   notify: Reload prometheus config
 
 # Blackbox exporter config + target file. Rendered when the sidecar is on.
@@ -58,8 +58,8 @@
     src: blackbox.yml.j2
     dest: "{{ prometheus_install_dir }}/blackbox/blackbox.yml"
     mode: "0644"
-    owner: root
-    group: root
+    owner: "{{ prometheus_file_owner }}"
+    group: "{{ prometheus_file_group }}"
   when: prometheus_blackbox_exporter_enabled | bool
   notify: Restart prometheus
 
@@ -68,8 +68,8 @@
     src: targets-blackbox.yml.j2
     dest: "{{ prometheus_install_dir }}/config/targets-blackbox.yml"
     mode: "0644"
-    owner: root
-    group: root
+    owner: "{{ prometheus_file_owner }}"
+    group: "{{ prometheus_file_group }}"
   when: prometheus_blackbox_exporter_enabled | bool
   notify: Reload prometheus config
 
@@ -78,8 +78,8 @@
     src: "{{ role_path }}/../../../monitoring/alerts/blackbox.yml"
     dest: "{{ prometheus_install_dir }}/rules/blackbox.yml"
     mode: "0644"
-    owner: root
-    group: root
+    owner: "{{ prometheus_file_owner }}"
+    group: "{{ prometheus_file_group }}"
   when: prometheus_blackbox_exporter_enabled | bool
   notify: Reload prometheus config
 
@@ -99,8 +99,8 @@
     src: "{{ role_path }}/../../../monitoring/alerts/scaleway-tem.yml"
     dest: "{{ prometheus_install_dir }}/rules/scaleway-tem.yml"
     mode: "0644"
-    owner: root
-    group: root
+    owner: "{{ prometheus_file_owner }}"
+    group: "{{ prometheus_file_group }}"
   when: prometheus_tem_exporter_enabled | bool
   notify: Reload prometheus config
 
@@ -119,8 +119,8 @@
     src: "{{ item }}"
     dest: "{{ prometheus_install_dir }}/tem-exporter/{{ item | basename }}"
     mode: "0644"
-    owner: root
-    group: root
+    owner: "{{ prometheus_file_owner }}"
+    group: "{{ prometheus_file_group }}"
   loop:
     - tem-exporter/tem_exporter.py
     - tem-exporter/requirements.txt
@@ -145,8 +145,8 @@
   ansible.builtin.copy:
     dest: "{{ prometheus_install_dir }}/tem-exporter/.env"
     mode: "0600"
-    owner: root
-    group: root
+    owner: "{{ prometheus_file_owner }}"
+    group: "{{ prometheus_file_group }}"
     content: |
       SCW_SECRET_KEY={{ _prometheus_tem_smtp_bag.password }}
       SCW_PROJECT_ID={{ prometheus_tem_scaleway_project_id }}
@@ -164,8 +164,8 @@
     src: docker-compose.yml.j2
     dest: "{{ prometheus_install_dir }}/docker-compose.yml"
     mode: "0644"
-    owner: root
-    group: root
+    owner: "{{ prometheus_file_owner }}"
+    group: "{{ prometheus_file_group }}"
   notify: Restart prometheus
 
 - name: Ensure Prometheus stack is running
