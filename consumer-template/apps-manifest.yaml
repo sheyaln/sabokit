@@ -1493,7 +1493,7 @@ apps:
 
         application_name:
           type: string
-          default: CRM (EspoCRM)
+          default: EspoCRM
           description: Display name for the Authentik portal entry. Override for branded portals.
           ui: advanced
 
@@ -1616,7 +1616,7 @@ apps:
 
         application_name:
           type: string
-          default: Workflows (n8n)
+          default: n8n Workflows
           description: Display name for the Authentik portal entry. Override for branded portals.
           ui: advanced
 
