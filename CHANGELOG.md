@@ -6,6 +6,9 @@ All notable changes to sabokit go here. Versioning follows semver; major bumps s
 
 Non-downstream-requested improvements, accumulating until the next downstream-driven patch folds them in.
 
+### Added
+- **`member_id` field on the user-settings update flow.** Optional text prompt at order 30 (after locale), stored as `user.attributes.member_id`. Editable by the user from Authentik's user-settings UI. Empty by default; users can set or clear it freely.
+
 ## v3.1.8 — 2026-05-26
 
 Systemic credentials_preserve gate bug: silently broken since v3.1.1; only the random_* generators and the data-source reads were gated, never the wrapping `scaleway_secret` / `scaleway_secret_version` resources themselves. Result on every preserve=true consumer: TF tried to CREATE the `<slug>-app-secrets` bag in parallel with the data source reading it → name collision at apply, iter19-class plan blocked at "secret already exists" for the live bag. Same shape was present in the v3.1.4 base postgres and identity_bootstrap layers. Plan-validated against a real Scaleway project with `credentials_preserve=true` for vikunja + identity_bootstrap + base postgres — confirmed the `scaleway_secret.app[0]`, `scaleway_secret.admin`, `scaleway_secret.server`, `scaleway_secret.admin_credentials`, `scaleway_secret.db_credentials[*]` resource addresses are absent from the create list; data sources resolve correctly; baseline run with preserve=false still creates everything as before.
