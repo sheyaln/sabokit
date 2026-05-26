@@ -240,6 +240,7 @@
     backrest_restic_prune_max_frequency_days: "{{ enabled_apps.backrest_mgmt.ansible_vars.backrest_restic_prune_max_frequency_days }}"
     backrest_restic_check_max_frequency_days: "{{ enabled_apps.backrest_mgmt.ansible_vars.backrest_restic_check_max_frequency_days }}"
     backrest_restic_check_read_data_subset_pct: "{{ enabled_apps.backrest_mgmt.ansible_vars.backrest_restic_check_read_data_subset_pct }}"
+    backrest_restic_s3_storage_class: "{{ enabled_apps.backrest_mgmt.ansible_vars.backrest_restic_s3_storage_class }}"
     backrest_auto_update_enabled: "{{ enabled_apps.backrest_mgmt.ansible_vars.backrest_auto_update_enabled }}"
     backrest_autoheal_enabled: "{{ enabled_apps.backrest_mgmt.ansible_vars.backrest_autoheal_enabled }}"
   when: enabled_apps.backrest_mgmt is defined and enabled_apps.backrest_mgmt is not none
