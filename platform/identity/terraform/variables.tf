@@ -225,7 +225,7 @@ variable "member_id_label" {
 # ── App icons ───────────────────────────────────────────────────────────────
 
 variable "icon_base_url" {
-  description = "Where the platform looks for app icons by filename. App bundles compose `$${icon_base_url}/$${icon_filename}` when no full icon_url override is set. Empty string falls back to the pinned sabokit-assets default. Override per-consumer to host icons elsewhere (your own CDN, internal mirror, etc.)."
+  description = "Where the platform looks for app icons by filename. App bundles compose `$${icon_base_url}/$${icon_filename}` when no full icon_url override is set. Empty string falls back to the sabokit-assets master branch default. Override per-consumer to host icons elsewhere (your own CDN, internal mirror, etc.)."
   type        = string
   default     = ""
 }
