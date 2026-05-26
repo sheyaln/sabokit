@@ -14,6 +14,9 @@ Consumer config now committable + Authentik dashboard cleanup + service-account 
 ### Conventions
 - **Codified: every `authentik_user { type = "service_account" }` MUST set `is_active = true` explicitly.** Default-off would require a manual UI flip to make the bundle's API token usable on first apply. Both existing instances (n8n, steward) audited; inline comments added; rule lives in `CONTRIBUTING.md`.
 
+### Added
+- **`icon_filename` defaults flipped from `""` to `<bundle>-icon.png` for notifuse, nextcloud, jitsi, backrest, and wazuh** now that those icons are present in `sheyaln/sabokit-assets/application-icons/`. Previous default of `""` fell through to Authentik's `default-logo.png`; with these flips the bundles render their canonical branded icons on the dashboard out of the box.
+
 ## v3.1.9 — 2026-05-26
 
 Post-iter19-cutover cleanup: missing-icons fix + a downstream FR + privilege hygiene + db password charset tightening + the user-settings field that was sitting in [Unreleased].

@@ -636,7 +636,7 @@ apps:
 
         icon_filename:
           type: string
-          default: ""
+          default: notifuse-icon.png
           description: Icon filename to fetch from base.authentik.icon_base_url. Empty = no icon. Overridden by icon_url (full URL).
           ui: advanced
 
@@ -1007,7 +1007,7 @@ apps:
 
         icon_filename:
           type: string
-          default: ""
+          default: nextcloud-icon.png
           description: Icon filename to fetch from base.authentik.icon_base_url. Empty = no icon. Overridden by icon_url (full URL).
           ui: advanced
 
@@ -1382,7 +1382,7 @@ apps:
 
         icon_filename:
           type: string
-          default: ""
+          default: jitsi-icon.png
           description: Icon filename to fetch from base.authentik.icon_base_url. Empty = no icon. Overridden by icon_url (full URL).
           ui: advanced
 
@@ -1812,7 +1812,7 @@ apps:
 
         icon_filename:
           type: string
-          default: ""
+          default: backrest-icon.png
           description: Icon filename to fetch from base.authentik.icon_base_url. Empty = no icon. Overridden by icon_url (full URL).
           ui: advanced
 
@@ -2394,7 +2394,7 @@ apps:
 
         icon_filename:
           type: string
-          default: ""
+          default: wazuh-icon.png
           description: Icon filename to fetch from base.authentik.icon_base_url. Empty = no icon. Overridden by icon_url (full URL).
           ui: advanced
 
