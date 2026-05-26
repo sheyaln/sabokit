@@ -1,8 +1,8 @@
 # USER SETTINGS FLOW
 #
 # Clones Authentik's built-in default-user-settings-flow minus the username
-# field — same prompt shape (name, email, locale) the default ships, just
-# without the username editor (it confuses users now that username = email
+# field — same prompt shape (name, email, locale, member_id) the default ships,
+# just without the username editor (it confuses users now that username = email
 # always, per the source/manual enrollment invariant).
 #
 # Password change + delete account are SEPARATE flows triggered by buttons
@@ -68,12 +68,27 @@ resource "authentik_stage_prompt_field" "user_settings_locale" {
   order                    = 20
 }
 
+# Optional on edit so users can clear it. Stored as user.attributes.member_id.
+resource "authentik_stage_prompt_field" "user_settings_member_id" {
+  name                     = "user-settings-field-member-id"
+  field_key                = "attributes.member_id"
+  label                    = "Member ID"
+  type                     = "text"
+  required                 = false
+  placeholder              = ""
+  placeholder_expression   = false
+  initial_value            = "return request.user.attributes.get('member_id', '')"
+  initial_value_expression = true
+  order                    = 30
+}
+
 resource "authentik_stage_prompt" "user_settings_prompt" {
   name = "user-settings-prompt"
   fields = [
     authentik_stage_prompt_field.user_settings_name.id,
     authentik_stage_prompt_field.user_settings_email.id,
     authentik_stage_prompt_field.user_settings_locale.id,
+    authentik_stage_prompt_field.user_settings_member_id.id,
   ]
 }
 
