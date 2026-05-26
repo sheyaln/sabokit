@@ -1,8 +1,8 @@
 # apps/wazuh
 
-[Wazuh](https://wazuh.com) server stack — manager + indexer (OpenSearch fork) + dashboard. SIEM + endpoint detection. UI fronted by Authentik forward-auth; OIDC happens at the gateway because the Wazuh dashboard's native SSO is OpenSearch-flavoured (full OIDC needs custom `config.yml` for the opensearch-security plugin).
+[Wazuh](https://wazuh.com) server stack — manager + indexer (OpenSearch fork) + dashboard. SIEM + endpoint detection. Dashboard delegates SSO to opensearch-security's native OIDC backend pointed at Authentik — users hit the dashboard with their own identity, group claims become opensearch backend roles via `roles_mapping.yml`.
 
-Agent role for monitored hosts ships separately in a follow-up tag. The bundle opens the manager's agent/enrollment/syslog ports in the host SG via `required_inbound_rules`.
+Agent role for monitored hosts ships separately. The bundle opens the manager's agent/enrollment/syslog ports in the host SG via `required_inbound_rules`.
 
 ## Inputs
 
@@ -15,6 +15,8 @@ Agent role for monitored hosts ships separately in a follow-up tag. The bundle o
 | `icon_url` | `string` | `null` | Optional icon. |
 | `access_level` | `string` | `"admin"` | Defaults admin-only — SIEM + active response. |
 | `extra_authorized_groups` | `map(string)` | `{}` | Extra groups. |
+| `oidc_admin_group` | `string` | `"admin"` | Authentik group mapped to opensearch `all_access` (full dashboard + active response). |
+| `oidc_readonly_group` | `string` | `""` | Optional Authentik group mapped to `kibana_user` + `readall` (read-only dashboard). Empty = admin-only. |
 | `monitoring_enabled` | `bool` | `true` | Wire log paths into monitoring. |
 | `deployment_host_key` | `string` | `"management"` | Host this manager runs on. |
 | `version` | `string` | `"4.9.0"` | Wazuh release. All 3 images move in lockstep. |
@@ -35,7 +37,7 @@ Agent role for monitored hosts ships separately in a follow-up tag. The bundle o
 |------|-------------|
 | `enabled` | Mirrors `var.enabled`. |
 | `app_url` | `https://<hostname>` or null. |
-| `authentik_provider_id` | Forward-auth provider ID. **Must** be added to identity's `extra_forward_auth_provider_ids`. |
+| `authentik_provider_id` | OIDC provider ID. Wazuh uses **native** OIDC via opensearch-security — do NOT add to identity's `extra_forward_auth_provider_ids` (that list is for proxy-providers only). Exposed for tooling. |
 | `authentik_application_group_id` | Per-app group `app-wazuh`. |
 | `monitoring` | Log paths contribution. |
 | `required_inbound_rules` | TCP 1514 + 1515 + UDP 514 open on the host SG. Aggregated by consumer-template. |
@@ -48,4 +50,5 @@ Agent role for monitored hosts ships separately in a follow-up tag. The bundle o
 - Internal-user passwords (indexer admin, API, dashboard) are pinned (`ignore_changes = all` on the secret). Rotating them requires running `/var/ossec/api/scripts/wazuh-passwords-tool.sh` inside the manager.
 - The manager API on port 55000 stays bound to `127.0.0.1` — agent traffic uses 1514/1515; UI hits the indexer + API via the dashboard's in-network connections.
 - `vm.max_map_count` is set to 262144 via sysctl on the deploy host (OpenSearch refuses to start without it).
-- Agent role (for hosts being monitored) ships in v2.7.1.
+- opensearch-security config (`config.yml`, `roles_mapping.yml`, `internal_users.yml`) is mutated live via `securityadmin.sh` against the running indexer — restarting containers alone won't pick up changes once the security index has been initialised.
+- Dashboard login: `opensearch_security.auth.type` is `["basicauth", "openid"]`. The login page presents both; pick "Log in with single sign-on" for Authentik. Direct-to-OIDC redirect is a future v3 knob.
