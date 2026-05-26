@@ -12,16 +12,16 @@
     path: "{{ autoheal_install_dir }}"
     state: directory
     mode: "0750"
-    owner: root
-    group: root
+    owner: "{{ autoheal_file_owner }}"
+    group: "{{ autoheal_file_group }}"
 
 - name: Render docker-compose.yml
   ansible.builtin.template:
     src: docker-compose.yml.j2
     dest: "{{ autoheal_install_dir }}/docker-compose.yml"
     mode: "0644"
-    owner: root
-    group: root
+    owner: "{{ autoheal_file_owner }}"
+    group: "{{ autoheal_file_group }}"
   notify: Restart autoheal
 
 - name: Ensure Autoheal is running
