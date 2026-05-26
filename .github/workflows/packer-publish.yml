@@ -1,25 +1,19 @@
-# Build the fc-base Scaleway image with Packer and publish it as a qcow2
-# asset on the corresponding sabokit GitHub Release.
+# Build the fc-base qcow2 with Packer (qemu builder) and publish it as a
+# release asset on the corresponding sabokit GitHub Release.
 #
 # Triggers:
 #   - push of any v* tag (production: ties image to release)
 #   - manual dispatch with explicit image_version (for ad-hoc rebuilds)
 #
 # Required repo secrets:
-#   PACKER_SCW_ACCESS_KEY        — Scaleway API access key (build project)
-#   PACKER_SCW_SECRET_KEY        — Scaleway API secret key (build project)
-#   PACKER_SCW_PROJECT_ID        — Scaleway project where the build VM,
-#                                  snapshot, and intermediate object lives
-#   PACKER_SCW_PUBLISH_BUCKET    — Existing Scaleway object-storage bucket
-#                                  used as the export staging area
+#   none — the qemu builder runs offline against an upstream Debian cloud
+#   qcow2. Only the default GITHUB_TOKEN is used (for `gh release upload`).
 #
 # Notes:
-#   - The build instance, snapshot, and bucket object are intermediate;
-#     packer + this workflow clean them up. The Scaleway image registered
-#     by packer stays in the project — that's how consumers pull it via
-#     import-base-image.sh when they pin the sabokit tag.
-#   - Wallclock is ~15 min for a clean build + ~5 min for the snapshot
-#     export. Workflow timeout set to 45 min to leave headroom.
+#   - `ubuntu-latest` runners ship /dev/kvm enabled, so the qemu builder
+#     uses KVM acceleration. Build wallclock is ~12-18 min depending on the
+#     apt mirror weather.
+#   - Workflow timeout set to 45 min to leave headroom.
 
 name: packer-publish
 
@@ -41,13 +35,6 @@ jobs:
   build:
     runs-on: ubuntu-latest
     timeout-minutes: 45
-    env:
-      SCW_ACCESS_KEY: ${{ secrets.PACKER_SCW_ACCESS_KEY }}
-      SCW_SECRET_KEY: ${{ secrets.PACKER_SCW_SECRET_KEY }}
-      SCW_DEFAULT_PROJECT_ID: ${{ secrets.PACKER_SCW_PROJECT_ID }}
-      SCW_DEFAULT_REGION: fr-par
-      SCW_DEFAULT_ZONE: fr-par-1
-      SCW_PUBLISH_BUCKET: ${{ secrets.PACKER_SCW_PUBLISH_BUCKET }}
 
     steps:
       - uses: actions/checkout@v4
@@ -63,21 +50,25 @@ jobs:
           echo "version=$v" >> "$GITHUB_OUTPUT"
           echo "Building fc-base-$v"
 
+      - name: Install qemu + KVM tooling
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            qemu-system-x86 \
+            qemu-utils \
+            ovmf \
+            cpu-checker
+          # Confirm /dev/kvm is present and accessible. GitHub-hosted
+          # ubuntu-latest runners ship it post-2023; failing fast here makes
+          # the cause obvious if a future runner image regresses.
+          sudo chmod 666 /dev/kvm || true
+          kvm-ok || true
+          ls -la /dev/kvm
+
       - name: Install Packer
         uses: hashicorp/setup-packer@main
         with:
           version: '1.11.2'
-
-      - name: Install Scaleway CLI
-        run: |
-          # /releases/latest/download/<file> redirect requires the literal filename
-          # to exist on the latest release; Scaleway embeds the version in asset
-          # names (scaleway-cli_X.Y.Z_linux_amd64) so that path 404s. Resolve via API.
-          VERSION=$(curl -fsSL https://api.github.com/repos/scaleway/scaleway-cli/releases/latest | jq -r .tag_name | sed 's/^v//')
-          curl -fsSL "https://github.com/scaleway/scaleway-cli/releases/download/v${VERSION}/scaleway-cli_${VERSION}_linux_amd64" \
-            -o /usr/local/bin/scw
-          chmod +x /usr/local/bin/scw
-          scw version
 
       - name: packer init
         working-directory: packer
@@ -87,64 +78,23 @@ jobs:
         id: build
         working-directory: packer
         run: |
-          packer build -machine-readable \
+          packer build \
             -var image_version=${{ steps.ver.outputs.version }} \
-            . | tee build.log
-          # Packer's machine-readable output puts the image ID in the artifact line.
-          image_id=$(awk -F, '/artifact,0,id/ { print $6 }' build.log | tail -1)
-          [ -n "$image_id" ] || { echo "could not parse image id from packer output" >&2; exit 1; }
-          echo "image_id=$image_id" >> "$GITHUB_OUTPUT"
-          echo "Built image $image_id"
-
-      - name: Resolve snapshot ID from image
-        id: snap
-        run: |
-          snapshot_id=$(scw instance image get "${{ steps.build.outputs.image_id }}" -o json \
-                       | jq -r '.image.root_volume.id')
-          [ -n "$snapshot_id" ] && [ "$snapshot_id" != "null" ] \
-            || { echo "could not resolve snapshot id" >&2; exit 1; }
-          echo "snapshot_id=$snapshot_id" >> "$GITHUB_OUTPUT"
-          echo "Snapshot: $snapshot_id"
-
-      - name: Export snapshot to qcow2 in object storage
-        id: export
-        run: |
-          object_key="fc-base-${{ steps.ver.outputs.version }}.qcow2"
-          scw block snapshot export-to-object-storage \
-            snapshot-id="${{ steps.snap.outputs.snapshot_id }}" \
-            bucket="$SCW_PUBLISH_BUCKET" \
-            key="$object_key" \
-            -o json > export.json
-          # Poll until the export completes.
-          deadline=$((SECONDS+1800))
-          while (( SECONDS < deadline )); do
-            status=$(scw block snapshot get \
-                      "${{ steps.snap.outputs.snapshot_id }}" -o json \
-                     | jq -r '.snapshot.status')
-            [[ "$status" == "available" ]] && break
-            sleep 15
-          done
-          echo "object_key=$object_key" >> "$GITHUB_OUTPUT"
-
-      - name: Download qcow2 from object storage
-        run: |
-          scw object-storage object download \
-            bucket="$SCW_PUBLISH_BUCKET" \
-            key="${{ steps.export.outputs.object_key }}" \
-            > "${{ steps.export.outputs.object_key }}"
-          ls -lh "${{ steps.export.outputs.object_key }}"
+            .
+          qcow2_path="output/fc-base-${{ steps.ver.outputs.version }}/fc-base-${{ steps.ver.outputs.version }}.qcow2"
+          [ -f "$qcow2_path" ] || { echo "qcow2 not found at $qcow2_path" >&2; exit 1; }
+          ls -lh "$qcow2_path"
+          mv "$qcow2_path" "../fc-base-${{ steps.ver.outputs.version }}.qcow2"
+          echo "qcow2_asset=fc-base-${{ steps.ver.outputs.version }}.qcow2" >> "$GITHUB_OUTPUT"
 
       - name: Write image metadata sidecar
         run: |
           cat > fc-base-${{ steps.ver.outputs.version }}.json <<EOF
           {
             "image_version": "${{ steps.ver.outputs.version }}",
-            "scaleway_image_id": "${{ steps.build.outputs.image_id }}",
-            "scaleway_snapshot_id": "${{ steps.snap.outputs.snapshot_id }}",
+            "qcow2_asset": "${{ steps.build.outputs.qcow2_asset }}",
             "scaleway_region": "fr-par",
-            "scaleway_zone": "fr-par-1",
-            "build_project_id": "${{ secrets.PACKER_SCW_PROJECT_ID }}",
-            "qcow2_asset": "${{ steps.export.outputs.object_key }}"
+            "scaleway_zone": "fr-par-1"
           }
           EOF
 
@@ -164,12 +114,5 @@ jobs:
               --notes "Packer image fc-base-${{ steps.ver.outputs.version }}. Import via consumer-template/scripts/import-base-image.sh."
           fi
           gh release upload "$tag" --clobber \
-            "${{ steps.export.outputs.object_key }}" \
+            "${{ steps.build.outputs.qcow2_asset }}" \
             "fc-base-${{ steps.ver.outputs.version }}.json"
-
-      - name: Clean up intermediate object
-        if: always()
-        run: |
-          scw object-storage object delete \
-            bucket="$SCW_PUBLISH_BUCKET" \
-            key="${{ steps.export.outputs.object_key }}" || true
