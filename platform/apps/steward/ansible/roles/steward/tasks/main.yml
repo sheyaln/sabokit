@@ -39,8 +39,8 @@
     path: "{{ steward_install_dir }}"
     state: directory
     mode: "0750"
-    owner: root
-    group: root
+    owner: "{{ steward_file_owner }}"
+    group: "{{ steward_file_group }}"
 
 - name: Normalize Scaleway secret IDs (strip leading region/ prefix)
   ansible.builtin.set_fact:
@@ -65,8 +65,8 @@
     src: docker-compose.yml.j2
     dest: "{{ steward_install_dir }}/docker-compose.yml"
     mode: "0644"
-    owner: root
-    group: root
+    owner: "{{ steward_file_owner }}"
+    group: "{{ steward_file_group }}"
   notify: Restart steward
 
 - name: Render Steward environment file
@@ -74,8 +74,8 @@
     src: env.j2
     dest: "{{ steward_install_dir }}/.env"
     mode: "0600"
-    owner: root
-    group: root
+    owner: "{{ steward_file_owner }}"
+    group: "{{ steward_file_group }}"
   notify: Restart steward
   no_log: true
   tags: [secrets]

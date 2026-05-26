@@ -2,12 +2,21 @@
 
 All notable changes to sabokit go here. Versioning follows semver; major bumps signal breaking contract changes for consumers.
 
-## [Unreleased]
+## v3.1.9 — 2026-05-26
 
-Non-downstream-requested improvements, accumulating until the next downstream-driven patch folds them in.
+Post-iter19-cutover cleanup: missing-icons fix + a downstream FR + privilege hygiene + db password charset tightening + the user-settings field that was sitting in [Unreleased].
+
+### Fixed
+- **Authentik dashboard icons restored: identity `icon_base_url` default repointed from `sabokit-assets/v1.0.0/application-icons` (never tagged → every composed URL 404'd) to `sabokit-assets/master/application-icons`.** Affected every app whose icon resolved via the `icon_base_url + icon_filename` composition (~9 bundles). The Authentik provider's `meta_icon` field fetches external URLs directly with no media-S3 indirection — fix takes effect on next apply for OIDC + SAML apps. Bookmark module's `lifecycle { ignore_changes = [meta_icon] }` removed in the same patch so existing bookmarks reconcile to the correct URL on next apply too (no manual `terraform state rm` needed).
+- **consumer-template stack `icon_url` fallback switched from `""` to `null`** so bundle defaults actually take effect when a consumer hasn't overridden.
+- **Backrest `storage_class_transition_days` default 1 → 90** to match Scaleway's GLACIER 90-day-minimum transition requirement. Previous default produced `InvalidArgument: Transition rule for storage-class "GLACIER" must be at least 90 days` at apply time for the default `storage_class = "GLACIER"` case. Reported by downstream after iter19 cutover.
+- **DB password `override_special` tightened to `._-` (was `!@+=:,._-`)** so generated values contain only `[A-Za-z0-9._-]` — shell-safe in any quoting context including `.env` sourcing, eliminates a class of subtle quoting bugs. ~190 bits of entropy at length=32 on a 65-char alphabet. Lifecycle `ignore_changes = [override_special]` means existing passwords are unaffected; only newly-generated resources from this point use the tighter set.
 
 ### Added
-- **`member_id` field on the user-settings update flow.** Optional text prompt at order 30 (after locale), stored as `user.attributes.member_id`. Editable by the user from Authentik's user-settings UI. Empty by default; users can set or clear it freely.
+- **`member_id` field on the user-settings update flow.** Optional text prompt at order 30 (after locale), stored as `user.attributes.member_id`. Editable from Authentik's user-settings UI. Empty by default; users can set or clear freely. Enrollment-flow equivalent + uniqueness validation are deferred to v3.2.0 backlog.
+
+### Restored (privilege/ownership hygiene)
+- **App-role install dirs + rendered compose/.env files now owned by the deploy user (`ubuntu` default) instead of `root:root`.** v3 had a uniform deviation from the pre-OSP baseline where every `apps/*` role chowned `/opt/<slug>/` artifacts to root. That forced operators to escalate for every compose op + left secrets world-unreadable root-owned. Restored baseline behavior across 19 app roles + the protonmail-bridge bootstrap role. New `<slug>_file_owner` / `<slug>_file_group` defaults (default `"ubuntu"`) allow consumers running under a non-ubuntu deploy user to override. Wazuh + wazuh-agent intentionally NOT changed — legitimate root-tier roles per baseline.
 
 ## v3.1.8 — 2026-05-26
 

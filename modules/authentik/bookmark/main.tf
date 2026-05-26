@@ -27,12 +27,6 @@ resource "authentik_application" "bookmark" {
   meta_icon        = local.effective_icon_url
 
   policy_engine_mode = "any"
-
-  lifecycle {
-    ignore_changes = [
-      meta_icon,
-    ]
-  }
 }
 
 resource "authentik_policy_binding" "authorized" {

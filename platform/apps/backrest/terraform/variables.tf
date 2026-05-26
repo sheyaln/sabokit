@@ -60,9 +60,9 @@ variable "storage_class" {
 }
 
 variable "storage_class_transition_days" {
-  description = "Days after upload before snapshots move to `storage_class`. Default 1 — one day of STANDARD-rate storage per upload before cold transition. Setting to 0 is not supported by Scaleway; configuring restic itself to upload directly into the target class (via restic's S3 storage-class option) is the way to fully eliminate the warm window. Not wired in v2.10.3."
+  description = "Days after upload before snapshots move to `storage_class`. Default 90 to match Scaleway's GLACIER-tier 90-day-minimum transition requirement (S3 rejects shorter transitions for GLACIER with InvalidArgument). Setting to 0 is not supported by Scaleway; configuring restic itself to upload directly into the target class (via restic's S3 storage-class option) is the way to fully eliminate the warm window. Not wired in v2.10.3."
   type        = number
-  default     = 1
+  default     = 90
 }
 
 variable "bucket_name_override" {

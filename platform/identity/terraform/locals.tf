@@ -15,10 +15,11 @@ locals {
   # Test mode collapses recipients to admins only.
   notification_test_target_groups_json = jsonencode([var.admin_group_name])
 
-  # Empty icon_base_url resolves to the pinned sabokit-assets default so
+  # Empty icon_base_url resolves to the sabokit-assets master default so
   # consumers can pass `try(var.identity.icon_base_url, "")` straight through
-  # without hardcoding the upstream URL on every fork.
-  effective_icon_base_url = var.icon_base_url != "" ? var.icon_base_url : "https://raw.githubusercontent.com/sheyaln/sabokit-assets/v1.0.0/application-icons"
+  # without hardcoding the upstream URL on every fork. Tracks master rather
+  # than a tag because sabokit-assets has no release cadence yet.
+  effective_icon_base_url = var.icon_base_url != "" ? var.icon_base_url : "https://raw.githubusercontent.com/sheyaln/sabokit-assets/master/application-icons"
 
   # Pre-computed per-slot-index: list of group_names in every strictly-higher
   # slot. Used both by user_groups.tf (peer's parent linkage is the slot below)

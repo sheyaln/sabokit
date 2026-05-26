@@ -37,16 +37,16 @@
     path: "{{ privacy_policy_install_dir }}"
     state: directory
     mode: "0755"
-    owner: root
-    group: root
+    owner: "{{ privacy_policy_file_owner }}"
+    group: "{{ privacy_policy_file_group }}"
 
 - name: Copy consumer-provided privacy policy HTML
   ansible.builtin.copy:
     src: "{{ privacy_policy_html_path }}"
     dest: "{{ privacy_policy_install_dir }}/index.html"
     mode: "0644"
-    owner: root
-    group: root
+    owner: "{{ privacy_policy_file_owner }}"
+    group: "{{ privacy_policy_file_group }}"
   when: privacy_policy_html_path | length > 0
   notify: Restart privacy-policy
 
@@ -55,8 +55,8 @@
     src: placeholder.html.j2
     dest: "{{ privacy_policy_install_dir }}/index.html"
     mode: "0644"
-    owner: root
-    group: root
+    owner: "{{ privacy_policy_file_owner }}"
+    group: "{{ privacy_policy_file_group }}"
   when: privacy_policy_html_path | length == 0
   notify: Restart privacy-policy
 
@@ -65,8 +65,8 @@
     src: "{{ privacy_policy_logo_path }}"
     dest: "{{ privacy_policy_install_dir }}/{{ privacy_policy_logo_filename }}"
     mode: "0644"
-    owner: root
-    group: root
+    owner: "{{ privacy_policy_file_owner }}"
+    group: "{{ privacy_policy_file_group }}"
   when: privacy_policy_logo_path | length > 0
   notify: Restart privacy-policy
 
@@ -75,8 +75,8 @@
     src: docker-compose.yml.j2
     dest: "{{ privacy_policy_install_dir }}/docker-compose.yml"
     mode: "0644"
-    owner: root
-    group: root
+    owner: "{{ privacy_policy_file_owner }}"
+    group: "{{ privacy_policy_file_group }}"
   notify: Restart privacy-policy
 
 - name: Ensure Privacy Policy stack is running

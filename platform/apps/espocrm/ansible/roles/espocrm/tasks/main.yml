@@ -43,8 +43,8 @@
     path: "{{ espocrm_install_dir }}"
     state: directory
     mode: "0750"
-    owner: root
-    group: root
+    owner: "{{ espocrm_file_owner }}"
+    group: "{{ espocrm_file_group }}"
 
 - name: Normalize Scaleway secret IDs (strip leading region/ prefix)
   ansible.builtin.set_fact:
@@ -69,8 +69,8 @@
     src: docker-compose.yml.j2
     dest: "{{ espocrm_install_dir }}/docker-compose.yml"
     mode: "0644"
-    owner: root
-    group: root
+    owner: "{{ espocrm_file_owner }}"
+    group: "{{ espocrm_file_group }}"
   notify: Restart espocrm
 
 - name: Render EspoCRM environment file
@@ -78,8 +78,8 @@
     src: env.j2
     dest: "{{ espocrm_install_dir }}/.env"
     mode: "0600"
-    owner: root
-    group: root
+    owner: "{{ espocrm_file_owner }}"
+    group: "{{ espocrm_file_group }}"
   notify: Restart espocrm
   no_log: true
   tags: [secrets]
@@ -109,8 +109,8 @@
     src: configure-oidc.php.j2
     dest: "{{ espocrm_install_dir }}/configure-oidc.php"
     mode: "0640"
-    owner: root
-    group: root
+    owner: "{{ espocrm_file_owner }}"
+    group: "{{ espocrm_file_group }}"
   no_log: true
 
 - name: Copy OIDC bootstrap into container
@@ -131,8 +131,8 @@
     src: configure-member-entity.php.j2
     dest: "{{ espocrm_install_dir }}/configure-member-entity.php"
     mode: "0640"
-    owner: root
-    group: root
+    owner: "{{ espocrm_file_owner }}"
+    group: "{{ espocrm_file_group }}"
   when: espocrm_enable_member_entity_bootstrap | bool
 
 - name: Copy member-entity bootstrap into container
@@ -155,8 +155,8 @@
     src: configure-webhooks.php.j2
     dest: "{{ espocrm_install_dir }}/configure-webhooks.php"
     mode: "0640"
-    owner: root
-    group: root
+    owner: "{{ espocrm_file_owner }}"
+    group: "{{ espocrm_file_group }}"
   when: espocrm_member_entity_webhooks | length > 0
 
 - name: Copy webhook bootstrap into container

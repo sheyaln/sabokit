@@ -14,3 +14,11 @@ autoheal_memory_limit: "128M"
 autoheal_memory_reservation: "16M"
 autoheal_cpu_limit: "0.25"
 autoheal_cpu_reservation: "0.02"
+
+# Filesystem owner/group for /opt/<slug>/ artifacts (compose file, .env).
+# Defaults to the deploy user (ubuntu on stock cloud images) so the role
+# doesn't leave the install dir root-owned. The deploy user is already in
+# the docker group via the base/docker role and can therefore run
+# `docker compose` against the rendered files without escalation.
+autoheal_file_owner: "ubuntu"
+autoheal_file_group: "ubuntu"
