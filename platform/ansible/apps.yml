@@ -25,6 +25,7 @@
     outline_smtp_secret_name: "{{ enabled_apps.outline.ansible_vars.outline_smtp_secret_name }}"
     outline_auto_update_enabled: "{{ enabled_apps.outline.ansible_vars.outline_auto_update_enabled }}"
     outline_autoheal_enabled: "{{ enabled_apps.outline.ansible_vars.outline_autoheal_enabled }}"
+    outline_extra_env_vars: "{{ enabled_apps.outline.ansible_vars.outline_extra_env_vars }}"
   when: enabled_apps.outline is defined and enabled_apps.outline is not none
   tags: [apps, outline]
 - import_playbook: ../apps/steward/ansible/playbook.yml
@@ -151,6 +152,8 @@
     decidim_smtp_secret_name: "{{ enabled_apps.decidim.ansible_vars.decidim_smtp_secret_name }}"
     decidim_auto_update_enabled: "{{ enabled_apps.decidim.ansible_vars.decidim_auto_update_enabled }}"
     decidim_autoheal_enabled: "{{ enabled_apps.decidim.ansible_vars.decidim_autoheal_enabled }}"
+    decidim_org_admin_name: "{{ enabled_apps.decidim.ansible_vars.decidim_org_admin_name }}"
+    decidim_org_admin_nickname: "{{ enabled_apps.decidim.ansible_vars.decidim_org_admin_nickname }}"
   when: enabled_apps.decidim is defined and enabled_apps.decidim is not none
   tags: [apps, decidim]
 - import_playbook: ../apps/jitsi/ansible/playbook.yml
@@ -209,6 +212,7 @@
     n8n_app_secret_id: "{{ enabled_apps.n8n.ansible_vars.n8n_app_secret_id }}"
     n8n_db_credentials_secret_id: "{{ enabled_apps.n8n.ansible_vars.n8n_db_credentials_secret_id }}"
     n8n_extra_env_vars: "{{ enabled_apps.n8n.ansible_vars.n8n_extra_env_vars }}"
+    n8n_extra_docker_networks: "{{ enabled_apps.n8n.ansible_vars.n8n_extra_docker_networks }}"
   when: enabled_apps.n8n is defined and enabled_apps.n8n is not none
   tags: [apps, n8n]
 - import_playbook: ../apps/backrest/ansible/playbook.yml
@@ -234,6 +238,7 @@
     prometheus_image_tag: "{{ enabled_apps.prometheus.ansible_vars.prometheus_image_tag }}"
     prometheus_retention: "{{ enabled_apps.prometheus.ansible_vars.prometheus_retention }}"
     prometheus_scrape_configs: "{{ enabled_apps.prometheus.ansible_vars.prometheus_scrape_configs }}"
+    prometheus_extra_scrape_targets: "{{ enabled_apps.prometheus.ansible_vars.prometheus_extra_scrape_targets }}"
     prometheus_alert_rules: "{{ enabled_apps.prometheus.ansible_vars.prometheus_alert_rules }}"
     prometheus_exporters_enabled: "{{ enabled_apps.prometheus.ansible_vars.prometheus_exporters_enabled }}"
     prometheus_remote_write_enabled: "{{ enabled_apps.prometheus.ansible_vars.prometheus_remote_write_enabled }}"
