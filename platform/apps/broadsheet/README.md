@@ -24,7 +24,7 @@ Broadsheet — newsletters + transactional email manager. Ships the [sabokit-bro
 | `image_source_repo` | `string` | `"https://github.com/sheyaln/sabokit-broadsheet.git"` | Git URL cloned when `build_from_source = true`. |
 | `image_source_ref` | `string` | `"main"` | Git ref checked out. Pin to a tag/SHA for reproducibility. |
 | `oidc_auto_provision` | `bool` | `true` | Auto-create user on first OIDC login. |
-| `oidc_allow_magic_code` | `bool` | `true` | Allow magic-link login fallback alongside OIDC. |
+| `oidc_allow_magic_code` | `bool` | `false` | Allow magic-link login fallback alongside OIDC. |
 
 ## Outputs
 

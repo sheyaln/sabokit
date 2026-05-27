@@ -152,7 +152,7 @@ module "broadsheet" {
   tier_access_level       = try(var.apps.broadsheet.tier_access_level, "admin")
   smtp_from_email         = try(var.apps.broadsheet.smtp_from_email, "")
   oidc_auto_provision     = try(var.apps.broadsheet.oidc_auto_provision, true)
-  oidc_allow_magic_code   = try(var.apps.broadsheet.oidc_allow_magic_code, true)
+  oidc_allow_magic_code   = try(var.apps.broadsheet.oidc_allow_magic_code, false)
   application_name        = try(var.apps.broadsheet.application_name, "Broadsheet")
   application_slug        = try(var.apps.broadsheet.application_slug, "")
   category_group          = try(var.apps.broadsheet.category_group, "Member Engagement")

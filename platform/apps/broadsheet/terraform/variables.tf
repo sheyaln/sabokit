@@ -166,7 +166,7 @@ variable "oidc_auto_provision" {
 variable "oidc_allow_magic_code" {
   description = "Whether Broadsheet offers its magic-code (email link) fallback alongside OIDC. Recommended to leave on so admins can recover if OIDC is misconfigured."
   type        = bool
-  default     = true
+  default     = false
 }
 
 variable "backup_enabled" {

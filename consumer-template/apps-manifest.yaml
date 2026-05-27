@@ -602,7 +602,7 @@ apps:
 
         oidc_allow_magic_code:
           type: bool
-          default: true
+          default: false
           description: Allow magic-link login fallback alongside OIDC. Recommended on so admins can recover if OIDC breaks.
           ui: advanced
 
