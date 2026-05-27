@@ -136,12 +136,36 @@ output "enabled_apps" {
       ansible_group = module.wazuh.ansible.host_group
       monitoring    = module.wazuh.monitoring
     } : null
-    backrest_mgmt = module.backrest_mgmt.enabled ? {
-      url           = module.backrest_mgmt.app_url
-      ansible_vars  = module.backrest_mgmt.ansible.vars
-      ansible_group = module.backrest_mgmt.ansible.host_group
-      monitoring    = module.backrest_mgmt.monitoring
+    # Per-host backrest instances. One entry per compute_hosts key not in
+    # var.apps.backrest.disabled_hosts. Ansible side still consumes
+    # `backrest_mgmt` as a single-instance key (legacy bridge); ticket 5b
+    # switches the consumer to iterate `backrest.instances` instead.
+    backrest = length(module.backrest) > 0 ? {
+      instances = {
+        for k, inst in module.backrest : k => {
+          url           = inst.app_url
+          ansible_vars  = inst.ansible.vars
+          ansible_group = inst.ansible.host_group
+          monitoring    = inst.monitoring
+        }
+      }
     } : null
+    # Legacy single-instance bridge. Picks "management" when present, else the
+    # first instance in key order. Remove after ticket 5b lands the ansible-side
+    # loop and updates platform/ansible/apps.yml to consume `backrest.instances`.
+    backrest_mgmt = length(module.backrest) > 0 ? (
+      contains(keys(module.backrest), "management") ? {
+        url           = module.backrest["management"].app_url
+        ansible_vars  = module.backrest["management"].ansible.vars
+        ansible_group = module.backrest["management"].ansible.host_group
+        monitoring    = module.backrest["management"].monitoring
+        } : {
+        url           = module.backrest[sort(keys(module.backrest))[0]].app_url
+        ansible_vars  = module.backrest[sort(keys(module.backrest))[0]].ansible.vars
+        ansible_group = module.backrest[sort(keys(module.backrest))[0]].ansible.host_group
+        monitoring    = module.backrest[sort(keys(module.backrest))[0]].monitoring
+      }
+    ) : null
     diun_mgmt = module.diun_mgmt.enabled ? {
       ansible_vars  = module.diun_mgmt.ansible.vars
       ansible_group = module.diun_mgmt.ansible.host_group
