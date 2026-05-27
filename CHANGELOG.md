@@ -2,6 +2,16 @@
 
 All notable changes to sabokit go here. Versioning follows semver; major bumps signal breaking contract changes for consumers.
 
+## v3.2.2 - 2026-05-27
+
+Security hardening on the base image, scanner workflows in CI, and a universal escape-hatch knob across most app bundles.
+
+### Added
+- **`extra_env_vars` knob (`map(string)`, default `{}`) on every app bundle except outline + bentopdf + privacy-policy**. Renders into the container `.env` after first-class vars. For env-driven feature flags, third-party integrations, debug toggles not exposed first-class on the bundle. Bundles covered: backrest, broadsheet, decidim, diun, espocrm, grafana, jitsi, loki, n8n (already had it), nextcloud, notifuse, prometheus, steward, vikunja, wazuh, wazuh-agent, plus protonmail-bridge under `var.bootstrap`. Outline excluded deliberately - no escape hatch for social-OAuth bypass. Bentopdf + privacy-policy excluded because their containers don't render env at all. Consumer usage: `apps.<slug>.extra_env_vars = { KEY = "value" }`.
+- **sshd hardening drop-in baked into the fc-base packer image** at `/etc/ssh/sshd_config.d/00-sabokit-hardening.conf`. Mozilla "modern" cipher / MAC / kex algorithm profile, key-only auth, no root login, no empty passwords, MaxAuthTries 3, ClientAliveInterval 300, X11Forwarding off, AllowTcpForwarding local-only. Weak host keys (DSA, ECDSA-P256) removed - Ubuntu cloud-init regenerates only ed25519 + RSA-4096 on first boot. sshd config validated with `sshd -t` in the provisioner; build fails on any parse error. SFTP subsystem kept (consumers need it).
+- **Trivy CVE scan workflow** (`.github/workflows/trivy.yml`). Fires on `v*` tag push (scans the freshly-published runner image), weekly cron, and `workflow_dispatch`. `severity: HIGH,CRITICAL`, `ignore-unfixed: true`, `exit-code: 0` (advisory mode - findings land on the Security tab via SARIF upload, no workflow gating yet).
+- **Trufflehog secret scan workflow** (`.github/workflows/trufflehog.yml`). Fires on PR, push-to-master, weekly cron, and `workflow_dispatch`. `--results=verified --fail` - workflow fails if any provider-confirmed live secret is found in the diff (PRs) or full history (scheduled).
+
 ## v3.2.1 - 2026-05-27
 
 Four deploy-time fixes surfaced during broadsheet + decidim cutover.
