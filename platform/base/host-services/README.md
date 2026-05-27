@@ -4,7 +4,9 @@ Host-tier services - one instance per compute_host. Each watches/touches state l
 
 - `diun/` - notify-on-new-image watcher (one per host, default-on)
 - `autoheal/` - container-restart-on-unhealthy watchdog (one per host, default-on)
-- `wazuh-agent/` - log shipper to wazuh manager (one per host, default-off, requires manager)
+- `wazuh-agent/` - log shipper to wazuh manager (one per host, default-on; consumers without a manager set `enabled = false` or list every host in `disabled_hosts`)
+
+Each service is default-on. Consumers turn services off via `var.base.<service>.enabled = false` (whole service) or `disabled_hosts` (per-host opt-out).
 
 Auto-instantiated by `platform/base/terraform/host_services.tf` via `for_each` over `var.compute_hosts`.
 
