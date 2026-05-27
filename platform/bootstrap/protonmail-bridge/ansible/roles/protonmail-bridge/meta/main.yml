@@ -1,6 +1,6 @@
 ---
 galaxy_info:
   role_name: protonmail-bridge
-  description: ProtonMail Bridge — SMTP/IMAP gateway for apps to send through
+  description: ProtonMail Bridge — IMAP gateway for apps fetching mail from a ProtonMail account
   min_ansible_version: "2.14"
 dependencies: []

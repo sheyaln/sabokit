@@ -1,5 +1,5 @@
 ---
-- name: Deploy ProtonMail Bridge (bootstrap-tier SMTP gateway)
+- name: Deploy ProtonMail Bridge (bootstrap-tier IMAP gateway)
   hosts: "{{ protonmail_bridge_host_group | default('management') }}"
   become: true
   roles:

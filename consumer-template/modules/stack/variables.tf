@@ -170,9 +170,11 @@ variable "base" {
 }
 
 variable "bootstrap" {
-  description = "Bootstrap-tier bundles. Map of {<bundle> = { enabled = bool, ... }}. Currently houses protonmail_bridge (IMAP inbound mail). Sibling to var.apps but separated because these are host services apps depend on rather than user-facing apps. See platform/bootstrap/<bundle>/terraform/variables.tf for per-bundle inputs."
-  type        = any
-  default     = {}
+  description = "Bootstrap-tier bundles. Host services apps depend on at runtime (currently IMAP inbound via protonmail_bridge; future SMTP-relay providers slot in here). Sibling to var.apps but separated because these aren't user-facing apps. Each key is one provider — consumers pick ONE for any given capability; there's no abstract dispatcher (see platform/bootstrap/README.md). Per-provider input shapes live in platform/bootstrap/<provider>/terraform/variables.tf — the outer schema uses `any` for inner fields so per-provider knobs evolve without touching this contract."
+  type = object({
+    protonmail_bridge = optional(any, {})
+  })
+  default = {}
 }
 
 variable "identity" {

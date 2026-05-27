@@ -4,9 +4,9 @@
 # container is running.
 #
 # Bootstrap-tier dependency-ordering note: this role runs BEFORE any app
-# role that consumes the smtp-config Scaleway secret. The consumer's
-# site.yml drives the order — see consumer-template/ansible-local/site.yml
-# or the upstream platform/ansible/bootstrap.yml.
+# role that consumes the imap-config Scaleway secret. scripts/gen_apps_yml.py
+# emits bootstrap-tier import blocks first in platform/ansible/apps.yml so
+# the order is enforced without any per-consumer site.yml editing.
 
 - name: Assert Docker is installed and running
   ansible.builtin.command: docker info
