@@ -60,3 +60,21 @@ variable "credentials_preserve" {
   type        = bool
   default     = false
 }
+
+variable "credentials_preserve_source" {
+  description = "Greenfield-to-v3 cutover support. Sibling to `credentials_preserve` (gated separately, both null/false by default). When non-null AND `credentials_preserve = false`, this object supplies canonical-key values directly to the admin + server Scaleway bags on first apply, instead of pulling them from pre-populated bags. Shape: `{ admin = { password, api_token }, server = { secret_key }, database = { password } }` — each sub-field is optional and falls back to the module's `random_*` value when omitted. The `database` sub-field is forwarded to the postgres_database submodule. Useful for migrating off a legacy Authentik install where the bootstrap admin password / API token live somewhere other than Scaleway Secret Manager. After the first apply, `ignore_changes = [data]` on the bag versions keeps the values pinned and the variable can be dropped (or flipped to `credentials_preserve = true`)."
+  type = object({
+    admin = optional(object({
+      password  = optional(string)
+      api_token = optional(string)
+    }), {})
+    server = optional(object({
+      secret_key = optional(string)
+    }), {})
+    database = optional(object({
+      password = optional(string)
+    }), {})
+  })
+  default   = null
+  sensitive = true
+}

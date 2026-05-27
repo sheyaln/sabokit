@@ -66,7 +66,10 @@ resource "scaleway_secret_version" "oidc_credentials" {
 # ── Local values for use in main.tf ──────────────────────────────────────────
 
 locals {
-  _preserved    = var.credentials_preserve ? jsondecode(base64decode(data.scaleway_secret_version.preserved[0].data)) : {}
-  client_id     = var.credentials_preserve ? local._preserved.client_id : random_uuid.oidc_client_id[0].result
-  client_secret = var.credentials_preserve ? local._preserved.client_secret : random_password.oidc_client_secret[0].result
+  _preserved = var.credentials_preserve ? jsondecode(base64decode(data.scaleway_secret_version.preserved[0].data)) : {}
+  # credentials_preserve_source (greenfield-to-v3): supplied values shadow
+  # random_* without count-gating them, so state stays stable across the
+  # one-time first apply.
+  client_id     = var.credentials_preserve ? local._preserved.client_id : try(var.credentials_preserve_source.client_id, random_uuid.oidc_client_id[0].result)
+  client_secret = var.credentials_preserve ? local._preserved.client_secret : try(var.credentials_preserve_source.client_secret, random_password.oidc_client_secret[0].result)
 }

@@ -69,6 +69,13 @@ variable "credentials_preserve" {
   default     = false
 }
 
+variable "credentials_preserve_source" {
+  description = "Parity sibling to `credentials_preserve_source` in `modules/authentik/oidc-app`. No-op for SAML — the SAML bag holds no rotating credentials, so there is nothing to seed. Variable exists so consumer-template can plumb it uniformly across OIDC and SAML apps."
+  type        = map(string)
+  default     = null
+  sensitive   = true
+}
+
 variable "signing_key_subject" {
   description = "Subject for the RSA signing certificate when generate_rsa_signing_key is true."
   type = object({

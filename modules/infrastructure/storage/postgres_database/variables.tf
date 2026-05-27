@@ -50,3 +50,10 @@ variable "credentials_preserve" {
   type        = bool
   default     = false
 }
+
+variable "credentials_preserve_source" {
+  description = "Greenfield-to-v3 cutover support. Sibling to `credentials_preserve` (gated separately, both null/false by default). When non-null AND `credentials_preserve = false`, this map supplies the canonical key `password` directly to the bag on first apply instead of pulling it from a pre-populated one. Schema: `{ password = string }`. `random_password.this` still gets generated for state stability; the supplied password shadows it at the locals layer. After the first apply, `ignore_changes = [data]` on the bag version keeps the value pinned and the variable can be dropped (or flipped to `credentials_preserve = true`)."
+  type        = map(string)
+  default     = null
+  sensitive   = true
+}

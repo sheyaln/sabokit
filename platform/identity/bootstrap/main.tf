@@ -46,6 +46,9 @@ module "database" {
   engine               = var.postgres_engine
   tags                 = local.secret_tags
   credentials_preserve = var.credentials_preserve
+  credentials_preserve_source = try(var.credentials_preserve_source.database.password, null) != null ? {
+    password = var.credentials_preserve_source.database.password
+  } : null
 }
 
 # ── Bootstrap admin password ────────────────────────────────────────────────
@@ -149,9 +152,12 @@ locals {
   _preserved_admin  = var.credentials_preserve ? jsondecode(base64decode(data.scaleway_secret_version.preserved_admin[0].data)) : {}
   _preserved_server = var.credentials_preserve ? jsondecode(base64decode(data.scaleway_secret_version.preserved_server[0].data)) : {}
 
-  admin_password  = var.credentials_preserve ? local._preserved_admin.password : random_password.admin[0].result
-  admin_api_token = var.credentials_preserve ? local._preserved_admin.api_token : random_password.admin_api_token[0].result
-  server_key      = var.credentials_preserve ? local._preserved_server.secret_key : random_id.server_key[0].hex
+  # credentials_preserve_source (greenfield-to-v3): supplied values shadow
+  # random_* without count-gating them, so state stays stable across the
+  # one-time first apply.
+  admin_password  = var.credentials_preserve ? local._preserved_admin.password : try(var.credentials_preserve_source.admin.password, random_password.admin[0].result)
+  admin_api_token = var.credentials_preserve ? local._preserved_admin.api_token : try(var.credentials_preserve_source.admin.api_token, random_password.admin_api_token[0].result)
+  server_key      = var.credentials_preserve ? local._preserved_server.secret_key : try(var.credentials_preserve_source.server.secret_key, random_id.server_key[0].hex)
 
   admin_secret_id  = var.credentials_preserve ? data.scaleway_secret.preserved_admin[0].id : scaleway_secret.admin[0].id
   server_secret_id = var.credentials_preserve ? data.scaleway_secret.preserved_server[0].id : scaleway_secret.server[0].id

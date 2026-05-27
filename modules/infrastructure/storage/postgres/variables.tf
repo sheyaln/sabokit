@@ -99,3 +99,13 @@ variable "credentials_preserve" {
   type        = bool
   default     = false
 }
+
+variable "credentials_preserve_source" {
+  description = "Greenfield-to-v3 cutover support. Sibling to `credentials_preserve` (gated separately, both null/false by default). When non-null AND `credentials_preserve = false`, this object supplies admin + per-database canonical passwords directly to the Scaleway bags on first apply, instead of pulling them from pre-populated bags. Shape: `{ admin = string, databases = map(string) }` where `admin` is the admin password and `databases` is a `<dbname> => password` map. Keys not present in either field fall back to the module's generated `random_password` value, so partial-supply is allowed. After the first apply, `ignore_changes = [data]` on the bag versions keeps the values pinned and the variable can be dropped (or flipped to `credentials_preserve = true`)."
+  type = object({
+    admin     = optional(string)
+    databases = optional(map(string), {})
+  })
+  default   = null
+  sensitive = true
+}
