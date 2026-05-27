@@ -134,6 +134,14 @@ build {
     script = "./provisioners/06-stamp-image.sh"
   }
 
+  // SSH daemon hardening: drop-in fragment under /etc/ssh/sshd_config.d/.
+  // Validated via `sshd -t` inside the script; not restarted (build is over
+  // SSH — config applies on first boot of cloned hosts).
+  provisioner "shell" {
+    execute_command = "echo 'packer' | sudo -S env DEBIAN_FRONTEND=noninteractive {{ .Vars }} {{ .Path }}"
+    script          = "./provisioners/07-sshd-hardening.sh"
+  }
+
   // Final cleanup: clear apt caches, machine-id, cloud-init seed so the image
   // boots clean on every clone.
   provisioner "shell" {
