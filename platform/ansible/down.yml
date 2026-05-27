@@ -96,22 +96,6 @@
         state: absent
       when: enabled_apps.bentopdf is defined and enabled_apps.bentopdf is not none
       ignore_errors: true  # compose file may already be gone
-- name: "down: notifuse"
-  hosts: "{{ (enabled_apps.notifuse | default({})).ansible_group | default('all') }}"
-  become: true
-  gather_facts: false
-  tags: [down, notifuse]
-  tasks:
-    - name: Load role defaults
-      ansible.builtin.include_vars:
-        file: "../apps/notifuse/ansible/roles/notifuse/defaults/main.yml"
-      when: enabled_apps.notifuse is defined and enabled_apps.notifuse is not none
-    - name: Stop and remove the compose stack
-      community.docker.docker_compose_v2:
-        project_src: "{{ notifuse_install_dir | default('/opt/notifuse') }}"
-        state: absent
-      when: enabled_apps.notifuse is defined and enabled_apps.notifuse is not none
-      ignore_errors: true  # compose file may already be gone
 - name: "down: broadsheet"
   hosts: "{{ (enabled_apps.broadsheet | default({})).ansible_group | default('all') }}"
   become: true

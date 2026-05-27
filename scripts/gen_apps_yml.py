@@ -58,7 +58,6 @@ BUNDLES = [
     ("steward",        "steward",         "steward"),
     ("vikunja",        "vikunja",         "vikunja"),
     ("bentopdf",       "bentopdf",        "bentopdf"),
-    ("notifuse",       "notifuse",        "notifuse"),
     ("broadsheet",     "broadsheet",      "broadsheet"),
     ("privacy-policy", "privacy_policy",  "privacy_policy"),
     ("nextcloud",      "nextcloud",       "nextcloud"),
