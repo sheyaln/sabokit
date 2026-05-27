@@ -126,37 +126,10 @@ module "privacy_policy" {
   dns_zone_override   = try(var.apps.privacy_policy.dns_zone_override, "")
 }
 
-module "notifuse" {
-  source = "git::https://github.com/sheyaln/sabokit.git//platform/apps/notifuse/terraform?ref=v3.2.2"
-
-  enabled          = try(var.apps.notifuse.enabled, false)
-  hostname         = try(var.apps.notifuse.hostname, "")
-  root_admin_email = try(var.apps.notifuse.root_admin_email, "")
-  base             = local.base
-
-  access_level            = try(var.apps.notifuse.access_level, "admin")
-  extra_authorized_groups = try(var.apps.notifuse.extra_authorized_groups, {})
-  tier_cascade_enabled    = try(var.apps.notifuse.tier_cascade_enabled, true)
-  tier_access_level       = try(var.apps.notifuse.tier_access_level, "admin")
-  smtp_from_email         = try(var.apps.notifuse.smtp_from_email, "")
-  oidc_auto_provision     = try(var.apps.notifuse.oidc_auto_provision, true)
-  oidc_allow_magic_code   = try(var.apps.notifuse.oidc_allow_magic_code, true)
-  application_name        = try(var.apps.notifuse.application_name, "Notifuse")
-  application_slug        = try(var.apps.notifuse.application_slug, "")
-  category_group          = try(var.apps.notifuse.category_group, "Member Engagement")
-  icon_url                = try(var.apps.notifuse.icon_url, null)
-  icon_filename           = try(var.apps.notifuse.icon_filename, "notifuse-icon.png")
-  monitoring_enabled      = try(var.apps.notifuse.monitoring_enabled, true)
-  deployment_host_key     = try(var.apps.notifuse.deployment_host_key, "apps")
-  bucket_name_override    = try(var.apps.notifuse.bucket_name_override, "")
-  dns_zone_override       = try(var.apps.notifuse.dns_zone_override, "")
-
-  credentials_preserve = try(var.apps.notifuse.credentials_preserve, false)
-  extra_env_vars       = try(var.apps.notifuse.extra_env_vars, {})
-}
-
-# Broadsheet — sabokit-broadsheet fork of notifuse. Replaces notifuse going
-# forward; notifuse stays through one more v2.x cycle for migration headroom.
+# Broadsheet — sabokit-broadsheet fork of notifuse. Replaces the dropped
+# notifuse bundle (removed v3.3.0). Internal docker service name and Traefik
+# labels were renamed at v3.2.1; consumers cutting over from notifuse should
+# export storage state before destroying the old bundle.
 module "broadsheet" {
   source = "git::https://github.com/sheyaln/sabokit.git//platform/apps/broadsheet/terraform?ref=v3.2.2"
 
@@ -416,7 +389,6 @@ locals {
     module.vikunja.backup_plan,
     module.bentopdf.backup_plan,
     module.privacy_policy.backup_plan,
-    module.notifuse.backup_plan,
     module.broadsheet.backup_plan,
     module.nextcloud.backup_plan,
     module.decidim.backup_plan,
@@ -439,7 +411,6 @@ locals {
     module.vikunja.monitoring,
     module.bentopdf.monitoring,
     module.privacy_policy.monitoring,
-    module.notifuse.monitoring,
     module.broadsheet.monitoring,
     module.nextcloud.monitoring,
     module.decidim.monitoring,
@@ -511,7 +482,6 @@ locals {
     module.vikunja.split_dns_entries,
     module.bentopdf.split_dns_entries,
     module.privacy_policy.split_dns_entries,
-    module.notifuse.split_dns_entries,
     module.broadsheet.split_dns_entries,
     module.nextcloud.split_dns_entries,
     module.decidim.split_dns_entries,

@@ -43,8 +43,8 @@ Broadsheet — newsletters + transactional email manager. Ships the [sabokit-bro
 
 ## Notes
 
-- Default deploy pulls `ghcr.io/sheyaln/broadsheet:latest`. Flip `build_from_source = true` only when you need an unreleased fork patch — that clones `github.com/sheyaln/sabokit-broadsheet @ main` to `/opt/broadsheet/src` and builds locally (~3 min first deploy, image tagged `broadsheet-local:latest` to namespace it from a co-tenant notifuse bundle).
-- Internal docker service name + traefik labels remain `notifuse` — the bundled binary is the sabokit-broadsheet fork of notifuse and internal paths still use that name.
+- Default deploy pulls `ghcr.io/sheyaln/broadsheet:latest`. Flip `build_from_source = true` only when you need an unreleased fork patch — that clones `github.com/sheyaln/sabokit-broadsheet @ main` to `/opt/broadsheet/src` and builds locally (~3 min first deploy, image tagged `broadsheet-local:latest`).
+- Traefik labels are namespaced `broadsheet` (v3.2.1). The internal docker compose service name remains `notifuse` because the bundled binary still uses that name internally — purely cosmetic, no external surface.
 - `SECRET_KEY` and `ROOT_ADMIN_PASSWORD` are pinned (`ignore_changes = all`). `SECRET_KEY` encrypts every workspace secret — rotating it requires a re-encrypt of every workspace. `ROOT_ADMIN_PASSWORD` is the break-glass login if OIDC breaks.
 - `scaleway_secret_version.app` has `ignore_changes = [data]` so peripheral fields (e.g. OIDC client_secret rotating) don't churn the version forever. Taint to force re-render.
 - To recover the bootstrap admin password, pull it from the Scaleway secret printed at apply time:

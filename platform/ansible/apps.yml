@@ -85,23 +85,6 @@
     bentopdf_autoheal_enabled: "{{ enabled_apps.bentopdf.ansible_vars.bentopdf_autoheal_enabled }}"
   when: enabled_apps.bentopdf is defined and enabled_apps.bentopdf is not none
   tags: [apps, bentopdf]
-- import_playbook: ../apps/notifuse/ansible/playbook.yml
-  vars:
-    notifuse_host_group: "{{ enabled_apps.notifuse.ansible_group }}"
-    notifuse_hostname: "{{ enabled_apps.notifuse.ansible_vars.notifuse_hostname }}"
-    notifuse_image: "{{ enabled_apps.notifuse.ansible_vars.notifuse_image }}"
-    notifuse_image_tag: "{{ enabled_apps.notifuse.ansible_vars.notifuse_image_tag }}"
-    notifuse_build_from_source: "{{ enabled_apps.notifuse.ansible_vars.notifuse_build_from_source }}"
-    notifuse_image_source_repo: "{{ enabled_apps.notifuse.ansible_vars.notifuse_image_source_repo }}"
-    notifuse_image_source_ref: "{{ enabled_apps.notifuse.ansible_vars.notifuse_image_source_ref }}"
-    notifuse_app_secret_id: "{{ enabled_apps.notifuse.ansible_vars.notifuse_app_secret_id }}"
-    notifuse_db_credentials_secret_id: "{{ enabled_apps.notifuse.ansible_vars.notifuse_db_credentials_secret_id }}"
-    notifuse_smtp_secret_name: "{{ enabled_apps.notifuse.ansible_vars.notifuse_smtp_secret_name }}"
-    notifuse_diun_watch_enabled: "{{ enabled_apps.notifuse.ansible_vars.notifuse_diun_watch_enabled }}"
-    notifuse_autoheal_enabled: "{{ enabled_apps.notifuse.ansible_vars.notifuse_autoheal_enabled }}"
-    notifuse_extra_env_vars: "{{ enabled_apps.notifuse.ansible_vars.notifuse_extra_env_vars }}"
-  when: enabled_apps.notifuse is defined and enabled_apps.notifuse is not none
-  tags: [apps, notifuse]
 - import_playbook: ../apps/broadsheet/ansible/playbook.yml
   vars:
     broadsheet_host_group: "{{ enabled_apps.broadsheet.ansible_group }}"
