@@ -319,8 +319,13 @@ variable "diun" {
     n8n_webhook_url         = optional(string, "")
     extra_env_vars          = optional(map(string), {})
   })
-  default   = {}
-  sensitive = true
+  default = {}
+  # Not marked sensitive — keys (enabled, disabled_hosts) feed for_each in
+  # host_services.tf, and terraform forbids sensitive values as for_each
+  # arguments. n8n_webhook_url contains no secret material (URL only;
+  # auth is via the secret-id pattern, not embedded in the URL). Per-field
+  # sensitivity, if a consumer ever needs it, lives at the consumer-template
+  # call site, not on this variable wrapper.
 }
 
 variable "wazuh_agent" {

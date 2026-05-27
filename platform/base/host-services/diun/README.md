@@ -1,10 +1,10 @@
-# apps/diun
+# base/host-services/diun
 
 [Diun](https://github.com/crazy-max/diun) — receive notifications when a new image is available on a registry for any container running on the host. One container per host; watches the local Docker daemon, polls each image's registry on a schedule, fires a notification when a tag's digest changes. Pure host-service: no DB, no S3, no Authentik, no public hostname.
 
 Replaces the legacy `apps/watchtower` bundle (Watchtower upstream was archived 2025-12-17). Behaviour shift: Diun **notifies**, it does NOT pull or restart. Operator (or an n8n workflow) decides whether/when to apply each update.
 
-Multi-instance: instantiate this module once per host you want notification coverage on.
+Auto-instantiated per `var.compute_hosts` entry from `platform/base/terraform/host_services.tf` at v3.4.0+. Consumer surface is `var.base.diun.{enabled, disabled_hosts, ...}` — see `platform/base/terraform/variables.tf`. Not called as a standalone module from consumer-template.
 
 ## Inputs
 

@@ -40,8 +40,9 @@ REPO_ROOT = Path(__file__).resolve().parent.parent
 # Entries: (bundle dir, consumer-template module key, role var prefix)
 # - dir is the kebab-case bundle name on disk
 # - key matches the entry in consumer-template/modules/stack/outputs.tf
-#   `enabled_apps`. Differs from dir only for multi-instance bundles where
-#   the example instance uses a suffix (e.g. backrest_mgmt).
+#   `enabled_apps`. For multi-instance bundles (see MULTI_INSTANCE_BUNDLES)
+#   the consumer-template emits one `.instances` map under the bundle key
+#   instead of a flat object.
 # - role-slug is the underscored prefix used in each role's defaults/vars.
 # Bootstrap-tier bundles. Live under platform/bootstrap/ rather than
 # platform/apps/ because they're host services apps depend on (inbound mail,

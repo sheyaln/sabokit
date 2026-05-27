@@ -1703,12 +1703,12 @@ apps:
     upstream_url: https://github.com/garethgeorge/backrest
 
     tfvars:
-      key: backrest_mgmt
+      key: backrest
       schema:
         enabled:
           type: bool
           default: true
-          description: Whether this backrest instance is deployed.
+          description: Whether backrest is deployed. Defaults to true — backrest auto-instantiates per `compute_hosts` entry at v3.4.0+; opt a host out via `var.apps.backrest.disabled_hosts = ["<host_key>"]`. Per-host overrides live under `var.apps.backrest.per_host[<host_key>]`.
           ui: hidden
 
         credentials_preserve:

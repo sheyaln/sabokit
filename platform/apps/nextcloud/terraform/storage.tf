@@ -16,7 +16,7 @@ module "data_bucket" {
 }
 
 # IAM principal + API key for Nextcloud to access its primary-storage bucket.
-# Inlined per app (same pattern as outline/notifuse); refactor to a helper
+# Inlined per app (same pattern as outline/broadsheet); refactor to a helper
 # module once 3+ apps need it.
 
 resource "scaleway_iam_application" "storage" {
