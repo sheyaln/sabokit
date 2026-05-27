@@ -273,3 +273,33 @@ variable "dmarc_rua_email" {
   type        = string
   default     = ""
 }
+
+# ── Host-services sub-tier ──────────────────────────────────────────────────
+# One container per compute_host. Default-on as a category; each service has
+# its own enabled toggle (default true) and a disabled_hosts opt-out list.
+# Consumer-template plumbs these via `var.base.<service>`.
+
+variable "diun" {
+  description = "Diun (notify-on-new-image watcher) settings. One instance per compute_host. Set `enabled = false` to turn off everywhere, or list keys from `compute_hosts` in `disabled_hosts` for per-host opt-out. `n8n_webhook_url` is auto-wired by the consumer-template when the n8n bundle is enabled — leave empty otherwise."
+  type = object({
+    enabled                 = optional(bool, true)
+    disabled_hosts          = optional(list(string), [])
+    image_tag               = optional(string, "4.31.0")
+    timezone                = optional(string, "UTC")
+    watch_schedule          = optional(string, "0 0 6 * * *")
+    watch_workers           = optional(number, 10)
+    watch_first_check_notif = optional(bool, false)
+    watch_by_default        = optional(bool, true)
+    default_watch_repo      = optional(bool, false)
+    include_swarm_services  = optional(bool, false)
+    notification_targets    = optional(list(any), [])
+    diun_notif_extra        = optional(map(any), {})
+    diun_watch_enabled      = optional(bool, false)
+    autoheal_enabled        = optional(bool, true)
+    monitoring_enabled      = optional(bool, true)
+    n8n_webhook_url         = optional(string, "")
+    extra_env_vars          = optional(map(string), {})
+  })
+  default   = {}
+  sensitive = true
+}

@@ -1,6 +1,0 @@
----
-- name: Deploy Diun
-  hosts: "{{ diun_host_group | default('management') }}"
-  become: true
-  roles:
-    - role: diun
