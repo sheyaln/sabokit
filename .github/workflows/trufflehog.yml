@@ -1,0 +1,41 @@
+# Secret scanner. Fails the workflow if any verified-active secret is
+# found in the scanned range.
+#
+# Triggers:
+#   - pull_request: scan only the PR diff (action infers base/head)
+#   - push to master: scan the merged commit range
+#   - weekly cron: full-history sweep against master
+#   - manual dispatch
+
+name: trufflehog
+
+on:
+  pull_request:
+  push:
+    branches: [master]
+  schedule:
+    - cron: '0 9 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # Full history needed for the scheduled/manual sweep; cheap enough
+          # on PRs that we use it unconditionally rather than branching.
+          fetch-depth: 0
+
+      - name: TruffleHog secret scan
+        uses: trufflesecurity/trufflehog@v3.95.3
+        with:
+          # base="" + head=ref triggers a full-history scan; for PRs the
+          # action overrides this automatically and scans only the diff.
+          base: ''
+          head: ${{ github.ref_name }}
+          extra_args: --results=verified --fail
