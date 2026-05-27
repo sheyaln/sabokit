@@ -159,10 +159,11 @@ resource "authentik_policy_expression" "shared_member_id_normalize" {
 
 # Reject when ANOTHER user already has this member_id (case-insensitive,
 # whitespace-stripped — relies on normalize running first). Empty values pass
-# through (optional field). On user-settings edits the submitter's pk is in
-# request.user; exclude it so re-saving without changing member_id doesn't
-# self-collide. Enrollment flows have no pending_user pk yet, so the exclusion
-# is a no-op there.
+# through (optional field). Excludes pending_user.pk (the user being modified
+# by the flow) so re-saving without changing member_id doesn't self-collide.
+# pending_user.pk is the right identifier — request.user is the *submitter*
+# (which happens to equal the modified user on self-edits + is anonymous on
+# enrollments, but would diverge on any hypothetical admin-edits-other flow).
 resource "authentik_policy_expression" "shared_member_id_unique" {
   name              = "policy-shared-member-id-unique"
   execution_logging = true
@@ -179,10 +180,13 @@ resource "authentik_policy_expression" "shared_member_id_unique" {
         # already-normalized incoming + attribute may be missing on legacy users.
         qs = User.objects.filter(attributes__member_id__iexact=member_id)
 
-        submitter = getattr(request, 'user', None)
-        submitter_pk = getattr(submitter, 'pk', None)
-        if submitter_pk:
-            qs = qs.exclude(pk=submitter_pk)
+        # pending_user is the user the flow is editing/creating. On self-edits
+        # that's request.user; on admin-edits-other that's the target user; on
+        # enrollment (new user) pk is None so no exclusion happens.
+        pending_user = request.context.get('pending_user', None)
+        pending_pk = getattr(pending_user, 'pk', None)
+        if pending_pk:
+            qs = qs.exclude(pk=pending_pk)
 
         if qs.exists():
             ak_message("That member ID is already in use. Leave the field blank or pick a different value.")
