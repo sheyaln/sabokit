@@ -121,11 +121,25 @@ variable "compute_hosts" {
     tags              = optional(list(string), [])
   }))
   default = {
-    apps = {
+    tools = {
       instance_type = "DEV1-L"
       disk_size     = 100
-      role          = "apps"
-      ansible_group = "apps"
+      role          = "tools"
+      ansible_group = "tools"
+      protected     = true
+    }
+    identity = {
+      instance_type = "DEV1-M"
+      disk_size     = 30
+      role          = "identity"
+      ansible_group = "identity"
+      protected     = true
+    }
+    management = {
+      instance_type = "DEV1-M"
+      disk_size     = 60
+      role          = "management"
+      ansible_group = "management"
       protected     = true
     }
   }

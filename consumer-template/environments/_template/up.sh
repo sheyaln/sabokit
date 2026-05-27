@@ -52,9 +52,9 @@ data = json.load(open(sys.argv[1]))
 env = sys.argv[2]
 hosts = data["compute_hosts"]["value"]
 # Each host registers under its primary ansible_group, its role (so
-# platform/ansible/apps.yml plays that target hosts: "apps" actually find a
+# platform/ansible/apps.yml plays that target hosts: "tools" actually find a
 # host), AND every group in ansible_groups. Single-VM staging can also set
-# ansible_groups = ["apps", "identity"] to consolidate roles onto one host.
+# ansible_groups = ["tools", "identity", "management"] to consolidate roles onto one host.
 by_group = collections.defaultdict(list)
 for short, h in hosts.items():
     line = (
