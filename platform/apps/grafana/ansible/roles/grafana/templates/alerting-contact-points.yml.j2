@@ -18,5 +18,12 @@ contactPoints:
           autoClose: true
           overridePriority: true
           sendTagsAs: both
+          # JSM priority resolves from the alert's `severity` label via a Go
+          # template chain rendered from grafana_jsm_priority_mapping. Unknown
+          # severities fall back to P5 so nothing pages silently.
+          priority: '{% raw %}{{ {% endraw %}{% for sev, prio in grafana_jsm_priority_mapping.items() %}{% if not loop.first %}else {% endif %}if eq .CommonLabels.severity "{{ sev }}"{% raw %} }}{% endraw %}{{ prio }}{% raw %}{{ {% endraw %}{% endfor %}else{% raw %} }}{% endraw %}P5{% raw %}{{ end }}{% endraw %}'
+{% if grafana_jsm_alert_tags %}
+          tags: "{{ grafana_jsm_alert_tags | join(',') }}"
+{% endif %}
         secureSettings: {}
         disableResolveMessage: false
