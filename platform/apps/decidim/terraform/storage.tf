@@ -4,7 +4,7 @@ module "uploads_bucket" {
 
   name   = local.bucket_name
   region = var.base.scaleway.region
-  acl    = var.storage_bucket_acl
+  acl    = var.storage_public ? "public-read" : "private"
 
   storage_class                 = var.storage_class
   storage_class_transition_days = var.storage_class_transition_days

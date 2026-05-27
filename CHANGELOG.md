@@ -2,6 +2,16 @@
 
 All notable changes to sabokit go here. Versioning follows semver; major bumps signal breaking contract changes for consumers.
 
+## v3.3.1 - 2026-05-27
+
+Four deploy-side fixes surfaced during decidim cutover.
+
+### Fixed
+- **Decidim bundle image registry + tag defaults.** `var.image` default changed from `ghcr.io/decidim/decidim` (404 - Decidim doesn't publish there) to `decidim/decidim` (Docker Hub, the canonical registry). `var.image_tag` default changed from `latest` to `0.31.5` (current stable). Description text updated to point at Docker Hub.
+- **Decidim env.j2 + secrets.tf AWS var names.** Decidim's `storage.yml` reads `AWS_BUCKET` / `AWS_ENDPOINT` / `AWS_PUBLIC`, NOT the `AWS_S3_*`-prefixed variants the bundle was emitting. Renamed: `AWS_S3_BUCKET` → `AWS_BUCKET`, `AWS_S3_ENDPOINT` → `AWS_ENDPOINT`, `AWS_S3_ACL` → `AWS_PUBLIC` (boolean `"true"` / `"false"` instead of an ACL string). `AWS_S3_FORCE_PATH_STYLE` dropped (unused by decidim). New `var.storage_public` (bool, default `true`) replaces `var.storage_bucket_acl` - the bucket's own ACL still maps from this boolean (`public-read` when true, `private` when false). Verified by reading decidim 0.31.5's `/code/config/storage.yml` directly from the built image.
+- **`enabled_apps` output in `consumer-template/environments/_template/main.tf` marked `sensitive = true`.** The map carries `ansible_vars` containing secret IDs (`<slug>_app_secret_id`, `<slug>_db_credentials_secret_id`, etc.). Without the sensitive flag, terraform errors out on first plan with `Error: Output refers to sensitive values`.
+- **`up.sh` inventory generator now unions each host's `role` into its group membership.** Previously hosts only landed in groups derived from `ansible_group` + `ansible_groups`; a host with `role = "apps"` but no `"apps"` entry in `ansible_groups` was missing from `[apps]` so `platform/ansible/apps.yml` plays targeting `hosts: "apps"` would emit `skipping: no hosts matched`. Now `role` is treated as an implicit group membership, so a single-role host's default config Just Works.
+
 ## v3.3.0 - 2026-05-27
 
 Seven independent feature streams bundled into one minor. Identity policies, deploy ergonomics, namespace hygiene, app-bundle cleanup.

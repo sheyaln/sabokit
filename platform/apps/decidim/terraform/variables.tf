@@ -105,15 +105,15 @@ variable "deployment_host_key" {
 # ── Decidim-specific inputs ─────────────────────────────────────────────────
 
 variable "image" {
-  description = "Decidim Docker image (without tag) used as the BASE for the locally-built image. The Ansible role extends this image with `extra_gems` and re-runs `bundle install` + `assets:precompile`. Decidim publishes via ghcr.io/decidim/decidim."
+  description = "Decidim Docker image (without tag) used as the BASE for the locally-built image. The Ansible role extends this image with `extra_gems` and re-runs `bundle install` + `assets:precompile`. Decidim publishes via Docker Hub at decidim/decidim."
   type        = string
-  default     = "ghcr.io/decidim/decidim"
+  default     = "decidim/decidim"
 }
 
 variable "image_tag" {
-  description = "Decidim Docker image tag. Pin to a release tag (e.g. \"0.30.0\") for production; \"latest\" follows the project's published latest. Same tag is used as the version for every gem in `extra_gems` (Decidim modules version-lock to the core)."
+  description = "Decidim Docker image tag. Pin to a release tag (e.g. \"0.31.5\") for production; \"latest\" follows the project's published latest. Same tag is used as the version for every gem in `extra_gems` (Decidim modules version-lock to the core). Bump per Decidim's release cadence."
   type        = string
-  default     = "latest"
+  default     = "0.31.5"
 }
 
 variable "diun_watch_enabled" {
@@ -202,10 +202,10 @@ variable "max_upload_size_bytes" {
   default     = 26214400
 }
 
-variable "storage_bucket_acl" {
-  description = "ACL for the uploads S3 bucket. Decidim serves public-facing attachments inline; \"public-read\" matches that without forcing signed URLs."
-  type        = string
-  default     = "public-read"
+variable "storage_public" {
+  description = "Whether uploaded attachments should be served as public objects (inline) versus through signed URLs. Decidim's storage layer expects a boolean via the AWS_PUBLIC env var. Default `true` matches the public-attachment posture; flip to `false` to gate every download behind a signed URL."
+  type        = bool
+  default     = true
 }
 
 variable "storage_class" {

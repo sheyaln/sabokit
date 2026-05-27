@@ -95,14 +95,16 @@ resource "scaleway_secret_version" "app" {
     OIDC_ISSUER_URL    = "https://${var.base.authentik.gateway_domain}/application/o/${local.application_slug}/"
     OIDC_SCOPES        = "openid profile email"
 
-    AWS_REGION              = var.base.scaleway.region
-    AWS_S3_ENDPOINT         = var.base.scaleway.object_storage_endpoint
-    AWS_S3_BUCKET           = module.uploads_bucket[0].name
-    AWS_S3_FORCE_PATH_STYLE = "true"
-    AWS_ACCESS_KEY_ID       = scaleway_iam_api_key.storage[0].access_key
-    AWS_SECRET_ACCESS_KEY   = scaleway_iam_api_key.storage[0].secret_key
-    AWS_S3_ACL              = var.storage_bucket_acl
-    UPLOAD_MAX_SIZE_BYTES   = tostring(var.max_upload_size_bytes)
+    # Decidim reads AWS_BUCKET / AWS_ENDPOINT / AWS_PUBLIC (boolean), not the
+    # AWS_S3_*-prefixed names. AWS_S3_FORCE_PATH_STYLE is unused by decidim and
+    # dropped. AWS_PUBLIC replaces ACL strings - boolean "true" / "false".
+    AWS_REGION            = var.base.scaleway.region
+    AWS_ENDPOINT          = var.base.scaleway.object_storage_endpoint
+    AWS_BUCKET            = module.uploads_bucket[0].name
+    AWS_ACCESS_KEY_ID     = scaleway_iam_api_key.storage[0].access_key
+    AWS_SECRET_ACCESS_KEY = scaleway_iam_api_key.storage[0].secret_key
+    AWS_PUBLIC            = var.storage_public ? "true" : "false"
+    UPLOAD_MAX_SIZE_BYTES = tostring(var.max_upload_size_bytes)
 
     SMTP_FROM_EMAIL = var.smtp_from_email
   })

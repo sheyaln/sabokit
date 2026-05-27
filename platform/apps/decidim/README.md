@@ -26,7 +26,7 @@ Decidim — Rails-based participatory democracy platform. Deploys app + sidekiq 
 | `organization_admin_email` | `string` | `""` (falls back to `system_admin_email`) | Email of the first organization admin. |
 | `smtp_from_email` | `string` | `""` | From-address for outbound mail. Empty disables SMTP. |
 | `max_upload_size_bytes` | `number` | `26214400` | Max upload size (25 MiB default). |
-| `storage_bucket_acl` | `string` | `"public-read"` | ACL for the uploads bucket. |
+| `storage_public` | `bool` | `true` | Public-read attachments (matches decidim's `AWS_PUBLIC`) versus signed-URL access. |
 | `sidekiq_concurrency` | `number` | `5` | Sidekiq worker thread count. |
 
 ## Outputs

@@ -71,7 +71,8 @@ output "infra_email" {
 }
 
 output "enabled_apps" {
-  value = module.stack.enabled_apps
+  value     = module.stack.enabled_apps
+  sensitive = true
 }
 
 output "split_dns_overrides" {

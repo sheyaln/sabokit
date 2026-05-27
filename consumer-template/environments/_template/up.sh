@@ -51,10 +51,10 @@ import json, sys, collections
 data = json.load(open(sys.argv[1]))
 env = sys.argv[2]
 hosts = data["compute_hosts"]["value"]
-# Each host registers under its primary ansible_group AND every group in
-# ansible_groups. Single-VM staging typically sets ansible_groups =
-# ["apps", "identity"] so the bootstrap.yml plays that select on those
-# group names actually have a host to target.
+# Each host registers under its primary ansible_group, its role (so
+# platform/ansible/apps.yml plays that target hosts: "apps" actually find a
+# host), AND every group in ansible_groups. Single-VM staging can also set
+# ansible_groups = ["apps", "identity"] to consolidate roles onto one host.
 by_group = collections.defaultdict(list)
 for short, h in hosts.items():
     line = (
@@ -62,8 +62,8 @@ for short, h in hosts.items():
         # cloud-init user. Override here if you use a different image.
         f'{short}-{env} ansible_host={h["public_ip"]} ansible_user=root'
     )
-    groups = [h["ansible_group"], *(h.get("ansible_groups") or [])]
-    for g in dict.fromkeys(groups):  # dedupe, preserve order
+    groups = [h["ansible_group"], h.get("role"), *(h.get("ansible_groups") or [])]
+    for g in dict.fromkeys(g for g in groups if g):  # dedupe, drop empties
         by_group[g].append(line)
 out = []
 for group in sorted(by_group):
