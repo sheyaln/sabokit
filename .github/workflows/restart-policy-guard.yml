@@ -1,0 +1,190 @@
+# Restart-policy guard.
+#
+# Every service in every compose file (raw .yml or Jinja .j2 template) under
+# platform/{apps,base,bootstrap,core}/ must declare `restart: unless-stopped`
+# or `restart: always`. Opt out per-service by placing
+# `#ci-restart-policy-warning-off` on the line directly above the service key
+# (a trailing rationale after the marker is allowed).
+#
+# On PR: fails the check and posts (or updates) a single comment listing
+# offenders as `path/to/compose.yml: <service-name>`.
+# On push to master: pass/fail only, no comment.
+
+name: restart-policy-guard
+
+on:
+  pull_request:
+    branches: [master]
+  push:
+    branches: [master]
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install pyyaml
+        run: pip install --quiet pyyaml
+
+      - name: Scan compose files for restart-policy compliance
+        id: scan
+        run: |
+          python3 <<'PY'
+          import glob
+          import os
+          import re
+          import sys
+
+          import yaml
+
+          OPT_OUT_MARKER = "#ci-restart-policy-warning-off"
+          ACCEPTED_VALUES = {"unless-stopped", "always"}
+
+          patterns = [
+              "platform/apps/**/docker-compose.yml",
+              "platform/apps/**/docker-compose.yaml",
+              "platform/base/**/docker-compose.yml",
+              "platform/base/**/docker-compose.yaml",
+              "platform/bootstrap/**/docker-compose.yml",
+              "platform/bootstrap/**/docker-compose.yaml",
+              "platform/core/**/docker-compose.yml",
+              "platform/core/**/docker-compose.yaml",
+              "platform/apps/**/*docker-compose*.j2",
+              "platform/base/**/*docker-compose*.j2",
+              "platform/bootstrap/**/*docker-compose*.j2",
+              "platform/core/**/*docker-compose*.j2",
+          ]
+
+          # Strip Jinja so the residue is YAML-parseable. Block statements
+          # collapse to blank lines (preserving line count so raw-text line
+          # lookups stay aligned with the parsed AST); expressions collapse to
+          # a placeholder token that survives any YAML scalar context.
+          JINJA_BLOCK_STMT = re.compile(r"\{%-?.*?-?%\}", re.DOTALL)
+          JINJA_EXPR = re.compile(r"\{\{.*?\}\}", re.DOTALL)
+          JINJA_COMMENT = re.compile(r"\{#.*?#\}", re.DOTALL)
+
+          def strip_jinja(raw):
+              def blank_keep_lines(m):
+                  return "\n" * m.group(0).count("\n")
+              raw = JINJA_COMMENT.sub(blank_keep_lines, raw)
+              raw = JINJA_BLOCK_STMT.sub(blank_keep_lines, raw)
+              raw = JINJA_EXPR.sub("JINJA_VAR", raw)
+              return raw
+
+          files = set()
+          for pat in patterns:
+              files.update(glob.glob(pat, recursive=True))
+
+          offenders = []
+
+          for path in sorted(files):
+              with open(path, "r", encoding="utf-8") as fh:
+                  raw = fh.read()
+
+              cleaned = strip_jinja(raw) if path.endswith(".j2") else raw
+
+              try:
+                  doc = yaml.safe_load(cleaned)
+              except yaml.YAMLError as exc:
+                  print(f"::error file={path}::failed to parse YAML: {exc}", file=sys.stderr)
+                  offenders.append((path, "<yaml-parse-error>"))
+                  continue
+
+              if not isinstance(doc, dict):
+                  continue
+              services = doc.get("services")
+              if not isinstance(services, dict):
+                  continue
+
+              lines = raw.splitlines()
+
+              for svc_name, svc_block in services.items():
+                  if not isinstance(svc_block, dict):
+                      continue
+
+                  # Locate the service key in the raw text to check for opt-out
+                  # comment directly above it. Match the first occurrence of
+                  # `  <name>:` at 2-space indentation.
+                  svc_line_idx = None
+                  needle = f"  {svc_name}:"
+                  for idx, line in enumerate(lines):
+                      stripped = line.rstrip()
+                      if stripped == needle or stripped.startswith(needle + " "):
+                          svc_line_idx = idx
+                          break
+
+                  if svc_line_idx is not None and svc_line_idx > 0:
+                      prev = lines[svc_line_idx - 1].strip()
+                      if OPT_OUT_MARKER in prev:
+                          continue
+
+                  restart_val = svc_block.get("restart")
+                  if restart_val not in ACCEPTED_VALUES:
+                      offenders.append((path, svc_name))
+
+          if offenders:
+              print("Offenders found:")
+              for path, svc in offenders:
+                  print(f"  {path}: {svc}")
+
+              # Emit machine-readable list for the comment step.
+              with open(os.environ["GITHUB_OUTPUT"], "a", encoding="utf-8") as out:
+                  out.write("has_offenders=true\n")
+                  out.write("offender_list<<EOF\n")
+                  for path, svc in offenders:
+                      out.write(f"{path}: {svc}\n")
+                  out.write("EOF\n")
+
+              sys.exit(1)
+          else:
+              print("All services declare an accepted restart policy (or are opted out).")
+              with open(os.environ["GITHUB_OUTPUT"], "a", encoding="utf-8") as out:
+                  out.write("has_offenders=false\n")
+          PY
+
+      - name: Post or update PR comment with offenders
+        if: failure() && github.event_name == 'pull_request' && steps.scan.outputs.has_offenders == 'true'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const marker = '<!-- restart-policy-guard -->';
+            const offenders = `${{ steps.scan.outputs.offender_list }}`;
+            const body = [
+              marker,
+              '## restart-policy-guard',
+              '',
+              'The following services do not declare `restart: unless-stopped` or `restart: always`.',
+              'Add one to the service block, or opt out by placing',
+              '`#ci-restart-policy-warning-off` on the line directly above the service key.',
+              '',
+              '```',
+              offenders.trim(),
+              '```',
+            ].join('\n');
+
+            const { owner, repo } = context.repo;
+            const issue_number = context.issue.number;
+
+            const { data: comments } = await github.rest.issues.listComments({
+              owner, repo, issue_number, per_page: 100,
+            });
+            const existing = comments.find(c => c.body && c.body.includes(marker));
+
+            if (existing) {
+              await github.rest.issues.updateComment({
+                owner, repo, comment_id: existing.id, body,
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner, repo, issue_number, body,
+              });
+            }
