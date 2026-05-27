@@ -225,21 +225,21 @@ module "diun_mgmt" {
 }
 
 module "prometheus" {
-  source              = "../../platform/apps/prometheus/terraform"
+  source              = "../../platform/core/prometheus/terraform"
   enabled             = true
   deployment_host_key = "apps"
   base                = local.base
 }
 
 module "loki" {
-  source              = "../../platform/apps/loki/terraform"
+  source              = "../../platform/core/loki/terraform"
   enabled             = true
   deployment_host_key = "apps"
   base                = local.base
 }
 
 module "grafana" {
-  source              = "../../platform/apps/grafana/terraform"
+  source              = "../../platform/core/grafana/terraform"
   enabled             = true
   hostname            = "grafana.example.org"
   deployment_host_key = "apps"
@@ -247,7 +247,7 @@ module "grafana" {
 }
 
 module "wazuh" {
-  source              = "../../platform/apps/wazuh/terraform"
+  source              = "../../platform/core/wazuh/terraform"
   enabled             = true
   hostname            = "wazuh.example.org"
   deployment_host_key = "apps"

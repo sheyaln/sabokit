@@ -28,3 +28,28 @@ moved {
   from = module.backrest["authentik"]
   to   = module.backrest["identity"]
 }
+
+# Core-tier relocation (v3.4.0): loki / prometheus / grafana / wazuh moved
+# from platform/apps/ to platform/core/ and now compose under a single
+# module.core block. Existing state addresses migrate via these blocks so
+# `terraform apply` is a no-op for greenfield-on-v3.4.0 deploys and a
+# zero-resource move for v3.3.x consumers bumping in place.
+moved {
+  from = module.loki
+  to   = module.core.module.loki
+}
+
+moved {
+  from = module.prometheus
+  to   = module.core.module.prometheus
+}
+
+moved {
+  from = module.grafana
+  to   = module.core.module.grafana
+}
+
+moved {
+  from = module.wazuh
+  to   = module.core.module.wazuh
+}

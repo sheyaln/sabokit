@@ -402,27 +402,30 @@ module "n8n" {
 # Each backrest only backs up paths that exist on its own host; restic skips
 # missing ones, so passing the full union is safe.
 locals {
-  aggregated_backup_plans = [for plan in [
-    module.outline.backup_plan,
-    module.steward.backup_plan,
-    module.vikunja.backup_plan,
-    module.bentopdf.backup_plan,
-    module.privacy_policy.backup_plan,
-    module.broadsheet.backup_plan,
-    module.nextcloud.backup_plan,
-    module.decidim.backup_plan,
-    module.jitsi.backup_plan,
-    module.espocrm.backup_plan,
-    module.n8n.backup_plan,
-    module.prometheus.backup_plan,
-    module.loki.backup_plan,
-    module.grafana.backup_plan,
-    module.wazuh.backup_plan,
-  ] : plan if plan != null]
+  # App-tier backup plans + core-tier contributions (loki/prometheus/grafana/wazuh
+  # live in module.core; their backup_plan outputs are aggregated inside core's
+  # `backup_plans` output for re-merge here).
+  aggregated_backup_plans = concat(
+    [for plan in [
+      module.outline.backup_plan,
+      module.steward.backup_plan,
+      module.vikunja.backup_plan,
+      module.bentopdf.backup_plan,
+      module.privacy_policy.backup_plan,
+      module.broadsheet.backup_plan,
+      module.nextcloud.backup_plan,
+      module.decidim.backup_plan,
+      module.jitsi.backup_plan,
+      module.espocrm.backup_plan,
+      module.n8n.backup_plan,
+    ] : plan if plan != null],
+    module.core.backup_plans,
+  )
 
   # Each app's `monitoring` output carries scrape configs, dashboards, log
-  # paths, alert rules. Coalesce nulls then split by destination key for the
-  # prometheus + grafana + loki bundles to consume.
+  # paths, alert rules. Coalesce nulls; core-tier services (prometheus +
+  # grafana + wazuh) self-aggregate internally inside module.core to avoid
+  # a cross-module cycle.
   _monitoring_contribs = [for c in [
     module.identity.monitoring,
     module.outline.monitoring,
@@ -436,9 +439,6 @@ locals {
     module.jitsi.monitoring,
     module.espocrm.monitoring,
     module.n8n.monitoring,
-    module.prometheus.monitoring,
-    module.grafana.monitoring,
-    module.wazuh.monitoring,         # blackbox_targets — peer-flagged drop
     module.backrest_mgmt.monitoring, # prometheus_scrape_configs (backrest /metrics)
     module.diun_mgmt.monitoring,     # loki_log_paths
   ] : c if c != null]
@@ -508,152 +508,13 @@ locals {
     module.espocrm.split_dns_entries,
     module.n8n.split_dns_entries,
     module.backrest_mgmt.split_dns_entries,
-    module.grafana.split_dns_entries,
-    module.wazuh.split_dns_entries,
+    module.core.split_dns_entries,
   ])
   split_dns_overrides = (
     length(module.base.compute.hosts) > 1
     ? { for e in local._split_dns_contribs : e.hostname => e.private_ip }
     : {}
   )
-}
-
-# ── Monitoring stack (typically all on the same host) ──────────────────────
-# Prometheus + Loki + Grafana share the monitoring_internal docker network
-# (each role creates it idempotently). Grafana's datasources point at
-# http://prometheus:9090 and http://loki:3100 by default.
-
-module "prometheus" {
-  source = "git::https://github.com/sheyaln/sabokit.git//platform/apps/prometheus/terraform?ref=v3.3.2"
-
-  enabled = try(var.apps.prometheus.enabled, false)
-  base    = local.base
-
-  deployment_host_key  = try(var.apps.prometheus.deployment_host_key, "management")
-  retention            = try(var.apps.prometheus.retention, "30d")
-  exporters_enabled    = try(var.apps.prometheus.exporters_enabled, true)
-  remote_write_enabled = try(var.apps.prometheus.remote_write_enabled, true)
-  private_ip_bind      = try(var.apps.prometheus.private_ip_bind, "")
-  # Auto-aggregated from every enabled app's monitoring.prometheus_scrape_configs
-  # + monitoring.alert_rules + monitoring.blackbox_targets.
-  scrape_configs       = concat(local.aggregated_scrape_configs, try(var.apps.prometheus.scrape_configs, []))
-  alert_rules          = concat(local.aggregated_alert_rules, try(var.apps.prometheus.alert_rules, []))
-  blackbox_targets     = concat(local.aggregated_blackbox_targets, try(var.apps.prometheus.blackbox_targets, []))
-  extra_scrape_targets = try(var.apps.prometheus.extra_scrape_targets, {})
-
-  # Blackbox exporter sidecar — actively probes every public hostname on the
-  # platform. Opt-out per the plug-and-play-owns-networking philosophy.
-  blackbox_exporter_enabled = try(var.apps.prometheus.blackbox_exporter_enabled, true)
-
-  # Scaleway TEM exporter sidecar — pairs with the bundled scaleway-tem
-  # dashboard + alert rules. Reuses the smtp-config secret base writes
-  # (its `password` field IS a TEM-scoped Scaleway API key).
-  tem_exporter_enabled               = try(var.apps.prometheus.tem_exporter_enabled, false)
-  tem_smtp_secret_id                 = try(local.base.scaleway.smtp_config_secret_id, "")
-  tem_scaleway_project_id            = local.base.scaleway.project_id
-  tem_scaleway_region                = local.base.scaleway.region
-  tem_exporter_poll_interval_seconds = try(var.apps.prometheus.tem_exporter_poll_interval_seconds, 60)
-  tem_exporter_lookback_minutes      = try(var.apps.prometheus.tem_exporter_lookback_minutes, 60)
-  extra_env_vars                     = try(var.apps.prometheus.extra_env_vars, {})
-  extra_docker_networks              = try(var.apps.prometheus.extra_docker_networks, [])
-}
-
-module "loki" {
-  source = "git::https://github.com/sheyaln/sabokit.git//platform/apps/loki/terraform?ref=v3.3.2"
-
-  enabled = try(var.apps.loki.enabled, false)
-  base    = local.base
-
-  deployment_host_key     = try(var.apps.loki.deployment_host_key, "management")
-  retention               = try(var.apps.loki.retention, "744h")
-  ingestion_rate_mb       = try(var.apps.loki.ingestion_rate_mb, 10)
-  ingestion_burst_size_mb = try(var.apps.loki.ingestion_burst_size_mb, 20)
-  private_ip_bind         = try(var.apps.loki.private_ip_bind, "")
-  extra_env_vars          = try(var.apps.loki.extra_env_vars, {})
-  extra_docker_networks   = try(var.apps.loki.extra_docker_networks, [])
-}
-
-module "wazuh" {
-  source = "git::https://github.com/sheyaln/sabokit.git//platform/apps/wazuh/terraform?ref=v3.3.2"
-
-  enabled  = try(var.apps.wazuh.enabled, false)
-  hostname = try(var.apps.wazuh.hostname, "")
-  base     = local.base
-
-  access_level            = try(var.apps.wazuh.access_level, "admin")
-  extra_authorized_groups = try(var.apps.wazuh.extra_authorized_groups, {})
-  tier_cascade_enabled    = try(var.apps.wazuh.tier_cascade_enabled, true)
-  tier_access_level       = try(var.apps.wazuh.tier_access_level, "admin")
-  deployment_host_key     = try(var.apps.wazuh.deployment_host_key, "management")
-  release_version         = try(var.apps.wazuh.release_version, "4.9.0")
-  indexer_heap_size       = try(var.apps.wazuh.indexer_heap_size, "1g")
-  oidc_admin_group        = try(var.apps.wazuh.oidc_admin_group, "admin")
-  oidc_readonly_group     = try(var.apps.wazuh.oidc_readonly_group, "")
-  application_name        = try(var.apps.wazuh.application_name, "Wazuh")
-  application_slug        = try(var.apps.wazuh.application_slug, "")
-  category_group          = try(var.apps.wazuh.category_group, "Technical Management")
-  icon_url                = try(var.apps.wazuh.icon_url, null)
-  icon_filename           = try(var.apps.wazuh.icon_filename, "wazuh-icon.png")
-  dns_zone_override       = try(var.apps.wazuh.dns_zone_override, "")
-
-  # Manager listening ports — wazuh-agent bundles connect on these.
-  manager_agent_port      = try(var.apps.wazuh.manager_agent_port, 1514)
-  manager_enrollment_port = try(var.apps.wazuh.manager_enrollment_port, 1515)
-  manager_syslog_port     = try(var.apps.wazuh.manager_syslog_port, 514)
-
-  credentials_preserve        = try(var.apps.wazuh.credentials_preserve, false)
-  credentials_preserve_source = try(var.apps.wazuh.credentials_preserve_source, null)
-  extra_env_vars              = try(var.apps.wazuh.extra_env_vars, {})
-  extra_docker_networks       = try(var.apps.wazuh.extra_docker_networks, [])
-}
-
-module "grafana" {
-  source = "git::https://github.com/sheyaln/sabokit.git//platform/apps/grafana/terraform?ref=v3.3.2"
-
-  enabled  = try(var.apps.grafana.enabled, false)
-  hostname = try(var.apps.grafana.hostname, "")
-  base     = local.base
-
-  access_level            = try(var.apps.grafana.access_level, "admin")
-  extra_authorized_groups = try(var.apps.grafana.extra_authorized_groups, {})
-  tier_cascade_enabled    = try(var.apps.grafana.tier_cascade_enabled, true)
-  tier_access_level       = try(var.apps.grafana.tier_access_level, "admin")
-  deployment_host_key     = try(var.apps.grafana.deployment_host_key, "management")
-  plugins                 = try(var.apps.grafana.plugins, [])
-  oidc_admin_group        = try(var.apps.grafana.oidc_admin_group, "admin")
-  oidc_editor_group       = try(var.apps.grafana.oidc_editor_group, "manager")
-  application_name        = try(var.apps.grafana.application_name, "Grafana")
-  application_slug        = try(var.apps.grafana.application_slug, "")
-  category_group          = try(var.apps.grafana.category_group, "Technical Management")
-  icon_url                = try(var.apps.grafana.icon_url, null)
-  icon_filename           = try(var.apps.grafana.icon_filename, "grafana-icon.png")
-  # Auto-aggregated from every enabled app's monitoring.grafana_dashboards
-  # plus any consumer-supplied extras.
-  grafana_dashboards = concat(
-    local.aggregated_grafana_dashboards,
-    try(var.apps.grafana.grafana_dashboards, []),
-  )
-
-  dns_zone_override = try(var.apps.grafana.dns_zone_override, "")
-
-  # Datasource URLs + JSM alerting plumbing. Bundle vars are non-nullable
-  # strings/maps, so the try() fallback restates the bundle defaults rather
-  # than passing null. prometheus_url / loki_url defaults assume prometheus
-  # and loki are co-deployed on the same host and share the bundle's docker
-  # network; override per-consumer when shipping to external backends.
-  prometheus_url             = try(var.apps.grafana.prometheus_url, "http://prometheus:9090")
-  loki_url                   = try(var.apps.grafana.loki_url, "http://loki:3100")
-  prometheus_scrape_interval = try(var.apps.grafana.prometheus_scrape_interval, "30s")
-  jsm_api_key_secret_id      = try(var.apps.grafana.jsm_api_key_secret_id, "")
-  jsm_api_region             = try(var.apps.grafana.jsm_api_region, "us")
-  jsm_priority_mapping       = try(var.apps.grafana.jsm_priority_mapping, { critical = "P1", warning = "P3", info = "P5" })
-  jsm_alert_tags             = try(var.apps.grafana.jsm_alert_tags, ["sabokit"])
-  jsm_severity_gate          = try(var.apps.grafana.jsm_severity_gate, "")
-
-  credentials_preserve        = try(var.apps.grafana.credentials_preserve, false)
-  credentials_preserve_source = try(var.apps.grafana.credentials_preserve_source, null)
-  extra_env_vars              = try(var.apps.grafana.extra_env_vars, {})
-  extra_docker_networks       = try(var.apps.grafana.extra_docker_networks, [])
 }
 
 # Backrest is multi-instance: each backed-up host gets its own module block,
