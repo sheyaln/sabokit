@@ -1,12 +1,12 @@
 # ── OIDC Client Credentials Generation ───────────────────────────────────────
 
 resource "random_uuid" "oidc_client_id" {
-  count = var.credentials_preserve ? 0 : 1
+  count = 1
 }
 
 # Alphanumeric only to avoid shell/env escaping issues (e.g. $ in docker-compose)
 resource "random_password" "oidc_client_secret" {
-  count   = var.credentials_preserve ? 0 : 1
+  count   = 1
   length  = 40
   special = false
 
@@ -26,17 +26,6 @@ resource "scaleway_secret" "app_secret" {
 
 # Read the live secret bag during in-place cutover so we can wire the existing
 # client_id + client_secret through `local.*` instead of fresh random values.
-data "scaleway_secret" "preserved" {
-  count = var.credentials_preserve ? 1 : 0
-  name  = "authentik-app-${var.application_slug}"
-}
-
-data "scaleway_secret_version" "preserved" {
-  count     = var.credentials_preserve ? 1 : 0
-  secret_id = data.scaleway_secret.preserved[0].id
-  revision  = "latest"
-}
-
 resource "scaleway_secret_version" "oidc_credentials" {
   secret_id = scaleway_secret.app_secret.id
   data = jsonencode({
@@ -66,10 +55,6 @@ resource "scaleway_secret_version" "oidc_credentials" {
 # ── Local values for use in main.tf ──────────────────────────────────────────
 
 locals {
-  _preserved = var.credentials_preserve ? jsondecode(base64decode(data.scaleway_secret_version.preserved[0].data)) : {}
-  # credentials_preserve_source (greenfield-to-v3): supplied values shadow
-  # random_* without count-gating them, so state stays stable across the
-  # one-time first apply.
-  client_id     = var.credentials_preserve ? local._preserved.client_id : try(var.credentials_preserve_source.client_id, random_uuid.oidc_client_id[0].result)
-  client_secret = var.credentials_preserve ? local._preserved.client_secret : try(var.credentials_preserve_source.client_secret, random_password.oidc_client_secret[0].result)
+  client_id     = random_uuid.oidc_client_id[0].result
+  client_secret = random_password.oidc_client_secret[0].result
 }

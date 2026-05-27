@@ -7,7 +7,7 @@ locals {
 }
 
 resource "random_password" "this" {
-  count            = var.credentials_preserve ? 0 : 1
+  count            = 1
   length           = 32
   special          = true
   override_special = "@!"
@@ -24,25 +24,8 @@ resource "random_password" "this" {
   }
 }
 
-# In-place cutover: read the existing per-db credentials bag and reuse the
-# password so the existing rdb user keeps the same secret.
-data "scaleway_secret" "preserved" {
-  count = var.credentials_preserve ? 1 : 0
-  name  = "postgres-${var.database_name}-credentials"
-}
-
-data "scaleway_secret_version" "preserved" {
-  count     = var.credentials_preserve ? 1 : 0
-  secret_id = data.scaleway_secret.preserved[0].id
-  revision  = "latest"
-}
-
 locals {
-  _preserved = var.credentials_preserve ? jsondecode(base64decode(data.scaleway_secret_version.preserved[0].data)) : {}
-  # credentials_preserve_source (greenfield-to-v3): supplied `password` shadows
-  # the random_* without count-gating it, so state stays stable across the
-  # one-time first apply.
-  password = var.credentials_preserve ? local._preserved.password : try(var.credentials_preserve_source.password, random_password.this[0].result)
+  password = random_password.this[0].result
 }
 
 resource "scaleway_rdb_database" "this" {
@@ -67,7 +50,7 @@ resource "scaleway_rdb_privilege" "this" {
 }
 
 resource "scaleway_secret" "this" {
-  count = var.credentials_preserve ? 0 : 1
+  count = 1
 
   name        = "postgres-${var.database_name}-credentials"
   description = "Database credentials for ${var.database_name}"
@@ -76,7 +59,7 @@ resource "scaleway_secret" "this" {
 }
 
 resource "scaleway_secret_version" "this" {
-  count = var.credentials_preserve ? 0 : 1
+  count = 1
 
   secret_id = scaleway_secret.this[0].id
   data = jsonencode({

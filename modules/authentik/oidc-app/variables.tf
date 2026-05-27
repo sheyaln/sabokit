@@ -116,19 +116,6 @@ variable "generate_rsa_signing_key" {
   default     = false
 }
 
-variable "credentials_preserve" {
-  description = "In-place legacy cutover support. When true, the module skips generating new OIDC client credentials (client_id, client_secret) and reads the existing values from the live `authentik-app-<application_slug>` secret bag via a data source. Drop the flag on the next apply once the cutover is verified; short-lived knob, removal slated for v4.x."
-  type        = bool
-  default     = false
-}
-
-variable "credentials_preserve_source" {
-  description = "Greenfield-to-v3 cutover support. Sibling to `credentials_preserve` (gated separately, both false by default). When non-null AND `credentials_preserve = false`, the module supplies canonical-key values into the Scaleway bag on the first apply instead of pulling them from a pre-populated bag. Schema matches the bag schema: `{ client_id = string, client_secret = string }`. Pre-existing `random_*` generators stay in place so state is stable; supplied values shadow the generated ones at the locals layer. After the first apply, `ignore_changes = [data]` on the bag version keeps the values pinned and the variable can be dropped (or flipped to `credentials_preserve = true`)."
-  type        = map(string)
-  default     = null
-  sensitive   = true
-}
-
 variable "signing_key_subject" {
   description = "Subject for the RSA signing certificate when generate_rsa_signing_key is true. Object with common_name and organization."
   type = object({

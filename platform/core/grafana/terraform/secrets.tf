@@ -2,41 +2,26 @@
 # requires `grafana-cli admin reset-admin-password` inside the container.
 
 resource "random_password" "admin" {
-  count   = var.enabled && !var.credentials_preserve ? 1 : 0
+  count   = var.enabled ? 1 : 0
   length  = 32
   special = false
 }
 
 resource "scaleway_secret" "app" {
-  count       = var.enabled && !var.credentials_preserve ? 1 : 0
+  count       = var.enabled ? 1 : 0
   name        = "${local.slug}-app-secrets"
   description = "Grafana admin password + OIDC bag"
   tags        = ["automated", local.slug]
   type        = "key_value"
 }
 
-# In-place cutover: read the live bag and pin GRAFANA_ADMIN_PASSWORD.
-data "scaleway_secret" "preserved" {
-  count = var.enabled && var.credentials_preserve ? 1 : 0
-  name  = "${local.slug}-app-secrets"
-}
-
-data "scaleway_secret_version" "preserved" {
-  count     = var.enabled && var.credentials_preserve ? 1 : 0
-  secret_id = data.scaleway_secret.preserved[0].id
-  revision  = "latest"
-}
-
 locals {
-  _preserved = (var.enabled && var.credentials_preserve) ? jsondecode(base64decode(data.scaleway_secret_version.preserved[0].data)) : {}
-  # credentials_preserve_source (greenfield-to-v3): supplied values
-  # shadow random_* without count-gating them, so state stays stable.
-  admin_password = var.enabled ? (var.credentials_preserve ? local._preserved.GRAFANA_ADMIN_PASSWORD : try(var.credentials_preserve_source.GRAFANA_ADMIN_PASSWORD, random_password.admin[0].result)) : ""
-  app_secret_id  = var.enabled ? (var.credentials_preserve ? data.scaleway_secret.preserved[0].id : scaleway_secret.app[0].id) : ""
+  admin_password = var.enabled ? (random_password.admin[0].result) : ""
+  app_secret_id  = var.enabled ? (scaleway_secret.app[0].id) : ""
 }
 
 resource "scaleway_secret_version" "app" {
-  count = var.enabled && !var.credentials_preserve ? 1 : 0
+  count = var.enabled ? 1 : 0
 
   secret_id = scaleway_secret.app[0].id
   data = jsonencode({

@@ -50,11 +50,6 @@ apps:
           description: Whether Outline is deployed in this environment.
           ui: hidden
 
-        credentials_preserve:
-          type: bool
-          default: false
-          description: In-place legacy cutover support. When true, the bundle skips random_password generation and reads the existing credential values from the live <slug>-app-secrets bag via a data source. Drop after cutover verification — short-lived, removal slated for v4.x.
-          ui: advanced
 
         hostname:
           type: string
@@ -180,11 +175,6 @@ apps:
           description: Whether Steward is deployed in this environment.
           ui: hidden
 
-        credentials_preserve:
-          type: bool
-          default: false
-          description: In-place legacy cutover support. When true, the bundle skips random_password generation and reads the existing credential values from the live <slug>-app-secrets bag via a data source. Drop after cutover verification — short-lived, removal slated for v4.x.
-          ui: advanced
 
         hostname:
           type: string
@@ -312,11 +302,6 @@ apps:
           description: Whether Vikunja is deployed in this environment.
           ui: hidden
 
-        credentials_preserve:
-          type: bool
-          default: false
-          description: In-place legacy cutover support. When true, the bundle skips random_password generation and reads the existing credential values from the live <slug>-app-secrets bag via a data source. Drop after cutover verification — short-lived, removal slated for v4.x.
-          ui: advanced
 
         hostname:
           type: string
@@ -564,11 +549,6 @@ apps:
           description: Whether Broadsheet is deployed in this environment.
           ui: hidden
 
-        credentials_preserve:
-          type: bool
-          default: false
-          description: In-place legacy cutover support. When true, the bundle skips random_password generation and reads the existing credential values from the live <slug>-app-secrets bag via a data source. Drop after cutover verification — short-lived, removal slated for v4.x.
-          ui: advanced
 
         hostname:
           type: string
@@ -794,11 +774,6 @@ apps:
           description: Whether Nextcloud is deployed.
           ui: hidden
 
-        credentials_preserve:
-          type: bool
-          default: false
-          description: In-place legacy cutover support. When true, the bundle skips random_password generation and reads the existing credential values from the live <slug>-app-secrets bag via a data source. Drop after cutover verification — short-lived, removal slated for v4.x.
-          ui: advanced
 
         hostname:
           type: string
@@ -1045,11 +1020,6 @@ apps:
           description: Whether Decidim is deployed.
           ui: hidden
 
-        credentials_preserve:
-          type: bool
-          default: false
-          description: In-place legacy cutover support. When true, the bundle skips random_password generation and reads the existing credential values from the live <slug>-app-secrets bag via a data source. Drop after cutover verification — short-lived, removal slated for v4.x.
-          ui: advanced
 
         hostname:
           type: string
@@ -1214,11 +1184,6 @@ apps:
           description: Whether Jitsi is deployed.
           ui: hidden
 
-        credentials_preserve:
-          type: bool
-          default: false
-          description: In-place legacy cutover support. When true, the bundle skips random_password generation and reads the existing credential values from the live <slug>-app-secrets bag via a data source. Drop after cutover verification — short-lived, removal slated for v4.x.
-          ui: advanced
 
         hostname:
           type: string
@@ -1361,11 +1326,6 @@ apps:
           description: Whether EspoCRM is deployed.
           ui: hidden
 
-        credentials_preserve:
-          type: bool
-          default: false
-          description: In-place legacy cutover support. When true, the bundle skips random_password generation and reads the existing credential values from the live <slug>-app-secrets bag via a data source. Drop after cutover verification — short-lived, removal slated for v4.x.
-          ui: advanced
 
         hostname:
           type: string
@@ -1502,11 +1462,6 @@ apps:
           description: Whether n8n is deployed.
           ui: hidden
 
-        credentials_preserve:
-          type: bool
-          default: false
-          description: In-place legacy cutover support. When true, the bundle skips random_password generation and reads the existing credential values from the live <slug>-app-secrets bag via a data source. Drop after cutover verification — short-lived, removal slated for v4.x.
-          ui: advanced
 
         hostname:
           type: string
@@ -1711,11 +1666,6 @@ apps:
           description: Whether backrest is deployed. Defaults to true — backrest auto-instantiates per `compute_hosts` entry at v3.4.0+; opt a host out via `var.apps.backrest.disabled_hosts = ["<host_key>"]`. Per-host overrides live under `var.apps.backrest.per_host[<host_key>]`.
           ui: hidden
 
-        credentials_preserve:
-          type: bool
-          default: false
-          description: In-place legacy cutover support. When true, the bundle skips random_password generation and reads the existing credential values from the live <slug>-app-secrets bag via a data source. Drop after cutover verification — short-lived, removal slated for v4.x.
-          ui: advanced
 
         hostname:
           type: string
@@ -1978,11 +1928,6 @@ apps:
           description: Whether Grafana is deployed.
           ui: hidden
 
-        credentials_preserve:
-          type: bool
-          default: false
-          description: In-place legacy cutover support. When true, the bundle skips random_password generation and reads the existing credential values from the live <slug>-app-secrets bag via a data source. Drop after cutover verification — short-lived, removal slated for v4.x.
-          ui: advanced
 
         hostname:
           type: string
@@ -2159,11 +2104,6 @@ apps:
           description: Whether Wazuh is deployed.
           ui: hidden
 
-        credentials_preserve:
-          type: bool
-          default: false
-          description: In-place legacy cutover support. When true, the bundle skips random_password generation and reads the existing credential values from the live <slug>-app-secrets bag via a data source. Drop after cutover verification — short-lived, removal slated for v4.x.
-          ui: advanced
 
         hostname:
           type: string

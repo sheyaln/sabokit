@@ -11,7 +11,6 @@
 
 - portainer CE as optional read-write GUI over running stacks
 - remove `bucket_name_override` knob
-- remove `credentials_preserve` knob
 
 ## bundle / integration follow-ups
 

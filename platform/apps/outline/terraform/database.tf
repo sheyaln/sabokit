@@ -7,6 +7,4 @@ module "database" {
   database_name     = local.slug
   engine            = var.base.scaleway.postgres_engine
   tags              = [local.slug]
-
-  credentials_preserve = var.credentials_preserve
 }

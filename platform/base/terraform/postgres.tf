@@ -24,8 +24,5 @@ module "postgres" {
     port        = 5432
   }
 
-  credentials_preserve        = var.postgres_credentials_preserve
-  credentials_preserve_source = var.postgres_credentials_preserve_source
-
   tags = concat(local.base_tags, ["postgres"])
 }

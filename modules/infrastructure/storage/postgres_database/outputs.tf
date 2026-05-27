@@ -9,12 +9,12 @@ output "user_name" {
 }
 
 output "password" {
-  description = "Password for the user (generated or preserved). Prefer reading from secret_id."
+  description = "Password for the user. Prefer reading from secret_id."
   value       = local.password
   sensitive   = true
 }
 
 output "secret_id" {
   description = "Scaleway secret holding {dbname, engine, username, password, host, port}."
-  value       = var.credentials_preserve ? data.scaleway_secret.preserved[0].id : scaleway_secret.this[0].id
+  value       = scaleway_secret.this[0].id
 }

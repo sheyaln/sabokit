@@ -2,17 +2,17 @@
 # Stored in Scaleway Secret Manager so the Ansible role can pull them.
 
 resource "random_id" "secret_key" {
-  count       = var.enabled && !var.credentials_preserve ? 1 : 0
+  count       = var.enabled ? 1 : 0
   byte_length = 32
 }
 
 resource "random_id" "utils_secret" {
-  count       = var.enabled && !var.credentials_preserve ? 1 : 0
+  count       = var.enabled ? 1 : 0
   byte_length = 32
 }
 
 resource "scaleway_secret" "app" {
-  count = var.enabled && !var.credentials_preserve ? 1 : 0
+  count = var.enabled ? 1 : 0
 
   name        = "${local.slug}-app-secrets"
   description = "Outline application secrets (SECRET_KEY, UTILS_SECRET, OIDC + S3 bag)"
@@ -20,30 +20,14 @@ resource "scaleway_secret" "app" {
   type        = "key_value"
 }
 
-# In-place cutover: read the live bag and reuse the existing SECRET_KEY +
-# UTILS_SECRET so encrypted DB columns remain readable.
-data "scaleway_secret" "preserved" {
-  count = var.enabled && var.credentials_preserve ? 1 : 0
-  name  = "${local.slug}-app-secrets"
-}
-
-data "scaleway_secret_version" "preserved" {
-  count     = var.enabled && var.credentials_preserve ? 1 : 0
-  secret_id = data.scaleway_secret.preserved[0].id
-  revision  = "latest"
-}
-
 locals {
-  _preserved = (var.enabled && var.credentials_preserve) ? jsondecode(base64decode(data.scaleway_secret_version.preserved[0].data)) : {}
-  # credentials_preserve_source (greenfield-to-v3): supplied values
-  # shadow random_* without count-gating them, so state stays stable.
-  secret_key    = var.enabled ? (var.credentials_preserve ? local._preserved.SECRET_KEY : try(var.credentials_preserve_source.SECRET_KEY, random_id.secret_key[0].hex)) : ""
-  utils_secret  = var.enabled ? (var.credentials_preserve ? local._preserved.UTILS_SECRET : try(var.credentials_preserve_source.UTILS_SECRET, random_id.utils_secret[0].hex)) : ""
-  app_secret_id = var.enabled ? (var.credentials_preserve ? data.scaleway_secret.preserved[0].id : scaleway_secret.app[0].id) : ""
+  secret_key    = var.enabled ? random_id.secret_key[0].hex : ""
+  utils_secret  = var.enabled ? random_id.utils_secret[0].hex : ""
+  app_secret_id = var.enabled ? scaleway_secret.app[0].id : ""
 }
 
 resource "scaleway_secret_version" "app" {
-  count = var.enabled && !var.credentials_preserve ? 1 : 0
+  count = var.enabled ? 1 : 0
 
   secret_id = scaleway_secret.app[0].id
   data = jsonencode({

@@ -18,37 +18,37 @@
 # restarting containers, not by churning Terraform state.
 
 resource "random_password" "jwt_app_secret" {
-  count   = var.enabled && !var.credentials_preserve ? 1 : 0
+  count   = var.enabled ? 1 : 0
   length  = 48
   special = false
 }
 
 resource "random_password" "jicofo_auth" {
-  count   = var.enabled && !var.credentials_preserve ? 1 : 0
+  count   = var.enabled ? 1 : 0
   length  = 32
   special = false
 }
 
 resource "random_password" "jvb_auth" {
-  count   = var.enabled && !var.credentials_preserve ? 1 : 0
+  count   = var.enabled ? 1 : 0
   length  = 32
   special = false
 }
 
 resource "random_password" "jibri_xmpp" {
-  count   = var.enabled && !var.credentials_preserve ? 1 : 0
+  count   = var.enabled ? 1 : 0
   length  = 32
   special = false
 }
 
 resource "random_password" "jibri_recorder" {
-  count   = var.enabled && !var.credentials_preserve ? 1 : 0
+  count   = var.enabled ? 1 : 0
   length  = 32
   special = false
 }
 
 resource "scaleway_secret" "app" {
-  count = var.enabled && !var.credentials_preserve ? 1 : 0
+  count = var.enabled ? 1 : 0
 
   name        = "${local.slug}-app-secrets"
   description = "Jitsi application secrets (JWT signing key, XMPP component passwords, OIDC bag)."
@@ -56,33 +56,17 @@ resource "scaleway_secret" "app" {
   type        = "key_value"
 }
 
-# In-place cutover: one read of the live bag yields all five preserved
-# component passwords via locals.
-data "scaleway_secret" "preserved" {
-  count = var.enabled && var.credentials_preserve ? 1 : 0
-  name  = "${local.slug}-app-secrets"
-}
-
-data "scaleway_secret_version" "preserved" {
-  count     = var.enabled && var.credentials_preserve ? 1 : 0
-  secret_id = data.scaleway_secret.preserved[0].id
-  revision  = "latest"
-}
-
 locals {
-  _preserved = (var.enabled && var.credentials_preserve) ? jsondecode(base64decode(data.scaleway_secret_version.preserved[0].data)) : {}
-  # credentials_preserve_source (greenfield-to-v3): supplied values
-  # shadow random_* without count-gating them, so state stays stable.
-  jwt_app_secret          = var.enabled ? (var.credentials_preserve ? local._preserved.JITSI_JWT_APP_SECRET : try(var.credentials_preserve_source.JITSI_JWT_APP_SECRET, random_password.jwt_app_secret[0].result)) : ""
-  jicofo_auth_password    = var.enabled ? (var.credentials_preserve ? local._preserved.JITSI_JICOFO_AUTH_PASSWORD : try(var.credentials_preserve_source.JITSI_JICOFO_AUTH_PASSWORD, random_password.jicofo_auth[0].result)) : ""
-  jvb_auth_password       = var.enabled ? (var.credentials_preserve ? local._preserved.JITSI_JVB_AUTH_PASSWORD : try(var.credentials_preserve_source.JITSI_JVB_AUTH_PASSWORD, random_password.jvb_auth[0].result)) : ""
-  jibri_xmpp_password     = var.enabled ? (var.credentials_preserve ? local._preserved.JITSI_JIBRI_XMPP_PASSWORD : try(var.credentials_preserve_source.JITSI_JIBRI_XMPP_PASSWORD, random_password.jibri_xmpp[0].result)) : ""
-  jibri_recorder_password = var.enabled ? (var.credentials_preserve ? local._preserved.JITSI_JIBRI_RECORDER_PASSWORD : try(var.credentials_preserve_source.JITSI_JIBRI_RECORDER_PASSWORD, random_password.jibri_recorder[0].result)) : ""
-  app_secret_id           = var.enabled ? (var.credentials_preserve ? data.scaleway_secret.preserved[0].id : scaleway_secret.app[0].id) : ""
+  jwt_app_secret          = var.enabled ? (random_password.jwt_app_secret[0].result) : ""
+  jicofo_auth_password    = var.enabled ? (random_password.jicofo_auth[0].result) : ""
+  jvb_auth_password       = var.enabled ? (random_password.jvb_auth[0].result) : ""
+  jibri_xmpp_password     = var.enabled ? (random_password.jibri_xmpp[0].result) : ""
+  jibri_recorder_password = var.enabled ? (random_password.jibri_recorder[0].result) : ""
+  app_secret_id           = var.enabled ? (scaleway_secret.app[0].id) : ""
 }
 
 resource "scaleway_secret_version" "app" {
-  count = var.enabled && !var.credentials_preserve ? 1 : 0
+  count = var.enabled ? 1 : 0
 
   secret_id = scaleway_secret.app[0].id
   data = jsonencode({

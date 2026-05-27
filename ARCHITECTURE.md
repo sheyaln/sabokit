@@ -188,25 +188,11 @@ outline_app_secrets: "{{ lookup('scaleway.scaleway.scaleway_secret', _outline_ap
 
 TF passes the *secret ID* to Ansible (in the `ansible` output map). Ansible resolves the ID to the payload at deploy time.
 
-### Cutover knobs: how credentials get seeded
+### How credentials get seeded
 
-Every credential-generating bundle (outline, nextcloud, vikunja, jitsi, n8n, espocrm, grafana, broadsheet, wazuh, decidim, steward, backrest) plus the shared modules (`modules/authentik/oidc-app`, `modules/infrastructure/storage/postgres{,_database}`) and `platform/identity/bootstrap` expose two sibling cutover knobs. Both default to greenfield (regenerate via `random_*`); pick one when adopting v3 on top of an existing stack.
+Every credential-generating bundle uses `random_password` / `random_id` to generate its secrets on first apply, writes them into a Scaleway secret bag, and pins the bag content via `lifecycle { ignore_changes = [data] }` on the `scaleway_secret_version` so subsequent applies never rotate the values. To rotate, taint the relevant resource.
 
-| Mode | Variables | Use when |
-|---|---|---|
-| Greenfield (default) | `credentials_preserve = false`, `credentials_preserve_source = null` | New deploy. Bundle's `random_*` resources generate fresh credentials and write them into the Scaleway bag on first apply. |
-| In-place legacy cutover | `credentials_preserve = true` | Migrating a stack whose credentials already live in a Scaleway secret bag matching the v3 schema. Bundle count-gates `random_*` and reads the bag via a data source. |
-| Consumer-supplied source | `credentials_preserve = false`, `credentials_preserve_source = { ... }` | Migrating a stack whose credentials live anywhere *other* than a Scaleway bag (container env, separate vault, hand-rolled config). Consumer passes the canonical-key map directly via TF variable; the bundle writes those values into the Scaleway bag on the first apply. After that, `ignore_changes = [data]` on the bag version keeps them pinned and the variable can be dropped (or flipped to `credentials_preserve = true`). |
-
-`credentials_preserve_source` is `sensitive` and carries plaintext credentials — put it behind a `data "scaleway_secret_version"` block or a gitignored `.auto.tfvars`. The schema per bundle is documented inline in each `variables.tf`; the bundle preserves only its own `<slug>-app-secrets` bag (OIDC and per-app DB credentials have their own preserve paths on the shared submodules).
-
-Migration recipe — "manually populated bag" → "consumer-supplied source":
-
-1. Read the current bag values: `scw secret-manager secret-version access-by-name secret-name=<slug>-app-secrets revision=latest`.
-2. Set `credentials_preserve = false`, populate `credentials_preserve_source = { ... }` with the canonical keys.
-3. `terraform import` the existing `scaleway_secret.app` resource so TF adopts the bag without re-creating it (see each bundle's secrets.tf for the resource address).
-4. `terraform apply` — the secret_version's `ignore_changes = [data]` keeps the existing payload; the supplied map matches what's there.
-5. Subsequent applies: variable is no-op (data is ignored). Optionally remove `credentials_preserve_source` from config after the first successful apply.
+For consumers migrating off a pre-v3 stack: bring credentials over by populating the bag out-of-band (`scw secret-manager` or console), then `terraform import` the `scaleway_secret.app` / `scaleway_secret_version.app` resources before first apply. The `ignore_changes = [data]` keeps the imported payload while terraform takes ownership of the surrounding resources.
 
 ---
 

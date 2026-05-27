@@ -161,8 +161,6 @@ module "grafana" {
   hostname = try(var.grafana.hostname, "")
   base     = var.base
 
-  credentials_preserve        = try(var.grafana.credentials_preserve, false)
-  credentials_preserve_source = try(var.grafana.credentials_preserve_source, null)
 
   access_level            = try(var.grafana.access_level, "admin")
   extra_authorized_groups = try(var.grafana.extra_authorized_groups, {})
@@ -223,8 +221,6 @@ module "wazuh" {
   hostname = try(var.wazuh.hostname, "")
   base     = var.base
 
-  credentials_preserve        = try(var.wazuh.credentials_preserve, false)
-  credentials_preserve_source = try(var.wazuh.credentials_preserve_source, null)
 
   access_level            = try(var.wazuh.access_level, "admin")
   extra_authorized_groups = try(var.wazuh.extra_authorized_groups, {})
