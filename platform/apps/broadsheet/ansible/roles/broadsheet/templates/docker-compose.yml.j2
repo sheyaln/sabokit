@@ -2,10 +2,12 @@
 # Managed by sabokit apps/broadsheet/ansible/role.
 # Do not edit by hand — regenerated on every ansible-playbook run.
 #
-# NOTE: the internal docker service name + traefik label namespace remain
-# `notifuse` because the bundled binary is the sabokit-broadsheet fork of
-# notifuse — internal paths (healthcheck, traefik service id) still assume
-# that name. Only the build context and image tag are rebranded.
+# NOTE: the internal docker compose service name remains `notifuse` because
+# the bundled binary is the sabokit-broadsheet fork and internal paths
+# (in-container references, healthcheck) still assume that name. Traefik
+# router + service labels are namespaced `broadsheet` so co-deploying
+# alongside the notifuse bundle during migration windows doesn't collide
+# on Traefik's router-name uniqueness.
 
 services:
   notifuse:
@@ -26,11 +28,11 @@ services:
     labels:
       - "traefik.enable=true"
       - "traefik.docker.network={{ broadsheet_traefik_docker_network }}"
-      - "traefik.http.services.notifuse.loadbalancer.server.port=8080"
-      - "traefik.http.routers.notifuse.rule=Host(`{{ broadsheet_hostname }}`)"
-      - "traefik.http.routers.notifuse.entrypoints=websecure"
-      - "traefik.http.routers.notifuse.tls.certresolver=le"
-      - "traefik.http.routers.notifuse.service=notifuse"
+      - "traefik.http.services.broadsheet.loadbalancer.server.port=8080"
+      - "traefik.http.routers.broadsheet.rule=Host(`{{ broadsheet_hostname }}`)"
+      - "traefik.http.routers.broadsheet.entrypoints=websecure"
+      - "traefik.http.routers.broadsheet.tls.certresolver=le"
+      - "traefik.http.routers.broadsheet.service=broadsheet"
 {% if broadsheet_diun_watch_enabled | default(true) %}
       - "diun.enable=true"
 {% endif %}

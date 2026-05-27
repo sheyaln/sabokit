@@ -9,6 +9,13 @@ FROM {{ decidim_image }}:{{ decidim_image_tag }}
 
 WORKDIR /code
 
+# Decidim 0.31+ dropped aws-sdk-s3 from its base image, but sabokit's
+# default storage adapter is S3 (every consumer ships a Scaleway
+# object_bucket). Install unconditionally so ActiveStorage resolves.
+RUN echo 'gem "aws-sdk-s3"' >> Gemfile \
+  && bundle lock --update \
+  && bundle install
+
 {% if decidim_extra_gems and decidim_extra_gems | length > 0 %}
 # Append the extra gems to the app's Gemfile, then re-resolve + re-compile
 # assets. `bundle lock --update` lets bundler pull a compatible version

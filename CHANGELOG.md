@@ -2,6 +2,16 @@
 
 All notable changes to sabokit go here. Versioning follows semver; major bumps signal breaking contract changes for consumers.
 
+## v3.2.1 - 2026-05-27
+
+Four downstream-driven fixes from peer's broadsheet + decidim deploy session.
+
+### Fixed
+- **FR-4: broadsheet traefik router labels renamed `notifuse` → `broadsheet`** in `platform/apps/broadsheet/ansible/roles/broadsheet/templates/docker-compose.yml.j2`. Broadsheet is a sabokit-broadsheet fork of notifuse; the internal docker compose service name stays `notifuse` (internal binary paths assume it), but Traefik router + service labels now live under `broadsheet` so co-deploying both bundles during a migration window doesn't collide on Traefik's router-name uniqueness.
+- **FR-5: decidim Dockerfile installs `aws-sdk-s3` unconditionally**. Decidim 0.31+ dropped the gem from its base image; sabokit's default storage adapter is S3 (every consumer ships a Scaleway object_bucket) so ActiveStorage's S3 service adapter fails to resolve at db-init time. Now installed via `gem "aws-sdk-s3"` ahead of any `decidim_extra_gems`.
+- **FR-6: db password `override_special` narrowed from `._-@!` to `@!`, `min_special` set to 4.** Previous v3.1.12 charset uniformly sampled from 5 chars; (3/5)^5 ≈ 7.78% of generated passwords contained ZERO `@` or `!` and were rejected by Scaleway's RDB password constraint (which requires at least one `[!@#$%^&*]`-class special). Restricting `override_special` to `{@,!}` makes every drawn special Scaleway-compliant by definition. `min_special = 4` preserves entropy. Lifecycle `ignore_changes` keeps existing deployments' passwords stable. Applies to both `modules/infrastructure/storage/postgres` and `postgres_database`.
+- **FR-A: `authentik_stage_email.username` perpetual drift killed**. v3.1.11 fixed the same drift on `host`/`port`/`from_address` but missed `username`. Server back-fills empty string when `use_global_settings = true`; TF was emitting `null` so plan re-showed drift. All four `authentik_stage_email` resources across `flow_email_password_reset.tf`, `flow_email_mfa_reset.tf`, `flow_email_user_invitation.tf` (×2), and `flow_manual_enrollment.tf` now ternary-resolve `username` to `""` when `smtp_enabled = false`. Runtime behavior unchanged (use_global_settings ignores stage-level values when set).
+
 ## v3.2.0 - 2026-05-26
 
 Watchtower → diun migration (auto-update killed in favor of notify-only), identity role-name overrides surfaced through consumer-template, smtp_config bag preserve gate, and one consumer-template wiring fix that unbreaks `postgres_credentials_preserve` reach via `config.tf`.

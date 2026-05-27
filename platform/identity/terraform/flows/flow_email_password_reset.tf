@@ -52,12 +52,12 @@ resource "authentik_stage_email" "password_reset" {
   name                = "password-reset-email"
   use_global_settings = !var.smtp_enabled
 
-  # When smtp_enabled is false, host/port/from_address match the server-side
+  # When smtp_enabled is false, host/port/from_address/username match the server-side
   # defaults the Authentik API back-fills, which otherwise cause perpetual drift.
   # use_global_settings = true makes runtime ignore them; the stage no-ops cleanly.
   host         = var.smtp_enabled ? var.smtp_host : "localhost"
   port         = var.smtp_enabled ? var.smtp_port : 25
-  username     = var.smtp_enabled ? var.smtp_username : null
+  username     = var.smtp_enabled ? var.smtp_username : ""
   password     = var.smtp_enabled ? var.smtp_password : null
   use_tls      = false
   use_ssl      = true
