@@ -440,8 +440,14 @@ locals {
     module.grafana.monitoring,
     module.wazuh.monitoring,         # blackbox_targets — peer-flagged drop
     module.backrest_mgmt.monitoring, # prometheus_scrape_configs (backrest /metrics)
-    module.diun_mgmt.monitoring,     # loki_log_paths
   ] : c if c != null]
+
+  # Host-services contributions — base owns the diun fan-out at v3.4+, so
+  # rake in every enabled per-host instance's monitoring alongside the apps.
+  _monitoring_contribs_all = concat(
+    local._monitoring_contribs,
+    [for k, v in module.base.host_services.diun : v.monitoring if v != null && v.monitoring != null],
+  )
 
   # Normalize every per-bundle scrape entry to a canonical shape before flatten.
   # Terraform requires homogeneous list element types, and bundles emit entries
@@ -456,7 +462,7 @@ locals {
   # dns_sd, etc.) aren't supported by this normalizer yet — add handling
   # here when the first bundle needs it.
   aggregated_scrape_configs = flatten([
-    for c in local._monitoring_contribs : [
+    for c in local._monitoring_contribs_all : [
       for entry in try(c.prometheus_scrape_configs, []) : {
         job_name     = entry.job_name
         scheme       = try(entry.scheme, "http")
@@ -471,16 +477,16 @@ locals {
     ]
   ])
   aggregated_alert_rules = flatten([
-    for c in local._monitoring_contribs : try(c.alert_rules, [])
+    for c in local._monitoring_contribs_all : try(c.alert_rules, [])
   ])
   aggregated_blackbox_targets = distinct(flatten([
-    for c in local._monitoring_contribs : try(c.blackbox_targets, [])
+    for c in local._monitoring_contribs_all : try(c.blackbox_targets, [])
   ]))
   # Each entry in monitoring.grafana_dashboards is an absolute path to a JSON
   # file in the consumer's .terraform module cache. Read contents here so the
   # grafana role can write the files with no ansible-side path juggling.
   _aggregated_dashboard_paths = flatten([
-    for c in local._monitoring_contribs : try(c.grafana_dashboards, [])
+    for c in local._monitoring_contribs_all : try(c.grafana_dashboards, [])
   ])
   aggregated_grafana_dashboards = [
     for p in local._aggregated_dashboard_paths : {
@@ -699,54 +705,11 @@ module "backrest_mgmt" {
 }
 
 # ── Platform host-services (one container per host) ─────────────────────────
-# Diun watches container images on each host and fires a webhook when a new
-# tag-digest lands upstream; Autoheal restarts containers stuck unhealthy.
-# Multi-instance like backrest — one block per host you want them on. Each
-# app bundle's per-app `diun_watch_enabled` / `autoheal_enabled` knobs decide
-# which containers are labelled for these to act on.
-
-# Diun — notify-on-new-image watcher. Multi-instance like backrest: one block
-# per host you want notification coverage on. Convention: a single "mgmt"
-# instance on the management host covers a small fleet; large fleets get one
-# per host. See platform/apps/diun.
-#
-# Auto-wires its webhook target to the n8n bundle when n8n is enabled (mirrors
-# the TEM-webhook → n8n auto-wire pattern in platform/base/terraform/tem_webhook.tf).
-# When n8n is disabled and no targets are supplied, Diun runs but only logs
-# new-image events to stdout — effectively dormant until a target is wired.
-module "diun_mgmt" {
-  source = "git::https://github.com/sheyaln/sabokit.git//platform/apps/diun/terraform?ref=v3.3.1"
-
-  enabled       = try(var.apps.diun_mgmt.enabled, false)
-  instance_name = try(var.apps.diun_mgmt.instance_name, "mgmt")
-  base          = local.base
-
-  deployment_host_key     = try(var.apps.diun_mgmt.deployment_host_key, "management")
-  image_tag               = try(var.apps.diun_mgmt.image_tag, "4.31.0")
-  timezone                = try(var.apps.diun_mgmt.timezone, "UTC")
-  watch_schedule          = try(var.apps.diun_mgmt.watch_schedule, "0 0 6 * * *")
-  watch_workers           = try(var.apps.diun_mgmt.watch_workers, 10)
-  watch_first_check_notif = try(var.apps.diun_mgmt.watch_first_check_notif, false)
-  watch_by_default        = try(var.apps.diun_mgmt.watch_by_default, true)
-  default_watch_repo      = try(var.apps.diun_mgmt.default_watch_repo, false)
-  include_swarm_services  = try(var.apps.diun_mgmt.include_swarm_services, false)
-  notification_targets    = try(var.apps.diun_mgmt.notification_targets, [])
-  diun_notif_extra        = try(var.apps.diun_mgmt.diun_notif_extra, {})
-  diun_watch_enabled      = try(var.apps.diun_mgmt.diun_watch_enabled, false)
-  autoheal_enabled        = try(var.apps.diun_mgmt.autoheal_enabled, true)
-  monitoring_enabled      = try(var.apps.diun_mgmt.monitoring_enabled, true)
-
-  # Auto-wire webhook target to n8n when n8n is enabled and no explicit
-  # override is set. Mirrors the TEM → n8n auto-wire in
-  # platform/base/terraform/tem_webhook.tf. Consumer can override with
-  # `var.apps.diun_mgmt.n8n_webhook_url` to point at a non-n8n receiver,
-  # or leave empty and rely on `notification_targets` / `diun_notif_extra`.
-  n8n_webhook_url = try(
-    var.apps.diun_mgmt.n8n_webhook_url,
-    module.n8n.enabled ? "${coalesce(module.n8n.app_url, "")}/webhook/diun-image-update" : "",
-  )
-  extra_env_vars = try(var.apps.diun_mgmt.extra_env_vars, {})
-}
+# Diun (notify-on-new-image) moved to platform/base/host-services/ at v3.4.0
+# and auto-instantiates per compute_host from the base tier. Configure via
+# `var.base.diun.{enabled, disabled_hosts, ...}` — see platform/base/terraform/variables.tf.
+# Autoheal + wazuh-agent are still platform/apps/ bundles pending their own
+# moves (see project_v3_backlog).
 
 # Wazuh agent — host-network container that ships logs to the wazuh manager.
 # Multi-instance: copy this block per host you want monitored, swap the
