@@ -4,7 +4,7 @@
 # services off via var.core.<svc>.enabled = false.
 
 module "core" {
-  source = "git::https://github.com/sheyaln/sabokit.git//platform/core/terraform?ref=v3.3.2"
+  source = "git::https://github.com/sheyaln/sabokit.git//platform/core/terraform?ref=v3.4.0"
 
   base = local.base
 
