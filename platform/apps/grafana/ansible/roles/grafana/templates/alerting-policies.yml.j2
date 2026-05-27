@@ -1,11 +1,38 @@
 # {{ ansible_managed }}
 # Grafana notification policies. Provisioned via the alerting file provider.
-# Root policy routes to jsm-default when JSM is configured; otherwise this
-# file is not rendered and Grafana keeps its built-in default contact point.
+#
+# Two modes, gated by grafana_jsm_severity_gate:
+#   1) Empty (default) — JSM is the root receiver; every firing alert pages
+#      JSM unless a child policy overrides.
+#   2) Non-empty (e.g. "critical") — root stays on Grafana's built-in
+#      `grafana-default` contact (consumer wires that to n8n / their own
+#      fan-out target out of band). JSM lives on a child policy gated by
+#      `severity = <value>` with `continue: true`, so qualifying alerts
+#      route to BOTH the root contact and JSM.
 apiVersion: 1
 
 policies:
   - orgId: 1
+{% if grafana_jsm_severity_gate | length > 0 %}
+    receiver: grafana-default
+    group_by:
+      - grafana_folder
+      - alertname
+    group_wait: 30s
+    group_interval: 5m
+    repeat_interval: 4h
+    routes:
+      - receiver: jsm-default
+        object_matchers:
+          - ["severity", "=", "{{ grafana_jsm_severity_gate }}"]
+        continue: true
+        group_by:
+          - grafana_folder
+          - alertname
+        group_wait: 30s
+        group_interval: 5m
+        repeat_interval: 4h
+{% else %}
     receiver: jsm-default
     group_by:
       - grafana_folder
@@ -13,3 +40,4 @@ policies:
     group_wait: 30s
     group_interval: 5m
     repeat_interval: 4h
+{% endif %}

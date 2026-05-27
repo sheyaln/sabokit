@@ -179,6 +179,12 @@ variable "jsm_alert_tags" {
   default     = ["sabokit"]
 }
 
+variable "jsm_severity_gate" {
+  description = "Gate label matcher value for a JSM child policy. Empty (default) = JSM is the root contact point when `jsm_api_key_secret_id` is set (existing behaviour). Non-empty (e.g. \"critical\") = root policy stays on Grafana's built-in `grafana-default` contact (consumer wires this to n8n / their own fan-out out of band), and JSM lives on a child policy gated by `severity = <value>` with `continue: true` so the alert routes to BOTH the root contact and JSM. Only consulted when `jsm_api_key_secret_id` is non-empty."
+  type        = string
+  default     = ""
+}
+
 variable "grafana_dashboards" {
   description = "Dashboards to provision into Grafana's file provider. The consumer reads each path from every enabled app's monitoring.grafana_dashboards (list(string) of file paths), turns it into {filename, contents}, and passes the union here. The role writes one file per entry under /etc/grafana/provisioning/dashboards/; Grafana's file provider auto-reloads (no restart needed)."
   type = list(object({

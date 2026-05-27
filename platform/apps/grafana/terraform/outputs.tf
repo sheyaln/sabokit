@@ -65,6 +65,7 @@ output "ansible" {
       grafana_jsm_api_region             = var.jsm_api_region
       grafana_jsm_priority_mapping       = var.jsm_priority_mapping
       grafana_jsm_alert_tags             = var.jsm_alert_tags
+      grafana_jsm_severity_gate          = var.jsm_severity_gate
     }
   } : null
 }

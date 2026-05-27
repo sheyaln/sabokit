@@ -41,6 +41,12 @@ grafana_jsm_priority_mapping:
   info: P5
 grafana_jsm_alert_tags:
   - sabokit
+# Severity-gate routing. Empty = JSM is the root contact when an API key is
+# set (existing behaviour). Non-empty (e.g. "critical") = root stays on
+# Grafana's built-in `grafana-default` contact (consumer wires that to n8n
+# or another fan-out target out of band) and JSM moves to a child policy
+# matching `severity = <value>` with `continue: true`.
+grafana_jsm_severity_gate: ""
 
 # Filesystem owner/group for /opt/<slug>/ artifacts (compose file, .env).
 # Defaults to the deploy user (ubuntu on stock cloud images) so the role
