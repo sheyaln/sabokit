@@ -2,12 +2,20 @@
 # version bumps when modules are renamed, moved, or restructured.
 
 # v3.4.0 — wazuh-agent moved from platform/apps/ to platform/base/host-services/
-# and auto-instantiates per compute_host inside module.base. The example
-# template previously declared a single instance keyed by "apps".
-# Consumers with additional wazuh-agent instances (e.g. _management,
-# _authentik) must add their own `moved {}` blocks alongside this one,
-# matching the key they used in module.base.compute.hosts.
+# and auto-instantiates per compute_host inside module.base. Canonical 3-host
+# naming landed in the same release, so the legacy "apps" host key now lives
+# under "tools" and the legacy "authentik" identity host under "identity".
 moved {
   from = module.wazuh_agent_apps
-  to   = module.base.module.wazuh_agent["apps"]
+  to   = module.base.module.wazuh_agent["tools"]
+}
+
+moved {
+  from = module.base.module.wazuh_agent["apps"]
+  to   = module.base.module.wazuh_agent["tools"]
+}
+
+moved {
+  from = module.base.module.wazuh_agent["authentik"]
+  to   = module.base.module.wazuh_agent["identity"]
 }
