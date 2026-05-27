@@ -330,6 +330,7 @@
     grafana_jsm_api_region: "{{ enabled_apps.grafana.ansible_vars.grafana_jsm_api_region }}"
     grafana_jsm_priority_mapping: "{{ enabled_apps.grafana.ansible_vars.grafana_jsm_priority_mapping }}"
     grafana_jsm_alert_tags: "{{ enabled_apps.grafana.ansible_vars.grafana_jsm_alert_tags }}"
+    grafana_jsm_severity_gate: "{{ enabled_apps.grafana.ansible_vars.grafana_jsm_severity_gate }}"
   when: enabled_apps.grafana is defined and enabled_apps.grafana is not none
   tags: [apps, grafana]
 - import_playbook: ../apps/diun/ansible/playbook.yml
