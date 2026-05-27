@@ -1,5 +1,0 @@
----
-- name: Restart notifuse
-  community.docker.docker_compose_v2:
-    project_src: "{{ notifuse_install_dir }}"
-    state: restarted
