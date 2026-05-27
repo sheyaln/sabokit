@@ -2,6 +2,31 @@
 
 All notable changes to sabokit go here. Versioning follows semver; major bumps signal breaking contract changes for consumers.
 
+## v3.3.0 - 2026-05-27
+
+Seven independent feature streams bundled into one minor. Identity policies, deploy ergonomics, namespace hygiene, app-bundle cleanup.
+
+### Added
+- **`credentials_preserve_source` third cutover mode** on every credential-generating bundle (12 apps + 5 shared modules). Consumer supplies the canonical key map directly via TF variable as a third option alongside greenfield (`preserve = false`) and in-place legacy bag (`preserve = true`). Lifts the manual bag-pre-populate ClickOps step for consumers whose legacy stack stored credentials outside Scaleway. All new variables are `sensitive = true`. Drop the `preserve_source` map after first apply; `lifecycle { ignore_changes = [data] }` pins the bag thereafter. Three-mode resolution lives in each bundle's `local.effective_credentials`.
+- **`extra_docker_networks` knob (`list(string)`, default `[]`) on every app bundle** plus protonmail-bridge under `var.bootstrap`. Pattern proven on n8n v3.1.6. Attaches the bundle's main container to extra docker networks alongside its traefik network. Use for cross-bundle integration with sidecars in other bootstrap-tier networks (LDAP relay, log shipping, etc.). Skipped on autoheal, diun, wazuh-agent (no compose `networks:` block or `network_mode: host`). Networks must already exist on the host.
+- **`member_id` uniqueness policy + enrollment-flow port + manual-enrollment collision UX**. New `authentik_policy_expression` resources `shared_member_id_normalize` (strips + lowercases prompt_data in place) and `shared_member_id_unique` (case-insensitive query against `user.attributes.member_id`, excludes `pending_user.pk` for self-edits, fails open on exceptions) bound as `validation_policies` on user-settings + source-enrollment + manual-enrollment prompt stages. Manual enrollment also gains the `member_id` field (was missing) and a clean "Account Already Exists" short-circuit prompt-stage at order 17 gated by an email-uniqueness policy (HTML template at `platform/identity/terraform/assets/already-registered-message.html.tpl`).
+- **Automatic n8n workflow import on deploy.** New `workflows_dir` input on the n8n bundle. When set (relative to `consumer-template/environments/<env>/` per ansible playbook invocation cwd), the role syncs `*.json` files to `/opt/n8n/workflows-import/` on the apps host, bind-mounts read-only into the n8n container, runs `n8n import:workflow --separate --input=/workflows-import/` after healthcheck. n8n upserts by workflow `id` so re-runs are idempotent. Workflows land `active: false` (operator activates once); credentials must be re-bound in the UI after first import. Convention is `consumer-template/workflows/` with `workflows_dir = "../../workflows"`.
+- **`jsm_severity_gate` knob on grafana bundle** for dual-contact severity routing. Empty (default) keeps existing behavior (JSM is root contact when `jsm_api_key_secret_id` is set). Non-empty (e.g. `"critical"`) keeps `grafana-default` at root (consumer wires it to n8n / their own fan-out separately) and JSM moves to a child policy gated by `severity = <value>` with `continue: true`, so qualifying alerts route to both. The previously dead `jsm_priority_mapping` + `jsm_alert_tags` knobs are now wired into the opsgenie contact point's `priority` (Go-template chain derived from the severity → P1-P5 map) and `tags` (comma-joined list).
+- **`platform/bootstrap/README.md`** documents the per-provider modules convention (no abstract dispatcher). `var.bootstrap` typing tightened from `any` to `object({ protonmail_bridge = optional(any, {}) })`. Protonmail-bridge bundle's ansible role + playbook descriptions corrected from "SMTP gateway" to "IMAP-only" (bundle exposes the IMAP listener; outbound SMTP stays on base via Scaleway TEM).
+
+### Removed
+- **`platform/apps/notifuse/` bundle**. Broadsheet (sabokit-broadsheet fork) replaces it. Consumers still running notifuse should rsync S3 buckets + dump postgres + re-create campaigns/workspaces in broadsheet (notifuse's `SECRET_KEY` encrypts every workspace secret, so payload migration is operator-side). Broadsheet's Traefik labels were namespaced `broadsheet` at v3.2.1 to allow co-deployment during cutover windows. The `services.notifuse:` docker compose entry inside broadsheet's role template remains intentional (binary internal paths assume that service name in the fork).
+
+### Fixed
+- Notifuse manifest section + consumer-template `module "notifuse"` + `BUNDLES` entry + `tests/local-validate/main.tf` fixture + cross-bundle README references all removed. Generated `platform/ansible/apps.yml` + `down.yml` regenerated to match the new 19-bundle list.
+
+### Operator migration notes
+- **`apps.notifuse.*` keys in consumer tfvars are now silently unused**. `terraform plan` won't fail; the keys do nothing. Strip them for cleanliness on next bump.
+- **Renames on identity role names force-replace `authentik_group` / `authentik_rbac_role`**. Coordinate at deploy time, not mid-cycle.
+- **`extra_docker_networks` attachments need stack restart on existing deployments** to pick up the new network. Empty default is no-op (trim_blocks renders byte-identical compose).
+- **Existing users with duplicate `member_id` values get rejected on next user-settings save**. Pre-scan for duplicates before bumping; coordinate with affected users.
+- **Manual-enrollment now short-circuits on duplicate email** before `user_write`. Resubmitting users see "Account Already Exists" with a "Return to Home" button instead of an opaque error.
+
 ## v3.2.2 - 2026-05-27
 
 Security hardening on the base image, scanner workflows in CI, and a universal escape-hatch knob across most app bundles.
