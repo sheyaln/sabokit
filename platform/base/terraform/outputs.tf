@@ -86,6 +86,18 @@ output "domains" {
   value       = local.domains_output
 }
 
+output "host_services" {
+  description = "Per-host instances of host-services bundles, keyed by service then by compute_host key. Consumer-template aggregates these into enabled_apps so Ansible deploys them via the standard per-app pipeline."
+  value = {
+    wazuh_agent = {
+      for k, m in module.wazuh_agent : k => {
+        ansible_vars  = m.ansible.vars
+        ansible_group = m.ansible.host_group
+      }
+    }
+  }
+}
+
 # Convenience flat outputs (most consumers prefer the structured maps above)
 
 output "spf_include" {

@@ -23,31 +23,12 @@ moved {
 }
 
 # ── Backrest per-host fan-out (v3.4.0) ───────────────────────────────────
-#
-# Backrest moved from a single hand-keyed `backrest_mgmt` module to
-# `for_each` over var.compute_hosts. The default shipping block covers the
-# "management" instance. Consumers whose forks hand-instantiated additional
-# backrest modules (e.g. `backrest_apps`, `backrest_authentik` keyed off
-# legacy peer-style instance names) add their own `moved {}` entries in their
-# fork pointing those legacy module addresses at the matching
-# `module.backrest["<compute_host_key>"]` slot — otherwise terraform will
-# destroy the old bucket and recreate a new one, losing snapshots.
-#
-# If a legacy `instance_name` (e.g. "tools") differs from the new
-# compute_hosts key (e.g. "tools-prod"), use
-# `var.apps.backrest.per_host["tools-prod"].bucket_name_override = "<old-bucket-name>"`
-# to keep the existing bucket attached to the new module address.
 
 moved {
   from = module.backrest_mgmt
   to   = module.backrest["management"]
 }
 
-# Backrest instance-key renames that ride on the canonical host-key rename
-# above. Consumers who upgraded TO v3.4.0 with the new for_each shape on the
-# old "apps"/"authentik" keys (which would only happen if they applied a
-# beta v3.4 against pre-rename compute_hosts) get these. Harmless no-op for
-# anyone landing v3.4.0 cleanly.
 moved {
   from = module.backrest["apps"]
   to   = module.backrest["tools"]
@@ -59,29 +40,16 @@ moved {
 }
 
 # ── Diun → host-services tier (v3.4.0) ───────────────────────────────────
-#
-# Diun moved from platform/apps/diun to platform/base/host-services/diun and
-# auto-instantiates per compute_host from the base tier. No `moved` block
-# emitted because the diun bundle is a contract-only compute module with
-# zero `resource` declarations — terraform tracks no state under
-# `module.diun_mgmt`, so the address simply disappears on apply with no
-# downstream effect. Consumers who previously enabled `var.apps.diun_mgmt`
-# should remove that key from tfvars and configure `var.base.diun.*` instead.
+# Zero TF resources in diun bundle, no moved{} needed. Consumers remove
+# `var.apps.diun_mgmt` from tfvars and configure `var.base.diun.*` instead.
 
 # ── Autoheal → host-services tier (v3.4.0) ───────────────────────────────
-#
-# Autoheal moved from platform/apps/autoheal to platform/base/host-services/
-# autoheal and is auto-instantiated per compute_host. Consumers with the
-# upstream-shipped `module.autoheal_apps` instance migrate to the canonical
-# "tools" host-key slot. Forks running multi-host autoheal coverage on
-# "authentik" / "management" keys add their own moved{} blocks in their fork.
 
 moved {
   from = module.autoheal_apps
   to   = module.base.module.autoheal["tools"]
 }
 
-# Pre-rename autoheal instances (rare beta case — same shape as backrest above).
 moved {
   from = module.base.module.autoheal["apps"]
   to   = module.base.module.autoheal["tools"]
@@ -90,4 +58,21 @@ moved {
 moved {
   from = module.base.module.autoheal["authentik"]
   to   = module.base.module.autoheal["identity"]
+}
+
+# ── Wazuh-agent → host-services tier (v3.4.0) ────────────────────────────
+
+moved {
+  from = module.wazuh_agent_apps
+  to   = module.base.module.wazuh_agent["tools"]
+}
+
+moved {
+  from = module.base.module.wazuh_agent["apps"]
+  to   = module.base.module.wazuh_agent["tools"]
+}
+
+moved {
+  from = module.base.module.wazuh_agent["authentik"]
+  to   = module.base.module.wazuh_agent["identity"]
 }

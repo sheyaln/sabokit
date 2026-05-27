@@ -27,3 +27,9 @@
   when: enabled_host_services.autoheal is defined
         and (enabled_host_services.autoheal | length) > 0
   tags: [host-services, autoheal]
+- import_playbook: ../base/host-services/wazuh-agent/ansible/playbook.yml
+  vars:
+    wazuh_agent_all_instances: "{{ enabled_host_services.wazuh_agent }}"
+  when: enabled_host_services.wazuh_agent is defined
+        and (enabled_host_services.wazuh_agent | length) > 0
+  tags: [host-services, wazuh_agent]

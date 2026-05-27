@@ -62,7 +62,7 @@ locals {
 }
 
 output "enabled_apps" {
-  description = "Map of enabled app name -> bundle outputs. Consumed by Ansible via `terraform output -json enabled_apps`. Includes per-host host-services entries keyed `<service>_<host>` (e.g. `autoheal_apps`, `autoheal_management`)."
+  description = "Map of enabled app name -> bundle outputs. Consumed by Ansible via `terraform output -json enabled_apps`. Includes per-host host-services entries keyed `<service>_<host>` (e.g. `autoheal_tools`, `wazuh_agent_management`)."
   value = merge(local.host_services_enabled_apps, {
     outline = module.outline.enabled ? {
       url           = module.outline.app_url
@@ -164,10 +164,6 @@ output "enabled_apps" {
           monitoring    = inst.monitoring
         }
       }
-    } : null
-    wazuh_agent_apps = module.wazuh_agent_apps.enabled ? {
-      ansible_vars  = module.wazuh_agent_apps.ansible.vars
-      ansible_group = module.wazuh_agent_apps.ansible.host_group
     } : null
     protonmail_bridge = module.protonmail_bridge.enabled ? {
       ansible_vars  = module.protonmail_bridge.ansible.vars

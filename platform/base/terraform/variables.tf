@@ -293,10 +293,10 @@ variable "dmarc_rua_email" {
   default     = ""
 }
 
-# ── Host-services sub-tier ──────────────────────────────────────────────────
-# One container per compute_host. Default-on as a category; each service has
-# its own enabled toggle (default true) and a disabled_hosts opt-out list.
-# Consumer-template plumbs these via `var.base.<service>`.
+# ── Host-services tier ──────────────────────────────────────────────────────
+# Each service auto-instantiates once per entry in var.compute_hosts. Defaults
+# are on. Consumers disable an entire service via `enabled = false` or opt out
+# specific hosts via `disabled_hosts = [...]`. See ARCHITECTURE.md.
 
 variable "diun" {
   description = "Diun (notify-on-new-image watcher) settings. One instance per compute_host. Set `enabled = false` to turn off everywhere, or list keys from `compute_hosts` in `disabled_hosts` for per-host opt-out. `n8n_webhook_url` is auto-wired by the consumer-template when the n8n bundle is enabled — leave empty otherwise."
@@ -321,4 +321,22 @@ variable "diun" {
   })
   default   = {}
   sensitive = true
+}
+
+variable "wazuh_agent" {
+  description = "HIDS log-shipper running on every compute host, reporting to the wazuh manager. Default on because SSH-as-deploy means hosts are always exposed and host-level intrusion detection is a sensible production default. Consumers without a wazuh manager set `enabled = false` (whole service off) or list every host under `disabled_hosts`. `manager_address` is the manager's reachable network address — consumer-template auto-wires it from `module.wazuh.manager_private_ip` when the manager app is enabled."
+  type = object({
+    enabled              = optional(bool, true)
+    disabled_hosts       = optional(list(string), [])
+    image                = optional(string, "wazuh/wazuh-agent")
+    release_version      = optional(string, "4.9.0")
+    manager_address      = optional(string, "")
+    fim_enabled          = optional(bool, true)
+    fim_extra_paths      = optional(list(string), [])
+    fim_extra_exclusions = optional(list(string), [])
+    diun_watch_enabled   = optional(bool, true)
+    autoheal_enabled     = optional(bool, true)
+    extra_env_vars       = optional(map(string), {})
+  })
+  default = {}
 }

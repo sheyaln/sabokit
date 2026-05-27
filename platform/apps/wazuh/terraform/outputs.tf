@@ -63,6 +63,11 @@ output "split_dns_entries" {
   ] : []
 }
 
+output "manager_private_ip" {
+  description = "Private-VPC IP of the host running the Wazuh manager. wazuh-agent bundles on other hosts connect here for log shipping + enrollment. Empty when wazuh is disabled."
+  value       = var.enabled ? var.base.compute.hosts[var.deployment_host_key].private_ip : ""
+}
+
 output "ansible" {
   description = "Ansible deployment metadata."
   value = var.enabled ? {

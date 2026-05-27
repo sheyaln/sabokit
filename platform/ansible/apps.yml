@@ -335,21 +335,6 @@
     wazuh_extra_docker_networks: "{{ enabled_apps.wazuh.ansible_vars.wazuh_extra_docker_networks }}"
   when: enabled_apps.wazuh is defined and enabled_apps.wazuh is not none
   tags: [apps, wazuh]
-- import_playbook: ../apps/wazuh-agent/ansible/playbook.yml
-  vars:
-    wazuh_agent_host_group: "{{ enabled_apps.wazuh_agent_apps.ansible_group }}"
-    wazuh_agent_image: "{{ enabled_apps.wazuh_agent_apps.ansible_vars.wazuh_agent_image }}"
-    wazuh_agent_release_version: "{{ enabled_apps.wazuh_agent_apps.ansible_vars.wazuh_agent_release_version }}"
-    wazuh_agent_name: "{{ enabled_apps.wazuh_agent_apps.ansible_vars.wazuh_agent_name }}"
-    wazuh_agent_manager_address: "{{ enabled_apps.wazuh_agent_apps.ansible_vars.wazuh_agent_manager_address }}"
-    wazuh_agent_diun_watch_enabled: "{{ enabled_apps.wazuh_agent_apps.ansible_vars.wazuh_agent_diun_watch_enabled }}"
-    wazuh_agent_autoheal_enabled: "{{ enabled_apps.wazuh_agent_apps.ansible_vars.wazuh_agent_autoheal_enabled }}"
-    wazuh_agent_extra_env_vars: "{{ enabled_apps.wazuh_agent_apps.ansible_vars.wazuh_agent_extra_env_vars }}"
-    wazuh_agent_fim_enabled: "{{ enabled_apps.wazuh_agent_apps.ansible_vars.wazuh_agent_fim_enabled }}"
-    wazuh_agent_fim_extra_paths: "{{ enabled_apps.wazuh_agent_apps.ansible_vars.wazuh_agent_fim_extra_paths }}"
-    wazuh_agent_fim_extra_exclusions: "{{ enabled_apps.wazuh_agent_apps.ansible_vars.wazuh_agent_fim_extra_exclusions }}"
-  when: enabled_apps.wazuh_agent_apps is defined and enabled_apps.wazuh_agent_apps is not none
-  tags: [apps, wazuh_agent_apps]
 - import_playbook: ../apps/backrest/ansible/playbook.yml
   vars:
     backrest_all_instances: "{{ enabled_apps.backrest.instances }}"

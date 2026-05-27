@@ -750,23 +750,12 @@ module "backrest" {
 # platform/base/terraform/variables.tf. n8n webhook target auto-wires when the
 # n8n app is enabled (consumer-template/modules/stack/base.tf).
 
-# Wazuh agent — host-network container that ships logs to the wazuh manager.
-# Multi-instance: copy this block per host you want monitored, swap the
-# `wazuh_agent_apps` key + the deployment_host_key.
-module "wazuh_agent_apps" {
-  source = "git::https://github.com/sheyaln/sabokit.git//platform/apps/wazuh-agent/terraform?ref=v3.3.2"
-
-  enabled              = try(var.apps.wazuh_agent_apps.enabled, false)
-  base                 = local.base
-  deployment_host_key  = try(var.apps.wazuh_agent_apps.deployment_host_key, "tools")
-  manager_address      = try(var.apps.wazuh_agent_apps.manager_address, "")
-  agent_name           = try(var.apps.wazuh_agent_apps.agent_name, "")
-  release_version      = try(var.apps.wazuh_agent_apps.release_version, "4.9.0")
-  fim_enabled          = try(var.apps.wazuh_agent_apps.fim_enabled, true)
-  fim_extra_paths      = try(var.apps.wazuh_agent_apps.fim_extra_paths, [])
-  fim_extra_exclusions = try(var.apps.wazuh_agent_apps.fim_extra_exclusions, [])
-  extra_env_vars       = try(var.apps.wazuh_agent_apps.extra_env_vars, {})
-}
+# Wazuh-agent (HIDS log-shipper) moved to platform/base/host-services/ at v3.4.0
+# and auto-instantiates per compute_host from the base tier. Configure via
+# `var.base.wazuh_agent.{enabled, disabled_hosts, manager_address, ...}` — see
+# platform/base/terraform/variables.tf. The manager_address auto-wires from
+# `module.wazuh.manager_private_ip` (or module.core.wazuh.manager_private_ip
+# post-core-tier merge) when the wazuh manager app is enabled.
 
 # ProtonMail Bridge — IMAP inbound mail for apps that fetch (n8n workflows,
 # etc). SMTP outbound stays on TEM at the base tier. Lives in

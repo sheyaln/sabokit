@@ -19,6 +19,11 @@ locals {
     for k, h in var.compute_hosts : k => h
     if var.autoheal.enabled && !contains(var.autoheal.disabled_hosts, k)
   }
+
+  wazuh_agent_hosts = var.wazuh_agent.enabled ? {
+    for k, _ in var.compute_hosts : k => k
+    if !contains(var.wazuh_agent.disabled_hosts, k)
+  } : {}
 }
 
 module "diun" {
@@ -59,4 +64,23 @@ module "autoheal" {
   image_tag            = var.autoheal.image_tag
   interval_seconds     = var.autoheal.interval_seconds
   start_period_seconds = var.autoheal.start_period_seconds
+}
+
+module "wazuh_agent" {
+  source   = "../host-services/wazuh-agent/terraform"
+  for_each = local.wazuh_agent_hosts
+
+  enabled             = true
+  base                = local.host_services_base
+  deployment_host_key = each.value
+
+  image                = var.wazuh_agent.image
+  release_version      = var.wazuh_agent.release_version
+  manager_address      = var.wazuh_agent.manager_address
+  fim_enabled          = var.wazuh_agent.fim_enabled
+  fim_extra_paths      = var.wazuh_agent.fim_extra_paths
+  fim_extra_exclusions = var.wazuh_agent.fim_extra_exclusions
+  diun_watch_enabled   = var.wazuh_agent.diun_watch_enabled
+  autoheal_enabled     = var.wazuh_agent.autoheal_enabled
+  extra_env_vars       = var.wazuh_agent.extra_env_vars
 }

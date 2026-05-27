@@ -60,4 +60,16 @@ module "base" {
     module.nextcloud.required_inbound_rules,
     module.wazuh.required_inbound_rules,
   )
+
+  # Host-services tier. Default-on; consumers opt out via
+  # `var.base.<service>.enabled = false` or per-host via
+  # `var.base.<service>.disabled_hosts = [...]`.
+  # wazuh-agent's manager_address falls through to module.wazuh.manager_private_ip
+  # when the manager app is enabled and the consumer didn't override.
+  wazuh_agent = merge(
+    try(var.base.wazuh_agent, {}),
+    {
+      manager_address = try(var.base.wazuh_agent.manager_address, "") != "" ? var.base.wazuh_agent.manager_address : (module.wazuh.enabled ? module.wazuh.manager_private_ip : "")
+    },
+  )
 }
