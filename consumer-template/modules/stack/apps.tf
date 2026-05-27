@@ -795,14 +795,7 @@ module "protonmail_bridge" {
   extra_docker_networks   = try(var.bootstrap.protonmail_bridge.extra_docker_networks, [])
 }
 
-module "autoheal_apps" {
-  source = "git::https://github.com/sheyaln/sabokit.git//platform/apps/autoheal/terraform?ref=v3.3.2"
-
-  enabled = try(var.apps.autoheal_apps.enabled, false)
-  base    = local.base
-
-  deployment_host_key  = try(var.apps.autoheal_apps.deployment_host_key, "tools")
-  image_tag            = try(var.apps.autoheal_apps.image_tag, "latest")
-  interval_seconds     = try(var.apps.autoheal_apps.interval_seconds, 5)
-  start_period_seconds = try(var.apps.autoheal_apps.start_period_seconds, 60)
-}
+# Autoheal (restart-on-unhealthy watcher) moved to platform/base/host-services/
+# at v3.4.0. Auto-instantiates per compute_host from the base tier. Configure
+# via `var.base.autoheal.{enabled, disabled_hosts, ...}` — see
+# platform/base/terraform/variables.tf.

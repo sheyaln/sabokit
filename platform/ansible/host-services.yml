@@ -21,3 +21,9 @@
   when: enabled_host_services.diun is defined
         and (enabled_host_services.diun | length) > 0
   tags: [host-services, diun]
+- import_playbook: ../base/host-services/autoheal/ansible/playbook.yml
+  vars:
+    autoheal_all_instances: "{{ enabled_host_services.autoheal }}"
+  when: enabled_host_services.autoheal is defined
+        and (enabled_host_services.autoheal | length) > 0
+  tags: [host-services, autoheal]

@@ -268,6 +268,25 @@ variable "tem_webhook_sns_topic_name" {
   default     = "tem-delivery-events"
 }
 
+# ── Host services ───────────────────────────────────────────────────────────
+# Per-host runtime watchers (autoheal, diun, wazuh-agent). Each service is
+# default-on at the category level. Consumer flips `enabled = false` to turn
+# a service off everywhere, or lists hosts in `disabled_hosts` to opt out
+# per-host. The base layer for_each's over var.compute_hosts and instantiates
+# one bundle per host minus disabled_hosts.
+
+variable "autoheal" {
+  description = "Autoheal host-service. One container per compute_host watches Docker for unhealthy sibling containers and restarts those carrying the `autoheal=true` label. Default-on category. `enabled = false` disables on every host; `disabled_hosts` opts specific hosts out (must be keys in compute_hosts). image_tag / interval_seconds / start_period_seconds forward to the bundle defaults."
+  type = object({
+    enabled              = optional(bool, true)
+    disabled_hosts       = optional(list(string), [])
+    image_tag            = optional(string, "latest")
+    interval_seconds     = optional(number, 5)
+    start_period_seconds = optional(number, 60)
+  })
+  default = {}
+}
+
 variable "dmarc_rua_email" {
   description = "Email address for DMARC aggregate reports (rua=). Default empty = no rua, matching the conservative `v=DMARC1; p=quarantine` baseline. Set only if you actually process DMARC reports — otherwise reports go into a black hole."
   type        = string

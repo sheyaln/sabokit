@@ -1,19 +1,23 @@
 # Per-host auto-instantiation of host-services bundles. One module call per
-# entry in var.compute_hosts, gated by var.<service>.enabled +
-# disabled_hosts. Each service is default-on as a category; turn off via
-# `var.<service>.enabled = false` (whole service) or per-host opt-out via
-# `var.<service>.disabled_hosts`.
+# entry in var.compute_hosts, gated by each service's `enabled` flag and
+# `disabled_hosts` opt-out list. Services default-on (see ARCHITECTURE.md
+# host-services sub-tier section).
 #
 # Host-services bundles are self-contained — they only need a minimal slice
 # of the base contract (compute.hosts[host_key].ansible_group). We pass that
-# subset rather than reaching across the layered model.
+# subset rather than reaching across the layered model — avoids a circular
+# module dependency while keeping the bundle contract identical to the app-tier.
 
 locals {
-  # Subset of the apps-facing base object the host-services bundles consume.
-  # Bundles read `var.base.compute.hosts[var.deployment_host_key].ansible_group`
-  # — that's the entire surface; nothing else is needed inside this tier.
   host_services_base = {
-    compute = local.compute_output
+    scaleway = local.scaleway_output
+    compute  = local.compute_output
+    domains  = local.domains_output
+  }
+
+  autoheal_hosts = {
+    for k, h in var.compute_hosts : k => h
+    if var.autoheal.enabled && !contains(var.autoheal.disabled_hosts, k)
   }
 }
 
@@ -42,4 +46,17 @@ module "diun" {
   monitoring_enabled      = var.diun.monitoring_enabled
   n8n_webhook_url         = var.diun.n8n_webhook_url
   extra_env_vars          = var.diun.extra_env_vars
+}
+
+module "autoheal" {
+  source   = "../host-services/autoheal/terraform"
+  for_each = local.autoheal_hosts
+
+  enabled = true
+  base    = local.host_services_base
+
+  deployment_host_key  = each.key
+  image_tag            = var.autoheal.image_tag
+  interval_seconds     = var.autoheal.interval_seconds
+  start_period_seconds = var.autoheal.start_period_seconds
 }

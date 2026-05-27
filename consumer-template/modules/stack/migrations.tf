@@ -67,3 +67,27 @@ moved {
 # `module.diun_mgmt`, so the address simply disappears on apply with no
 # downstream effect. Consumers who previously enabled `var.apps.diun_mgmt`
 # should remove that key from tfvars and configure `var.base.diun.*` instead.
+
+# ── Autoheal → host-services tier (v3.4.0) ───────────────────────────────
+#
+# Autoheal moved from platform/apps/autoheal to platform/base/host-services/
+# autoheal and is auto-instantiated per compute_host. Consumers with the
+# upstream-shipped `module.autoheal_apps` instance migrate to the canonical
+# "tools" host-key slot. Forks running multi-host autoheal coverage on
+# "authentik" / "management" keys add their own moved{} blocks in their fork.
+
+moved {
+  from = module.autoheal_apps
+  to   = module.base.module.autoheal["tools"]
+}
+
+# Pre-rename autoheal instances (rare beta case — same shape as backrest above).
+moved {
+  from = module.base.module.autoheal["apps"]
+  to   = module.base.module.autoheal["tools"]
+}
+
+moved {
+  from = module.base.module.autoheal["authentik"]
+  to   = module.base.module.autoheal["identity"]
+}

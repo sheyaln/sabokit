@@ -288,22 +288,6 @@
         state: absent
       when: enabled_apps.wazuh_agent_apps is defined and enabled_apps.wazuh_agent_apps is not none
       ignore_errors: true  # compose file may already be gone
-- name: "down: autoheal"
-  hosts: "{{ (enabled_apps.autoheal_apps | default({})).ansible_group | default('all') }}"
-  become: true
-  gather_facts: false
-  tags: [down, autoheal_apps]
-  tasks:
-    - name: Load role defaults
-      ansible.builtin.include_vars:
-        file: "../apps/autoheal/ansible/roles/autoheal/defaults/main.yml"
-      when: enabled_apps.autoheal_apps is defined and enabled_apps.autoheal_apps is not none
-    - name: Stop and remove the compose stack
-      community.docker.docker_compose_v2:
-        project_src: "{{ autoheal_install_dir | default('/opt/autoheal') }}"
-        state: absent
-      when: enabled_apps.autoheal_apps is defined and enabled_apps.autoheal_apps is not none
-      ignore_errors: true  # compose file may already be gone
 - name: "down: backrest"
   hosts: all
   become: true
@@ -337,3 +321,19 @@
         label: "{{ inst.key }}"
       ignore_errors: true  # compose file may already be gone
       when: enabled_host_services.diun is defined
+- name: "down: autoheal"
+  hosts: all
+  become: true
+  gather_facts: false
+  tags: [down, autoheal]
+  tasks:
+    - name: Stop and remove each autoheal instance
+      community.docker.docker_compose_v2:
+        project_src: "/opt/autoheal-{{ inst.key }}"
+        state: absent
+      loop: "{{ (enabled_host_services.autoheal | default({})) | dict2items | selectattr('value.ansible_group', 'in', group_names) | list }}"
+      loop_control:
+        loop_var: inst
+        label: "{{ inst.key }}"
+      ignore_errors: true  # compose file may already be gone
+      when: enabled_host_services.autoheal is defined

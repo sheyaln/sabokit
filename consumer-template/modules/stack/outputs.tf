@@ -46,9 +46,24 @@ output "split_dns_overrides" {
   value       = local.split_dns_overrides
 }
 
+locals {
+  # Host-services from the base layer: one entry per (service, host) pair the
+  # base for_each instantiated. Flatten into enabled_apps keyed
+  # `<service>_<host>` so the existing apps.yml playbook-import dispatch
+  # picks them up without a separate code path.
+  host_services_enabled_apps = merge([
+    for svc, instances in module.base.host_services : {
+      for host_key, inst in instances : "${svc}_${host_key}" => {
+        ansible_vars  = inst.ansible_vars
+        ansible_group = inst.ansible_group
+      } if inst.enabled
+    }
+  ]...)
+}
+
 output "enabled_apps" {
-  description = "Map of enabled app name -> bundle outputs. Consumed by Ansible via `terraform output -json enabled_apps`."
-  value = {
+  description = "Map of enabled app name -> bundle outputs. Consumed by Ansible via `terraform output -json enabled_apps`. Includes per-host host-services entries keyed `<service>_<host>` (e.g. `autoheal_apps`, `autoheal_management`)."
+  value = merge(local.host_services_enabled_apps, {
     outline = module.outline.enabled ? {
       url           = module.outline.app_url
       ansible_vars  = module.outline.ansible.vars
@@ -154,15 +169,11 @@ output "enabled_apps" {
       ansible_vars  = module.wazuh_agent_apps.ansible.vars
       ansible_group = module.wazuh_agent_apps.ansible.host_group
     } : null
-    autoheal_apps = module.autoheal_apps.enabled ? {
-      ansible_vars  = module.autoheal_apps.ansible.vars
-      ansible_group = module.autoheal_apps.ansible.host_group
-    } : null
     protonmail_bridge = module.protonmail_bridge.enabled ? {
       ansible_vars  = module.protonmail_bridge.ansible.vars
       ansible_group = module.protonmail_bridge.ansible.host_group
     } : null
-  }
+  })
 }
 
 output "enabled_host_services" {

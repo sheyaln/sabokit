@@ -58,6 +58,19 @@ locals {
   }
 }
 
+output "host_services" {
+  description = "Per-host host-services instances keyed by service name then host key. Consumer-template's enabled_apps aggregation reads each service map and emits an `<service>_<host>` entry per running instance, so the existing ansible apps.yml playbook-import dispatch still works."
+  value = {
+    autoheal = {
+      for k, m in module.autoheal : k => {
+        enabled       = m.enabled
+        ansible_vars  = m.ansible.vars
+        ansible_group = m.ansible.host_group
+      }
+    }
+  }
+}
+
 output "scaleway" {
   description = "Scaleway platform handles. Apps use these to provision their own resources."
   value       = local.scaleway_output

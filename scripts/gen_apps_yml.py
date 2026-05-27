@@ -70,7 +70,6 @@ BUNDLES = [
     ("grafana",        "grafana",         "grafana"),
     ("wazuh",          "wazuh",           "wazuh"),
     ("wazuh-agent",    "wazuh_agent_apps","wazuh_agent"),
-    ("autoheal",       "autoheal_apps",   "autoheal"),
 ]
 
 # Multi-instance app bundles. Auto-fanned-out over var.compute_hosts in the
@@ -92,7 +91,8 @@ MULTI_INSTANCE_BUNDLES = [
 # ordering (bootstrap → host-services → apps) stays explicit in site.yml.
 # Entries: (dir, consumer-key, role-slug)
 HOST_SERVICES_BUNDLES = [
-    ("diun", "diun", "diun"),
+    ("diun",     "diun",     "diun"),
+    ("autoheal", "autoheal", "autoheal"),
 ]
 
 OUTPUT_PATH = REPO_ROOT / "platform/ansible/apps.yml"
