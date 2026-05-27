@@ -2,6 +2,46 @@
 
 All notable changes to sabokit go here. Versioning follows semver; major bumps signal breaking contract changes for consumers.
 
+## v3.4.0 - 2026-05-27
+
+Production-grade defaults rearchitecture. New `platform/base/host-services/` sub-tier for per-host watchers (diun, autoheal, wazuh-agent). New `platform/core/` tier for the monitoring + SIEM stack (loki, prometheus, grafana, wazuh manager). Canonical 3-host compute_hosts default. Backrest per-host auto-instantiation. Sabokit CLI is now the install + deploy surface.
+
+State migration is required — not a zero-touch bump. moved{} blocks ship in `consumer-template/modules/stack/migrations.tf` and resolve to no-ops for greenfield consumers.
+
+### Added
+
+- **`platform/base/host-services/` sub-tier**. Per-host watchers that auto-instantiate once per entry in `var.compute_hosts`. Default-on as a category (the tier itself is non-optional, mirroring identity); each service has its own `enabled` flag (default true) plus a `disabled_hosts` opt-out list. Three services land here at v3.4.0: `diun` (notify-on-new-image), `autoheal` (restart-on-unhealthy), `wazuh-agent` (HIDS log shipper). Wiring lives in `platform/base/terraform/host_services.tf` with `for_each` over compute_hosts filtered by per-service disabled_hosts. New `platform/ansible/host-services.yml` playbook sequenced between bootstrap and apps in `site.yml`. Wazuh-agent default-on despite manager dependency — SSH-as-deploy means hosts are always exposed and HIDS is a sensible production default; consumers without a manager set `var.base.wazuh_agent.enabled = false`.
+- **`platform/core/` tier**. Monitoring + SIEM stack relocated out of `platform/apps/`: `loki`, `prometheus`, `grafana`, `wazuh` manager. Composed under a single `module "core"` block in `consumer-template/modules/stack/core.tf`. Same production-grade-defaults rule: on by default with per-service `enabled` toggle. New `platform/ansible/core.yml` playbook between bootstrap and apps. Core-tier services self-aggregate their monitoring internally to avoid a cross-module cycle.
+- **Backrest per-host auto-instantiation.** `module "backrest"` now uses `for_each` over `var.compute_hosts`. Every host gets its own bucket and restic repo by default — non-negotiable backups. Per-host overrides via `var.apps.backrest.per_host[<host_key>]`; opt a host out via `var.apps.backrest.disabled_hosts = [...]`. Ansible role restructured for multi-instance: `include_role` + `loop` over `backrest_all_instances` filtered by `selectattr ansible_group in group_names`. Handler dropped (multi-instance handler timing was unreliable); inline conditional restart on `register: <name>_changed`.
+- **Canonical 3-host `compute_hosts` default.** `consumer-template/modules/stack/variables.tf` flips from the single-host `{apps}` shape to `{tools, identity, management}`. Each compute host gets a sane default `instance_type`, disk size, role, and `ansible_group`. New deployment matches the dogfooded 3-host topology out of the box.
+- **CI restart-policy guard workflow** at `.github/workflows/restart-policy-guard.yml`. Greps every `platform/{apps,base,bootstrap,core}/**/docker-compose.yml.j2` template, fails the check if any service block lacks `restart: unless-stopped` or `restart: always`. Per-service opt-out via `#ci-restart-policy-warning-off` comment on the line directly above the service key (used today by the decidim db-init one-shot). Jinja-aware parser strips `{% %}` and `{{ }}` before YAML-parsing so templates survive. Idempotent PR comment via `actions/github-script` lists offenders.
+- **n8n webhook auto-wire for diun.** When the n8n bundle is enabled, consumer-template plumbs `module.n8n.app_url` through to `var.base.diun.n8n_webhook_url`. Consumers don't need to configure the webhook target manually.
+- **Wazuh manager auto-wire for wazuh-agent.** consumer-template plumbs `module.core.wazuh.manager_private_ip` to `var.base.wazuh_agent.manager_address`. Disabled when the wazuh manager app is off; consumers running an external manager set `manager_address` explicitly.
+
+### Changed
+
+- **README install path replaced with sabokit-cli.** Install via `curl -fsSL https://raw.githubusercontent.com/sheyaln/sabokit-cli/master/install.sh | bash`, then `sabokit init <name>` / `sabokit up` / `sabokit deploy` / `sabokit status`. The CLI orchestrates the existing consumer-template scaffolding scripts under the hood and runs ansible via the published runner image — no local terraform or ansible install required for redeploys. The previous `cp -r` + `./preflight.sh && ./up.sh && ./configure.sh` flow still works for consumers who prefer it; sabokit-cli's `up` command chains those same scripts.
+- **`scripts/sabokit-runner.sh` removed.** Directly replaced by sabokit-cli's `sabokit deploy` / `sabokit down` / `sabokit status` commands. The CLI ships a pinned default runner image and handles the docker invocation + ssh-agent passthrough + arm64-platform fallback that the wrapper used to.
+- **Terraform required_version floor bumped from `>= 1.5` to `>= 1.7`** across 24 versions.tf files. Required for the `moved {}` block syntax used throughout v3.4.0 migrations.tf (technically TF 1.1+, but the floor bump consolidates with the `removed {}` and `import {}` block syntax we'll use in future state surgery).
+- **`platform/base/terraform/outputs.tf` refactored onto reusable locals** (`scaleway_output`, `compute_output`, `domains_output`). Host-services modules consume the same locals via `local.host_services_base` to avoid a circular module dependency.
+
+### Removed
+
+- `platform/apps/diun/`, `platform/apps/autoheal/`, `platform/apps/wazuh-agent/` — relocated to `platform/base/host-services/<svc>/`.
+- `platform/apps/loki/`, `platform/apps/prometheus/`, `platform/apps/grafana/`, `platform/apps/wazuh/` — relocated to `platform/core/<svc>/`.
+- `scripts/sabokit-runner.sh` — replaced by sabokit-cli.
+
+### Operator migration notes
+
+- **`compute_hosts` key rename.** Consumers using the prior upstream default (`{apps}` single-host) or fork-local `{apps, authentik, management}` 3-host shape should rename their host keys to `{tools, identity, management}` to match canon. Upstream migrations.tf ships `moved{}` blocks for `scaleway_instance.host["apps"] → ["tools"]` and `host["authentik"] → ["identity"]`, plus the matching backrest / autoheal / wazuh-agent module-internal address moves. Consumers who keep their existing keys see the moved{} blocks as no-ops — neither breaks. Picking canonical naming aligns with upstream defaults forever after.
+- **Bundle module address moves.** The host-services and core relocations introduce new module addresses. `module.loki` → `module.core.module.loki` (same for prometheus / grafana / wazuh). `module.autoheal_apps` → `module.base.module.autoheal["tools"]` (same shape for wazuh_agent_apps). `module.backrest_mgmt` → `module.backrest["management"]`. All shipped via `moved{}` blocks; first `terraform plan` after the bump shows the moves but no resource destroy/recreate.
+- **`var.apps.{loki,prometheus,grafana,wazuh}` keys are now silently unused.** Consumers should move them to `var.core.{loki,prometheus,grafana,wazuh}`. Same shape; only the namespace changes.
+- **`var.apps.{diun_mgmt,autoheal_apps,wazuh_agent_apps}` keys are now silently unused.** Move to `var.base.{diun,autoheal,wazuh_agent}` — same knobs, plus new `disabled_hosts` per-host opt-out and `enabled` whole-service toggle.
+- **diun has zero terraform resources** so no moved{} block needed for the address rename — terraform tracks no state under `module.diun_mgmt` and the address simply disappears on apply.
+- **n8n webhook target was previously wired by consumer-template at `module.diun_mgmt.n8n_webhook_url`.** Auto-wire now lives at `var.base.diun.n8n_webhook_url`, set by consumer-template when n8n is enabled. Consumers who overrode the webhook URL should re-set it via `var.base.diun.n8n_webhook_url`.
+- **Backrest expanded from one instance to one-per-compute-host.** Default-on per host with sane defaults; opt a host out via `var.apps.backrest.disabled_hosts = ["<host_key>"]`. Consumers running additional per-host backrest modules in their fork (not the upstream `backrest_mgmt` default) add their own `moved{}` blocks pointing the legacy addresses at `module.backrest["<host_key>"]`.
+- **CI restart-policy guard will start failing on PRs that introduce services without `restart: unless-stopped` or `restart: always`.** Opt-out per service via `#ci-restart-policy-warning-off` comment on the line directly above the service key (for legitimate one-shot init jobs).
+
 ## v3.3.2 - 2026-05-27
 
 Two packer-side hardening fixes on top of v3.3.1. No terraform or ansible changes.
