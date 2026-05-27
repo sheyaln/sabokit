@@ -35,6 +35,14 @@ INTERNAL_VARS=(base extra_authorized_groups)
 # manifest-declares-non-existent-variable.
 MANIFEST_ONLY_INPUTS=(
   "n8n:broadsheet_membership"
+  "n8n:slack_channel_new_signups"
+  "n8n:slack_channel_admin_alerts"
+  "n8n:broadsheet_workspace_id"
+  "n8n:broadsheet_all_members_list_id"
+  "n8n:broadsheet_all_members_list_name"
+  "n8n:workflow_id_broadsheet_subscribe"
+  "n8n:workflow_id_espocrm_upsert"
+  "n8n:workflow_id_slack_invite_stub"
 )
 
 errors=0
@@ -81,7 +89,7 @@ for entry in "${entries[@]}"; do
 
   manifest_inputs=()
   while IFS= read -r line; do manifest_inputs+=("$line"); done < <(
-    yq ".${tier}[] | select(.id == \"$id\") | .tfvars.schema | keys | .[]" "$MANIFEST"
+    yq ".${tier}[] | select(.id == \"$id\") | .config.schema | keys | .[]" "$MANIFEST"
   )
 
   hcl_vars=()
