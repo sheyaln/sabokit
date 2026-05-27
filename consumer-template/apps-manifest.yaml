@@ -149,6 +149,12 @@ apps:
           description: Full icon URL override. When set, used verbatim and icon_filename is ignored.
           ui: advanced
 
+        extra_docker_networks:
+          type: list(string)
+          default: []
+          description: Extra docker networks to attach the bundle's main container to (beyond the bundle's defaults). Networks must already exist on the host. Use for cross-bundle integration with sidecars like protonmail-bridge that live in their own bootstrap-tier network.
+          ui: advanced
+
   # ── Steward ─────────────────────────────────────────────────────────────
   # Simplified Authentik admin UI for non-technical org admins. Members of
   # `admin_group_name` (matched against the OIDC `groups` claim) can sign in
@@ -273,6 +279,12 @@ apps:
           type: map(string)
           default: {}
           description: Map of KEY -> value rendered into the container .env after first-class vars. Use for env-driven feature flags / third-party integrations / debug toggles not exposed first-class on the bundle.
+          ui: advanced
+
+        extra_docker_networks:
+          type: list(string)
+          default: []
+          description: Extra docker networks to attach the bundle's main container to (beyond the bundle's defaults). Networks must already exist on the host. Use for cross-bundle integration with sidecars like protonmail-bridge that live in their own bootstrap-tier network.
           ui: advanced
 
   # ── Vikunja ─────────────────────────────────────────────────────────────
@@ -420,6 +432,12 @@ apps:
           description: Map of KEY -> value rendered into the container .env after first-class vars. Use for env-driven feature flags / third-party integrations / debug toggles not exposed first-class on the bundle.
           ui: advanced
 
+        extra_docker_networks:
+          type: list(string)
+          default: []
+          description: Extra docker networks to attach the bundle's main container to (beyond the bundle's defaults). Networks must already exist on the host. Use for cross-bundle integration with sidecars like protonmail-bridge that live in their own bootstrap-tier network.
+          ui: advanced
+
   # ── BentoPDF ────────────────────────────────────────────────────────────
   # Browser-based PDF toolkit (merge, split, OCR, redact). Stateless — no
   # DB, no storage. Authenticated via Authentik forward-auth (the embedded
@@ -518,6 +536,12 @@ apps:
           type: string
           default: ""
           description: Full icon URL override. When set, used verbatim and icon_filename is ignored.
+          ui: advanced
+
+        extra_docker_networks:
+          type: list(string)
+          default: []
+          description: Extra docker networks to attach the bundle's main container to (beyond the bundle's defaults). Networks must already exist on the host. Use for cross-bundle integration with sidecars like protonmail-bridge that live in their own bootstrap-tier network.
           ui: advanced
 
   # ── Notifuse ────────────────────────────────────────────────────────────
@@ -662,6 +686,12 @@ apps:
           type: map(string)
           default: {}
           description: Map of KEY -> value rendered into the container .env after first-class vars. Use for env-driven feature flags / third-party integrations / debug toggles not exposed first-class on the bundle.
+          ui: advanced
+
+        extra_docker_networks:
+          type: list(string)
+          default: []
+          description: Extra docker networks to attach the bundle's main container to (beyond the bundle's defaults). Networks must already exist on the host. Use for cross-bundle integration with sidecars like protonmail-bridge that live in their own bootstrap-tier network.
           ui: advanced
 
   # ── Broadsheet ──────────────────────────────────────────────────────────
@@ -828,6 +858,12 @@ apps:
           description: Map of KEY -> value rendered into the container .env after first-class vars. Use for env-driven feature flags / third-party integrations / debug toggles not exposed first-class on the bundle.
           ui: advanced
 
+        extra_docker_networks:
+          type: list(string)
+          default: []
+          description: Extra docker networks to attach the bundle's main container to (beyond the bundle's defaults). Networks must already exist on the host. Use for cross-bundle integration with sidecars like protonmail-bridge that live in their own bootstrap-tier network.
+          ui: advanced
+
   # ── Privacy policy ──────────────────────────────────────────────────────
   # Public static page. No Authentik integration — privacy policies must be
   # reachable without login. Consumer provides HTML + logo via the Ansible
@@ -882,6 +918,12 @@ apps:
           type: string
           default: ""
           description: Override the DNS zone for this app's A record. Default empty derives from hostname suffix matching against base.domains.zones. Set only for edge cases.
+          ui: advanced
+
+        extra_docker_networks:
+          type: list(string)
+          default: []
+          description: Extra docker networks to attach the bundle's main container to (beyond the bundle's defaults). Networks must already exist on the host. Use for cross-bundle integration with sidecars like protonmail-bridge that live in their own bootstrap-tier network.
           ui: advanced
 
   # ── Nextcloud ───────────────────────────────────────────────────────────
@@ -1131,6 +1173,12 @@ apps:
           description: Map of KEY -> value rendered into the container .env after first-class vars. Use for env-driven feature flags / third-party integrations / debug toggles not exposed first-class on the bundle.
           ui: advanced
 
+        extra_docker_networks:
+          type: list(string)
+          default: []
+          description: Extra docker networks to attach the bundle's main container to (beyond the bundle's defaults). Networks must already exist on the host. Use for cross-bundle integration with sidecars like protonmail-bridge that live in their own bootstrap-tier network.
+          ui: advanced
+
   # ── Decidim ─────────────────────────────────────────────────────────────
   # Participatory democracy platform. Multi-container (web + sidekiq),
   # postgres + S3, OIDC.
@@ -1292,6 +1340,12 @@ apps:
           description: Map of KEY -> value rendered into the container .env after first-class vars. Use for env-driven feature flags / third-party integrations / debug toggles not exposed first-class on the bundle.
           ui: advanced
 
+        extra_docker_networks:
+          type: list(string)
+          default: []
+          description: Extra docker networks to attach the bundle's main container to (beyond the bundle's defaults). Networks must already exist on the host. Use for cross-bundle integration with sidecars like protonmail-bridge that live in their own bootstrap-tier network.
+          ui: advanced
+
   # ── Jitsi ───────────────────────────────────────────────────────────────
   # Self-hosted Jitsi Meet (video conferencing). Multi-container (web +
   # prosody + jicofo + jvb) + an OIDC adapter brokering Authentik OIDC to
@@ -1434,6 +1488,12 @@ apps:
           description: Map of KEY -> value rendered into the container .env after first-class vars. Use for env-driven feature flags / third-party integrations / debug toggles not exposed first-class on the bundle.
           ui: advanced
 
+        extra_docker_networks:
+          type: list(string)
+          default: []
+          description: Extra docker networks to attach the bundle's main container to (beyond the bundle's defaults). Networks must already exist on the host. Use for cross-bundle integration with sidecars like protonmail-bridge that live in their own bootstrap-tier network.
+          ui: advanced
+
   # ── EspoCRM ─────────────────────────────────────────────────────────────
   # PHP CRM with OIDC. Member-entity bootstrap is opt-in (sets up
   # constituent/dues tracking on top of the generic CRM).
@@ -1567,6 +1627,12 @@ apps:
           type: map(string)
           default: {}
           description: Map of KEY -> value rendered into the container .env after first-class vars. Use for env-driven feature flags / third-party integrations / debug toggles not exposed first-class on the bundle.
+          ui: advanced
+
+        extra_docker_networks:
+          type: list(string)
+          default: []
+          description: Extra docker networks to attach the bundle's main container to (beyond the bundle's defaults). Networks must already exist on the host. Use for cross-bundle integration with sidecars like protonmail-bridge that live in their own bootstrap-tier network.
           ui: advanced
 
   # ── n8n ─────────────────────────────────────────────────────────────────
@@ -1888,6 +1954,12 @@ apps:
           description: Map of KEY -> value rendered into the container .env after first-class vars. Use for env-driven feature flags / third-party integrations / debug toggles not exposed first-class on the bundle.
           ui: advanced
 
+        extra_docker_networks:
+          type: list(string)
+          default: []
+          description: Extra docker networks to attach the bundle's main container to (beyond the bundle's defaults). Networks must already exist on the host. Use for cross-bundle integration with sidecars like protonmail-bridge that live in their own bootstrap-tier network.
+          ui: advanced
+
   # ── Diun ────────────────────────────────────────────────────────────────
   # Platform host-service: notifies when a new image is available on the
   # registry for any container running on the host. Notify-only — does NOT
@@ -2127,6 +2199,12 @@ apps:
           description: Map of KEY -> value rendered into the container .env after first-class vars. Use for env-driven feature flags / third-party integrations / debug toggles not exposed first-class on the bundle.
           ui: advanced
 
+        extra_docker_networks:
+          type: list(string)
+          default: []
+          description: Extra docker networks to attach the bundle's main container to (beyond the bundle's defaults). Networks must already exist on the host. Use for cross-bundle integration with sidecars like protonmail-bridge that live in their own bootstrap-tier network.
+          ui: advanced
+
   # ── Loki ────────────────────────────────────────────────────────────────
   - id: loki
     display_name: Loki
@@ -2170,6 +2248,12 @@ apps:
           type: map(string)
           default: {}
           description: Map of KEY -> value rendered into the container .env after first-class vars. Use for env-driven feature flags / third-party integrations / debug toggles not exposed first-class on the bundle.
+          ui: advanced
+
+        extra_docker_networks:
+          type: list(string)
+          default: []
+          description: Extra docker networks to attach the bundle's main container to (beyond the bundle's defaults). Networks must already exist on the host. Use for cross-bundle integration with sidecars like protonmail-bridge that live in their own bootstrap-tier network.
           ui: advanced
 
   # ── Grafana ─────────────────────────────────────────────────────────────
@@ -2334,6 +2418,12 @@ apps:
           description: Map of KEY -> value rendered into the container .env after first-class vars. Use for env-driven feature flags / third-party integrations / debug toggles not exposed first-class on the bundle.
           ui: advanced
 
+        extra_docker_networks:
+          type: list(string)
+          default: []
+          description: Extra docker networks to attach the bundle's main container to (beyond the bundle's defaults). Networks must already exist on the host. Use for cross-bundle integration with sidecars like protonmail-bridge that live in their own bootstrap-tier network.
+          ui: advanced
+
   # ── Wazuh ───────────────────────────────────────────────────────────────
   # SIEM server stack: manager + indexer (OpenSearch) + dashboard. UI fronted
   # via Authentik forward-auth at the gateway (the dashboard's native SSO is
@@ -2482,6 +2572,12 @@ apps:
           type: map(string)
           default: {}
           description: Map of KEY -> value rendered into the container .env after first-class vars. Use for env-driven feature flags / third-party integrations / debug toggles not exposed first-class on the bundle.
+          ui: advanced
+
+        extra_docker_networks:
+          type: list(string)
+          default: []
+          description: Extra docker networks to attach the bundle's main container to (beyond the bundle's defaults). Networks must already exist on the host. Use for cross-bundle integration with sidecars like protonmail-bridge that live in their own bootstrap-tier network.
           ui: advanced
 
   # ── Wazuh Agent ─────────────────────────────────────────────────────────
@@ -2633,4 +2729,10 @@ bootstrap:
           type: map(string)
           default: {}
           description: Map of KEY -> value rendered into the container .env after first-class vars. Use for env-driven feature flags / third-party integrations / debug toggles not exposed first-class on the bundle.
+          ui: advanced
+
+        extra_docker_networks:
+          type: list(string)
+          default: []
+          description: Extra docker networks to attach the bundle's main container to (beyond the bundle's defaults). Networks must already exist on the host. Use for cross-bundle integration with sidecars like protonmail-bridge that live in their own bootstrap-tier network.
           ui: advanced

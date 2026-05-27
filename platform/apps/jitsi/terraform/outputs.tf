@@ -76,6 +76,7 @@ output "ansible" {
       jitsi_diun_watch_enabled    = var.diun_watch_enabled
       jitsi_autoheal_enabled      = var.autoheal_enabled
       jitsi_extra_env_vars        = var.extra_env_vars
+      jitsi_extra_docker_networks = var.extra_docker_networks
     }
   } : null
 }

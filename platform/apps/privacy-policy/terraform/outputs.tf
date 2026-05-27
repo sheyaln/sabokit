@@ -35,10 +35,11 @@ output "ansible" {
     playbook   = "${path.module}/../ansible/playbook.yml"
     host_group = var.base.compute.hosts[var.deployment_host_key].ansible_group
     vars = {
-      privacy_policy_hostname           = var.hostname
-      privacy_policy_page_title         = var.page_title
-      privacy_policy_diun_watch_enabled = var.diun_watch_enabled
-      privacy_policy_autoheal_enabled   = var.autoheal_enabled
+      privacy_policy_hostname              = var.hostname
+      privacy_policy_page_title            = var.page_title
+      privacy_policy_diun_watch_enabled    = var.diun_watch_enabled
+      privacy_policy_autoheal_enabled      = var.autoheal_enabled
+      privacy_policy_extra_docker_networks = var.extra_docker_networks
     }
   } : null
 }

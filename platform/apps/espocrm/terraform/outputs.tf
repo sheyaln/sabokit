@@ -60,6 +60,7 @@ output "ansible" {
       espocrm_diun_watch_enabled             = var.diun_watch_enabled
       espocrm_autoheal_enabled               = var.autoheal_enabled
       espocrm_extra_env_vars                 = var.extra_env_vars
+      espocrm_extra_docker_networks          = var.extra_docker_networks
     }
   } : null
 }

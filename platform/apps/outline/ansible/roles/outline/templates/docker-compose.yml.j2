@@ -58,6 +58,9 @@ services:
     networks:
       - "{{ outline_traefik_docker_network }}"
       - outline_network
+{% for net in outline_extra_docker_networks %}
+      - "{{ net }}"
+{% endfor %}
     security_opt:
       - no-new-privileges:true
     deploy:
@@ -84,3 +87,7 @@ networks:
     driver: bridge
   "{{ outline_traefik_docker_network }}":
     external: true
+{% for net in outline_extra_docker_networks %}
+  "{{ net }}":
+    external: true
+{% endfor %}

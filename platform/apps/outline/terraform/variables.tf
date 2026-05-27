@@ -191,3 +191,9 @@ variable "oidc_username_claim" {
   type        = string
   default     = "preferred_username"
 }
+
+variable "extra_docker_networks" {
+  description = "Extra docker networks to attach the bundle's main container to alongside its traefik network. Networks must already exist on the host. Use for cross-bundle integration with sidecars in other bootstrap-tier networks."
+  type        = list(string)
+  default     = []
+}

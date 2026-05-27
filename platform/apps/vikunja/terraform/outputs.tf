@@ -57,6 +57,7 @@ output "ansible" {
       vikunja_diun_watch_enabled       = var.diun_watch_enabled
       vikunja_autoheal_enabled         = var.autoheal_enabled
       vikunja_extra_env_vars           = var.extra_env_vars
+      vikunja_extra_docker_networks    = var.extra_docker_networks
     }
   } : null
 }

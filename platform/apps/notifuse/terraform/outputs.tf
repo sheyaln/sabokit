@@ -55,6 +55,7 @@ output "ansible" {
       notifuse_diun_watch_enabled       = var.diun_watch_enabled
       notifuse_autoheal_enabled         = var.autoheal_enabled
       notifuse_extra_env_vars           = var.extra_env_vars
+      notifuse_extra_docker_networks    = var.extra_docker_networks
     }
   } : null
 }

@@ -13,6 +13,9 @@ services:
       - espocrm-data:/var/www/html
     networks:
       - "{{ espocrm_traefik_docker_network }}"
+{% for net in espocrm_extra_docker_networks %}
+      - "{{ net }}"
+{% endfor %}
     labels:
       - "traefik.enable=true"
       - "traefik.docker.network={{ espocrm_traefik_docker_network }}"
@@ -78,3 +81,7 @@ volumes:
 networks:
   "{{ espocrm_traefik_docker_network }}":
     external: true
+{% for net in espocrm_extra_docker_networks %}
+  "{{ net }}":
+    external: true
+{% endfor %}

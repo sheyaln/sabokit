@@ -14,6 +14,9 @@ services:
 {% endif %}
     networks:
       - "{{ privacy_policy_traefik_docker_network }}"
+{% for net in privacy_policy_extra_docker_networks %}
+      - "{{ net }}"
+{% endfor %}
     security_opt:
       - no-new-privileges:true
     labels:
@@ -43,3 +46,7 @@ services:
 networks:
   "{{ privacy_policy_traefik_docker_network }}":
     external: true
+{% for net in privacy_policy_extra_docker_networks %}
+  "{{ net }}":
+    external: true
+{% endfor %}

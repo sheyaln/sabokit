@@ -34,6 +34,9 @@ services:
 {% endif %}
     networks:
       - "{{ notifuse_traefik_docker_network }}"
+{% for net in notifuse_extra_docker_networks %}
+      - "{{ net }}"
+{% endfor %}
     security_opt:
       - no-new-privileges:true
     deploy:
@@ -54,3 +57,7 @@ services:
 networks:
   "{{ notifuse_traefik_docker_network }}":
     external: true
+{% for net in notifuse_extra_docker_networks %}
+  "{{ net }}":
+    external: true
+{% endfor %}

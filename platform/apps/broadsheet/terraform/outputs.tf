@@ -55,6 +55,7 @@ output "ansible" {
       broadsheet_diun_watch_enabled       = var.diun_watch_enabled
       broadsheet_autoheal_enabled         = var.autoheal_enabled
       broadsheet_extra_env_vars           = var.extra_env_vars
+      broadsheet_extra_docker_networks    = var.extra_docker_networks
     }
   } : null
 }

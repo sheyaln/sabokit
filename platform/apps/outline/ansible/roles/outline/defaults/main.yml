@@ -41,3 +41,9 @@ outline_max_upload_size_bytes: 26214400
 # `docker compose` against the rendered files without escalation.
 outline_file_owner: "ubuntu"
 outline_file_group: "ubuntu"
+
+
+# Extra docker networks attached to the outline container alongside the bundle's
+# traefik network. Networks must already exist on the host (created by whichever
+# bundle owns them) and are declared `external: true` in compose.
+outline_extra_docker_networks: []

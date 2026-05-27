@@ -45,10 +45,11 @@ output "ansible" {
     playbook   = "${path.module}/../ansible/playbook.yml"
     host_group = var.base.compute.hosts[var.deployment_host_key].ansible_group
     vars = {
-      bentopdf_hostname           = var.hostname
-      bentopdf_image              = var.image
-      bentopdf_diun_watch_enabled = var.diun_watch_enabled
-      bentopdf_autoheal_enabled   = var.autoheal_enabled
+      bentopdf_hostname              = var.hostname
+      bentopdf_image                 = var.image
+      bentopdf_diun_watch_enabled    = var.diun_watch_enabled
+      bentopdf_autoheal_enabled      = var.autoheal_enabled
+      bentopdf_extra_docker_networks = var.extra_docker_networks
     }
   } : null
 }

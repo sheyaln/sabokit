@@ -100,6 +100,7 @@ output "ansible" {
       nextcloud_autoheal_enabled         = var.autoheal_enabled
       nextcloud_extra_env_vars           = var.extra_env_vars
 
+      nextcloud_extra_docker_networks = var.extra_docker_networks
       # OnlyOffice + Talk HPB knobs that aren't secret-shaped (image tags,
       # resource caps, port ranges). Secret-shaped values travel through the
       # single app-secrets bag above.
