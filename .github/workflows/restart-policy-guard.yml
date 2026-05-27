@@ -1,8 +1,10 @@
 # Restart-policy guard.
 #
-# Every service in every compose file under platform/{apps,base,bootstrap,core}/
-# must declare `restart: unless-stopped`. Opt out per-service by placing
-# `#ci-unless-stopped-warning-off` on the line directly above the service key.
+# Every service in every compose file (raw .yml or Jinja .j2 template) under
+# platform/{apps,base,bootstrap,core}/ must declare `restart: unless-stopped`
+# or `restart: always`. Opt out per-service by placing
+# `#ci-restart-policy-warning-off` on the line directly above the service key
+# (a trailing rationale after the marker is allowed).
 #
 # On PR: fails the check and posts (or updates) a single comment listing
 # offenders as `path/to/compose.yml: <service-name>`.
@@ -39,12 +41,13 @@ jobs:
           python3 <<'PY'
           import glob
           import os
+          import re
           import sys
 
           import yaml
 
-          OPT_OUT_MARKER = "#ci-unless-stopped-warning-off"
-          REQUIRED_VALUE = "unless-stopped"
+          OPT_OUT_MARKER = "#ci-restart-policy-warning-off"
+          ACCEPTED_VALUES = {"unless-stopped", "always"}
 
           patterns = [
               "platform/apps/**/docker-compose.yml",
@@ -55,7 +58,27 @@ jobs:
               "platform/bootstrap/**/docker-compose.yaml",
               "platform/core/**/docker-compose.yml",
               "platform/core/**/docker-compose.yaml",
+              "platform/apps/**/*docker-compose*.j2",
+              "platform/base/**/*docker-compose*.j2",
+              "platform/bootstrap/**/*docker-compose*.j2",
+              "platform/core/**/*docker-compose*.j2",
           ]
+
+          # Strip Jinja so the residue is YAML-parseable. Block statements
+          # collapse to blank lines (preserving line count so raw-text line
+          # lookups stay aligned with the parsed AST); expressions collapse to
+          # a placeholder token that survives any YAML scalar context.
+          JINJA_BLOCK_STMT = re.compile(r"\{%-?.*?-?%\}", re.DOTALL)
+          JINJA_EXPR = re.compile(r"\{\{.*?\}\}", re.DOTALL)
+          JINJA_COMMENT = re.compile(r"\{#.*?#\}", re.DOTALL)
+
+          def strip_jinja(raw):
+              def blank_keep_lines(m):
+                  return "\n" * m.group(0).count("\n")
+              raw = JINJA_COMMENT.sub(blank_keep_lines, raw)
+              raw = JINJA_BLOCK_STMT.sub(blank_keep_lines, raw)
+              raw = JINJA_EXPR.sub("JINJA_VAR", raw)
+              return raw
 
           files = set()
           for pat in patterns:
@@ -67,8 +90,10 @@ jobs:
               with open(path, "r", encoding="utf-8") as fh:
                   raw = fh.read()
 
+              cleaned = strip_jinja(raw) if path.endswith(".j2") else raw
+
               try:
-                  doc = yaml.safe_load(raw)
+                  doc = yaml.safe_load(cleaned)
               except yaml.YAMLError as exc:
                   print(f"::error file={path}::failed to parse YAML: {exc}", file=sys.stderr)
                   offenders.append((path, "<yaml-parse-error>"))
@@ -86,9 +111,9 @@ jobs:
                   if not isinstance(svc_block, dict):
                       continue
 
-                  # Locate the service key in the raw text to check for opt-out comment
-                  # directly above it. Match the first occurrence of `  <name>:` at
-                  # 2-space indentation (standard for top-level service keys).
+                  # Locate the service key in the raw text to check for opt-out
+                  # comment directly above it. Match the first occurrence of
+                  # `  <name>:` at 2-space indentation.
                   svc_line_idx = None
                   needle = f"  {svc_name}:"
                   for idx, line in enumerate(lines):
@@ -102,7 +127,8 @@ jobs:
                       if OPT_OUT_MARKER in prev:
                           continue
 
-                  if svc_block.get("restart") != REQUIRED_VALUE:
+                  restart_val = svc_block.get("restart")
+                  if restart_val not in ACCEPTED_VALUES:
                       offenders.append((path, svc_name))
 
           if offenders:
@@ -120,7 +146,7 @@ jobs:
 
               sys.exit(1)
           else:
-              print("All services declare restart: unless-stopped (or are opted out).")
+              print("All services declare an accepted restart policy (or are opted out).")
               with open(os.environ["GITHUB_OUTPUT"], "a", encoding="utf-8") as out:
                   out.write("has_offenders=false\n")
           PY
@@ -136,9 +162,9 @@ jobs:
               marker,
               '## restart-policy-guard',
               '',
-              'The following services are missing `restart: unless-stopped`.',
-              'Add it to the service block, or opt out by placing',
-              '`#ci-unless-stopped-warning-off` on the line directly above the service key.',
+              'The following services do not declare `restart: unless-stopped` or `restart: always`.',
+              'Add one to the service block, or opt out by placing',
+              '`#ci-restart-policy-warning-off` on the line directly above the service key.',
               '',
               '```',
               offenders.trim(),

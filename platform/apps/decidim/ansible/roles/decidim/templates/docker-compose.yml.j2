@@ -52,6 +52,7 @@ services:
   # One-shot bootstrapper. Idempotent via the init-marker volume: the first
   # successful run writes /init/db_initialized; subsequent runs short-circuit.
   # On failure (e.g. transient DB connectivity), the next play retries.
+  #ci-restart-policy-warning-off - one-shot db init, must not restart
   db-init:
 {% if decidim_extra_gems and decidim_extra_gems | length > 0 %}
     build:
