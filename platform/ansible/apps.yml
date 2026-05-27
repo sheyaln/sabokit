@@ -235,6 +235,7 @@
     n8n_db_credentials_secret_id: "{{ enabled_apps.n8n.ansible_vars.n8n_db_credentials_secret_id }}"
     n8n_extra_env_vars: "{{ enabled_apps.n8n.ansible_vars.n8n_extra_env_vars }}"
     n8n_extra_docker_networks: "{{ enabled_apps.n8n.ansible_vars.n8n_extra_docker_networks }}"
+    n8n_workflows_dir: "{{ enabled_apps.n8n.ansible_vars.n8n_workflows_dir }}"
   when: enabled_apps.n8n is defined and enabled_apps.n8n is not none
   tags: [apps, n8n]
 - import_playbook: ../apps/backrest/ansible/playbook.yml

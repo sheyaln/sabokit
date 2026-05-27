@@ -105,8 +105,90 @@
   no_log: true
   tags: [secrets]
 
+- name: Ensure host-side workflow-import directory exists
+  ansible.builtin.file:
+    path: "{{ n8n_workflows_host_dir }}"
+    state: directory
+    mode: "0755"
+    owner: "{{ n8n_file_owner }}"
+    group: "{{ n8n_file_group }}"
+  when: n8n_workflows_dir | length > 0
+
+# Resolve the controller-side path to an absolute path so copy doesn't
+# surprise us with cwd-dependent relative resolution. Relative paths resolve
+# against the playbook invocation cwd (i.e. the consumer's environments/<env>/
+# dir, since that's where up.sh runs ansible-playbook).
+- name: Resolve n8n_workflows_dir to an absolute path
+  ansible.builtin.set_fact:
+    _n8n_workflows_dir_abs: "{{ n8n_workflows_dir | expanduser | realpath }}"
+  delegate_to: localhost
+  run_once: true
+  when: n8n_workflows_dir | length > 0
+
+- name: Assert controller-side workflows dir exists
+  ansible.builtin.stat:
+    path: "{{ _n8n_workflows_dir_abs }}"
+  register: _n8n_workflows_src_stat
+  delegate_to: localhost
+  run_once: true
+  when: n8n_workflows_dir | length > 0
+
+- name: Fail if workflows_dir is set but missing on the controller
+  ansible.builtin.fail:
+    msg: "n8n_workflows_dir={{ n8n_workflows_dir }} (resolved {{ _n8n_workflows_dir_abs }}) does not exist on the controller."
+  when:
+    - n8n_workflows_dir | length > 0
+    - not _n8n_workflows_src_stat.stat.exists or not _n8n_workflows_src_stat.stat.isdir
+
+- name: Sync workflow JSON files to host
+  # No `notify: Restart n8n` — the workflows dir is a :ro bind mount, n8n
+  # reads files lazily on each `import:workflow` invocation. Restarting the
+  # container on every JSON change burns ~6s for no observable behaviour.
+  ansible.builtin.copy:
+    src: "{{ _n8n_workflows_dir_abs }}/"
+    dest: "{{ n8n_workflows_host_dir }}/"
+    mode: "0644"
+    owner: "{{ n8n_file_owner }}"
+    group: "{{ n8n_file_group }}"
+  when: n8n_workflows_dir | length > 0
+
 - name: Ensure n8n stack is running
   community.docker.docker_compose_v2:
     project_src: "{{ n8n_install_dir }}"
     state: present
     pull: missing
+
+# Flush handlers so any "Restart n8n" notifications above land BEFORE we try
+# to exec into the container — otherwise we may exec into an old container
+# that's about to be torn down by the handler.
+- name: Apply pending restarts before workflow import
+  ansible.builtin.meta: flush_handlers
+
+- name: Wait for n8n container healthcheck before importing workflows
+  ansible.builtin.command: >
+    docker inspect -f '{% raw %}{{.State.Health.Status}}{% endraw %}' n8n
+  register: _n8n_health
+  retries: 20
+  delay: 6
+  until: _n8n_health.stdout == "healthy"
+  changed_when: false
+  when: n8n_workflows_dir | length > 0
+
+# Idempotent: n8n's importer upserts by workflow `id`. Same JSON, same id,
+# re-running this is a no-op against the DB. Imported workflows land
+# inactive by default (`--activeState=false`); operators activate via the
+# UI on first deploy and the active flag survives subsequent imports.
+# Exec into the container — n8n CLI lives in the n8n image, not on the host.
+- name: Auto-import n8n workflows
+  ansible.builtin.command:
+    argv:
+      - docker
+      - exec
+      - n8n
+      - n8n
+      - import:workflow
+      - --separate
+      - --input=/workflows-import/
+  register: _n8n_import
+  changed_when: "'Successfully imported' in _n8n_import.stdout"
+  when: n8n_workflows_dir | length > 0

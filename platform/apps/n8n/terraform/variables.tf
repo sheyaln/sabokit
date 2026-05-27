@@ -181,6 +181,12 @@ variable "extra_env_vars" {
   default     = {}
 }
 
+variable "workflows_dir" {
+  description = "Path to a local directory of n8n workflow JSON files to auto-import on each deploy. Path is resolved by the Ansible controller (relative paths resolve against the playbook invocation cwd; absolute paths used verbatim). When non-empty, the role syncs the directory to the apps host and runs `n8n import:workflow --separate --input=/workflows-import/` inside the container after it's healthy. n8n upserts by workflow `id`, so re-runs are idempotent. Empty default = no import, no compose mount."
+  type        = string
+  default     = ""
+}
+
 variable "extra_docker_networks" {
   description = "Extra docker networks to attach n8n's container to (beyond the bundle's default app network). For cross-bundle integration with sidecars like protonmail-bridge that live in their own bootstrap-tier network. Empty list = bundle-only network."
   type        = list(string)

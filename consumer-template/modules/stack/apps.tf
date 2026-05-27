@@ -382,6 +382,7 @@ module "n8n" {
   deployment_host_key   = try(var.apps.n8n.deployment_host_key, "apps")
   dns_zone_override     = try(var.apps.n8n.dns_zone_override, "")
   extra_docker_networks = try(var.apps.n8n.extra_docker_networks, [])
+  workflows_dir         = try(var.apps.n8n.workflows_dir, "")
 
   # Workflow IDs are populated AFTER first import — capture from n8n UI then re-apply.
   extra_env_vars = merge(
