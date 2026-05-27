@@ -273,3 +273,26 @@ variable "dmarc_rua_email" {
   type        = string
   default     = ""
 }
+
+# ── Host-services tier ──────────────────────────────────────────────────────
+# Each service auto-instantiates once per entry in var.compute_hosts. Defaults
+# are on. Consumers disable an entire service via `enabled = false` or opt out
+# specific hosts via `disabled_hosts = [...]`. See ARCHITECTURE.md.
+
+variable "wazuh_agent" {
+  description = "HIDS log-shipper running on every compute host, reporting to the wazuh manager. Default on because SSH-as-deploy means hosts are always exposed and host-level intrusion detection is a sensible production default. Consumers without a wazuh manager set `enabled = false` (whole service off) or list every host under `disabled_hosts`. `manager_address` is the manager's reachable network address — consumer-template auto-wires it from `module.wazuh.manager_private_ip` when the manager app is enabled."
+  type = object({
+    enabled              = optional(bool, true)
+    disabled_hosts       = optional(list(string), [])
+    image                = optional(string, "wazuh/wazuh-agent")
+    release_version      = optional(string, "4.9.0")
+    manager_address      = optional(string, "")
+    fim_enabled          = optional(bool, true)
+    fim_extra_paths      = optional(list(string), [])
+    fim_extra_exclusions = optional(list(string), [])
+    diun_watch_enabled   = optional(bool, true)
+    autoheal_enabled     = optional(bool, true)
+    extra_env_vars       = optional(map(string), {})
+  })
+  default = {}
+}
