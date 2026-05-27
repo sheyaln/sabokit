@@ -60,6 +60,13 @@
   no_log: true
   tags: [secrets]
 
+# Render-and-restart inline rather than via handlers. Multi-instance role
+# invocation (one include_role per Backrest instance) breaks handler timing —
+# handlers fire at end-of-play with the LAST iteration's fact values, so a
+# notified restart would target whichever instance happened to be deployed
+# last. The `register: ..._changed` + conditional final restart keeps every
+# iteration self-contained.
+
 - name: Render Backrest config.json
   ansible.builtin.template:
     src: config.json.j2
@@ -67,7 +74,7 @@
     mode: "0600"
     owner: "{{ backrest_file_owner }}"
     group: "{{ backrest_file_group }}"
-  notify: Restart backrest
+  register: backrest_config_changed
   no_log: true
   tags: [secrets]
 
@@ -78,7 +85,7 @@
     mode: "0644"
     owner: "{{ backrest_file_owner }}"
     group: "{{ backrest_file_group }}"
-  notify: Restart backrest
+  register: backrest_compose_changed
 
 - name: Render Backrest environment file
   ansible.builtin.template:
@@ -87,7 +94,7 @@
     mode: "0600"
     owner: "{{ backrest_file_owner }}"
     group: "{{ backrest_file_group }}"
-  notify: Restart backrest
+  register: backrest_env_changed
   no_log: true
   tags: [secrets]
 
@@ -95,3 +102,11 @@
   community.docker.docker_compose_v2:
     project_src: "{{ backrest_install_dir }}"
     state: present
+
+- name: Restart Backrest instance if any rendered file changed
+  community.docker.docker_compose_v2:
+    project_src: "{{ backrest_install_dir }}"
+    state: restarted
+  when: backrest_config_changed is changed
+        or backrest_compose_changed is changed
+        or backrest_env_changed is changed

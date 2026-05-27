@@ -136,11 +136,19 @@ output "enabled_apps" {
       ansible_group = module.wazuh.ansible.host_group
       monitoring    = module.wazuh.monitoring
     } : null
-    backrest_mgmt = module.backrest_mgmt.enabled ? {
-      url           = module.backrest_mgmt.app_url
-      ansible_vars  = module.backrest_mgmt.ansible.vars
-      ansible_group = module.backrest_mgmt.ansible.host_group
-      monitoring    = module.backrest_mgmt.monitoring
+    # Per-host backrest instances. One entry per compute_hosts key not in
+    # var.apps.backrest.disabled_hosts. apps.yml consumes the .instances map
+    # directly; the playbook iterates internally over instances matching each
+    # host's group_names.
+    backrest = length(module.backrest) > 0 ? {
+      instances = {
+        for k, inst in module.backrest : k => {
+          url           = inst.app_url
+          ansible_vars  = inst.ansible.vars
+          ansible_group = inst.ansible.host_group
+          monitoring    = inst.monitoring
+        }
+      }
     } : null
     diun_mgmt = module.diun_mgmt.enabled ? {
       ansible_vars  = module.diun_mgmt.ansible.vars

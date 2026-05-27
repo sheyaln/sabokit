@@ -423,7 +423,7 @@ locals {
   # Each app's `monitoring` output carries scrape configs, dashboards, log
   # paths, alert rules. Coalesce nulls then split by destination key for the
   # prometheus + grafana + loki bundles to consume.
-  _monitoring_contribs = [for c in [
+  _monitoring_contribs = [for c in concat([
     module.identity.monitoring,
     module.outline.monitoring,
     module.steward.monitoring,
@@ -438,10 +438,11 @@ locals {
     module.n8n.monitoring,
     module.prometheus.monitoring,
     module.grafana.monitoring,
-    module.wazuh.monitoring,         # blackbox_targets — peer-flagged drop
-    module.backrest_mgmt.monitoring, # prometheus_scrape_configs (backrest /metrics)
-    module.diun_mgmt.monitoring,     # loki_log_paths
-  ] : c if c != null]
+    module.wazuh.monitoring,     # blackbox_targets — peer-flagged drop
+    module.diun_mgmt.monitoring, # loki_log_paths
+    ],
+    [for inst in module.backrest : inst.monitoring], # prometheus_scrape_configs per instance
+  ) : c if c != null]
 
   # Normalize every per-bundle scrape entry to a canonical shape before flatten.
   # Terraform requires homogeneous list element types, and bundles emit entries
@@ -495,7 +496,7 @@ locals {
   # on every host. Auto-disabled (empty map) for single-host topologies:
   # one host means everything is either on the same docker network or
   # 127.0.0.1, no split-horizon needed.
-  _split_dns_contribs = flatten([
+  _split_dns_contribs = flatten(concat([
     module.outline.split_dns_entries,
     module.steward.split_dns_entries,
     module.vikunja.split_dns_entries,
@@ -507,10 +508,11 @@ locals {
     module.jitsi.split_dns_entries,
     module.espocrm.split_dns_entries,
     module.n8n.split_dns_entries,
-    module.backrest_mgmt.split_dns_entries,
     module.grafana.split_dns_entries,
     module.wazuh.split_dns_entries,
-  ])
+    ],
+    [for inst in module.backrest : inst.split_dns_entries],
+  ))
   split_dns_overrides = (
     length(module.base.compute.hosts) > 1
     ? { for e in local._split_dns_contribs : e.hostname => e.private_ip }
@@ -656,46 +658,83 @@ module "grafana" {
   extra_docker_networks       = try(var.apps.grafana.extra_docker_networks, [])
 }
 
-# Backrest is multi-instance: each backed-up host gets its own module block,
-# its own bucket, its own restic repo. Forward-auth — its provider_id MUST
-# be added to identity's extra_forward_auth_provider_ids list (see identity.tf).
-# Example: a single "mgmt" instance. Add more module blocks for each host.
-module "backrest_mgmt" {
-  source = "git::https://github.com/sheyaln/sabokit.git//platform/apps/backrest/terraform?ref=v3.3.2"
+# Backrest is auto-instantiated per `var.compute_hosts` entry — every host gets
+# its own bucket + restic repo by default. Opt a host out via
+# `var.apps.backrest.disabled_hosts = ["<host_key>"]`. Forward-auth — every
+# instance's provider_id is wired into identity (see identity.tf).
+locals {
+  backrest_instances = {
+    for k, _ in var.compute_hosts : k => k
+    if !contains(try(var.apps.backrest.disabled_hosts, []), k)
+  }
+}
 
-  enabled       = try(var.apps.backrest_mgmt.enabled, false)
-  hostname      = try(var.apps.backrest_mgmt.hostname, "")
-  instance_name = try(var.apps.backrest_mgmt.instance_name, "mgmt")
-  # Auto-backed-up from every enabled app's backup_plan output, plus any
-  # consumer-supplied extras.
-  backup_plans = concat(
-    local.aggregated_backup_plans,
-    try(var.apps.backrest_mgmt.backup_plans, []),
+module "backrest" {
+  source   = "git::https://github.com/sheyaln/sabokit.git//platform/apps/backrest/terraform?ref=v3.4.0"
+  for_each = local.backrest_instances
+
+  enabled       = true
+  instance_name = each.key
+  hostname = try(
+    var.apps.backrest.per_host[each.key].hostname,
+    "backup-${each.key}.${var.base_domain}",
   )
   base = local.base
 
-  access_level                          = try(var.apps.backrest_mgmt.access_level, "admin")
-  extra_authorized_groups               = try(var.apps.backrest_mgmt.extra_authorized_groups, {})
-  tier_cascade_enabled                  = try(var.apps.backrest_mgmt.tier_cascade_enabled, true)
-  tier_access_level                     = try(var.apps.backrest_mgmt.tier_access_level, "admin")
-  image_tag                             = try(var.apps.backrest_mgmt.image_tag, "latest")
-  backup_sources                        = try(var.apps.backrest_mgmt.backup_sources, {})
-  restic_prune_max_frequency_days       = try(var.apps.backrest_mgmt.restic_prune_max_frequency_days, 7)
-  restic_check_max_frequency_days       = try(var.apps.backrest_mgmt.restic_check_max_frequency_days, 30)
-  restic_check_read_data_subset_percent = try(var.apps.backrest_mgmt.restic_check_read_data_subset_percent, 5)
-  application_name                      = try(var.apps.backrest_mgmt.application_name, "")
-  category_group                        = try(var.apps.backrest_mgmt.category_group, "Technical Management")
-  icon_url                              = try(var.apps.backrest_mgmt.icon_url, null)
-  icon_filename                         = try(var.apps.backrest_mgmt.icon_filename, "backrest-icon.png")
-  monitoring_enabled                    = try(var.apps.backrest_mgmt.monitoring_enabled, true)
-  deployment_host_key                   = try(var.apps.backrest_mgmt.deployment_host_key, "tools")
-  bucket_name_override                  = try(var.apps.backrest_mgmt.bucket_name_override, "")
-  dns_zone_override                     = try(var.apps.backrest_mgmt.dns_zone_override, "")
+  deployment_host_key = each.key
 
-  credentials_preserve        = try(var.apps.backrest_mgmt.credentials_preserve, false)
-  credentials_preserve_source = try(var.apps.backrest_mgmt.credentials_preserve_source, null)
-  extra_env_vars              = try(var.apps.backrest_mgmt.extra_env_vars, {})
-  extra_docker_networks       = try(var.apps.backrest_mgmt.extra_docker_networks, [])
+  access_level = try(
+    var.apps.backrest.per_host[each.key].access_level,
+    try(var.apps.backrest.access_level, "admin"),
+  )
+  extra_authorized_groups = try(
+    var.apps.backrest.per_host[each.key].extra_authorized_groups,
+    try(var.apps.backrest.extra_authorized_groups, {}),
+  )
+  tier_cascade_enabled = try(var.apps.backrest.tier_cascade_enabled, true)
+  tier_access_level    = try(var.apps.backrest.tier_access_level, "admin")
+
+  image_tag = try(
+    var.apps.backrest.per_host[each.key].image_tag,
+    try(var.apps.backrest.image_tag, "latest"),
+  )
+  storage_class                 = try(var.apps.backrest.storage_class, "GLACIER")
+  storage_class_transition_days = try(var.apps.backrest.storage_class_transition_days, 90)
+  restic_prune_max_frequency_days = try(
+    var.apps.backrest.per_host[each.key].restic_prune_max_frequency_days,
+    try(var.apps.backrest.restic_prune_max_frequency_days, 7),
+  )
+  restic_check_max_frequency_days = try(
+    var.apps.backrest.per_host[each.key].restic_check_max_frequency_days,
+    try(var.apps.backrest.restic_check_max_frequency_days, 30),
+  )
+  restic_check_read_data_subset_percent = try(var.apps.backrest.restic_check_read_data_subset_percent, 5)
+  backup_sources                        = try(var.apps.backrest.backup_sources, {})
+
+  # Each instance receives the full aggregated set; restic skips paths that
+  # don't exist on its host so the union is safe. Per-host explicit additions
+  # ride alongside platform-wide additions.
+  backup_plans = concat(
+    local.aggregated_backup_plans,
+    try(var.apps.backrest.per_host[each.key].backup_plans, []),
+    try(var.apps.backrest.backup_plans, []),
+  )
+
+  application_name     = try(var.apps.backrest.application_name, "")
+  category_group       = try(var.apps.backrest.category_group, "Technical Management")
+  icon_url             = try(var.apps.backrest.icon_url, null)
+  icon_filename        = try(var.apps.backrest.icon_filename, "backrest-icon.png")
+  monitoring_enabled   = try(var.apps.backrest.monitoring_enabled, true)
+  bucket_name_override = try(var.apps.backrest.per_host[each.key].bucket_name_override, "")
+  dns_zone_override    = try(var.apps.backrest.dns_zone_override, "")
+
+  credentials_preserve = try(
+    var.apps.backrest.per_host[each.key].credentials_preserve,
+    try(var.apps.backrest.credentials_preserve, false),
+  )
+  credentials_preserve_source = try(var.apps.backrest.per_host[each.key].credentials_preserve_source, null)
+  extra_env_vars              = try(var.apps.backrest.extra_env_vars, {})
+  extra_docker_networks       = try(var.apps.backrest.extra_docker_networks, [])
 }
 
 # ── Platform host-services (one container per host) ─────────────────────────

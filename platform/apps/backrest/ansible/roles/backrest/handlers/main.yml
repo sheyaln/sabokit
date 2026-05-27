@@ -1,5 +1,6 @@
 ---
-- name: Restart backrest
-  community.docker.docker_compose_v2:
-    project_src: "{{ backrest_install_dir }}"
-    state: restarted
+# Intentionally empty. Multi-instance role invocation (one include_role per
+# Backrest instance) makes handlers brittle: handlers fire at end-of-play with
+# whichever per-instance fact value was set last, restarting the wrong
+# instance. The role's tasks/main.yml does inline conditional restart instead,
+# scoped to the current iteration's backrest_install_dir.

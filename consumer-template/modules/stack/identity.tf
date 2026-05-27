@@ -18,10 +18,12 @@ module "identity" {
   #
   # Jitsi is NOT included even though it exports authentik_provider_id —
   # it uses its own OIDC adapter, not the embedded outpost. See its README.
-  extra_forward_auth_provider_ids = compact([
-    module.bentopdf.authentik_provider_id,
-    module.backrest_mgmt.authentik_provider_id,
-  ])
+  extra_forward_auth_provider_ids = compact(concat(
+    [
+      module.bentopdf.authentik_provider_id,
+    ],
+    [for inst in module.backrest : inst.authentik_provider_id],
+  ))
 
   # Tier DAG. Required input — the consumer declares their authority
   # hierarchy as a list of slots, each holding a map of peer_name → group_name.

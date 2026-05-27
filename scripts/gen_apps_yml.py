@@ -65,7 +65,6 @@ BUNDLES = [
     ("jitsi",          "jitsi",           "jitsi"),
     ("espocrm",        "espocrm",         "espocrm"),
     ("n8n",            "n8n",             "n8n"),
-    ("backrest",       "backrest_mgmt",   "backrest"),
     ("prometheus",     "prometheus",      "prometheus"),
     ("loki",           "loki",            "loki"),
     ("grafana",        "grafana",         "grafana"),
@@ -73,6 +72,16 @@ BUNDLES = [
     ("wazuh",          "wazuh",           "wazuh"),
     ("wazuh-agent",    "wazuh_agent_apps","wazuh_agent"),
     ("autoheal",       "autoheal_apps",   "autoheal"),
+]
+
+# Multi-instance bundles. Auto-fanned-out over var.compute_hosts in the
+# consumer-template (one terraform module per host). Their consumer-template
+# output is a map under enabled_apps.<key>.instances rather than a single
+# object — the playbook iterates internally instead of being instance-keyed
+# at the import_playbook level (Ansible can't loop import_playbook).
+# Entries: (dir, consumer-key)
+MULTI_INSTANCE_BUNDLES = [
+    ("backrest", "backrest"),
 ]
 
 OUTPUT_PATH = REPO_ROOT / "platform/ansible/apps.yml"
@@ -185,6 +194,61 @@ def render_bundle(dir_name: str, consumer_key: str, role_slug: str,
     return "\n".join(lines) + "\n"
 
 
+def render_multi_instance_bundle(dir_name: str, consumer_key: str) -> str:
+    """Render the import_playbook for a multi-instance bundle. The playbook
+    iterates internally over <key>.instances; we pass the whole map in."""
+    lines: list[str] = []
+    lines.append(f"- import_playbook: ../apps/{dir_name}/ansible/playbook.yml")
+    lines.append("  vars:")
+    lines.append(
+        f"    {consumer_key}_all_instances: "
+        f'"{{{{ enabled_apps.{consumer_key}.instances }}}}"'
+    )
+    lines.append(
+        f"  when: enabled_apps.{consumer_key} is defined"
+    )
+    lines.append(
+        f"        and enabled_apps.{consumer_key}.instances is defined"
+    )
+    lines.append(
+        f"        and (enabled_apps.{consumer_key}.instances | length) > 0"
+    )
+    lines.append(f"  tags: [apps, {consumer_key}]")
+    return "\n".join(lines) + "\n"
+
+
+def render_down_multi_instance_bundle(dir_name: str, consumer_key: str) -> str:
+    """Teardown for a multi-instance bundle. Iterates over instances and runs
+    compose-down per install_dir. Volumes preserved."""
+    lines: list[str] = []
+    lines.append(f'- name: "down: {dir_name}"')
+    lines.append("  hosts: all")
+    lines.append("  become: true")
+    lines.append("  gather_facts: false")
+    lines.append(f"  tags: [down, {consumer_key}]")
+    lines.append("  tasks:")
+    lines.append(f"    - name: Stop and remove each {dir_name} instance")
+    lines.append("      community.docker.docker_compose_v2:")
+    lines.append(f'        project_src: "/opt/{dir_name}-{{{{ inst.key }}}}"')
+    lines.append("        state: absent")
+    lines.append(
+        f"      loop: \"{{{{ (enabled_apps.{consumer_key} | default({{}}))"
+        ".instances | default({}) | dict2items | "
+        "selectattr('value.ansible_group', 'in', group_names) | list }}\""
+    )
+    lines.append("      loop_control:")
+    lines.append("        loop_var: inst")
+    lines.append('        label: "{{ inst.key }}"')
+    lines.append("      ignore_errors: true  # compose file may already be gone")
+    lines.append(
+        f"      when: enabled_apps.{consumer_key} is defined"
+    )
+    lines.append(
+        f"            and enabled_apps.{consumer_key}.instances is defined"
+    )
+    return "\n".join(lines) + "\n"
+
+
 def render_down_bundle(dir_name: str, consumer_key: str,
                        role_slug: str, tier: str = "apps") -> str:
     """Render one teardown play. Targets `all` and scopes via tags + a
@@ -242,6 +306,11 @@ def generate() -> str:
                 )
             out.append("")  # blank line between blocks
             out.append(render_bundle(dir_name, consumer_key, role_slug, vars, tier))
+    # Multi-instance bundles (one TF module per compute_host; playbook
+    # iterates internally). Always emitted under apps/.
+    for dir_name, consumer_key in MULTI_INSTANCE_BUNDLES:
+        out.append("")
+        out.append(render_multi_instance_bundle(dir_name, consumer_key))
     return "".join(out)
 
 
@@ -251,6 +320,9 @@ def generate_down() -> str:
         for dir_name, consumer_key, role_slug in bundles:
             out.append("")  # blank line between plays
             out.append(render_down_bundle(dir_name, consumer_key, role_slug, tier))
+    for dir_name, consumer_key in MULTI_INSTANCE_BUNDLES:
+        out.append("")
+        out.append(render_down_multi_instance_bundle(dir_name, consumer_key))
     return "".join(out)
 
 

@@ -208,22 +208,6 @@
         state: absent
       when: enabled_apps.n8n is defined and enabled_apps.n8n is not none
       ignore_errors: true  # compose file may already be gone
-- name: "down: backrest"
-  hosts: "{{ (enabled_apps.backrest_mgmt | default({})).ansible_group | default('all') }}"
-  become: true
-  gather_facts: false
-  tags: [down, backrest_mgmt]
-  tasks:
-    - name: Load role defaults
-      ansible.builtin.include_vars:
-        file: "../apps/backrest/ansible/roles/backrest/defaults/main.yml"
-      when: enabled_apps.backrest_mgmt is defined and enabled_apps.backrest_mgmt is not none
-    - name: Stop and remove the compose stack
-      community.docker.docker_compose_v2:
-        project_src: "{{ backrest_install_dir | default('/opt/backrest') }}"
-        state: absent
-      when: enabled_apps.backrest_mgmt is defined and enabled_apps.backrest_mgmt is not none
-      ignore_errors: true  # compose file may already be gone
 - name: "down: prometheus"
   hosts: "{{ (enabled_apps.prometheus | default({})).ansible_group | default('all') }}"
   become: true
@@ -336,3 +320,20 @@
         state: absent
       when: enabled_apps.autoheal_apps is defined and enabled_apps.autoheal_apps is not none
       ignore_errors: true  # compose file may already be gone
+- name: "down: backrest"
+  hosts: all
+  become: true
+  gather_facts: false
+  tags: [down, backrest]
+  tasks:
+    - name: Stop and remove each backrest instance
+      community.docker.docker_compose_v2:
+        project_src: "/opt/backrest-{{ inst.key }}"
+        state: absent
+      loop: "{{ (enabled_apps.backrest | default({})).instances | default({}) | dict2items | selectattr('value.ansible_group', 'in', group_names) | list }}"
+      loop_control:
+        loop_var: inst
+        label: "{{ inst.key }}"
+      ignore_errors: true  # compose file may already be gone
+      when: enabled_apps.backrest is defined
+            and enabled_apps.backrest.instances is defined
