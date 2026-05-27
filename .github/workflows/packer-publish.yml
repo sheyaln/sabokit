@@ -58,7 +58,8 @@ jobs:
             qemu-system-x86 \
             qemu-utils \
             ovmf \
-            cpu-checker
+            cpu-checker \
+            xorriso
           # Confirm /dev/kvm is present and accessible. GitHub-hosted
           # ubuntu-latest runners ship it post-2023; failing fast here makes
           # the cause obvious if a future runner image regresses.
