@@ -115,3 +115,4 @@ nextcloud_autoheal_enabled: true
 # `docker compose` against the rendered files without escalation.
 nextcloud_file_owner: "ubuntu"
 nextcloud_file_group: "ubuntu"
+nextcloud_extra_env_vars: {}

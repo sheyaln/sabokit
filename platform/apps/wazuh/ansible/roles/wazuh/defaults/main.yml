@@ -25,3 +25,4 @@ wazuh_autoheal_enabled: true
 
 # Set true on next play to throw away the existing certs and re-generate.
 wazuh_regenerate_certs: false
+wazuh_extra_env_vars: {}

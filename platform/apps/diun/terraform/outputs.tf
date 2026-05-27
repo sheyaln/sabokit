@@ -53,6 +53,7 @@ output "ansible" {
       diun_notif_extra             = var.diun_notif_extra
       diun_watch_enabled           = var.diun_watch_enabled
       diun_autoheal_enabled        = var.autoheal_enabled
+      diun_extra_env_vars          = var.extra_env_vars
     }
   } : null
 }

@@ -36,3 +36,4 @@ steward_autoheal_enabled: true
 # `docker compose` against the rendered files without escalation.
 steward_file_owner: "ubuntu"
 steward_file_group: "ubuntu"
+steward_extra_env_vars: {}

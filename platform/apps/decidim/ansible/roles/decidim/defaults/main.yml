@@ -68,3 +68,4 @@ decidim_autoheal_enabled: true
 # `docker compose` against the rendered files without escalation.
 decidim_file_owner: "ubuntu"
 decidim_file_group: "ubuntu"
+decidim_extra_env_vars: {}

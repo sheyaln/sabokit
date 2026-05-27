@@ -47,3 +47,4 @@ vikunja_cpu_reservation: "0.1"
 # `docker compose` against the rendered files without escalation.
 vikunja_file_owner: "ubuntu"
 vikunja_file_group: "ubuntu"
+vikunja_extra_env_vars: {}

@@ -11,6 +11,9 @@ services:
     restart: unless-stopped
     environment:
       TZ: "{{ protonmail_bridge_timezone }}"
+{% for key, value in (protonmail_bridge_extra_env_vars | default({})).items() %}
+      {{ key }}: "{{ value }}"
+{% endfor %}
     # Bridge data + login state. Manual `bridge --cli` login runs ON FIRST
     # DEPLOY (see README), and the credentials persist in this volume.
     volumes:

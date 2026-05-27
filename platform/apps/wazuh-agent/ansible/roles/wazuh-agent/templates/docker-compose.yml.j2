@@ -11,6 +11,9 @@ services:
     hostname: "{{ wazuh_agent_name }}"
     environment:
       WAZUH_MANAGER_SERVER: "{{ wazuh_agent_manager_address }}"
+{% for key, value in (wazuh_agent_extra_env_vars | default({})).items() %}
+      {{ key }}: "{{ value }}"
+{% endfor %}
     # Host network — agent monitors host-level logs + needs to reach the
     # manager over the host's network interfaces.
     network_mode: host

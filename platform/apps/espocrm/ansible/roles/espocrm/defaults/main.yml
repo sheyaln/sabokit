@@ -60,3 +60,4 @@ espocrm_autoheal_enabled: true
 # `docker compose` against the rendered files without escalation.
 espocrm_file_owner: "ubuntu"
 espocrm_file_group: "ubuntu"
+espocrm_extra_env_vars: {}

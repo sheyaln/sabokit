@@ -33,6 +33,7 @@ output "ansible" {
       protonmail_bridge_cpu_reservation    = var.cpu_reservation
       protonmail_bridge_diun_watch_enabled = var.diun_watch_enabled
       protonmail_bridge_autoheal_enabled   = var.autoheal_enabled
+      protonmail_bridge_extra_env_vars     = var.extra_env_vars
     }
   } : null
 }

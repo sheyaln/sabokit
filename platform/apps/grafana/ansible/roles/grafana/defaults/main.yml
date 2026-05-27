@@ -49,3 +49,4 @@ grafana_jsm_alert_tags:
 # `docker compose` against the rendered files without escalation.
 grafana_file_owner: "ubuntu"
 grafana_file_group: "ubuntu"
+grafana_extra_env_vars: {}

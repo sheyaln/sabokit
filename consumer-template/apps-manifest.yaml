@@ -269,6 +269,12 @@ apps:
           description: Full icon URL override. When set, used verbatim and icon_filename is ignored.
           ui: advanced
 
+        extra_env_vars:
+          type: map(string)
+          default: {}
+          description: Map of KEY -> value rendered into the container .env after first-class vars. Use for env-driven feature flags / third-party integrations / debug toggles not exposed first-class on the bundle.
+          ui: advanced
+
   # ── Vikunja ─────────────────────────────────────────────────────────────
   # Task and project tracker. Single container, postgres-backed, OIDC-only by
   # default. Attachments live on the host at /opt/vikunja/files. See
@@ -406,6 +412,12 @@ apps:
           type: string
           default: ""
           description: Full icon URL override. When set, used verbatim and icon_filename is ignored.
+          ui: advanced
+
+        extra_env_vars:
+          type: map(string)
+          default: {}
+          description: Map of KEY -> value rendered into the container .env after first-class vars. Use for env-driven feature flags / third-party integrations / debug toggles not exposed first-class on the bundle.
           ui: advanced
 
   # ── BentoPDF ────────────────────────────────────────────────────────────
@@ -646,6 +658,12 @@ apps:
           description: Full icon URL override. When set, used verbatim and icon_filename is ignored.
           ui: advanced
 
+        extra_env_vars:
+          type: map(string)
+          default: {}
+          description: Map of KEY -> value rendered into the container .env after first-class vars. Use for env-driven feature flags / third-party integrations / debug toggles not exposed first-class on the bundle.
+          ui: advanced
+
   # ── Broadsheet ──────────────────────────────────────────────────────────
   # Newsletters + transactional email (sabokit-broadsheet fork of notifuse).
   # OIDC via Authentik. Stateful: SECRET_KEY is immutable after first apply
@@ -802,6 +820,12 @@ apps:
           type: string
           default: main
           description: Git ref (branch, tag, or SHA) checked out when building from source. Pin to a tag/SHA for reproducibility.
+          ui: advanced
+
+        extra_env_vars:
+          type: map(string)
+          default: {}
+          description: Map of KEY -> value rendered into the container .env after first-class vars. Use for env-driven feature flags / third-party integrations / debug toggles not exposed first-class on the bundle.
           ui: advanced
 
   # ── Privacy policy ──────────────────────────────────────────────────────
@@ -1101,6 +1125,12 @@ apps:
           description: CPU ceiling for the Talk HPB container. WebRTC media doesn't pass through once peers connect.
           ui: advanced
 
+        extra_env_vars:
+          type: map(string)
+          default: {}
+          description: Map of KEY -> value rendered into the container .env after first-class vars. Use for env-driven feature flags / third-party integrations / debug toggles not exposed first-class on the bundle.
+          ui: advanced
+
   # ── Decidim ─────────────────────────────────────────────────────────────
   # Participatory democracy platform. Multi-container (web + sidekiq),
   # postgres + S3, OIDC.
@@ -1256,6 +1286,12 @@ apps:
           description: Full icon URL override. When set, used verbatim and icon_filename is ignored.
           ui: advanced
 
+        extra_env_vars:
+          type: map(string)
+          default: {}
+          description: Map of KEY -> value rendered into the container .env after first-class vars. Use for env-driven feature flags / third-party integrations / debug toggles not exposed first-class on the bundle.
+          ui: advanced
+
   # ── Jitsi ───────────────────────────────────────────────────────────────
   # Self-hosted Jitsi Meet (video conferencing). Multi-container (web +
   # prosody + jicofo + jvb) + an OIDC adapter brokering Authentik OIDC to
@@ -1392,6 +1428,12 @@ apps:
           description: Full icon URL override. When set, used verbatim and icon_filename is ignored.
           ui: advanced
 
+        extra_env_vars:
+          type: map(string)
+          default: {}
+          description: Map of KEY -> value rendered into the container .env after first-class vars. Use for env-driven feature flags / third-party integrations / debug toggles not exposed first-class on the bundle.
+          ui: advanced
+
   # ── EspoCRM ─────────────────────────────────────────────────────────────
   # PHP CRM with OIDC. Member-entity bootstrap is opt-in (sets up
   # constituent/dues tracking on top of the generic CRM).
@@ -1519,6 +1561,12 @@ apps:
           type: string
           default: ""
           description: Full icon URL override. When set, used verbatim and icon_filename is ignored.
+          ui: advanced
+
+        extra_env_vars:
+          type: map(string)
+          default: {}
+          description: Map of KEY -> value rendered into the container .env after first-class vars. Use for env-driven feature flags / third-party integrations / debug toggles not exposed first-class on the bundle.
           ui: advanced
 
   # ── n8n ─────────────────────────────────────────────────────────────────
@@ -1834,6 +1882,12 @@ apps:
           description: Override the DNS zone for this app's A record. Default empty derives from hostname suffix matching against base.domains.zones. Set only for edge cases.
           ui: advanced
 
+        extra_env_vars:
+          type: map(string)
+          default: {}
+          description: Map of KEY -> value rendered into the container .env after first-class vars. Use for env-driven feature flags / third-party integrations / debug toggles not exposed first-class on the bundle.
+          ui: advanced
+
   # ── Diun ────────────────────────────────────────────────────────────────
   # Platform host-service: notifies when a new image is available on the
   # registry for any container running on the host. Notify-only — does NOT
@@ -1944,6 +1998,12 @@ apps:
           description: Legacy list-shaped notifier config kept for pre-v3.2 consumers. New consumers should use `n8n_webhook_url` + `diun_notif_extra` instead. Empty default.
           ui: advanced
           sensitive: true
+
+        extra_env_vars:
+          type: map(string)
+          default: {}
+          description: Map of KEY -> value rendered into the container .env after first-class vars. Use for env-driven feature flags / third-party integrations / debug toggles not exposed first-class on the bundle.
+          ui: advanced
 
   # ── Autoheal ────────────────────────────────────────────────────────────
   # Platform host-service: restarts containers whose healthcheck flips to
@@ -2061,6 +2121,12 @@ apps:
           description: Extra Prometheus scrape jobs as job_name → list(host:port). For cross-host base-exporter scrapes (node_exporter, cadvisor, traefik metrics on every infra host) when the management host needs to scrape over the VPC. Consumer fills from their host inventory.
           ui: advanced
 
+        extra_env_vars:
+          type: map(string)
+          default: {}
+          description: Map of KEY -> value rendered into the container .env after first-class vars. Use for env-driven feature flags / third-party integrations / debug toggles not exposed first-class on the bundle.
+          ui: advanced
+
   # ── Loki ────────────────────────────────────────────────────────────────
   - id: loki
     display_name: Loki
@@ -2098,6 +2164,12 @@ apps:
           type: string
           default: ""
           description: Optional private IP to bind 3100 to (for remote agents pushing logs).
+          ui: advanced
+
+        extra_env_vars:
+          type: map(string)
+          default: {}
+          description: Map of KEY -> value rendered into the container .env after first-class vars. Use for env-driven feature flags / third-party integrations / debug toggles not exposed first-class on the bundle.
           ui: advanced
 
   # ── Grafana ─────────────────────────────────────────────────────────────
@@ -2256,6 +2328,12 @@ apps:
           description: Tags attached to every alert sent to JSM. Useful for JSM routing rules.
           ui: advanced
 
+        extra_env_vars:
+          type: map(string)
+          default: {}
+          description: Map of KEY -> value rendered into the container .env after first-class vars. Use for env-driven feature flags / third-party integrations / debug toggles not exposed first-class on the bundle.
+          ui: advanced
+
   # ── Wazuh ───────────────────────────────────────────────────────────────
   # SIEM server stack: manager + indexer (OpenSearch) + dashboard. UI fronted
   # via Authentik forward-auth at the gateway (the dashboard's native SSO is
@@ -2400,6 +2478,12 @@ apps:
           description: Optional Authentik group mapped to opensearch's kibana_user + readall (dashboard access without write/active-response privileges). Empty disables (admin-only).
           ui: advanced
 
+        extra_env_vars:
+          type: map(string)
+          default: {}
+          description: Map of KEY -> value rendered into the container .env after first-class vars. Use for env-driven feature flags / third-party integrations / debug toggles not exposed first-class on the bundle.
+          ui: advanced
+
   # ── Wazuh Agent ─────────────────────────────────────────────────────────
   # Host-network container that ships logs to a Wazuh manager. Multi-instance
   # like backrest — one block per host you want monitored.
@@ -2463,6 +2547,12 @@ apps:
           type: list(string)
           default: []
           description: Paths to suppress from FIM reporting (syscheck `<ignore>` entries).
+          ui: advanced
+
+        extra_env_vars:
+          type: map(string)
+          default: {}
+          description: Map of KEY -> value rendered into the container .env after first-class vars. Use for env-driven feature flags / third-party integrations / debug toggles not exposed first-class on the bundle.
           ui: advanced
 
 # ── Bootstrap-tier bundles ────────────────────────────────────────────────
@@ -2537,4 +2627,10 @@ bootstrap:
           type: bool
           default: true
           description: Whether Autoheal restarts the container on healthcheck failure.
+          ui: advanced
+
+        extra_env_vars:
+          type: map(string)
+          default: {}
+          description: Map of KEY -> value rendered into the container .env after first-class vars. Use for env-driven feature flags / third-party integrations / debug toggles not exposed first-class on the bundle.
           ui: advanced

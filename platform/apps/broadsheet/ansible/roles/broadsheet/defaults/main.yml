@@ -35,3 +35,4 @@ broadsheet_cpu_reservation: "0.25"
 # `docker compose` against the rendered files without escalation.
 broadsheet_file_owner: "ubuntu"
 broadsheet_file_group: "ubuntu"
+broadsheet_extra_env_vars: {}

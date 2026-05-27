@@ -50,3 +50,4 @@ jitsi_autoheal_enabled: true
 # `docker compose` against the rendered files without escalation.
 jitsi_file_owner: "ubuntu"
 jitsi_file_group: "ubuntu"
+jitsi_extra_env_vars: {}

@@ -54,6 +54,7 @@ output "ansible" {
       notifuse_smtp_secret_name         = var.smtp_from_email == "" ? "" : "smtp-config"
       notifuse_diun_watch_enabled       = var.diun_watch_enabled
       notifuse_autoheal_enabled         = var.autoheal_enabled
+      notifuse_extra_env_vars           = var.extra_env_vars
     }
   } : null
 }
