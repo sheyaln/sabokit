@@ -18,8 +18,6 @@ module "identity_bootstrap" {
   postgres_endpoint    = module.base.scaleway.postgres_endpoint
   postgres_engine      = module.base.scaleway.postgres_engine
 
-  credentials_preserve        = try(var.identity.bootstrap_credentials_preserve, false)
-  credentials_preserve_source = try(var.identity.bootstrap_credentials_preserve_source, null)
 
   # Optional out-of-band secrets the authentik-server role reads. Operators
   # provision the underlying Scaleway secrets (S3 creds, SMTP creds) themselves

@@ -63,19 +63,6 @@ variable "generate_rsa_signing_key" {
   default     = false
 }
 
-variable "credentials_preserve" {
-  description = "In-place legacy cutover support. No-op for SAML — the SAML bundle's secret bag holds only configuration (ACS URL, audience, binding) and no rotating credentials, so there is nothing to preserve. The flag exists for contract parity with `modules/authentik/oidc-app` so consumer-template can pass it uniformly."
-  type        = bool
-  default     = false
-}
-
-variable "credentials_preserve_source" {
-  description = "Parity sibling to `credentials_preserve_source` in `modules/authentik/oidc-app`. No-op for SAML — the SAML bag holds no rotating credentials, so there is nothing to seed. Variable exists so consumer-template can plumb it uniformly across OIDC and SAML apps."
-  type        = map(string)
-  default     = null
-  sensitive   = true
-}
-
 variable "signing_key_subject" {
   description = "Subject for the RSA signing certificate when generate_rsa_signing_key is true."
   type = object({

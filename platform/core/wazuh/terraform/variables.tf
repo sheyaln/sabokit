@@ -6,19 +6,6 @@ variable "enabled" {
   default     = false
 }
 
-variable "credentials_preserve" {
-  description = "In-place legacy cutover support. When true, the bundle skips `random_password` generation for the three Wazuh internal-user passwords (indexer admin, manager API, dashboard) and reads them from the live `wazuh-app-secrets` bag via a data source. The opensearch-security bootstrap bakes these into the security index on first start — rotating requires `wazuh-passwords-tool` inside the manager container. Also passed through to the OIDC submodule. Drop after cutover; short-lived, removal slated for v4.x."
-  type        = bool
-  default     = false
-}
-
-variable "credentials_preserve_source" {
-  description = "Greenfield-to-v3 cutover support. Sibling to `credentials_preserve` (gated separately, both null/false by default). When non-null AND `credentials_preserve = false`, this map supplies canonical keys directly into the bundle's `<slug>-app-secrets` Scaleway bag on the first apply instead of pulling them from a pre-populated one. Schema (canonical keys this bundle reads): `WAZUH_INDEXER_PASSWORD`, `WAZUH_API_PASSWORD`, `WAZUH_DASHBOARD_PASSWORD`. Supply only the keys you want to seed; any not supplied fall back to the bundle's generated `random_password` values. Only covers the bundle's own app-secrets bag — OIDC and database credentials are handled by their own preserve paths on the inner submodules. After the first apply, `ignore_changes = [data]` on the bag version keeps the values pinned and the variable can be dropped (or flipped to `credentials_preserve = true`). The map is plaintext in consumer TF — put it behind a Scaleway data source or a gitignored file."
-  type        = map(string)
-  default     = null
-  sensitive   = true
-}
-
 variable "base" {
   description = "Outputs from module \"base\"."
   type        = any

@@ -4,7 +4,7 @@
 # ignore_changes treatment as a SECRET_KEY. To rotate, change the password
 # in Nextcloud's admin UI then taint this resource.
 resource "random_password" "admin" {
-  count   = var.enabled && !var.credentials_preserve ? 1 : 0
+  count   = var.enabled ? 1 : 0
   length  = 32
   special = false
 
@@ -18,7 +18,7 @@ resource "random_password" "admin" {
 # the cluster needs a coordinated restart. Lock the value for the lifetime
 # of the deployment; to rotate, taint AND restart the stack.
 resource "random_password" "redis" {
-  count   = var.enabled && !var.credentials_preserve ? 1 : 0
+  count   = var.enabled ? 1 : 0
   length  = 48
   special = false
 
@@ -33,7 +33,7 @@ resource "random_password" "redis" {
 # the configure script re-runs to push it into the Nextcloud onlyoffice app's
 # config. Lock the value the same way as Redis/admin.
 resource "random_password" "onlyoffice_jwt" {
-  count   = var.enabled && !var.credentials_preserve ? 1 : 0
+  count   = var.enabled ? 1 : 0
   length  = 48
   special = false
 
@@ -46,7 +46,7 @@ resource "random_password" "onlyoffice_jwt" {
 # server hands its own nginx; cosmetic for single-instance, but the image
 # refuses to start cleanly without it.
 resource "random_password" "onlyoffice_secure_link" {
-  count   = var.enabled && !var.credentials_preserve ? 1 : 0
+  count   = var.enabled ? 1 : 0
   length  = 32
   special = false
 
@@ -63,7 +63,7 @@ resource "random_password" "onlyoffice_secure_link" {
 # re-running the configure script so Nextcloud's spreed app picks up the new
 # values.
 resource "random_password" "talk_turn_secret" {
-  count   = var.enabled && !var.credentials_preserve ? 1 : 0
+  count   = var.enabled ? 1 : 0
   length  = 48
   special = false
 
@@ -73,7 +73,7 @@ resource "random_password" "talk_turn_secret" {
 }
 
 resource "random_password" "talk_signaling_secret" {
-  count   = var.enabled && !var.credentials_preserve ? 1 : 0
+  count   = var.enabled ? 1 : 0
   length  = 48
   special = false
 
@@ -83,7 +83,7 @@ resource "random_password" "talk_signaling_secret" {
 }
 
 resource "random_password" "talk_internal_secret" {
-  count   = var.enabled && !var.credentials_preserve ? 1 : 0
+  count   = var.enabled ? 1 : 0
   length  = 48
   special = false
 
@@ -93,7 +93,7 @@ resource "random_password" "talk_internal_secret" {
 }
 
 resource "scaleway_secret" "app" {
-  count = var.enabled && !var.credentials_preserve ? 1 : 0
+  count = var.enabled ? 1 : 0
 
   name        = "${local.slug}-app-secrets"
   description = "Nextcloud application secrets (admin bootstrap password, Redis password, OIDC + S3 bag)."
@@ -101,35 +101,19 @@ resource "scaleway_secret" "app" {
   type        = "key_value"
 }
 
-# In-place cutover: read the live bag and pin every generated credential to
-# the existing value via one decode + per-credential local.
-data "scaleway_secret" "preserved" {
-  count = var.enabled && var.credentials_preserve ? 1 : 0
-  name  = "${local.slug}-app-secrets"
-}
-
-data "scaleway_secret_version" "preserved" {
-  count     = var.enabled && var.credentials_preserve ? 1 : 0
-  secret_id = data.scaleway_secret.preserved[0].id
-  revision  = "latest"
-}
-
 locals {
-  _preserved = (var.enabled && var.credentials_preserve) ? jsondecode(base64decode(data.scaleway_secret_version.preserved[0].data)) : {}
-  # credentials_preserve_source (greenfield-to-v3): supplied values
-  # shadow random_* without count-gating them, so state stays stable.
-  admin_password         = var.enabled ? (var.credentials_preserve ? local._preserved.NEXTCLOUD_ADMIN_PASSWORD : try(var.credentials_preserve_source.NEXTCLOUD_ADMIN_PASSWORD, random_password.admin[0].result)) : ""
-  redis_password         = var.enabled ? (var.credentials_preserve ? local._preserved.REDIS_PASSWORD : try(var.credentials_preserve_source.REDIS_PASSWORD, random_password.redis[0].result)) : ""
-  onlyoffice_jwt_secret  = var.enabled ? (var.credentials_preserve ? local._preserved.ONLYOFFICE_JWT_SECRET : try(var.credentials_preserve_source.ONLYOFFICE_JWT_SECRET, random_password.onlyoffice_jwt[0].result)) : ""
-  onlyoffice_secure_link = var.enabled ? (var.credentials_preserve ? local._preserved.ONLYOFFICE_SECURE_LINK : try(var.credentials_preserve_source.ONLYOFFICE_SECURE_LINK, random_password.onlyoffice_secure_link[0].result)) : ""
-  talk_turn_secret       = var.enabled ? (var.credentials_preserve ? local._preserved.TALK_TURN_SECRET : try(var.credentials_preserve_source.TALK_TURN_SECRET, random_password.talk_turn_secret[0].result)) : ""
-  talk_signaling_secret  = var.enabled ? (var.credentials_preserve ? local._preserved.TALK_SIGNALING_SECRET : try(var.credentials_preserve_source.TALK_SIGNALING_SECRET, random_password.talk_signaling_secret[0].result)) : ""
-  talk_internal_secret   = var.enabled ? (var.credentials_preserve ? local._preserved.TALK_INTERNAL_SECRET : try(var.credentials_preserve_source.TALK_INTERNAL_SECRET, random_password.talk_internal_secret[0].result)) : ""
-  app_secret_id          = var.enabled ? (var.credentials_preserve ? data.scaleway_secret.preserved[0].id : scaleway_secret.app[0].id) : ""
+  admin_password         = var.enabled ? (random_password.admin[0].result) : ""
+  redis_password         = var.enabled ? (random_password.redis[0].result) : ""
+  onlyoffice_jwt_secret  = var.enabled ? (random_password.onlyoffice_jwt[0].result) : ""
+  onlyoffice_secure_link = var.enabled ? (random_password.onlyoffice_secure_link[0].result) : ""
+  talk_turn_secret       = var.enabled ? (random_password.talk_turn_secret[0].result) : ""
+  talk_signaling_secret  = var.enabled ? (random_password.talk_signaling_secret[0].result) : ""
+  talk_internal_secret   = var.enabled ? (random_password.talk_internal_secret[0].result) : ""
+  app_secret_id          = var.enabled ? (scaleway_secret.app[0].id) : ""
 }
 
 resource "scaleway_secret_version" "app" {
-  count = var.enabled && !var.credentials_preserve ? 1 : 0
+  count = var.enabled ? 1 : 0
 
   secret_id = scaleway_secret.app[0].id
   data = jsonencode({

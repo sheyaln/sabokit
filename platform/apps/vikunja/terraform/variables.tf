@@ -6,19 +6,6 @@ variable "enabled" {
   default     = false
 }
 
-variable "credentials_preserve" {
-  description = "In-place legacy cutover support. When true, the bundle skips `random_password.jwt_secret` and reads `VIKUNJA_SERVICE_JWTSECRET` from the live `vikunja-app-secrets` bag via a data source. Rotating the JWT secret invalidates every issued API token. Also passed through to OIDC and database submodules. Drop after cutover; short-lived, removal slated for v4.x."
-  type        = bool
-  default     = false
-}
-
-variable "credentials_preserve_source" {
-  description = "Greenfield-to-v3 cutover support. Sibling to `credentials_preserve` (gated separately, both null/false by default). When non-null AND `credentials_preserve = false`, this map supplies canonical keys directly into the `vikunja-app-secrets` bag on the first apply instead of pulling them from a pre-populated one. Schema: `{ VIKUNJA_SERVICE_JWTSECRET = string }`. Keys not supplied fall back to the bundle's generated `random_password` values. Only covers the bundle's own app-secrets bag; OIDC and database credentials are handled by their own preserve paths. After the first apply, `ignore_changes = [data]` on the bag version keeps the values pinned and the variable can be dropped (or flipped to `credentials_preserve = true`). The map is plaintext in consumer TF — put it behind a Scaleway data source or in a gitignored file."
-  type        = map(string)
-  default     = null
-  sensitive   = true
-}
-
 variable "base" {
   description = "Outputs from module \"base\". Apps consume { scaleway, authentik, compute, domains } from this. Shape documented in /ARCHITECTURE.md (\"What base/ outputs\")."
   type        = any

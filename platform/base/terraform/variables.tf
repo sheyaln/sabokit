@@ -188,22 +188,6 @@ variable "postgres_backup_schedule_retention_days" {
   default     = 7
 }
 
-variable "postgres_credentials_preserve" {
-  description = "In-place legacy cutover support. When true, the shared postgres module skips generating new admin + per-database credentials and reads existing values from the pre-existing `<secrets_namespace>-postgres-admin-credentials` and per-database bags via data sources. Drop the flag on next apply once cutover is verified. Short-lived knob, removal slated for v4.x. Matches the same shape as per-app credentials_preserve."
-  type        = bool
-  default     = false
-}
-
-variable "postgres_credentials_preserve_source" {
-  description = "Greenfield-to-v3 cutover support. Sibling to `postgres_credentials_preserve` (gated separately, both null/false by default). When non-null AND `postgres_credentials_preserve = false`, supplies admin + per-database canonical passwords directly to the Scaleway bags on first apply, instead of pulling them from pre-populated bags. Shape: `{ admin = string, databases = map(string) }`. Forwarded to `modules/infrastructure/storage/postgres`; see its variable docs for the full semantics."
-  type = object({
-    admin     = optional(string)
-    databases = optional(map(string), {})
-  })
-  default   = null
-  sensitive = true
-}
-
 # ── Scaleway TEM (outbound SMTP) ────────────────────────────────────────────
 # Every app sends transactional mail through Scaleway TEM. Base owns the
 # domain registration, DNS records (SPF/DKIM/DMARC), API key, and the
@@ -231,12 +215,6 @@ variable "tem_smtp_config_secret_name" {
   description = "Name of the Scaleway secret base writes with SMTP credentials. App bundles default `smtp_secret_name` to `smtp-config` — override here only if you need a non-standard name."
   type        = string
   default     = "smtp-config"
-}
-
-variable "smtp_config_preserve" {
-  description = "In-place legacy cutover support. When true, base skips writing the `smtp-config` Scaleway secret and reads the pre-existing bag via a data source instead. Use when migrating from a legacy ansible-managed deploy that already owns the bag — avoids the manual `terraform import` block. Drop the flag on next apply once cutover is verified. Parallel to `postgres_credentials_preserve`; short-lived knob, removal slated for v4.x."
-  type        = bool
-  default     = false
 }
 
 variable "tem_webhook_n8n_url" {

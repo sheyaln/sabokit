@@ -4,7 +4,7 @@
 # must taint this resource AND run `restic key add` against the live repo
 # before re-applying, otherwise existing snapshots become unreadable.
 resource "random_password" "restic" {
-  count   = var.enabled && !var.credentials_preserve ? 1 : 0
+  count   = var.enabled ? 1 : 0
   length  = 48
   special = false
 
@@ -14,7 +14,7 @@ resource "random_password" "restic" {
 }
 
 resource "scaleway_secret" "app" {
-  count = var.enabled && !var.credentials_preserve ? 1 : 0
+  count = var.enabled ? 1 : 0
 
   name        = "${local.qualified_slug}-app-secrets"
   description = "Backrest restic repo credentials + encryption password (${local.qualified_slug})."
@@ -22,30 +22,13 @@ resource "scaleway_secret" "app" {
   type        = "key_value"
 }
 
-# In-place cutover: read the live bag and pin RESTIC_PASSWORD. Loss of this
-# password makes every snapshot in the repo unrecoverable, so preserving it
-# is non-negotiable.
-data "scaleway_secret" "preserved" {
-  count = var.enabled && var.credentials_preserve ? 1 : 0
-  name  = "${local.qualified_slug}-app-secrets"
-}
-
-data "scaleway_secret_version" "preserved" {
-  count     = var.enabled && var.credentials_preserve ? 1 : 0
-  secret_id = data.scaleway_secret.preserved[0].id
-  revision  = "latest"
-}
-
 locals {
-  _preserved = (var.enabled && var.credentials_preserve) ? jsondecode(base64decode(data.scaleway_secret_version.preserved[0].data)) : {}
-  # credentials_preserve_source (greenfield-to-v3): supplied values
-  # shadow random_* without count-gating them, so state stays stable.
-  restic_password = var.enabled ? (var.credentials_preserve ? local._preserved.RESTIC_PASSWORD : try(var.credentials_preserve_source.RESTIC_PASSWORD, random_password.restic[0].result)) : ""
-  app_secret_id   = var.enabled ? (var.credentials_preserve ? data.scaleway_secret.preserved[0].id : scaleway_secret.app[0].id) : ""
+  restic_password = var.enabled ? (random_password.restic[0].result) : ""
+  app_secret_id   = var.enabled ? (scaleway_secret.app[0].id) : ""
 }
 
 resource "scaleway_secret_version" "app" {
-  count = var.enabled && !var.credentials_preserve ? 1 : 0
+  count = var.enabled ? 1 : 0
 
   secret_id = scaleway_secret.app[0].id
   data = jsonencode({

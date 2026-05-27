@@ -29,5 +29,4 @@ module "authentik" {
   authorization_flow_uuid  = var.base.authentik.flows.authorization_flow
   invalidation_flow_uuid   = var.base.authentik.flows.invalidation_flow
 
-  credentials_preserve = var.credentials_preserve
 }

@@ -29,7 +29,6 @@ module "authentik" {
   authorization_flow_uuid  = var.base.authentik.flows.authorization_flow
   invalidation_flow_uuid   = var.base.authentik.flows.invalidation_flow
 
-  credentials_preserve = var.credentials_preserve
 }
 
 # Service account + API token n8n uses for server-to-server Authentik admin

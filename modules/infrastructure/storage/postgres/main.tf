@@ -58,7 +58,7 @@ resource "scaleway_rdb_database" "dbs" {
 }
 
 resource "random_password" "db_passwords" {
-  for_each         = var.credentials_preserve ? toset([]) : toset(local.users)
+  for_each         = toset(local.users)
   length           = 32
   special          = true
   override_special = "@!"
@@ -75,50 +75,10 @@ resource "random_password" "db_passwords" {
   }
 }
 
-# Read live credential bags during in-place cutover. Admin lives in
-# `<instance_name>-admin-credentials`; each per-db user lives in
-# `postgres-<dbname>-credentials`.
-data "scaleway_secret" "preserved_admin" {
-  count = var.credentials_preserve ? 1 : 0
-  name  = "${var.instance_name}-admin-credentials"
-}
-
-data "scaleway_secret_version" "preserved_admin" {
-  count     = var.credentials_preserve ? 1 : 0
-  secret_id = data.scaleway_secret.preserved_admin[0].id
-  revision  = "latest"
-}
-
-data "scaleway_secret" "preserved_db" {
-  for_each = var.credentials_preserve ? toset(local.dbs) : toset([])
-  name     = "postgres-${each.value}-credentials"
-}
-
-data "scaleway_secret_version" "preserved_db" {
-  for_each  = var.credentials_preserve ? toset(local.dbs) : toset([])
-  secret_id = data.scaleway_secret.preserved_db[each.value].id
-  revision  = "latest"
-}
-
 locals {
-  _preserved_admin = var.credentials_preserve ? jsondecode(base64decode(data.scaleway_secret_version.preserved_admin[0].data)) : {}
-  _preserved_dbs = var.credentials_preserve ? {
-    for db in local.dbs : db => jsondecode(base64decode(data.scaleway_secret_version.preserved_db[db].data))
-  } : {}
-  # credentials_preserve_source (greenfield-to-v3): supplied admin/db passwords
-  # shadow random_* without count-gating them, so state stays stable across
-  # the one-time first apply. Partial-supply works: any key not present in
-  # the source falls back to the generated password.
-  _source_admin = try(var.credentials_preserve_source.admin, null)
-  _source_dbs   = try(var.credentials_preserve_source.databases, {})
-  user_passwords = var.credentials_preserve ? merge(
-    { (var.psql_default_user) = local._preserved_admin.password },
-    { for db in local.dbs : db => local._preserved_dbs[db].password },
-    ) : merge(
-    { for u in local.users : u => random_password.db_passwords[u].result },
-    local._source_admin != null ? { (var.psql_default_user) = local._source_admin } : {},
-    { for db, pw in local._source_dbs : db => pw if contains(local.dbs, db) },
-  )
+  user_passwords = {
+    for u in local.users : u => random_password.db_passwords[u].result
+  }
 }
 
 resource "scaleway_rdb_user" "users" {
@@ -132,7 +92,7 @@ resource "scaleway_rdb_user" "users" {
 }
 
 resource "scaleway_secret" "admin_credentials" {
-  count = var.credentials_preserve ? 0 : 1
+  count = 1
 
   name        = "${var.instance_name}-admin-credentials"
   description = "Admin credentials for the ${var.instance_name} PostgreSQL instance. Used by downstream modules to provision per-app databases."
@@ -141,7 +101,7 @@ resource "scaleway_secret" "admin_credentials" {
 }
 
 resource "scaleway_secret_version" "admin_credentials" {
-  count = var.credentials_preserve ? 0 : 1
+  count = 1
 
   secret_id = scaleway_secret.admin_credentials[0].id
   # Schema is enforced because type=database_credentials. The dbname is the
@@ -175,7 +135,7 @@ resource "scaleway_rdb_privilege" "privileges" {
 }
 
 resource "scaleway_secret" "db_credentials" {
-  for_each    = var.credentials_preserve ? toset([]) : toset(local.dbs)
+  for_each    = toset(local.dbs)
   name        = "postgres-${each.value}-credentials"
   description = "Database credentials for ${each.value}"
   tags        = ["postgres"]
@@ -183,7 +143,7 @@ resource "scaleway_secret" "db_credentials" {
 }
 
 resource "scaleway_secret_version" "db_credentials" {
-  for_each  = var.credentials_preserve ? toset([]) : toset(local.dbs)
+  for_each  = toset(local.dbs)
   secret_id = scaleway_secret.db_credentials[each.value].id
   data = jsonencode({
     dbname   = each.value
@@ -203,13 +163,13 @@ resource "scaleway_secret_version" "db_credentials" {
 }
 
 output "database_credentials_secrets" {
-  value       = var.credentials_preserve ? { for k, v in data.scaleway_secret.preserved_db : k => { id = v.id, name = v.name } } : { for k, v in scaleway_secret.db_credentials : k => { id = v.id, name = v.name } }
-  description = "Per-database Scaleway secret handles {id, name}. Unified shape across resource-managed and preserved paths."
+  value       = { for k, v in scaleway_secret.db_credentials : k => { id = v.id, name = v.name } }
+  description = "Per-database Scaleway secret handles {id, name}."
 }
 
 output "database_passwords" {
   value       = { for u in local.users : u => local.user_passwords[u] }
-  description = "Passwords used for databases (generated or preserved)"
+  description = "Passwords used for databases."
   sensitive   = true
 }
 
@@ -240,5 +200,5 @@ output "admin_password" {
 
 output "admin_credentials_secret_id" {
   description = "Scaleway Secret Manager ID holding admin credentials (engine, username, password, host, port)."
-  value       = var.credentials_preserve ? data.scaleway_secret.preserved_admin[0].id : scaleway_secret.admin_credentials[0].id
+  value       = scaleway_secret.admin_credentials[0].id
 }
