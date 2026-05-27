@@ -141,6 +141,9 @@
     - not _n8n_workflows_src_stat.stat.exists or not _n8n_workflows_src_stat.stat.isdir
 
 - name: Sync workflow JSON files to host
+  # No `notify: Restart n8n` — the workflows dir is a :ro bind mount, n8n
+  # reads files lazily on each `import:workflow` invocation. Restarting the
+  # container on every JSON change burns ~6s for no observable behaviour.
   ansible.builtin.copy:
     src: "{{ _n8n_workflows_dir_abs }}/"
     dest: "{{ n8n_workflows_host_dir }}/"
@@ -148,7 +151,6 @@
     owner: "{{ n8n_file_owner }}"
     group: "{{ n8n_file_group }}"
   when: n8n_workflows_dir | length > 0
-  notify: Restart n8n
 
 - name: Ensure n8n stack is running
   community.docker.docker_compose_v2:

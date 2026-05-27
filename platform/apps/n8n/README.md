@@ -131,7 +131,7 @@ apps = {
 }
 ```
 
-On each `ansible-playbook ansible-local/site.yml ...` run the role syncs the directory to the apps host at `/opt/n8n/workflows-import/`, bind-mounts it read-only into the n8n container at `/workflows-import/`, and runs `n8n import:workflow --separate --input=/workflows-import/` after the container is healthy.
+On each `ansible-playbook ../../../platform/ansible/apps.yml ...` run (from `environments/<env>/`) the role syncs the directory to the apps host at `/opt/n8n/workflows-import/`, bind-mounts it read-only into the n8n container at `/workflows-import/`, and runs `n8n import:workflow --separate --input=/workflows-import/` after the container is healthy.
 
 - Path resolution: relative paths resolve against the playbook invocation cwd (i.e. `environments/<env>/` where `up.sh` runs); absolute paths used verbatim.
 - Idempotence: n8n's importer upserts by workflow `id`. Re-runs are no-ops against the DB.

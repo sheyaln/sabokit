@@ -3,8 +3,8 @@
 Source-of-truth for n8n workflow JSON exports auto-imported on every deploy.
 
 Drop `*.json` files exported from n8n's UI (`Workflows -> menu -> Download`) into
-this directory. On each `ansible-playbook ansible-local/site.yml ...` run the
-n8n role syncs them to the apps host and runs
+this directory. On each `ansible-playbook ../../../platform/ansible/apps.yml ...`
+run (from `environments/<env>/`) the n8n role syncs them to the apps host and runs
 `n8n import:workflow --separate --input=/workflows-import/` inside the
 container. n8n's importer upserts by workflow `id`, so re-runs are idempotent
 and a workflow edited in the UI gets clobbered on the next deploy unless the
