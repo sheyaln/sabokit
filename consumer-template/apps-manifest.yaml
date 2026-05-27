@@ -1928,49 +1928,10 @@ apps:
           description: Map of KEY -> value rendered into the container .env after first-class vars. Use for env-driven feature flags / third-party integrations / debug toggles not exposed first-class on the bundle.
           ui: advanced
 
-  # ── Autoheal ────────────────────────────────────────────────────────────
-  # Platform host-service: restarts containers whose healthcheck flips to
-  # unhealthy. Multi-instance — one per host. Per-app autoheal_enabled
-  # knobs (on every app bundle) decide which containers get the autoheal=true
-  # label.
-  - id: autoheal
-    display_name: Autoheal
-    category: ops
-    description_short: Restart unhealthy containers
-    description: |
-      One container per host. Polls Docker every few seconds for containers
-      with a HEALTHCHECK in unhealthy state AND opted in via the autoheal=true
-      label, restarts them. Sister bundle to Watchtower; together they form
-      the prod-default self-healing payload alongside Backrest.
-    icon: icons/autoheal.svg
-    upstream_url: https://github.com/willfarrell/docker-autoheal
-
-    tfvars:
-      key: autoheal_apps
-      schema:
-        enabled:
-          type: bool
-          default: true
-          description: Whether this Autoheal instance is deployed.
-          ui: hidden
-
-        deployment_host_key:
-          type: string
-          default: apps
-          description: Which host (key in compute_hosts) this Autoheal instance runs on.
-          ui: advanced
-
-        interval_seconds:
-          type: number
-          default: 5
-          description: How often Autoheal polls Docker for unhealthy containers.
-          ui: advanced
-
-        start_period_seconds:
-          type: number
-          default: 60
-          description: Grace period after container start before Autoheal acts. Lets slow-booting apps finish migrations.
-          ui: advanced
+  # Autoheal moved to platform/base/host-services/ in v3.4.0 and is now
+  # auto-instantiated per compute_host by the base layer (default-on).
+  # Consumer disables via `base.autoheal.enabled = false` or per-host opt-out
+  # via `base.autoheal.disabled_hosts = [...]`. See platform/base/host-services/README.md.
 
   # ── Prometheus ──────────────────────────────────────────────────────────
   # TSDB + node_exporter + cadvisor sidecars. Headless; access via Grafana.

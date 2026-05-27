@@ -28,6 +28,11 @@ module "base" {
   postgres_credentials_preserve_source = try(var.base.postgres_credentials_preserve_source, null)
   smtp_config_preserve                 = try(var.base.smtp_config_preserve, false)
 
+  # Host-services (per-host runtime watchers). Default-on category — pass
+  # the consumer's nested override map straight through, base layer applies
+  # the per-service defaults.
+  autoheal = try(var.base.autoheal, {})
+
   # Auto-wire TEM delivery webhook → SNS → n8n when n8n is enabled and exports
   # a URL. The base module emits zero webhook resources when the URL is empty.
   tem_webhook_n8n_url = module.n8n.enabled ? coalesce(module.n8n.app_url, "") : ""

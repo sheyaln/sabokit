@@ -328,11 +328,43 @@
   tasks:
     - name: Load role defaults
       ansible.builtin.include_vars:
-        file: "../apps/autoheal/ansible/roles/autoheal/defaults/main.yml"
+        file: "../base/host-services/autoheal/ansible/roles/autoheal/defaults/main.yml"
       when: enabled_apps.autoheal_apps is defined and enabled_apps.autoheal_apps is not none
     - name: Stop and remove the compose stack
       community.docker.docker_compose_v2:
         project_src: "{{ autoheal_install_dir | default('/opt/autoheal') }}"
         state: absent
       when: enabled_apps.autoheal_apps is defined and enabled_apps.autoheal_apps is not none
+      ignore_errors: true  # compose file may already be gone
+- name: "down: autoheal"
+  hosts: "{{ (enabled_apps.autoheal_management | default({})).ansible_group | default('all') }}"
+  become: true
+  gather_facts: false
+  tags: [down, autoheal_management]
+  tasks:
+    - name: Load role defaults
+      ansible.builtin.include_vars:
+        file: "../base/host-services/autoheal/ansible/roles/autoheal/defaults/main.yml"
+      when: enabled_apps.autoheal_management is defined and enabled_apps.autoheal_management is not none
+    - name: Stop and remove the compose stack
+      community.docker.docker_compose_v2:
+        project_src: "{{ autoheal_install_dir | default('/opt/autoheal') }}"
+        state: absent
+      when: enabled_apps.autoheal_management is defined and enabled_apps.autoheal_management is not none
+      ignore_errors: true  # compose file may already be gone
+- name: "down: autoheal"
+  hosts: "{{ (enabled_apps.autoheal_authentik | default({})).ansible_group | default('all') }}"
+  become: true
+  gather_facts: false
+  tags: [down, autoheal_authentik]
+  tasks:
+    - name: Load role defaults
+      ansible.builtin.include_vars:
+        file: "../base/host-services/autoheal/ansible/roles/autoheal/defaults/main.yml"
+      when: enabled_apps.autoheal_authentik is defined and enabled_apps.autoheal_authentik is not none
+    - name: Stop and remove the compose stack
+      community.docker.docker_compose_v2:
+        project_src: "{{ autoheal_install_dir | default('/opt/autoheal') }}"
+        state: absent
+      when: enabled_apps.autoheal_authentik is defined and enabled_apps.autoheal_authentik is not none
       ignore_errors: true  # compose file may already be gone

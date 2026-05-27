@@ -389,14 +389,3 @@
     wazuh_agent_fim_extra_exclusions: "{{ enabled_apps.wazuh_agent_apps.ansible_vars.wazuh_agent_fim_extra_exclusions }}"
   when: enabled_apps.wazuh_agent_apps is defined and enabled_apps.wazuh_agent_apps is not none
   tags: [apps, wazuh_agent_apps]
-- import_playbook: ../apps/autoheal/ansible/playbook.yml
-  vars:
-    autoheal_host_group: "{{ enabled_apps.autoheal_apps.ansible_group }}"
-    autoheal_image: "{{ enabled_apps.autoheal_apps.ansible_vars.autoheal_image }}"
-    autoheal_image_tag: "{{ enabled_apps.autoheal_apps.ansible_vars.autoheal_image_tag }}"
-    autoheal_container_label: "{{ enabled_apps.autoheal_apps.ansible_vars.autoheal_container_label }}"
-    autoheal_interval_seconds: "{{ enabled_apps.autoheal_apps.ansible_vars.autoheal_interval_seconds }}"
-    autoheal_start_period_seconds: "{{ enabled_apps.autoheal_apps.ansible_vars.autoheal_start_period_seconds }}"
-    autoheal_timezone: "{{ enabled_apps.autoheal_apps.ansible_vars.autoheal_timezone }}"
-  when: enabled_apps.autoheal_apps is defined and enabled_apps.autoheal_apps is not none
-  tags: [apps, autoheal_apps]

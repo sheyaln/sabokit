@@ -8,4 +8,5 @@
 #   ansible-playbook site.yml --tags apps              # all apps, skip bootstrap
 
 - import_playbook: bootstrap.yml
+- import_playbook: host-services.yml
 - import_playbook: apps.yml
