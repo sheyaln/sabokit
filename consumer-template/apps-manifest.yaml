@@ -2328,6 +2328,12 @@ apps:
           description: Tags attached to every alert sent to JSM. Useful for JSM routing rules.
           ui: advanced
 
+        jsm_severity_gate:
+          type: string
+          default: ""
+          description: Gate label matcher for a JSM child policy. Empty (default) = JSM is the root contact when jsm_api_key_secret_id is set. Non-empty (e.g. "critical") = root stays on Grafana's built-in `grafana-default` contact (wire it to n8n / your own fan-out separately) and JSM moves to a child policy matching `severity = <value>` with `continue: true`, so qualifying alerts route to BOTH targets. Only consulted when jsm_api_key_secret_id is non-empty.
+          ui: advanced
+
         extra_env_vars:
           type: map(string)
           default: {}
