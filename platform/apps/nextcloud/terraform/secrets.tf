@@ -115,14 +115,16 @@ data "scaleway_secret_version" "preserved" {
 }
 
 locals {
-  _preserved             = (var.enabled && var.credentials_preserve) ? jsondecode(base64decode(data.scaleway_secret_version.preserved[0].data)) : {}
-  admin_password         = var.enabled ? (var.credentials_preserve ? local._preserved.NEXTCLOUD_ADMIN_PASSWORD : random_password.admin[0].result) : ""
-  redis_password         = var.enabled ? (var.credentials_preserve ? local._preserved.REDIS_PASSWORD : random_password.redis[0].result) : ""
-  onlyoffice_jwt_secret  = var.enabled ? (var.credentials_preserve ? local._preserved.ONLYOFFICE_JWT_SECRET : random_password.onlyoffice_jwt[0].result) : ""
-  onlyoffice_secure_link = var.enabled ? (var.credentials_preserve ? local._preserved.ONLYOFFICE_SECURE_LINK : random_password.onlyoffice_secure_link[0].result) : ""
-  talk_turn_secret       = var.enabled ? (var.credentials_preserve ? local._preserved.TALK_TURN_SECRET : random_password.talk_turn_secret[0].result) : ""
-  talk_signaling_secret  = var.enabled ? (var.credentials_preserve ? local._preserved.TALK_SIGNALING_SECRET : random_password.talk_signaling_secret[0].result) : ""
-  talk_internal_secret   = var.enabled ? (var.credentials_preserve ? local._preserved.TALK_INTERNAL_SECRET : random_password.talk_internal_secret[0].result) : ""
+  _preserved = (var.enabled && var.credentials_preserve) ? jsondecode(base64decode(data.scaleway_secret_version.preserved[0].data)) : {}
+  # credentials_preserve_source (greenfield-to-v3): supplied values
+  # shadow random_* without count-gating them, so state stays stable.
+  admin_password         = var.enabled ? (var.credentials_preserve ? local._preserved.NEXTCLOUD_ADMIN_PASSWORD : try(var.credentials_preserve_source.NEXTCLOUD_ADMIN_PASSWORD, random_password.admin[0].result)) : ""
+  redis_password         = var.enabled ? (var.credentials_preserve ? local._preserved.REDIS_PASSWORD : try(var.credentials_preserve_source.REDIS_PASSWORD, random_password.redis[0].result)) : ""
+  onlyoffice_jwt_secret  = var.enabled ? (var.credentials_preserve ? local._preserved.ONLYOFFICE_JWT_SECRET : try(var.credentials_preserve_source.ONLYOFFICE_JWT_SECRET, random_password.onlyoffice_jwt[0].result)) : ""
+  onlyoffice_secure_link = var.enabled ? (var.credentials_preserve ? local._preserved.ONLYOFFICE_SECURE_LINK : try(var.credentials_preserve_source.ONLYOFFICE_SECURE_LINK, random_password.onlyoffice_secure_link[0].result)) : ""
+  talk_turn_secret       = var.enabled ? (var.credentials_preserve ? local._preserved.TALK_TURN_SECRET : try(var.credentials_preserve_source.TALK_TURN_SECRET, random_password.talk_turn_secret[0].result)) : ""
+  talk_signaling_secret  = var.enabled ? (var.credentials_preserve ? local._preserved.TALK_SIGNALING_SECRET : try(var.credentials_preserve_source.TALK_SIGNALING_SECRET, random_password.talk_signaling_secret[0].result)) : ""
+  talk_internal_secret   = var.enabled ? (var.credentials_preserve ? local._preserved.TALK_INTERNAL_SECRET : try(var.credentials_preserve_source.TALK_INTERNAL_SECRET, random_password.talk_internal_secret[0].result)) : ""
   app_secret_id          = var.enabled ? (var.credentials_preserve ? data.scaleway_secret.preserved[0].id : scaleway_secret.app[0].id) : ""
 }
 

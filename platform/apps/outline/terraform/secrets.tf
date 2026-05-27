@@ -34,9 +34,11 @@ data "scaleway_secret_version" "preserved" {
 }
 
 locals {
-  _preserved    = (var.enabled && var.credentials_preserve) ? jsondecode(base64decode(data.scaleway_secret_version.preserved[0].data)) : {}
-  secret_key    = var.enabled ? (var.credentials_preserve ? local._preserved.SECRET_KEY : random_id.secret_key[0].hex) : ""
-  utils_secret  = var.enabled ? (var.credentials_preserve ? local._preserved.UTILS_SECRET : random_id.utils_secret[0].hex) : ""
+  _preserved = (var.enabled && var.credentials_preserve) ? jsondecode(base64decode(data.scaleway_secret_version.preserved[0].data)) : {}
+  # credentials_preserve_source (greenfield-to-v3): supplied values
+  # shadow random_* without count-gating them, so state stays stable.
+  secret_key    = var.enabled ? (var.credentials_preserve ? local._preserved.SECRET_KEY : try(var.credentials_preserve_source.SECRET_KEY, random_id.secret_key[0].hex)) : ""
+  utils_secret  = var.enabled ? (var.credentials_preserve ? local._preserved.UTILS_SECRET : try(var.credentials_preserve_source.UTILS_SECRET, random_id.utils_secret[0].hex)) : ""
   app_secret_id = var.enabled ? (var.credentials_preserve ? data.scaleway_secret.preserved[0].id : scaleway_secret.app[0].id) : ""
 }
 
