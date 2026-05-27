@@ -2,6 +2,18 @@
 
 All notable changes to sabokit go here. Versioning follows semver; major bumps signal breaking contract changes for consumers.
 
+## v3.3.2 - 2026-05-27
+
+Two packer-side hardening fixes on top of v3.3.1. No terraform or ansible changes.
+
+### Fixed
+- **Packer build shutdown atomicity in `packer/base.pkr.hcl`.** The build-time `packer` user lockdown can't live in `99-cleanup.sh` - that invalidates the sudo password before `shutdown -P now` can run and the qemu builder hangs at poweroff. Shutdown command now does the lockdown and the poweroff in one sudo'd shell (`passwd -l packer; chage -E 0 packer; rm -f /etc/sudoers.d/90-cloud-init-users; shutdown -P now`) so the build completes cleanly. Companion: new `08-firstboot-lockdown.sh` provisioner installs a systemd one-shot that finishes the work on first boot of any cloned host - deletes the packer user + home, enables ufw, then self-disables.
+- **Base image hardening broadened end-to-end** in `packer/provisioners/07-hardening.sh`. The sshd drop-in (shipped v3.2.2) now sits alongside a CIS Ubuntu 22.04 sysctl baseline (kernel info leakage, IP-stack abuse, syn-flood resilience), tightened `/etc/login.defs` (UMASK 027, PASS_MAX_DAYS 365, PASS_MIN_DAYS 1, PASS_WARN_AGE 7), and a default-deny ufw baseline staged for first boot (allow only 22/tcp during bootstrap; ansible's ufw role overlays per-app allows on top). Monitoring + CLI binary pulls (`03-monitoring-images.sh`, `04-exporter-binaries.sh`, `05-scw-cli.sh`) are now sha256-pinned via new `image_*` and `*_sha256_*` variables in `packer/variables.pkr.hcl`, so a moved tag or registry tampering fails the build instead of silently baking a swapped binary into the snapshot.
+
+### Changed
+- **Trivy scan in `.github/workflows/packer-publish.yml` switched from `trivy vm` to nbd-mounted `trivy fs`.** `trivy vm` only understands MBR-partitioned images; Ubuntu cloud qcow2s are GPT, so the initial `trivy vm` step (added earlier in this cycle) errored on layout. Workflow now `qemu-nbd`-attaches the qcow2 read-only, picks the largest partition as rootfs, mounts it, and runs `trivy fs` (HIGH+CRITICAL advisory, CRITICAL blocking). Same vulnerability DB, same severity gating, works on the actual image shape.
+- **`packer-publish.yml` emits qcow2 sha256 + byte size in the metadata sidecar JSON.** Consumers verifying the published artifact can match against `qcow2_sha256` directly instead of re-hashing the asset themselves.
+
 ## v3.3.1 - 2026-05-27
 
 Four deploy-side fixes surfaced during decidim cutover.
