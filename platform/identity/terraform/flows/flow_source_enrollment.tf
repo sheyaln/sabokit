@@ -64,6 +64,11 @@ resource "authentik_stage_prompt" "source_enrollment_profile" {
     authentik_stage_prompt_field.manual_enrollment_name.id,
     authentik_stage_prompt_field.source_enrollment_member_id.id,
   ]
+
+  validation_policies = [
+    authentik_policy_expression.shared_member_id_normalize.id,
+    authentik_policy_expression.shared_member_id_unique.id,
+  ]
 }
 
 # FLOW STAGE BINDINGS

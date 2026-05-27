@@ -90,6 +90,11 @@ resource "authentik_stage_prompt" "user_settings_prompt" {
     authentik_stage_prompt_field.user_settings_locale.id,
     authentik_stage_prompt_field.user_settings_member_id.id,
   ]
+
+  validation_policies = [
+    authentik_policy_expression.shared_member_id_normalize.id,
+    authentik_policy_expression.shared_member_id_unique.id,
+  ]
 }
 
 # USER WRITE — persists prompt_data back onto the current user.

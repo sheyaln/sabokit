@@ -64,6 +64,22 @@ resource "authentik_stage_prompt_field" "manual_enrollment_password_repeat" {
   order                  = 5
 }
 
+# Member ID field — optional, mirrors source-enrollment's member_id prompt so
+# manual + social enrollees populate the same user.attributes['member_id']
+# downstream automations key off. Bare field_key (no `attributes.` prefix);
+# user_write writes non-User-model prompt_data keys into attributes
+# automatically, matching source-enrollment's shape.
+resource "authentik_stage_prompt_field" "manual_enrollment_member_id" {
+  name                   = "manual-enrollment-field-member-id"
+  field_key              = "member_id"
+  label                  = var.member_id_label
+  type                   = "text"
+  required               = false
+  placeholder            = ""
+  placeholder_expression = false
+  order                  = 3
+}
+
 # STAGES
 
 # Single prompt stage - All fields
@@ -73,8 +89,14 @@ resource "authentik_stage_prompt" "manual_enrollment_prompt_all" {
   fields = [
     authentik_stage_prompt_field.manual_enrollment_name.id,
     authentik_stage_prompt_field.manual_enrollment_email.id,
+    authentik_stage_prompt_field.manual_enrollment_member_id.id,
     authentik_stage_prompt_field.manual_enrollment_password.id,
     authentik_stage_prompt_field.manual_enrollment_password_repeat.id,
+  ]
+
+  validation_policies = [
+    authentik_policy_expression.shared_member_id_normalize.id,
+    authentik_policy_expression.shared_member_id_unique.id,
   ]
 }
 
