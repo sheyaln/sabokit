@@ -256,3 +256,71 @@ resource "authentik_policy_binding" "manual_enrollment_set_username_from_email_b
   enabled = true
   timeout = 30
 }
+
+# ALREADY-REGISTERED SHORT-CIRCUIT
+#
+# Catches users re-submitting manual-enrollment with an email that already has
+# an account. Without this, user_write at order 20 fails with a generic
+# uniqueness error and the user has no idea what happened. Bound at order 17
+# (between AUP at 15 and user_write at 20); renders only when the
+# email-uniqueness policy returns True. The rendered HTML installs a JS
+# submit-interceptor that redirects to / so the user exits cleanly.
+
+resource "authentik_stage_prompt_field" "manual_enrollment_already_registered_message" {
+  name                   = "manual-enrollment-field-already-registered"
+  field_key              = "already_registered_info"
+  label                  = "Account Already Exists"
+  type                   = "static"
+  required               = false
+  placeholder            = ""
+  placeholder_expression = false
+  initial_value = templatefile("${path.module}/../assets/already-registered-message.html.tpl", {
+    organisation_name = var.organisation_name
+  })
+}
+
+resource "authentik_stage_prompt" "manual_enrollment_already_registered" {
+  name = "manual-enrollment-already-registered"
+  fields = [
+    authentik_stage_prompt_field.manual_enrollment_already_registered_message.id,
+  ]
+}
+
+# True when an existing user already has the submitted email. Authentik's
+# prompt-stage uniqueness semantics don't catch arbitrary email collisions —
+# they surface as a generic backend error at user_write time — so we query
+# User.objects directly. __iexact handles users re-enrolling with
+# differently-cased email.
+resource "authentik_policy_expression" "manual_enrollment_email_already_exists" {
+  name              = "policy-manual-enrollment-email-already-exists"
+  execution_logging = true
+  expression        = <<-EOT
+    prompt_data = request.context.get('prompt_data', {})
+    email = (prompt_data.get('email') or '').strip().lower()
+    if not email:
+        return False
+    try:
+        from authentik.core.models import User
+        return User.objects.filter(email__iexact=email).exists()
+    except Exception as e:
+        ak_logger.error(f"Error checking email existence: {e}")
+        return False
+  EOT
+}
+
+resource "authentik_flow_stage_binding" "manual_enrollment_already_registered_binding" {
+  target               = authentik_flow.manual_enrollment.uuid
+  stage                = authentik_stage_prompt.manual_enrollment_already_registered.id
+  order                = 17
+  policy_engine_mode   = "any"
+  re_evaluate_policies = true
+  evaluate_on_plan     = false
+}
+
+resource "authentik_policy_binding" "manual_enrollment_already_registered_policy" {
+  target  = authentik_flow_stage_binding.manual_enrollment_already_registered_binding.id
+  policy  = authentik_policy_expression.manual_enrollment_email_already_exists.id
+  order   = 0
+  enabled = true
+  timeout = 30
+}
