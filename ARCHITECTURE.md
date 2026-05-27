@@ -96,7 +96,7 @@ apps/<name>/         # One self-contained bundle per app. Owns its Authentik
 
 consumer-template/   # The starter a new org copies. Calls base/ once and
                      # calls platform/apps/<name>/ as many times as the org needs.
-                     # Holds tfvars, inventory.ini, and site.yml.
+                     # Holds config.tf, backend.hcl, inventory.ini, and site.yml.
 ```
 
 **Dependency direction**: `consumer-template` → `base` and `apps/*`. `apps/*` → `base` (via consumer-passed outputs) and `modules/*`. `base` → `modules/*`. `modules/*` depends on nothing in this tree.
@@ -483,7 +483,7 @@ Files in `terraform/` may be omitted when not applicable (a static app may have 
 
 ## The enable/disable mechanism
 
-A consumer's `terraform.tfvars` declares which apps are on:
+A consumer's `config.tf` (committable; secrets stay in Scaleway Secret Manager) declares which apps are on by passing the `apps` argument to `module.stack`:
 
 ```hcl
 apps = {
@@ -722,13 +722,17 @@ A consumer bumps via the `scripts/bump-version.sh <version>` helper (shipped wit
 
 Outline is the simplest non-trivial app: OIDC, DNS record, S3 bucket (attachments), Postgres DB, Docker Compose deploy. No cross-app integrations, no monitoring beyond the default.
 
-### Consumer config (terraform.tfvars)
+### Consumer config (config.tf)
+
+`config.tf` is the committable operator-facing TF file. Secrets never go here — they live in Scaleway Secret Manager and surface via `data "scaleway_secret_version"` blocks. The `.tfvars` file format is reserved for the rare case where a consumer needs to pass a plaintext secret value at apply time (gitignored).
 
 ```hcl
-apps = {
-  outline = {
-    enabled  = true
-    hostname = "wiki.example.org"
+locals {
+  apps = {
+    outline = {
+      enabled  = true
+      hostname = "wiki.example.org"
+    }
   }
 }
 ```
@@ -794,7 +798,7 @@ module "outline" {
 
 ### What this proves
 
-- One tfvars flag and one `import_playbook` line is the entire user-facing footprint to enable an app.
+- One `config.tf` flag and one `import_playbook` line is the entire user-facing footprint to enable an app.
 - Disabling Outline (`enabled = false`) leaves no resources, no Authentik config, no Scaleway bucket, no DB. The compose stack on the host needs explicit `docker compose down` from a separate cleanup step (Ansible doesn't auto-undeploy).
 - A consumer that only wants Outline plus base carries no state for any other app bundle.
 - Adding a new app to the catalog is a contained PR: `apps/<new-app>/` is the entire scope, plus an entry in `consumer-template/`.

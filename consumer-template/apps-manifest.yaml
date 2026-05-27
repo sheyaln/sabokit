@@ -19,7 +19,7 @@
 #
 # ── Coverage check ────────────────────────────────────────────────────────
 # `scripts/check-manifest-coverage.sh` runs on every PR. It validates that
-# every entry's `tfvars.schema` refers to a real input in the corresponding
+# every entry's `config.schema` refers to a real input in the corresponding
 # `platform/apps/<id>/terraform/variables.tf` and that any required input
 # the producer surfaces is one the consumer can actually set.
 
@@ -41,7 +41,7 @@ apps:
     docs_url: https://www.getoutline.com/developers
     upstream_url: https://github.com/outline/outline
 
-    tfvars:
+    config:
       key: outline
       schema:
         enabled:
@@ -171,7 +171,7 @@ apps:
     icon: icons/steward.svg
     upstream_url: https://github.com/sheyaln/steward
 
-    tfvars:
+    config:
       key: steward
       schema:
         enabled:
@@ -303,7 +303,7 @@ apps:
     docs_url: https://vikunja.io/docs/
     upstream_url: https://vikunja.io/
 
-    tfvars:
+    config:
       key: vikunja
       schema:
         enabled:
@@ -453,7 +453,7 @@ apps:
     icon: icons/bentopdf.svg
     upstream_url: https://github.com/digital-blueprint/bento-pdf
 
-    tfvars:
+    config:
       key: bentopdf
       schema:
         enabled:
@@ -555,7 +555,7 @@ apps:
     icon: icons/broadsheet.svg
     upstream_url: https://github.com/sheyaln/sabokit-broadsheet
 
-    tfvars:
+    config:
       key: broadsheet
       schema:
         enabled:
@@ -721,7 +721,7 @@ apps:
       No auth. Consumer authors HTML + (optionally) a logo; the bundle
       handles TLS, DNS, and deploy.
 
-    tfvars:
+    config:
       key: privacy_policy
       schema:
         enabled:
@@ -785,7 +785,7 @@ apps:
     icon: icons/nextcloud.svg
     upstream_url: https://nextcloud.com/
 
-    tfvars:
+    config:
       key: nextcloud
       schema:
         enabled:
@@ -1036,7 +1036,7 @@ apps:
     icon: icons/decidim.svg
     upstream_url: https://decidim.org/
 
-    tfvars:
+    config:
       key: decidim
       schema:
         enabled:
@@ -1205,7 +1205,7 @@ apps:
     icon: icons/jitsi.svg
     upstream_url: https://jitsi.org/
 
-    tfvars:
+    config:
       key: jitsi
       schema:
         enabled:
@@ -1352,7 +1352,7 @@ apps:
     icon: icons/espocrm.svg
     upstream_url: https://www.espocrm.com/
 
-    tfvars:
+    config:
       key: espocrm
       schema:
         enabled:
@@ -1493,7 +1493,7 @@ apps:
     icon: icons/n8n.svg
     upstream_url: https://n8n.io/
 
-    tfvars:
+    config:
       key: n8n
       schema:
         enabled:
@@ -1702,7 +1702,7 @@ apps:
     icon: icons/backrest.svg
     upstream_url: https://github.com/garethgeorge/backrest
 
-    tfvars:
+    config:
       key: backrest
       schema:
         enabled:
@@ -1837,7 +1837,7 @@ apps:
     icon: icons/prometheus.svg
     upstream_url: https://github.com/prometheus/prometheus
 
-    tfvars:
+    config:
       key: prometheus
       schema:
         enabled:
@@ -1918,7 +1918,7 @@ apps:
     icon: icons/loki.svg
     upstream_url: https://grafana.com/oss/loki/
 
-    tfvars:
+    config:
       key: loki
       schema:
         enabled:
@@ -1969,7 +1969,7 @@ apps:
     icon: icons/grafana.svg
     upstream_url: https://github.com/grafana/grafana
 
-    tfvars:
+    config:
       key: grafana
       schema:
         enabled:
@@ -2150,7 +2150,7 @@ apps:
     icon: icons/wazuh.svg
     upstream_url: https://wazuh.com/
 
-    tfvars:
+    config:
       key: wazuh
       schema:
         enabled:
@@ -2292,7 +2292,7 @@ apps:
 # Per-host services auto-instantiated by module.base for every compute_host.
 # Default-on; consumers turn off via `var.base.<service>.enabled = false`
 # (whole service) or `var.base.<service>.disabled_hosts = [...]` (per-host).
-# Consumer-template wires these via `var.base.<service>` in terraform.tfvars.
+# Consumer-template wires these via `var.base.<service>` in config.tf (passed to module.stack).
 host_services:
   # ── Wazuh Agent ─────────────────────────────────────────────────────────
   # HIDS log-shipper. One instance per compute_host, auto-instantiated by
@@ -2312,7 +2312,7 @@ host_services:
     icon: icons/wazuh.svg
     upstream_url: https://documentation.wazuh.com/current/installation-guide/wazuh-agent/
 
-    tfvars:
+    config:
       key: wazuh_agent
       schema:
         enabled:
@@ -2384,7 +2384,7 @@ host_services:
 # ── Bootstrap-tier bundles ────────────────────────────────────────────────
 # Host services apps depend on (inbound mail, etc). Sibling to `apps` —
 # separated because these aren't user-facing apps. Consumer-template wires
-# them via `var.bootstrap.<bundle>` in terraform.tfvars.
+# them via `var.bootstrap.<bundle>` in config.tf (passed to module.stack).
 bootstrap:
   # ── ProtonMail Bridge ───────────────────────────────────────────────────
   # IMAP gateway for apps that fetch mail from a ProtonMail account (e.g.
@@ -2398,7 +2398,7 @@ bootstrap:
       Runs the community ProtonMail Bridge image so apps inside the stack
       can fetch mail from a ProtonMail account over IMAP. Apps read the
       `imap-config` Scaleway secret this bundle writes.
-    tfvars:
+    config:
       key: protonmail_bridge
       schema:
         enabled:
