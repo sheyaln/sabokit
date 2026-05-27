@@ -654,6 +654,7 @@ module "grafana" {
   jsm_api_region             = try(var.apps.grafana.jsm_api_region, "us")
   jsm_priority_mapping       = try(var.apps.grafana.jsm_priority_mapping, { critical = "P1", warning = "P3", info = "P5" })
   jsm_alert_tags             = try(var.apps.grafana.jsm_alert_tags, ["sabokit"])
+  jsm_severity_gate          = try(var.apps.grafana.jsm_severity_gate, "")
 
   credentials_preserve = try(var.apps.grafana.credentials_preserve, false)
   extra_env_vars       = try(var.apps.grafana.extra_env_vars, {})

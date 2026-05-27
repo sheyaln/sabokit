@@ -26,6 +26,7 @@ Grafana UI behind Authentik OIDC, with Prometheus + Loki datasources pre-provisi
 | `jsm_api_region` | `string` | `"us"` | `us` or `eu`. Picks the api.atlassian.com vs api.eu.atlassian.com endpoint. |
 | `jsm_priority_mapping` | `map(string)` | `{critical=P1, warning=P3, info=P5}` | Grafana `severity` label -> JSM priority. |
 | `jsm_alert_tags` | `list(string)` | `["sabokit"]` | Tags on every JSM alert. Routing hook on the JSM side. |
+| `jsm_severity_gate` | `string` | `""` | Empty = JSM is the root contact (existing behaviour). Non-empty (e.g. `"critical"`) = root stays on Grafana's built-in `grafana-default` contact (wire it to n8n / your own fan-out separately) and JSM moves to a child policy matching `severity = <value>` with `continue: true`. Composes with the other `jsm_*` knobs. |
 | `prometheus_url` | `string` | `"http://prometheus:9090"` | Datasource URL. Works on the shared network. |
 | `loki_url` | `string` | `"http://loki:3100"` | Datasource URL. |
 | `prometheus_scrape_interval` | `string` | `"30s"` | Match the prometheus bundle's `global.scrape_interval`. |
