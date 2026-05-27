@@ -1,6 +1,39 @@
 ---
-- name: Deploy Backrest
-  hosts: "{{ backrest_host_group | default('apps') }}"
+# Deploy Backrest instances per compute_host. The terraform-side fan-out
+# (consumer-template/modules/stack/apps.tf for_each) creates the per-host
+# Scaleway resources; this playbook deploys the corresponding container on
+# each host whose group matches one of the instances' ansible_group.
+#
+# Input contract: `backrest_all_instances` is the full map of backrest
+# instances keyed by compute_hosts key (passed from platform/ansible/apps.yml).
+# Each value carries an ansible_group + ansible_vars block.
+
+- name: Deploy Backrest instances per host
+  hosts: "{{ backrest_all_instances.values() | map(attribute='ansible_group') | unique | list }}"
   become: true
-  roles:
-    - role: backrest
+  tasks:
+    - name: Deploy each Backrest instance destined for this host's group
+      ansible.builtin.include_role:
+        name: backrest
+      vars:
+        backrest_instance_name: "{{ inst.key }}"
+        backrest_hostname: "{{ inst.value.ansible_vars.backrest_hostname }}"
+        backrest_image_tag: "{{ inst.value.ansible_vars.backrest_image_tag }}"
+        backrest_app_secret_id: "{{ inst.value.ansible_vars.backrest_app_secret_id }}"
+        backrest_backup_plans: "{{ inst.value.ansible_vars.backrest_backup_plans }}"
+        backrest_backup_sources: "{{ inst.value.ansible_vars.backrest_backup_sources }}"
+        backrest_restic_prune_max_frequency_days: "{{ inst.value.ansible_vars.backrest_restic_prune_max_frequency_days }}"
+        backrest_restic_check_max_frequency_days: "{{ inst.value.ansible_vars.backrest_restic_check_max_frequency_days }}"
+        backrest_restic_check_read_data_subset_pct: "{{ inst.value.ansible_vars.backrest_restic_check_read_data_subset_pct }}"
+        backrest_restic_s3_storage_class: "{{ inst.value.ansible_vars.backrest_restic_s3_storage_class }}"
+        backrest_diun_watch_enabled: "{{ inst.value.ansible_vars.backrest_diun_watch_enabled }}"
+        backrest_autoheal_enabled: "{{ inst.value.ansible_vars.backrest_autoheal_enabled }}"
+        backrest_extra_env_vars: "{{ inst.value.ansible_vars.backrest_extra_env_vars }}"
+        backrest_extra_docker_networks: "{{ inst.value.ansible_vars.backrest_extra_docker_networks }}"
+      # Iterate over instances whose ansible_group matches one of this host's
+      # group memberships (group_names). Each host runs the role only for the
+      # instances destined for it.
+      loop: "{{ backrest_all_instances | dict2items | selectattr('value.ansible_group', 'in', group_names) | list }}"
+      loop_control:
+        loop_var: inst
+        label: "{{ inst.key }}"

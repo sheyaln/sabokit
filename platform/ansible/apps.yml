@@ -232,25 +232,6 @@
     n8n_workflows_dir: "{{ enabled_apps.n8n.ansible_vars.n8n_workflows_dir }}"
   when: enabled_apps.n8n is defined and enabled_apps.n8n is not none
   tags: [apps, n8n]
-- import_playbook: ../apps/backrest/ansible/playbook.yml
-  vars:
-    backrest_host_group: "{{ enabled_apps.backrest_mgmt.ansible_group }}"
-    backrest_instance_name: "{{ enabled_apps.backrest_mgmt.ansible_vars.backrest_instance_name }}"
-    backrest_hostname: "{{ enabled_apps.backrest_mgmt.ansible_vars.backrest_hostname }}"
-    backrest_image_tag: "{{ enabled_apps.backrest_mgmt.ansible_vars.backrest_image_tag }}"
-    backrest_app_secret_id: "{{ enabled_apps.backrest_mgmt.ansible_vars.backrest_app_secret_id }}"
-    backrest_backup_plans: "{{ enabled_apps.backrest_mgmt.ansible_vars.backrest_backup_plans }}"
-    backrest_backup_sources: "{{ enabled_apps.backrest_mgmt.ansible_vars.backrest_backup_sources }}"
-    backrest_restic_prune_max_frequency_days: "{{ enabled_apps.backrest_mgmt.ansible_vars.backrest_restic_prune_max_frequency_days }}"
-    backrest_restic_check_max_frequency_days: "{{ enabled_apps.backrest_mgmt.ansible_vars.backrest_restic_check_max_frequency_days }}"
-    backrest_restic_check_read_data_subset_pct: "{{ enabled_apps.backrest_mgmt.ansible_vars.backrest_restic_check_read_data_subset_pct }}"
-    backrest_restic_s3_storage_class: "{{ enabled_apps.backrest_mgmt.ansible_vars.backrest_restic_s3_storage_class }}"
-    backrest_diun_watch_enabled: "{{ enabled_apps.backrest_mgmt.ansible_vars.backrest_diun_watch_enabled }}"
-    backrest_autoheal_enabled: "{{ enabled_apps.backrest_mgmt.ansible_vars.backrest_autoheal_enabled }}"
-    backrest_extra_env_vars: "{{ enabled_apps.backrest_mgmt.ansible_vars.backrest_extra_env_vars }}"
-    backrest_extra_docker_networks: "{{ enabled_apps.backrest_mgmt.ansible_vars.backrest_extra_docker_networks }}"
-  when: enabled_apps.backrest_mgmt is defined and enabled_apps.backrest_mgmt is not none
-  tags: [apps, backrest_mgmt]
 - import_playbook: ../apps/prometheus/ansible/playbook.yml
   vars:
     prometheus_host_group: "{{ enabled_apps.prometheus.ansible_group }}"
@@ -400,3 +381,10 @@
     autoheal_timezone: "{{ enabled_apps.autoheal_apps.ansible_vars.autoheal_timezone }}"
   when: enabled_apps.autoheal_apps is defined and enabled_apps.autoheal_apps is not none
   tags: [apps, autoheal_apps]
+- import_playbook: ../apps/backrest/ansible/playbook.yml
+  vars:
+    backrest_all_instances: "{{ enabled_apps.backrest.instances }}"
+  when: enabled_apps.backrest is defined
+        and enabled_apps.backrest.instances is defined
+        and (enabled_apps.backrest.instances | length) > 0
+  tags: [apps, backrest]
