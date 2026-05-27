@@ -20,7 +20,7 @@ module "outline" {
   icon_url                = try(var.apps.outline.icon_url, null)
   icon_filename           = try(var.apps.outline.icon_filename, "outline-icon.png")
   monitoring_enabled      = try(var.apps.outline.monitoring_enabled, true)
-  deployment_host_key     = try(var.apps.outline.deployment_host_key, "apps")
+  deployment_host_key     = try(var.apps.outline.deployment_host_key, "tools")
   bucket_name_override    = try(var.apps.outline.bucket_name_override, "")
   dns_zone_override       = try(var.apps.outline.dns_zone_override, "")
 
@@ -52,7 +52,7 @@ module "steward" {
   icon_filename                = try(var.apps.steward.icon_filename, "steward-icon.png")
   service_account_extra_groups = try(var.apps.steward.service_account_extra_groups, [])
   monitoring_enabled           = try(var.apps.steward.monitoring_enabled, true)
-  deployment_host_key          = try(var.apps.steward.deployment_host_key, "apps")
+  deployment_host_key          = try(var.apps.steward.deployment_host_key, "tools")
   dns_zone_override            = try(var.apps.steward.dns_zone_override, "")
 
   credentials_preserve        = try(var.apps.steward.credentials_preserve, false)
@@ -84,7 +84,7 @@ module "vikunja" {
   icon_url                = try(var.apps.vikunja.icon_url, null)
   icon_filename           = try(var.apps.vikunja.icon_filename, "vikunja-icon.png")
   monitoring_enabled      = try(var.apps.vikunja.monitoring_enabled, true)
-  deployment_host_key     = try(var.apps.vikunja.deployment_host_key, "apps")
+  deployment_host_key     = try(var.apps.vikunja.deployment_host_key, "tools")
   dns_zone_override       = try(var.apps.vikunja.dns_zone_override, "")
 
   credentials_preserve        = try(var.apps.vikunja.credentials_preserve, false)
@@ -114,7 +114,7 @@ module "bentopdf" {
   icon_url                = try(var.apps.bentopdf.icon_url, null)
   icon_filename           = try(var.apps.bentopdf.icon_filename, "bentopdf-icon.png")
   monitoring_enabled      = try(var.apps.bentopdf.monitoring_enabled, true)
-  deployment_host_key     = try(var.apps.bentopdf.deployment_host_key, "apps")
+  deployment_host_key     = try(var.apps.bentopdf.deployment_host_key, "tools")
   dns_zone_override       = try(var.apps.bentopdf.dns_zone_override, "")
   extra_docker_networks   = try(var.apps.bentopdf.extra_docker_networks, [])
 }
@@ -129,7 +129,7 @@ module "privacy_policy" {
 
   page_title            = try(var.apps.privacy_policy.page_title, "Privacy Policy")
   monitoring_enabled    = try(var.apps.privacy_policy.monitoring_enabled, true)
-  deployment_host_key   = try(var.apps.privacy_policy.deployment_host_key, "apps")
+  deployment_host_key   = try(var.apps.privacy_policy.deployment_host_key, "tools")
   dns_zone_override     = try(var.apps.privacy_policy.dns_zone_override, "")
   extra_docker_networks = try(var.apps.privacy_policy.extra_docker_networks, [])
 }
@@ -159,7 +159,7 @@ module "broadsheet" {
   icon_url                = try(var.apps.broadsheet.icon_url, null)
   icon_filename           = try(var.apps.broadsheet.icon_filename, "broadsheet-icon.png")
   monitoring_enabled      = try(var.apps.broadsheet.monitoring_enabled, true)
-  deployment_host_key     = try(var.apps.broadsheet.deployment_host_key, "apps")
+  deployment_host_key     = try(var.apps.broadsheet.deployment_host_key, "tools")
   bucket_name_override    = try(var.apps.broadsheet.bucket_name_override, "")
   dns_zone_override       = try(var.apps.broadsheet.dns_zone_override, "")
 
@@ -198,7 +198,7 @@ module "nextcloud" {
   icon_url                = try(var.apps.nextcloud.icon_url, null)
   icon_filename           = try(var.apps.nextcloud.icon_filename, "nextcloud-icon.png")
   monitoring_enabled      = try(var.apps.nextcloud.monitoring_enabled, true)
-  deployment_host_key     = try(var.apps.nextcloud.deployment_host_key, "apps")
+  deployment_host_key     = try(var.apps.nextcloud.deployment_host_key, "tools")
   bucket_name_override    = try(var.apps.nextcloud.bucket_name_override, "")
   dns_zone_override       = try(var.apps.nextcloud.dns_zone_override, "")
 
@@ -257,7 +257,7 @@ module "decidim" {
   icon_url                      = try(var.apps.decidim.icon_url, null)
   icon_filename                 = try(var.apps.decidim.icon_filename, "decidim-icon.png")
   monitoring_enabled            = try(var.apps.decidim.monitoring_enabled, true)
-  deployment_host_key           = try(var.apps.decidim.deployment_host_key, "apps")
+  deployment_host_key           = try(var.apps.decidim.deployment_host_key, "tools")
   bucket_name_override          = try(var.apps.decidim.bucket_name_override, "")
   dns_zone_override             = try(var.apps.decidim.dns_zone_override, "")
 
@@ -297,7 +297,7 @@ module "jitsi" {
   icon_url                   = try(var.apps.jitsi.icon_url, null)
   icon_filename              = try(var.apps.jitsi.icon_filename, "jitsi-icon.png")
   monitoring_enabled         = try(var.apps.jitsi.monitoring_enabled, true)
-  deployment_host_key        = try(var.apps.jitsi.deployment_host_key, "apps")
+  deployment_host_key        = try(var.apps.jitsi.deployment_host_key, "tools")
   dns_zone_override          = try(var.apps.jitsi.dns_zone_override, "")
 
   credentials_preserve        = try(var.apps.jitsi.credentials_preserve, false)
@@ -333,7 +333,7 @@ module "espocrm" {
   icon_url                       = try(var.apps.espocrm.icon_url, null)
   icon_filename                  = try(var.apps.espocrm.icon_filename, "espocrm-icon.png")
   monitoring_enabled             = try(var.apps.espocrm.monitoring_enabled, true)
-  deployment_host_key            = try(var.apps.espocrm.deployment_host_key, "apps")
+  deployment_host_key            = try(var.apps.espocrm.deployment_host_key, "tools")
   dns_zone_override              = try(var.apps.espocrm.dns_zone_override, "")
 
   credentials_preserve        = try(var.apps.espocrm.credentials_preserve, false)
@@ -370,7 +370,7 @@ module "n8n" {
     : [],
   )
   monitoring_enabled    = try(var.apps.n8n.monitoring_enabled, true)
-  deployment_host_key   = try(var.apps.n8n.deployment_host_key, "apps")
+  deployment_host_key   = try(var.apps.n8n.deployment_host_key, "tools")
   dns_zone_override     = try(var.apps.n8n.dns_zone_override, "")
   extra_docker_networks = try(var.apps.n8n.extra_docker_networks, [])
   workflows_dir         = try(var.apps.n8n.workflows_dir, "")
@@ -688,7 +688,7 @@ module "backrest_mgmt" {
   icon_url                              = try(var.apps.backrest_mgmt.icon_url, null)
   icon_filename                         = try(var.apps.backrest_mgmt.icon_filename, "backrest-icon.png")
   monitoring_enabled                    = try(var.apps.backrest_mgmt.monitoring_enabled, true)
-  deployment_host_key                   = try(var.apps.backrest_mgmt.deployment_host_key, "apps")
+  deployment_host_key                   = try(var.apps.backrest_mgmt.deployment_host_key, "tools")
   bucket_name_override                  = try(var.apps.backrest_mgmt.bucket_name_override, "")
   dns_zone_override                     = try(var.apps.backrest_mgmt.dns_zone_override, "")
 
@@ -756,7 +756,7 @@ module "wazuh_agent_apps" {
 
   enabled              = try(var.apps.wazuh_agent_apps.enabled, false)
   base                 = local.base
-  deployment_host_key  = try(var.apps.wazuh_agent_apps.deployment_host_key, "apps")
+  deployment_host_key  = try(var.apps.wazuh_agent_apps.deployment_host_key, "tools")
   manager_address      = try(var.apps.wazuh_agent_apps.manager_address, "")
   agent_name           = try(var.apps.wazuh_agent_apps.agent_name, "")
   release_version      = try(var.apps.wazuh_agent_apps.release_version, "4.9.0")
@@ -799,7 +799,7 @@ module "autoheal_apps" {
   enabled = try(var.apps.autoheal_apps.enabled, false)
   base    = local.base
 
-  deployment_host_key  = try(var.apps.autoheal_apps.deployment_host_key, "apps")
+  deployment_host_key  = try(var.apps.autoheal_apps.deployment_host_key, "tools")
   image_tag            = try(var.apps.autoheal_apps.image_tag, "latest")
   interval_seconds     = try(var.apps.autoheal_apps.interval_seconds, 5)
   start_period_seconds = try(var.apps.autoheal_apps.start_period_seconds, 60)

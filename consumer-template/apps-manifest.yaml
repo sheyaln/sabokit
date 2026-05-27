@@ -72,7 +72,7 @@ apps:
 
         deployment_host_key:
           type: string
-          default: apps
+          default: tools
           description: Which host (key in compute_hosts) Outline runs on.
           ui: advanced
 
@@ -211,7 +211,7 @@ apps:
 
         deployment_host_key:
           type: string
-          default: apps
+          default: tools
           description: Which host (key in compute_hosts) Steward runs on.
           ui: advanced
 
@@ -362,7 +362,7 @@ apps:
 
         deployment_host_key:
           type: string
-          default: apps
+          default: tools
           description: Which host (key in compute_hosts) Vikunja runs on.
           ui: advanced
 
@@ -474,7 +474,7 @@ apps:
 
         deployment_host_key:
           type: string
-          default: apps
+          default: tools
           description: Which host (key in compute_hosts) BentoPDF runs on.
           ui: advanced
 
@@ -608,7 +608,7 @@ apps:
 
         deployment_host_key:
           type: string
-          default: apps
+          default: tools
           description: Which host (key in compute_hosts) Broadsheet runs on.
           ui: advanced
 
@@ -748,7 +748,7 @@ apps:
 
         deployment_host_key:
           type: string
-          default: apps
+          default: tools
           description: Which host (key in compute_hosts) the page runs on.
           ui: advanced
 
@@ -857,7 +857,7 @@ apps:
 
         deployment_host_key:
           type: string
-          default: apps
+          default: tools
           description: Which host (key in compute_hosts) Nextcloud runs on.
           ui: advanced
 
@@ -1108,7 +1108,7 @@ apps:
 
         deployment_host_key:
           type: string
-          default: apps
+          default: tools
           description: Which host (key in compute_hosts) Decidim runs on.
           ui: advanced
 
@@ -1262,7 +1262,7 @@ apps:
 
         deployment_host_key:
           type: string
-          default: apps
+          default: tools
           description: Which host (key in compute_hosts) Jitsi runs on.
           ui: advanced
 
@@ -1403,7 +1403,7 @@ apps:
 
         deployment_host_key:
           type: string
-          default: apps
+          default: tools
           description: Which host (key in compute_hosts) EspoCRM runs on.
           ui: advanced
 
@@ -1538,7 +1538,7 @@ apps:
 
         deployment_host_key:
           type: string
-          default: apps
+          default: tools
           description: Which host (key in compute_hosts) n8n runs on.
           ui: advanced
 
@@ -1735,7 +1735,7 @@ apps:
 
         deployment_host_key:
           type: string
-          default: apps
+          default: tools
           description: Which host (key in compute_hosts) this backrest instance runs on. Typically the host you're backing up.
           ui: advanced
 
@@ -1956,7 +1956,7 @@ apps:
 
         deployment_host_key:
           type: string
-          default: apps
+          default: tools
           description: Which host (key in compute_hosts) this Autoheal instance runs on.
           ui: advanced
 

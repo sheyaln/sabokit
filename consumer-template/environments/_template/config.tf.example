@@ -37,23 +37,39 @@ locals {
     private_network_subnet = "10.0.0.0/22"
 
     # ── Compute hosts ────────────────────────────────────────────────────
-    # Override below if you need a different topology than the default
-    # (single "apps" DEV1-L host).
+    # Override below if you need a different topology than the canonical
+    # 3-host default (tools + identity + management).
     #
-    # Multi-host prod: one VM per role.
+    # Single-VM staging/dev: collapse to one VM by listing every group the
+    # play-selectors look for under ansible_groups.
     #   compute_hosts = {
-    #     apps     = { instance_type = "DEV1-L", role = "apps",     ansible_group = "apps" }
-    #     identity = { instance_type = "DEV1-M", role = "identity", ansible_group = "identity" }
+    #     all = {
+    #       instance_type  = "DEV1-L"
+    #       role           = "tools"
+    #       ansible_group  = "tools"
+    #       ansible_groups = ["tools", "identity", "management"]
+    #     }
     #   }
-    #
-    # Single-VM staging/dev: one VM serves multiple Ansible plays. Use
-    # ansible_groups to list every group the play-selectors look for.
     compute_hosts = {
-      apps = {
+      tools = {
         instance_type = "DEV1-L"
         disk_size     = 100
-        role          = "apps"
-        ansible_group = "apps"
+        role          = "tools"
+        ansible_group = "tools"
+        protected     = true
+      }
+      identity = {
+        instance_type = "DEV1-M"
+        disk_size     = 30
+        role          = "identity"
+        ansible_group = "identity"
+        protected     = true
+      }
+      management = {
+        instance_type = "DEV1-M"
+        disk_size     = 60
+        role          = "management"
+        ansible_group = "management"
         protected     = true
       }
     }
@@ -133,8 +149,8 @@ locals {
         hostname = "wiki.example.org"
 
         # deployment_host_key must be a key in compute_hosts above. Defaults
-        # to "apps". Override when your topology renames hosts:
-        # deployment_host_key = "tools"
+        # to "tools". Override when your topology renames hosts:
+        # deployment_host_key = "apps"
 
         # credentials_preserve = true   # In-place legacy cutover only. When
         #                                # true, the bundle skips random_*

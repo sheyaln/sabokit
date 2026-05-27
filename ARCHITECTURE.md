@@ -226,8 +226,8 @@ output "compute" {
       id           = string
       public_ip    = string
       private_ip   = string
-      ansible_group = string  # e.g. "tools", "management"
-      role         = string  # what this host is intended for: "apps", "monitoring", "auth"
+      ansible_group = string  # e.g. "tools", "identity", "management"
+      role         = string  # what this host is intended for: "tools", "identity", "management"
     }))
   }
 }
@@ -418,7 +418,7 @@ Four outputs follow the **bundles own their requirements, consumers just plumb**
 
 When you add a new bundle that needs SG ports, host-side filesystem backups, monitoring wiring, or a publicly-resolved hostname: ship the output. When you add a new contributor pattern, document it here and apply it the same way.
 
-The split-dns aggregation makes the monitoring stack truly host-independent: Grafana on the `management` host can reach `loki.example.org` (deployed on `apps`) by its public hostname without going through Let's Encrypt + the public ingress. Without it, multi-host topologies force co-locating Prometheus, Loki, and Grafana on the same host (or rolling consumer-side DNS).
+The split-dns aggregation makes the monitoring stack truly host-independent: Grafana on the `management` host can reach `loki.example.org` (deployed on `tools`) by its public hostname without going through Let's Encrypt + the public ingress. Without it, multi-host topologies force co-locating Prometheus, Loki, and Grafana on the same host (or rolling consumer-side DNS).
 
 ---
 
@@ -759,7 +759,7 @@ module "outline" {
 `platform/apps/outline/ansible/playbook.yml`:
 ```yaml
 - name: Deploy Outline
-  hosts: "{{ outline_host_group | default('apps') }}"
+  hosts: "{{ outline_host_group | default('tools') }}"
   become: true
   roles:
     - role: outline
