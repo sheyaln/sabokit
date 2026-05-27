@@ -139,7 +139,7 @@ build {
   // SSH — config applies on first boot of cloned hosts).
   provisioner "shell" {
     execute_command = "echo 'packer' | sudo -S env DEBIAN_FRONTEND=noninteractive {{ .Vars }} {{ .Path }}"
-    script          = "./provisioners/07-sshd-hardening.sh"
+    script          = "./provisioners/07-hardening.sh"
   }
 
   // Final cleanup: clear apt caches, machine-id, cloud-init seed so the image
