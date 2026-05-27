@@ -1,0 +1,36 @@
+---
+# Deploy Diun instances per compute_host. Base's host_services.tf fans this
+# bundle out one-per-host; the consumer-template's `enabled_host_services.diun`
+# output carries the full per-host instance map. Each value provides an
+# ansible_group + ansible_vars block.
+#
+# Input contract: `diun_all_instances` is the full map of diun instances
+# keyed by compute_hosts key (passed from platform/ansible/host-services.yml).
+
+- name: Deploy Diun instances per host
+  hosts: "{{ diun_all_instances.values() | map(attribute='ansible_group') | unique | list }}"
+  become: true
+  tasks:
+    - name: Deploy each Diun instance destined for this host's group
+      ansible.builtin.include_role:
+        name: diun
+      vars:
+        diun_instance_name: "{{ inst.key }}"
+        diun_image_tag: "{{ inst.value.ansible_vars.diun_image_tag }}"
+        diun_timezone: "{{ inst.value.ansible_vars.diun_timezone }}"
+        diun_watch_schedule: "{{ inst.value.ansible_vars.diun_watch_schedule }}"
+        diun_watch_workers: "{{ inst.value.ansible_vars.diun_watch_workers }}"
+        diun_watch_first_check_notif: "{{ inst.value.ansible_vars.diun_watch_first_check_notif }}"
+        diun_watch_by_default: "{{ inst.value.ansible_vars.diun_watch_by_default }}"
+        diun_default_watch_repo: "{{ inst.value.ansible_vars.diun_default_watch_repo }}"
+        diun_include_swarm_services: "{{ inst.value.ansible_vars.diun_include_swarm_services }}"
+        diun_notification_targets: "{{ inst.value.ansible_vars.diun_notification_targets }}"
+        diun_n8n_webhook_url: "{{ inst.value.ansible_vars.diun_n8n_webhook_url }}"
+        diun_notif_extra: "{{ inst.value.ansible_vars.diun_notif_extra }}"
+        diun_watch_enabled: "{{ inst.value.ansible_vars.diun_watch_enabled }}"
+        diun_autoheal_enabled: "{{ inst.value.ansible_vars.diun_autoheal_enabled }}"
+        diun_extra_env_vars: "{{ inst.value.ansible_vars.diun_extra_env_vars }}"
+      loop: "{{ diun_all_instances | dict2items | selectattr('value.ansible_group', 'in', group_names) | list }}"
+      loop_control:
+        loop_var: inst
+        label: "{{ inst.key }}"

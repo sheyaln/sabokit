@@ -313,26 +313,6 @@
     grafana_jsm_severity_gate: "{{ enabled_apps.grafana.ansible_vars.grafana_jsm_severity_gate }}"
   when: enabled_apps.grafana is defined and enabled_apps.grafana is not none
   tags: [apps, grafana]
-- import_playbook: ../apps/diun/ansible/playbook.yml
-  vars:
-    diun_host_group: "{{ enabled_apps.diun_mgmt.ansible_group }}"
-    diun_instance_name: "{{ enabled_apps.diun_mgmt.ansible_vars.diun_instance_name }}"
-    diun_image_tag: "{{ enabled_apps.diun_mgmt.ansible_vars.diun_image_tag }}"
-    diun_timezone: "{{ enabled_apps.diun_mgmt.ansible_vars.diun_timezone }}"
-    diun_watch_schedule: "{{ enabled_apps.diun_mgmt.ansible_vars.diun_watch_schedule }}"
-    diun_watch_workers: "{{ enabled_apps.diun_mgmt.ansible_vars.diun_watch_workers }}"
-    diun_watch_first_check_notif: "{{ enabled_apps.diun_mgmt.ansible_vars.diun_watch_first_check_notif }}"
-    diun_watch_by_default: "{{ enabled_apps.diun_mgmt.ansible_vars.diun_watch_by_default }}"
-    diun_default_watch_repo: "{{ enabled_apps.diun_mgmt.ansible_vars.diun_default_watch_repo }}"
-    diun_include_swarm_services: "{{ enabled_apps.diun_mgmt.ansible_vars.diun_include_swarm_services }}"
-    diun_notification_targets: "{{ enabled_apps.diun_mgmt.ansible_vars.diun_notification_targets }}"
-    diun_n8n_webhook_url: "{{ enabled_apps.diun_mgmt.ansible_vars.diun_n8n_webhook_url }}"
-    diun_notif_extra: "{{ enabled_apps.diun_mgmt.ansible_vars.diun_notif_extra }}"
-    diun_watch_enabled: "{{ enabled_apps.diun_mgmt.ansible_vars.diun_watch_enabled }}"
-    diun_autoheal_enabled: "{{ enabled_apps.diun_mgmt.ansible_vars.diun_autoheal_enabled }}"
-    diun_extra_env_vars: "{{ enabled_apps.diun_mgmt.ansible_vars.diun_extra_env_vars }}"
-  when: enabled_apps.diun_mgmt is defined and enabled_apps.diun_mgmt is not none
-  tags: [apps, diun_mgmt]
 - import_playbook: ../apps/wazuh/ansible/playbook.yml
   vars:
     wazuh_host_group: "{{ enabled_apps.wazuh.ansible_group }}"

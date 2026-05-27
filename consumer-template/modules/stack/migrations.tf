@@ -1,6 +1,9 @@
 # State-move blocks for in-place upgrades. Each `moved {}` lets terraform
 # rename a resource in state without destroying + recreating it. No-op for
 # greenfield consumers who never had the old addresses.
+#
+# Drop entries after consumers have applied past the tag that introduced them
+# — 2 minor versions is the conventional grace.
 
 # ── Canonical 3-host rename (v3.4.0) ─────────────────────────────────────
 #
@@ -54,3 +57,13 @@ moved {
   from = module.backrest["authentik"]
   to   = module.backrest["identity"]
 }
+
+# ── Diun → host-services tier (v3.4.0) ───────────────────────────────────
+#
+# Diun moved from platform/apps/diun to platform/base/host-services/diun and
+# auto-instantiates per compute_host from the base tier. No `moved` block
+# emitted because the diun bundle is a contract-only compute module with
+# zero `resource` declarations — terraform tracks no state under
+# `module.diun_mgmt`, so the address simply disappears on apply with no
+# downstream effect. Consumers who previously enabled `var.apps.diun_mgmt`
+# should remove that key from tfvars and configure `var.base.diun.*` instead.

@@ -32,6 +32,21 @@ module "base" {
   # a URL. The base module emits zero webhook resources when the URL is empty.
   tem_webhook_n8n_url = module.n8n.enabled ? coalesce(module.n8n.app_url, "") : ""
 
+  # Host-services sub-tier (one container per compute_host). Default-on as a
+  # category; consumers flip `enabled = false` to turn a service off entirely
+  # or list compute_host keys in `disabled_hosts` for per-host opt-out.
+  # `n8n_webhook_url` auto-wires to the n8n bundle when enabled — consumer
+  # override via `var.base.diun.n8n_webhook_url` wins.
+  diun = merge(
+    try(var.base.diun, {}),
+    {
+      n8n_webhook_url = try(
+        var.base.diun.n8n_webhook_url,
+        module.n8n.enabled ? "${coalesce(module.n8n.app_url, "")}/webhook/diun-image-update" : "",
+      )
+    },
+  )
+
   # App bundles export their own SG rule requirements as
   # required_inbound_rules. Aggregate here so enabling an app
   # automatically opens its ports; disabling closes them.

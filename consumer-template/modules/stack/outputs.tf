@@ -150,11 +150,6 @@ output "enabled_apps" {
         }
       }
     } : null
-    diun_mgmt = module.diun_mgmt.enabled ? {
-      ansible_vars  = module.diun_mgmt.ansible.vars
-      ansible_group = module.diun_mgmt.ansible.host_group
-      monitoring    = module.diun_mgmt.monitoring
-    } : null
     wazuh_agent_apps = module.wazuh_agent_apps.enabled ? {
       ansible_vars  = module.wazuh_agent_apps.ansible.vars
       ansible_group = module.wazuh_agent_apps.ansible.host_group
@@ -167,5 +162,15 @@ output "enabled_apps" {
       ansible_vars  = module.protonmail_bridge.ansible.vars
       ansible_group = module.protonmail_bridge.ansible.host_group
     } : null
+  }
+}
+
+output "enabled_host_services" {
+  description = "Per-service per-host instance maps for the host-services sub-tier. Each service key holds a map keyed by compute_host name; entries are null on disabled hosts. Consumed by Ansible via `terraform output -json enabled_host_services` to drive host-services.yml."
+  value = {
+    diun = {
+      for k, v in module.base.host_services.diun :
+      k => v if v != null && v.enabled
+    }
   }
 }

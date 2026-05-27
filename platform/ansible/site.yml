@@ -1,11 +1,13 @@
 ---
-# Full deploy: bootstrap (if not skipped) followed by every enabled app.
+# Full deploy: bootstrap → host-services → every enabled app.
 #
 # Common invocations:
-#   ansible-playbook site.yml                          # full bootstrap + apps
-#   ansible-playbook site.yml --skip-tags bootstrap    # apps only (fast redeploy)
+#   ansible-playbook site.yml                          # full bootstrap + host-services + apps
+#   ansible-playbook site.yml --skip-tags bootstrap    # host-services + apps only (fast redeploy)
 #   ansible-playbook site.yml --tags outline           # just one app + its bootstrap prereqs
-#   ansible-playbook site.yml --tags apps              # all apps, skip bootstrap
+#   ansible-playbook site.yml --tags apps              # all apps, skip bootstrap + host-services
+#   ansible-playbook site.yml --tags host-services     # diun + autoheal + wazuh-agent only
 
 - import_playbook: bootstrap.yml
+- import_playbook: host-services.yml
 - import_playbook: apps.yml

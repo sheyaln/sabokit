@@ -80,6 +80,30 @@ output "spf_include" {
   value       = var.tem_enabled ? scaleway_tem_domain.this[0].spf_config : null
 }
 
+# ── Host-services sub-tier ──────────────────────────────────────────────────
+# Per-host instance maps for each host-services bundle, mirroring how apps
+# expose their ansible_vars. Consumer-template surfaces these via
+# `enabled_apps.<service>_<host_key>` so the generated apps.yml can loop
+# over instances and dispatch one play per host.
+
+output "host_services" {
+  description = "Per-host instance maps for the host-services sub-tier. Each service key holds a map keyed by compute_host name; entries are null on disabled hosts. Consumed by consumer-template to expose per-host ansible_vars to the generated host-services playbook."
+  value = {
+    diun = {
+      for k, _ in var.compute_hosts : k => (
+        contains(keys(module.diun), k)
+        ? {
+          enabled       = module.diun[k].enabled
+          ansible_vars  = module.diun[k].ansible.vars
+          ansible_group = module.diun[k].ansible.host_group
+          monitoring    = module.diun[k].monitoring
+        }
+        : null
+      )
+    }
+  }
+}
+
 output "private_network_id" {
   description = "Convenience alias for scaleway.private_network_id."
   value       = module.network.id
