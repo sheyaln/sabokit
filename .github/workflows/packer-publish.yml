@@ -67,6 +67,16 @@ jobs:
           kvm-ok || true
           ls -la /dev/kvm
 
+      - name: Install trivy
+        run: |
+          sudo apt-get install -y wget apt-transport-https gnupg
+          wget -qO - https://aquasecurity.github.io/trivy-repo/deb/public.key \
+            | sudo gpg --dearmor -o /usr/share/keyrings/trivy.gpg
+          echo "deb [signed-by=/usr/share/keyrings/trivy.gpg] https://aquasecurity.github.io/trivy-repo/deb generic main" \
+            | sudo tee /etc/apt/sources.list.d/trivy.list
+          sudo apt-get update
+          sudo apt-get install -y trivy
+
       - name: Install Packer
         uses: hashicorp/setup-packer@main
         with:
@@ -89,12 +99,34 @@ jobs:
           mv "$qcow2_path" "../fc-base-${{ steps.ver.outputs.version }}.qcow2"
           echo "qcow2_asset=fc-base-${{ steps.ver.outputs.version }}.qcow2" >> "$GITHUB_OUTPUT"
 
+      - name: Scan qcow2 with trivy
+        run: |
+          # trivy vm scans VM images directly (no nbd mount required since
+          # trivy 0.43). Fail the build on CRITICAL; HIGH is reported but
+          # non-blocking.
+          trivy vm \
+            --severity HIGH,CRITICAL \
+            --exit-code 0 \
+            --no-progress \
+            --format table \
+            "fc-base-${{ steps.ver.outputs.version }}.qcow2"
+          trivy vm \
+            --severity CRITICAL \
+            --exit-code 1 \
+            --no-progress \
+            --format table \
+            "fc-base-${{ steps.ver.outputs.version }}.qcow2"
+
       - name: Write image metadata sidecar
         run: |
+          qcow2_sha256="$(sha256sum "fc-base-${{ steps.ver.outputs.version }}.qcow2" | awk '{print $1}')"
+          qcow2_size="$(stat -c %s "fc-base-${{ steps.ver.outputs.version }}.qcow2")"
           cat > fc-base-${{ steps.ver.outputs.version }}.json <<EOF
           {
             "image_version": "${{ steps.ver.outputs.version }}",
             "qcow2_asset": "${{ steps.build.outputs.qcow2_asset }}",
+            "qcow2_sha256": "${qcow2_sha256}",
+            "qcow2_size_bytes": ${qcow2_size},
             "scaleway_region": "fr-par",
             "scaleway_zone": "fr-par-1"
           }

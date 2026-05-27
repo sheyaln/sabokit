@@ -46,6 +46,18 @@ pip3 install --no-cache-dir --break-system-packages \
 pip3 install --no-cache-dir scaleway pyyaml
 
 # Don't start ufw / fail2ban yet — the image gets cloned across many hosts and
-# we don't want stale state. Ansible will start them on first boot.
+# we don't want stale state. Ansible will start them on first boot; ufw is
+# also flipped on by sabokit-firstboot-cleanup.service before sshd accepts
+# external connections.
 systemctl disable --now ufw 2>/dev/null || true
 systemctl disable --now fail2ban 2>/dev/null || true
+
+# Configure unattended-upgrades to apply security updates automatically.
+# Ubuntu's default 50unattended-upgrades enables the security pocket; we add
+# 20auto-upgrades to actually run the timer. Consumers override via Ansible.
+cat >/etc/apt/apt.conf.d/20auto-upgrades <<'EOF'
+APT::Periodic::Update-Package-Lists "1";
+APT::Periodic::Unattended-Upgrade "1";
+APT::Periodic::AutocleanInterval "7";
+EOF
+chmod 0644 /etc/apt/apt.conf.d/20auto-upgrades

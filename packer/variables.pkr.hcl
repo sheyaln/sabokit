@@ -75,3 +75,61 @@ variable "scw_cli_version" {
   description = "Scaleway CLI release to bake. Pinned for reproducibility — Ansible will upgrade in-place if a newer one is configured. GitHub garbage-collects very old release assets periodically; keep this within the last ~year of releases or builds 404."
   default     = "2.56.1"
 }
+
+// SHA256 checksums for downloaded binaries. Keep in sync with the *_version
+// pins above. Source of truth:
+//   - node_exporter: sha256sums.txt sibling on the GitHub release
+//   - cadvisor:      no upstream checksum file → anchor the first trusted
+//                    download and verify on every subsequent build
+//   - scw:           SHA256SUMS sibling on the GitHub release
+variable "node_exporter_sha256_amd64" {
+  type    = string
+  default = "6809dd0b3ec45fd6e992c19071d6b5253aed3ead7bf0686885a51d85c6643c66"
+}
+variable "node_exporter_sha256_arm64" {
+  type    = string
+  default = "627382b9723c642411c33f48861134ebe893e70a63bcc8b3fc0619cd0bfac4be"
+}
+variable "cadvisor_sha256_amd64" {
+  type    = string
+  default = "1d5cc701a3fcdf1e8ed1c86da5304b896a6997d9e6673139e78a6f87812495b0"
+}
+variable "cadvisor_sha256_arm64" {
+  type    = string
+  default = "c535f46d789599f25c7c680af193d4402da27a98d9828eb2ec916af6256e0c0c"
+}
+variable "scw_cli_sha256_amd64" {
+  type    = string
+  default = "dea550d0f768ba43f21fcd8dc2309cfd54680fe8c425048fde8e88f22f840209"
+}
+variable "scw_cli_sha256_arm64" {
+  type    = string
+  default = "30d6f8a1af4ab1cf7ea06d40290afe9e5c20a7d56e1773310a185a13f05b8b8f"
+}
+
+// Pre-pulled docker images, pinned by digest. `:tag@sha256:digest` is the
+// only form that gives true immutability — registries can move tags but
+// digests are content-addressed. Update digests when bumping versions:
+//   curl -sIL -H "Accept: application/vnd.docker.distribution.manifest.list.v2+json,application/vnd.oci.image.index.v1+json" \
+//     -H "Authorization: Bearer $(curl -sL 'https://auth.docker.io/token?service=registry.docker.io&scope=repository:<repo>:pull' | jq -r .token)" \
+//     "https://registry-1.docker.io/v2/<repo>/manifests/<tag>" | grep -i docker-content-digest
+variable "image_node_exporter" {
+  type    = string
+  default = "prom/node-exporter:v1.8.2@sha256:4032c6d5bfd752342c3e631c2f1de93ba6b86c41db6b167b9a35372c139e7706"
+}
+variable "image_cadvisor" {
+  type    = string
+  default = "gcr.io/cadvisor/cadvisor:v0.49.1@sha256:3cde6faf0791ebf7b41d6f8ae7145466fed712ea6f252c935294d2608b1af388"
+}
+variable "image_alloy" {
+  type    = string
+  default = "grafana/alloy:v1.4.2@sha256:625174f60ee3287a4ec9de7e818805f117376f1375169bc73482b41540697376"
+}
+variable "image_traefik" {
+  type    = string
+  default = "traefik:v3.3@sha256:2cd5cc75530c8d07ae0587c743d23eb30cae2436d07017a5ff78498b1a43d09f"
+}
+variable "image_haproxy" {
+  type    = string
+  default = "haproxy:2.9-alpine@sha256:3e29449a6beed63262e36104adf531b4e41b359f61937303f5ea8607987b3748"
+}

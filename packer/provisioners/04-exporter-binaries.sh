@@ -4,17 +4,31 @@
 # compose, but the binaries are useful for local debugging and for sites that
 # want to swap to systemd-only later).
 #
-# Versions come from env vars (set by Packer from variables.pkr.hcl).
+# Versions and SHA256s come from env vars (set by Packer from
+# variables.pkr.hcl). Every download is checksum-verified — a tampered or
+# moved release asset fails the build before any binary lands on the image.
 
 set -euo pipefail
 
-: "${NODE_EXPORTER_VERSION:=1.8.2}"
-: "${CADVISOR_VERSION:=0.49.1}"
+: "${NODE_EXPORTER_VERSION:?NODE_EXPORTER_VERSION is required}"
+: "${CADVISOR_VERSION:?CADVISOR_VERSION is required}"
+: "${NODE_EXPORTER_SHA256_AMD64:?NODE_EXPORTER_SHA256_AMD64 is required}"
+: "${NODE_EXPORTER_SHA256_ARM64:?NODE_EXPORTER_SHA256_ARM64 is required}"
+: "${CADVISOR_SHA256_AMD64:?CADVISOR_SHA256_AMD64 is required}"
+: "${CADVISOR_SHA256_ARM64:?CADVISOR_SHA256_ARM64 is required}"
 
 ARCH_DPKG="$(dpkg --print-architecture)"
 case "${ARCH_DPKG}" in
-  amd64) GO_ARCH="amd64" ;;
-  arm64) GO_ARCH="arm64" ;;
+  amd64)
+    GO_ARCH="amd64"
+    NE_SHA="${NODE_EXPORTER_SHA256_AMD64}"
+    CA_SHA="${CADVISOR_SHA256_AMD64}"
+    ;;
+  arm64)
+    GO_ARCH="arm64"
+    NE_SHA="${NODE_EXPORTER_SHA256_ARM64}"
+    CA_SHA="${CADVISOR_SHA256_ARM64}"
+    ;;
   *) echo "Unsupported arch: ${ARCH_DPKG}"; exit 1 ;;
 esac
 
@@ -26,6 +40,7 @@ NE_TARBALL="node_exporter-${NODE_EXPORTER_VERSION}.linux-${GO_ARCH}.tar.gz"
 curl -fsSL --retry 3 \
   "https://github.com/prometheus/node_exporter/releases/download/v${NODE_EXPORTER_VERSION}/${NE_TARBALL}" \
   -o "${TMP}/${NE_TARBALL}"
+echo "${NE_SHA}  ${TMP}/${NE_TARBALL}" | sha256sum -c -
 tar -xzf "${TMP}/${NE_TARBALL}" -C "${TMP}"
 install -m 0755 \
   "${TMP}/node_exporter-${NODE_EXPORTER_VERSION}.linux-${GO_ARCH}/node_exporter" \
@@ -56,8 +71,9 @@ EOF
 # ── cadvisor ────────────────────────────────────────────────────────────────
 curl -fsSL --retry 3 \
   "https://github.com/google/cadvisor/releases/download/v${CADVISOR_VERSION}/cadvisor-v${CADVISOR_VERSION}-linux-${GO_ARCH}" \
-  -o /usr/local/bin/cadvisor
-chmod 0755 /usr/local/bin/cadvisor
+  -o "${TMP}/cadvisor"
+echo "${CA_SHA}  ${TMP}/cadvisor" | sha256sum -c -
+install -m 0755 "${TMP}/cadvisor" /usr/local/bin/cadvisor
 
 cat >/etc/systemd/system/cadvisor.service <<'EOF'
 [Unit]

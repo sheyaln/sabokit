@@ -61,7 +61,12 @@ source "qemu" "base" {
   ssh_timeout            = "10m"
   ssh_handshake_attempts = "100"
 
-  shutdown_command = "echo 'packer' | sudo -S shutdown -P now"
+  // Lock the build-time `packer` user atomically with shutdown — once sudo
+  // authenticates, the root shell continues even after the password is
+  // disabled, so packer can still power the VM off. Doing the lockdown in
+  // 99-cleanup.sh instead would invalidate the password before this command
+  // runs, breaking the build.
+  shutdown_command = "echo 'packer' | sudo -S sh -c 'passwd -l packer; chage -E 0 packer; rm -f /etc/sudoers.d/90-cloud-init-users; shutdown -P now'"
 
   qemuargs = [
     ["-cpu", "host"],
@@ -90,36 +95,47 @@ build {
     script = "./provisioners/02-docker.sh"
   }
 
-  // Pre-pull monitoring images so the bootstrap `docker compose up` doesn't
-  // pay the round-trip to gcr.io / Docker Hub on first boot.
+  // Pre-pull monitoring images, pinned by sha256 digest so registry tampering
+  // or a moved tag fails the build instead of silently baking a different
+  // image into the snapshot.
   provisioner "shell" {
     execute_command = "echo 'packer' | sudo -S env DEBIAN_FRONTEND=noninteractive {{ .Vars }} {{ .Path }}"
     environment_vars = [
       "DEBIAN_FRONTEND=noninteractive",
+      "IMAGE_NODE_EXPORTER=${var.image_node_exporter}",
+      "IMAGE_CADVISOR=${var.image_cadvisor}",
+      "IMAGE_ALLOY=${var.image_alloy}",
+      "IMAGE_TRAEFIK=${var.image_traefik}",
+      "IMAGE_HAPROXY=${var.image_haproxy}",
     ]
     script = "./provisioners/03-monitoring-images.sh"
   }
 
-  // node_exporter + cadvisor native binaries. Systemd units are placed but
-  // NOT enabled — the running services are provided by docker-compose in
-  // the monitoring-agent role. Binaries are a fallback / power-user escape
-  // hatch.
+  // node_exporter + cadvisor native binaries. SHA256-verified. Systemd units
+  // are placed but NOT enabled — the running services come from docker-compose
+  // in the monitoring-agent role. Binaries are a fallback / escape hatch.
   provisioner "shell" {
     execute_command = "echo 'packer' | sudo -S env {{ .Vars }} {{ .Path }}"
     environment_vars = [
       "NODE_EXPORTER_VERSION=${var.node_exporter_version}",
       "CADVISOR_VERSION=${var.cadvisor_version}",
+      "NODE_EXPORTER_SHA256_AMD64=${var.node_exporter_sha256_amd64}",
+      "NODE_EXPORTER_SHA256_ARM64=${var.node_exporter_sha256_arm64}",
+      "CADVISOR_SHA256_AMD64=${var.cadvisor_sha256_amd64}",
+      "CADVISOR_SHA256_ARM64=${var.cadvisor_sha256_arm64}",
     ]
     script = "./provisioners/04-exporter-binaries.sh"
   }
 
-  // Scaleway CLI binary. Ansible scw-secrets role already has a version guard,
-  // so an older pre-baked binary is fine — it gets upgraded in-place if
-  // scw_cli_version is set to "latest" or a higher pin.
+  // Scaleway CLI binary, SHA256-verified. Ansible scw-secrets role already
+  // has a version guard, so an older pre-baked binary is fine — it gets
+  // upgraded in-place if scw_cli_version is set to a higher pin.
   provisioner "shell" {
     execute_command = "echo 'packer' | sudo -S env {{ .Vars }} {{ .Path }}"
     environment_vars = [
       "SCW_CLI_VERSION=${var.scw_cli_version}",
+      "SCW_CLI_SHA256_AMD64=${var.scw_cli_sha256_amd64}",
+      "SCW_CLI_SHA256_ARM64=${var.scw_cli_sha256_arm64}",
     ]
     script = "./provisioners/05-scw-cli.sh"
   }
@@ -134,16 +150,25 @@ build {
     script = "./provisioners/06-stamp-image.sh"
   }
 
-  // SSH daemon hardening: drop-in fragment under /etc/ssh/sshd_config.d/.
-  // Validated via `sshd -t` inside the script; not restarted (build is over
-  // SSH — config applies on first boot of cloned hosts).
+  // OS hardening: sshd drop-in, sysctl kernel tuning, login.defs tightening,
+  // ufw default-deny baseline (staged, enabled on first boot by the
+  // sabokit-firstboot-cleanup service installed below).
   provisioner "shell" {
     execute_command = "echo 'packer' | sudo -S env DEBIAN_FRONTEND=noninteractive {{ .Vars }} {{ .Path }}"
     script          = "./provisioners/07-hardening.sh"
   }
 
-  // Final cleanup: clear apt caches, machine-id, cloud-init seed so the image
-  // boots clean on every clone.
+  // Install the systemd one-shot that fires once on first boot: deletes the
+  // packer user + home, enables ufw, then disables itself. Lives here (not
+  // in 99-cleanup.sh) because it has to outlive the qcow2 snapshot.
+  provisioner "shell" {
+    execute_command = "echo 'packer' | sudo -S env {{ .Vars }} {{ .Path }}"
+    script          = "./provisioners/08-firstboot-lockdown.sh"
+  }
+
+  // Final cleanup: apt caches, logs (text + binary + journal), machine-id,
+  // ssh host keys, cloud-init seed, /tmp, /var/tmp, hostname, zero free
+  // space. Every clone boots clean.
   provisioner "shell" {
     execute_command = "echo 'packer' | sudo -S env {{ .Vars }} {{ .Path }}"
     script          = "./provisioners/99-cleanup.sh"
