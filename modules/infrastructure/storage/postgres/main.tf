@@ -105,12 +105,20 @@ locals {
   _preserved_dbs = var.credentials_preserve ? {
     for db in local.dbs : db => jsondecode(base64decode(data.scaleway_secret_version.preserved_db[db].data))
   } : {}
+  # credentials_preserve_source (greenfield-to-v3): supplied admin/db passwords
+  # shadow random_* without count-gating them, so state stays stable across
+  # the one-time first apply. Partial-supply works: any key not present in
+  # the source falls back to the generated password.
+  _source_admin = try(var.credentials_preserve_source.admin, null)
+  _source_dbs   = try(var.credentials_preserve_source.databases, {})
   user_passwords = var.credentials_preserve ? merge(
     { (var.psql_default_user) = local._preserved_admin.password },
     { for db in local.dbs : db => local._preserved_dbs[db].password },
-    ) : {
-    for u in local.users : u => random_password.db_passwords[u].result
-  }
+    ) : merge(
+    { for u in local.users : u => random_password.db_passwords[u].result },
+    local._source_admin != null ? { (var.psql_default_user) = local._source_admin } : {},
+    { for db, pw in local._source_dbs : db => pw if contains(local.dbs, db) },
+  )
 }
 
 resource "scaleway_rdb_user" "users" {

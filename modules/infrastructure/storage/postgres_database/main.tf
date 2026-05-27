@@ -39,7 +39,10 @@ data "scaleway_secret_version" "preserved" {
 
 locals {
   _preserved = var.credentials_preserve ? jsondecode(base64decode(data.scaleway_secret_version.preserved[0].data)) : {}
-  password   = var.credentials_preserve ? local._preserved.password : random_password.this[0].result
+  # credentials_preserve_source (greenfield-to-v3): supplied `password` shadows
+  # the random_* without count-gating it, so state stays stable across the
+  # one-time first apply.
+  password = var.credentials_preserve ? local._preserved.password : try(var.credentials_preserve_source.password, random_password.this[0].result)
 }
 
 resource "scaleway_rdb_database" "this" {

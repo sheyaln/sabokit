@@ -30,8 +30,10 @@ data "scaleway_secret_version" "preserved" {
 }
 
 locals {
-  _preserved          = (var.enabled && var.credentials_preserve) ? jsondecode(base64decode(data.scaleway_secret_version.preserved[0].data)) : {}
-  django_secret_key   = var.enabled ? (var.credentials_preserve ? local._preserved.DJANGO_SECRET_KEY : random_id.django_secret_key[0].b64_url) : ""
+  _preserved = (var.enabled && var.credentials_preserve) ? jsondecode(base64decode(data.scaleway_secret_version.preserved[0].data)) : {}
+  # credentials_preserve_source (greenfield-to-v3): supplied values
+  # shadow random_* without count-gating them, so state stays stable.
+  django_secret_key   = var.enabled ? (var.credentials_preserve ? local._preserved.DJANGO_SECRET_KEY : try(var.credentials_preserve_source.DJANGO_SECRET_KEY, random_id.django_secret_key[0].b64_url)) : ""
   authentik_api_token = var.enabled ? authentik_token.service_steward[0].key : ""
   app_secret_id       = var.enabled ? (var.credentials_preserve ? data.scaleway_secret.preserved[0].id : scaleway_secret.app[0].id) : ""
   app_secret_name     = var.enabled ? (var.credentials_preserve ? data.scaleway_secret.preserved[0].name : scaleway_secret.app[0].name) : ""

@@ -43,10 +43,12 @@ data "scaleway_secret_version" "preserved" {
 }
 
 locals {
-  _preserved         = (var.enabled && var.credentials_preserve) ? jsondecode(base64decode(data.scaleway_secret_version.preserved[0].data)) : {}
-  indexer_password   = var.enabled ? (var.credentials_preserve ? local._preserved.WAZUH_INDEXER_PASSWORD : random_password.indexer_admin[0].result) : ""
-  api_password       = var.enabled ? (var.credentials_preserve ? local._preserved.WAZUH_API_PASSWORD : random_password.api[0].result) : ""
-  dashboard_password = var.enabled ? (var.credentials_preserve ? local._preserved.WAZUH_DASHBOARD_PASSWORD : random_password.dashboard[0].result) : ""
+  _preserved = (var.enabled && var.credentials_preserve) ? jsondecode(base64decode(data.scaleway_secret_version.preserved[0].data)) : {}
+  # credentials_preserve_source (greenfield-to-v3): supplied values
+  # shadow random_* without count-gating them, so state stays stable.
+  indexer_password   = var.enabled ? (var.credentials_preserve ? local._preserved.WAZUH_INDEXER_PASSWORD : try(var.credentials_preserve_source.WAZUH_INDEXER_PASSWORD, random_password.indexer_admin[0].result)) : ""
+  api_password       = var.enabled ? (var.credentials_preserve ? local._preserved.WAZUH_API_PASSWORD : try(var.credentials_preserve_source.WAZUH_API_PASSWORD, random_password.api[0].result)) : ""
+  dashboard_password = var.enabled ? (var.credentials_preserve ? local._preserved.WAZUH_DASHBOARD_PASSWORD : try(var.credentials_preserve_source.WAZUH_DASHBOARD_PASSWORD, random_password.dashboard[0].result)) : ""
   app_secret_id      = var.enabled ? (var.credentials_preserve ? data.scaleway_secret.preserved[0].id : scaleway_secret.app[0].id) : ""
 }
 

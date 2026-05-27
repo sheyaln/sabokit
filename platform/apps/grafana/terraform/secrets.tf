@@ -28,8 +28,10 @@ data "scaleway_secret_version" "preserved" {
 }
 
 locals {
-  _preserved     = (var.enabled && var.credentials_preserve) ? jsondecode(base64decode(data.scaleway_secret_version.preserved[0].data)) : {}
-  admin_password = var.enabled ? (var.credentials_preserve ? local._preserved.GRAFANA_ADMIN_PASSWORD : random_password.admin[0].result) : ""
+  _preserved = (var.enabled && var.credentials_preserve) ? jsondecode(base64decode(data.scaleway_secret_version.preserved[0].data)) : {}
+  # credentials_preserve_source (greenfield-to-v3): supplied values
+  # shadow random_* without count-gating them, so state stays stable.
+  admin_password = var.enabled ? (var.credentials_preserve ? local._preserved.GRAFANA_ADMIN_PASSWORD : try(var.credentials_preserve_source.GRAFANA_ADMIN_PASSWORD, random_password.admin[0].result)) : ""
   app_secret_id  = var.enabled ? (var.credentials_preserve ? data.scaleway_secret.preserved[0].id : scaleway_secret.app[0].id) : ""
 }
 
