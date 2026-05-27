@@ -27,6 +27,7 @@
     protonmail_bridge_cpu_reservation: "{{ enabled_apps.protonmail_bridge.ansible_vars.protonmail_bridge_cpu_reservation }}"
     protonmail_bridge_diun_watch_enabled: "{{ enabled_apps.protonmail_bridge.ansible_vars.protonmail_bridge_diun_watch_enabled }}"
     protonmail_bridge_autoheal_enabled: "{{ enabled_apps.protonmail_bridge.ansible_vars.protonmail_bridge_autoheal_enabled }}"
+    protonmail_bridge_extra_env_vars: "{{ enabled_apps.protonmail_bridge.ansible_vars.protonmail_bridge_extra_env_vars }}"
   when: enabled_apps.protonmail_bridge is defined and enabled_apps.protonmail_bridge is not none
   tags: [apps, protonmail_bridge]
 - import_playbook: ../apps/outline/ansible/playbook.yml
@@ -55,6 +56,7 @@
     steward_cpu_reservation: "{{ enabled_apps.steward.ansible_vars.steward_cpu_reservation }}"
     steward_diun_watch_enabled: "{{ enabled_apps.steward.ansible_vars.steward_diun_watch_enabled }}"
     steward_autoheal_enabled: "{{ enabled_apps.steward.ansible_vars.steward_autoheal_enabled }}"
+    steward_extra_env_vars: "{{ enabled_apps.steward.ansible_vars.steward_extra_env_vars }}"
   when: enabled_apps.steward is defined and enabled_apps.steward is not none
   tags: [apps, steward]
 - import_playbook: ../apps/vikunja/ansible/playbook.yml
@@ -71,6 +73,7 @@
     vikunja_default_week_start: "{{ enabled_apps.vikunja.ansible_vars.vikunja_default_week_start }}"
     vikunja_diun_watch_enabled: "{{ enabled_apps.vikunja.ansible_vars.vikunja_diun_watch_enabled }}"
     vikunja_autoheal_enabled: "{{ enabled_apps.vikunja.ansible_vars.vikunja_autoheal_enabled }}"
+    vikunja_extra_env_vars: "{{ enabled_apps.vikunja.ansible_vars.vikunja_extra_env_vars }}"
   when: enabled_apps.vikunja is defined and enabled_apps.vikunja is not none
   tags: [apps, vikunja]
 - import_playbook: ../apps/bentopdf/ansible/playbook.yml
@@ -96,6 +99,7 @@
     notifuse_smtp_secret_name: "{{ enabled_apps.notifuse.ansible_vars.notifuse_smtp_secret_name }}"
     notifuse_diun_watch_enabled: "{{ enabled_apps.notifuse.ansible_vars.notifuse_diun_watch_enabled }}"
     notifuse_autoheal_enabled: "{{ enabled_apps.notifuse.ansible_vars.notifuse_autoheal_enabled }}"
+    notifuse_extra_env_vars: "{{ enabled_apps.notifuse.ansible_vars.notifuse_extra_env_vars }}"
   when: enabled_apps.notifuse is defined and enabled_apps.notifuse is not none
   tags: [apps, notifuse]
 - import_playbook: ../apps/broadsheet/ansible/playbook.yml
@@ -112,6 +116,7 @@
     broadsheet_smtp_secret_name: "{{ enabled_apps.broadsheet.ansible_vars.broadsheet_smtp_secret_name }}"
     broadsheet_diun_watch_enabled: "{{ enabled_apps.broadsheet.ansible_vars.broadsheet_diun_watch_enabled }}"
     broadsheet_autoheal_enabled: "{{ enabled_apps.broadsheet.ansible_vars.broadsheet_autoheal_enabled }}"
+    broadsheet_extra_env_vars: "{{ enabled_apps.broadsheet.ansible_vars.broadsheet_extra_env_vars }}"
   when: enabled_apps.broadsheet is defined and enabled_apps.broadsheet is not none
   tags: [apps, broadsheet]
 - import_playbook: ../apps/privacy-policy/ansible/playbook.yml
@@ -138,6 +143,7 @@
     nextcloud_n8n_form_webhook_url: "{{ enabled_apps.nextcloud.ansible_vars.nextcloud_n8n_form_webhook_url }}"
     nextcloud_diun_watch_enabled: "{{ enabled_apps.nextcloud.ansible_vars.nextcloud_diun_watch_enabled }}"
     nextcloud_autoheal_enabled: "{{ enabled_apps.nextcloud.ansible_vars.nextcloud_autoheal_enabled }}"
+    nextcloud_extra_env_vars: "{{ enabled_apps.nextcloud.ansible_vars.nextcloud_extra_env_vars }}"
     nextcloud_onlyoffice_hostname: "{{ enabled_apps.nextcloud.ansible_vars.nextcloud_onlyoffice_hostname }}"
     nextcloud_onlyoffice_image_tag: "{{ enabled_apps.nextcloud.ansible_vars.nextcloud_onlyoffice_image_tag }}"
     nextcloud_onlyoffice_memory_limit: "{{ enabled_apps.nextcloud.ansible_vars.nextcloud_onlyoffice_memory_limit }}"
@@ -165,6 +171,7 @@
     decidim_smtp_secret_name: "{{ enabled_apps.decidim.ansible_vars.decidim_smtp_secret_name }}"
     decidim_diun_watch_enabled: "{{ enabled_apps.decidim.ansible_vars.decidim_diun_watch_enabled }}"
     decidim_autoheal_enabled: "{{ enabled_apps.decidim.ansible_vars.decidim_autoheal_enabled }}"
+    decidim_extra_env_vars: "{{ enabled_apps.decidim.ansible_vars.decidim_extra_env_vars }}"
     decidim_org_admin_name: "{{ enabled_apps.decidim.ansible_vars.decidim_org_admin_name }}"
     decidim_org_admin_nickname: "{{ enabled_apps.decidim.ansible_vars.decidim_org_admin_nickname }}"
   when: enabled_apps.decidim is defined and enabled_apps.decidim is not none
@@ -187,6 +194,7 @@
     jitsi_app_secret_id: "{{ enabled_apps.jitsi.ansible_vars.jitsi_app_secret_id }}"
     jitsi_diun_watch_enabled: "{{ enabled_apps.jitsi.ansible_vars.jitsi_diun_watch_enabled }}"
     jitsi_autoheal_enabled: "{{ enabled_apps.jitsi.ansible_vars.jitsi_autoheal_enabled }}"
+    jitsi_extra_env_vars: "{{ enabled_apps.jitsi.ansible_vars.jitsi_extra_env_vars }}"
   when: enabled_apps.jitsi is defined and enabled_apps.jitsi is not none
   tags: [apps, jitsi]
 - import_playbook: ../apps/espocrm/ansible/playbook.yml
@@ -206,6 +214,7 @@
     espocrm_db_credentials_secret_id: "{{ enabled_apps.espocrm.ansible_vars.espocrm_db_credentials_secret_id }}"
     espocrm_diun_watch_enabled: "{{ enabled_apps.espocrm.ansible_vars.espocrm_diun_watch_enabled }}"
     espocrm_autoheal_enabled: "{{ enabled_apps.espocrm.ansible_vars.espocrm_autoheal_enabled }}"
+    espocrm_extra_env_vars: "{{ enabled_apps.espocrm.ansible_vars.espocrm_extra_env_vars }}"
   when: enabled_apps.espocrm is defined and enabled_apps.espocrm is not none
   tags: [apps, espocrm]
 - import_playbook: ../apps/n8n/ansible/playbook.yml
@@ -243,6 +252,7 @@
     backrest_restic_s3_storage_class: "{{ enabled_apps.backrest_mgmt.ansible_vars.backrest_restic_s3_storage_class }}"
     backrest_diun_watch_enabled: "{{ enabled_apps.backrest_mgmt.ansible_vars.backrest_diun_watch_enabled }}"
     backrest_autoheal_enabled: "{{ enabled_apps.backrest_mgmt.ansible_vars.backrest_autoheal_enabled }}"
+    backrest_extra_env_vars: "{{ enabled_apps.backrest_mgmt.ansible_vars.backrest_extra_env_vars }}"
   when: enabled_apps.backrest_mgmt is defined and enabled_apps.backrest_mgmt is not none
   tags: [apps, backrest_mgmt]
 - import_playbook: ../apps/prometheus/ansible/playbook.yml
@@ -264,6 +274,7 @@
     prometheus_timezone: "{{ enabled_apps.prometheus.ansible_vars.prometheus_timezone }}"
     prometheus_diun_watch_enabled: "{{ enabled_apps.prometheus.ansible_vars.prometheus_diun_watch_enabled }}"
     prometheus_autoheal_enabled: "{{ enabled_apps.prometheus.ansible_vars.prometheus_autoheal_enabled }}"
+    prometheus_extra_env_vars: "{{ enabled_apps.prometheus.ansible_vars.prometheus_extra_env_vars }}"
     prometheus_blackbox_exporter_enabled: "{{ enabled_apps.prometheus.ansible_vars.prometheus_blackbox_exporter_enabled }}"
     prometheus_blackbox_exporter_image_tag: "{{ enabled_apps.prometheus.ansible_vars.prometheus_blackbox_exporter_image_tag }}"
     prometheus_blackbox_targets: "{{ enabled_apps.prometheus.ansible_vars.prometheus_blackbox_targets }}"
@@ -291,6 +302,7 @@
     loki_timezone: "{{ enabled_apps.loki.ansible_vars.loki_timezone }}"
     loki_diun_watch_enabled: "{{ enabled_apps.loki.ansible_vars.loki_diun_watch_enabled }}"
     loki_autoheal_enabled: "{{ enabled_apps.loki.ansible_vars.loki_autoheal_enabled }}"
+    loki_extra_env_vars: "{{ enabled_apps.loki.ansible_vars.loki_extra_env_vars }}"
   when: enabled_apps.loki is defined and enabled_apps.loki is not none
   tags: [apps, loki]
 - import_playbook: ../apps/grafana/ansible/playbook.yml
@@ -312,6 +324,7 @@
     grafana_cpu_reservation: "{{ enabled_apps.grafana.ansible_vars.grafana_cpu_reservation }}"
     grafana_diun_watch_enabled: "{{ enabled_apps.grafana.ansible_vars.grafana_diun_watch_enabled }}"
     grafana_autoheal_enabled: "{{ enabled_apps.grafana.ansible_vars.grafana_autoheal_enabled }}"
+    grafana_extra_env_vars: "{{ enabled_apps.grafana.ansible_vars.grafana_extra_env_vars }}"
     grafana_dashboards: "{{ enabled_apps.grafana.ansible_vars.grafana_dashboards }}"
     grafana_jsm_api_key_secret_id: "{{ enabled_apps.grafana.ansible_vars.grafana_jsm_api_key_secret_id }}"
     grafana_jsm_api_region: "{{ enabled_apps.grafana.ansible_vars.grafana_jsm_api_region }}"
@@ -336,6 +349,7 @@
     diun_notif_extra: "{{ enabled_apps.diun_mgmt.ansible_vars.diun_notif_extra }}"
     diun_watch_enabled: "{{ enabled_apps.diun_mgmt.ansible_vars.diun_watch_enabled }}"
     diun_autoheal_enabled: "{{ enabled_apps.diun_mgmt.ansible_vars.diun_autoheal_enabled }}"
+    diun_extra_env_vars: "{{ enabled_apps.diun_mgmt.ansible_vars.diun_extra_env_vars }}"
   when: enabled_apps.diun_mgmt is defined and enabled_apps.diun_mgmt is not none
   tags: [apps, diun_mgmt]
 - import_playbook: ../apps/wazuh/ansible/playbook.yml
@@ -356,6 +370,7 @@
     wazuh_cpu_reservation: "{{ enabled_apps.wazuh.ansible_vars.wazuh_cpu_reservation }}"
     wazuh_diun_watch_enabled: "{{ enabled_apps.wazuh.ansible_vars.wazuh_diun_watch_enabled }}"
     wazuh_autoheal_enabled: "{{ enabled_apps.wazuh.ansible_vars.wazuh_autoheal_enabled }}"
+    wazuh_extra_env_vars: "{{ enabled_apps.wazuh.ansible_vars.wazuh_extra_env_vars }}"
   when: enabled_apps.wazuh is defined and enabled_apps.wazuh is not none
   tags: [apps, wazuh]
 - import_playbook: ../apps/wazuh-agent/ansible/playbook.yml
@@ -367,6 +382,7 @@
     wazuh_agent_manager_address: "{{ enabled_apps.wazuh_agent_apps.ansible_vars.wazuh_agent_manager_address }}"
     wazuh_agent_diun_watch_enabled: "{{ enabled_apps.wazuh_agent_apps.ansible_vars.wazuh_agent_diun_watch_enabled }}"
     wazuh_agent_autoheal_enabled: "{{ enabled_apps.wazuh_agent_apps.ansible_vars.wazuh_agent_autoheal_enabled }}"
+    wazuh_agent_extra_env_vars: "{{ enabled_apps.wazuh_agent_apps.ansible_vars.wazuh_agent_extra_env_vars }}"
     wazuh_agent_fim_enabled: "{{ enabled_apps.wazuh_agent_apps.ansible_vars.wazuh_agent_fim_enabled }}"
     wazuh_agent_fim_extra_paths: "{{ enabled_apps.wazuh_agent_apps.ansible_vars.wazuh_agent_fim_extra_paths }}"
     wazuh_agent_fim_extra_exclusions: "{{ enabled_apps.wazuh_agent_apps.ansible_vars.wazuh_agent_fim_extra_exclusions }}"

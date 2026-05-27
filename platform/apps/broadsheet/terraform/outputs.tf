@@ -54,6 +54,7 @@ output "ansible" {
       broadsheet_smtp_secret_name         = var.smtp_from_email == "" ? "" : "smtp-config"
       broadsheet_diun_watch_enabled       = var.diun_watch_enabled
       broadsheet_autoheal_enabled         = var.autoheal_enabled
+      broadsheet_extra_env_vars           = var.extra_env_vars
     }
   } : null
 }

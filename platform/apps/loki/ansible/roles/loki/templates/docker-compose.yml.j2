@@ -18,6 +18,9 @@ services:
       - loki-data:/loki
     environment:
       TZ: "{{ loki_timezone }}"
+{% for key, value in (loki_extra_env_vars | default({})).items() %}
+      {{ key }}: "{{ value }}"
+{% endfor %}
     networks:
       - "{{ loki_internal_network }}"
     security_opt:

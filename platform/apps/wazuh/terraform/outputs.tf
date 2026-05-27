@@ -85,6 +85,7 @@ output "ansible" {
       wazuh_cpu_reservation         = var.cpu_reservation
       wazuh_diun_watch_enabled      = var.diun_watch_enabled
       wazuh_autoheal_enabled        = var.autoheal_enabled
+      wazuh_extra_env_vars          = var.extra_env_vars
     }
   } : null
 }

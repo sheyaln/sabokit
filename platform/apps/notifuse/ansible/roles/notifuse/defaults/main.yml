@@ -36,3 +36,4 @@ notifuse_cpu_reservation: "0.25"
 # `docker compose` against the rendered files without escalation.
 notifuse_file_owner: "ubuntu"
 notifuse_file_group: "ubuntu"
+notifuse_extra_env_vars: {}

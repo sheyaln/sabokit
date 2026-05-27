@@ -13,3 +13,4 @@ wazuh_agent_autoheal_enabled: true
 wazuh_agent_fim_enabled: true
 wazuh_agent_fim_extra_paths: []
 wazuh_agent_fim_extra_exclusions: []
+wazuh_agent_extra_env_vars: {}

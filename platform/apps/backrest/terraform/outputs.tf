@@ -57,6 +57,7 @@ output "ansible" {
       backrest_restic_s3_storage_class           = var.storage_class
       backrest_diun_watch_enabled                = var.diun_watch_enabled
       backrest_autoheal_enabled                  = var.autoheal_enabled
+      backrest_extra_env_vars                    = var.extra_env_vars
     }
   } : null
 }

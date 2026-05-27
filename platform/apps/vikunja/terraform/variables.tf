@@ -189,3 +189,9 @@ variable "oidc_groups_scope_name" {
   type        = string
   default     = "groups"
 }
+
+variable "extra_env_vars" {
+  description = "Map of KEY → value rendered into the container .env after first-class vars. Use for env-driven feature flags / third-party integrations / debug toggles not exposed first-class on the bundle."
+  type        = map(string)
+  default     = {}
+}

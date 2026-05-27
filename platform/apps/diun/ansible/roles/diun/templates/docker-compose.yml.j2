@@ -13,6 +13,9 @@ services:
       TZ: "{{ diun_timezone }}"
       LOG_LEVEL: "info"
       LOG_JSON: "false"
+{% for key, value in (diun_extra_env_vars | default({})).items() %}
+      {{ key }}: "{{ value }}"
+{% endfor %}
     volumes:
       # Required: lets Diun list sibling containers + read their image refs.
       - /var/run/docker.sock:/var/run/docker.sock:ro

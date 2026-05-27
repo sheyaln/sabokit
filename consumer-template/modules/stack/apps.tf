@@ -54,6 +54,7 @@ module "steward" {
   dns_zone_override            = try(var.apps.steward.dns_zone_override, "")
 
   credentials_preserve = try(var.apps.steward.credentials_preserve, false)
+  extra_env_vars       = try(var.apps.steward.extra_env_vars, {})
 }
 
 module "vikunja" {
@@ -83,6 +84,7 @@ module "vikunja" {
   dns_zone_override       = try(var.apps.vikunja.dns_zone_override, "")
 
   credentials_preserve = try(var.apps.vikunja.credentials_preserve, false)
+  extra_env_vars       = try(var.apps.vikunja.extra_env_vars, {})
 }
 
 # Forward-auth app (no OIDC). Its provider_id MUST also be added to the
@@ -150,6 +152,7 @@ module "notifuse" {
   dns_zone_override       = try(var.apps.notifuse.dns_zone_override, "")
 
   credentials_preserve = try(var.apps.notifuse.credentials_preserve, false)
+  extra_env_vars       = try(var.apps.notifuse.extra_env_vars, {})
 }
 
 # Broadsheet — sabokit-broadsheet fork of notifuse. Replaces notifuse going
@@ -180,6 +183,7 @@ module "broadsheet" {
   dns_zone_override       = try(var.apps.broadsheet.dns_zone_override, "")
 
   credentials_preserve = try(var.apps.broadsheet.credentials_preserve, false)
+  extra_env_vars       = try(var.apps.broadsheet.extra_env_vars, {})
 }
 
 # Nextcloud + OnlyOffice + Talk HPB ship as one stack — three hostnames
@@ -237,6 +241,7 @@ module "nextcloud" {
   talk_cpu_limit          = try(var.apps.nextcloud.talk_cpu_limit, "1.0")
 
   credentials_preserve = try(var.apps.nextcloud.credentials_preserve, false)
+  extra_env_vars       = try(var.apps.nextcloud.extra_env_vars, {})
 }
 
 module "decidim" {
@@ -272,6 +277,7 @@ module "decidim" {
   dns_zone_override             = try(var.apps.decidim.dns_zone_override, "")
 
   credentials_preserve = try(var.apps.decidim.credentials_preserve, false)
+  extra_env_vars       = try(var.apps.decidim.extra_env_vars, {})
 }
 
 # OIDC via an adapter (NOT forward-auth — don't add jitsi.authentik_provider_id
@@ -308,6 +314,7 @@ module "jitsi" {
   dns_zone_override          = try(var.apps.jitsi.dns_zone_override, "")
 
   credentials_preserve = try(var.apps.jitsi.credentials_preserve, false)
+  extra_env_vars       = try(var.apps.jitsi.extra_env_vars, {})
 }
 
 module "espocrm" {
@@ -341,6 +348,7 @@ module "espocrm" {
   dns_zone_override              = try(var.apps.espocrm.dns_zone_override, "")
 
   credentials_preserve = try(var.apps.espocrm.credentials_preserve, false)
+  extra_env_vars       = try(var.apps.espocrm.extra_env_vars, {})
 }
 
 module "n8n" {
@@ -556,6 +564,7 @@ module "prometheus" {
   tem_scaleway_region                = local.base.scaleway.region
   tem_exporter_poll_interval_seconds = try(var.apps.prometheus.tem_exporter_poll_interval_seconds, 60)
   tem_exporter_lookback_minutes      = try(var.apps.prometheus.tem_exporter_lookback_minutes, 60)
+  extra_env_vars                     = try(var.apps.prometheus.extra_env_vars, {})
 }
 
 module "loki" {
@@ -569,6 +578,7 @@ module "loki" {
   ingestion_rate_mb       = try(var.apps.loki.ingestion_rate_mb, 10)
   ingestion_burst_size_mb = try(var.apps.loki.ingestion_burst_size_mb, 20)
   private_ip_bind         = try(var.apps.loki.private_ip_bind, "")
+  extra_env_vars          = try(var.apps.loki.extra_env_vars, {})
 }
 
 module "wazuh" {
@@ -600,6 +610,7 @@ module "wazuh" {
   manager_syslog_port     = try(var.apps.wazuh.manager_syslog_port, 514)
 
   credentials_preserve = try(var.apps.wazuh.credentials_preserve, false)
+  extra_env_vars       = try(var.apps.wazuh.extra_env_vars, {})
 }
 
 module "grafana" {
@@ -645,6 +656,7 @@ module "grafana" {
   jsm_alert_tags             = try(var.apps.grafana.jsm_alert_tags, ["sabokit"])
 
   credentials_preserve = try(var.apps.grafana.credentials_preserve, false)
+  extra_env_vars       = try(var.apps.grafana.extra_env_vars, {})
 }
 
 # Backrest is multi-instance: each backed-up host gets its own module block,
@@ -684,6 +696,7 @@ module "backrest_mgmt" {
   dns_zone_override                     = try(var.apps.backrest_mgmt.dns_zone_override, "")
 
   credentials_preserve = try(var.apps.backrest_mgmt.credentials_preserve, false)
+  extra_env_vars       = try(var.apps.backrest_mgmt.extra_env_vars, {})
 }
 
 # ── Platform host-services (one container per host) ─────────────────────────
@@ -733,6 +746,7 @@ module "diun_mgmt" {
     var.apps.diun_mgmt.n8n_webhook_url,
     module.n8n.enabled ? "${coalesce(module.n8n.app_url, "")}/webhook/diun-image-update" : "",
   )
+  extra_env_vars = try(var.apps.diun_mgmt.extra_env_vars, {})
 }
 
 # Wazuh agent — host-network container that ships logs to the wazuh manager.
@@ -750,6 +764,7 @@ module "wazuh_agent_apps" {
   fim_enabled          = try(var.apps.wazuh_agent_apps.fim_enabled, true)
   fim_extra_paths      = try(var.apps.wazuh_agent_apps.fim_extra_paths, [])
   fim_extra_exclusions = try(var.apps.wazuh_agent_apps.fim_extra_exclusions, [])
+  extra_env_vars       = try(var.apps.wazuh_agent_apps.extra_env_vars, {})
 }
 
 # ProtonMail Bridge — IMAP inbound mail for apps that fetch (n8n workflows,
@@ -775,6 +790,7 @@ module "protonmail_bridge" {
   imap_config_secret_name = try(var.bootstrap.protonmail_bridge.imap_config_secret_name, "imap-config")
   diun_watch_enabled      = try(var.bootstrap.protonmail_bridge.diun_watch_enabled, false)
   autoheal_enabled        = try(var.bootstrap.protonmail_bridge.autoheal_enabled, true)
+  extra_env_vars          = try(var.bootstrap.protonmail_bridge.extra_env_vars, {})
 }
 
 module "autoheal_apps" {

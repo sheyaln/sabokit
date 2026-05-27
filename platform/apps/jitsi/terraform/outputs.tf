@@ -75,6 +75,7 @@ output "ansible" {
       jitsi_app_secret_id         = local.app_secret_id
       jitsi_diun_watch_enabled    = var.diun_watch_enabled
       jitsi_autoheal_enabled      = var.autoheal_enabled
+      jitsi_extra_env_vars        = var.extra_env_vars
     }
   } : null
 }

@@ -26,3 +26,4 @@ loki_autoheal_enabled: true
 # `docker compose` against the rendered files without escalation.
 loki_file_owner: "ubuntu"
 loki_file_group: "ubuntu"
+loki_extra_env_vars: {}

@@ -28,6 +28,9 @@ services:
       - prometheus-data:/prometheus
     environment:
       TZ: "{{ prometheus_timezone }}"
+{% for key, value in (prometheus_extra_env_vars | default({})).items() %}
+      {{ key }}: "{{ value }}"
+{% endfor %}
     networks:
       - "{{ prometheus_internal_network }}"
     security_opt:

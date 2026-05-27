@@ -28,6 +28,7 @@ output "ansible" {
       prometheus_timezone                      = var.timezone
       prometheus_diun_watch_enabled            = var.diun_watch_enabled
       prometheus_autoheal_enabled              = var.autoheal_enabled
+      prometheus_extra_env_vars                = var.extra_env_vars
       prometheus_blackbox_exporter_enabled     = var.blackbox_exporter_enabled
       prometheus_blackbox_exporter_image_tag   = var.blackbox_exporter_image_tag
       prometheus_blackbox_targets              = distinct(var.blackbox_targets)

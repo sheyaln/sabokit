@@ -98,6 +98,7 @@ output "ansible" {
       nextcloud_n8n_form_webhook_url     = var.n8n_form_webhook_url
       nextcloud_diun_watch_enabled       = var.diun_watch_enabled
       nextcloud_autoheal_enabled         = var.autoheal_enabled
+      nextcloud_extra_env_vars           = var.extra_env_vars
 
       # OnlyOffice + Talk HPB knobs that aren't secret-shaped (image tags,
       # resource caps, port ranges). Secret-shaped values travel through the

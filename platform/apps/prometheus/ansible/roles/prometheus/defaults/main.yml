@@ -60,3 +60,4 @@ prometheus_tem_exporter_port: 9111
 # `docker compose` against the rendered files without escalation.
 prometheus_file_owner: "ubuntu"
 prometheus_file_group: "ubuntu"
+prometheus_extra_env_vars: {}

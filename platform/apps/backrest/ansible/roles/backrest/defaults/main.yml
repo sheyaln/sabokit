@@ -62,3 +62,4 @@ backrest_autoheal_enabled: true
 # `docker compose` against the rendered files without escalation.
 backrest_file_owner: "ubuntu"
 backrest_file_group: "ubuntu"
+backrest_extra_env_vars: {}

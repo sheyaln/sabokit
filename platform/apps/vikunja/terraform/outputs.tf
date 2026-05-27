@@ -56,6 +56,7 @@ output "ansible" {
       vikunja_default_week_start       = var.default_week_start
       vikunja_diun_watch_enabled       = var.diun_watch_enabled
       vikunja_autoheal_enabled         = var.autoheal_enabled
+      vikunja_extra_env_vars           = var.extra_env_vars
     }
   } : null
 }

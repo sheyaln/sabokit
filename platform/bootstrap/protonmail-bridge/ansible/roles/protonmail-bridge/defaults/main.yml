@@ -26,3 +26,4 @@ protonmail_bridge_autoheal_enabled: true
 # `docker compose` against the rendered files without escalation.
 protonmail_bridge_file_owner: "ubuntu"
 protonmail_bridge_file_group: "ubuntu"
+protonmail_bridge_extra_env_vars: {}

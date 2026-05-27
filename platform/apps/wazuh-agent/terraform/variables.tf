@@ -72,3 +72,9 @@ variable "fim_extra_exclusions" {
   type        = list(string)
   default     = []
 }
+
+variable "extra_env_vars" {
+  description = "Map of KEY → value rendered into the container .env after first-class vars. Use for env-driven feature flags / third-party integrations / debug toggles not exposed first-class on the bundle."
+  type        = map(string)
+  default     = {}
+}

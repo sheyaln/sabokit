@@ -59,6 +59,7 @@ output "ansible" {
       espocrm_db_credentials_secret_id       = module.database[0].secret_id
       espocrm_diun_watch_enabled             = var.diun_watch_enabled
       espocrm_autoheal_enabled               = var.autoheal_enabled
+      espocrm_extra_env_vars                 = var.extra_env_vars
     }
   } : null
 }

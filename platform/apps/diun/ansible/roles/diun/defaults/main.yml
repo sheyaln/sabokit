@@ -70,3 +70,4 @@ diun_cpu_reservation: "0.02"
 # `docker compose` against the rendered files without escalation.
 diun_file_owner: "ubuntu"
 diun_file_group: "ubuntu"
+diun_extra_env_vars: {}
