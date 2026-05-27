@@ -4,11 +4,22 @@
 # rather than a hand-written module call per host in this stack.
 #
 # Existing consumers' state has `module.autoheal_apps`; new state has
-# `module.base.autoheal["apps"]`. Each moved{} below replaces the manual
-# terraform-state-mv step that would otherwise be required on the v3.3 → v3.4
-# bump.
+# `module.base.autoheal["tools"]` (canonical 3-host key). Each moved{} below
+# replaces the manual terraform-state-mv step that would otherwise be required
+# on the v3.3 → v3.4 bump. The "authentik"/"identity" + "management" entries
+# cover consumers who pre-instantiated autoheal on those hosts.
 
 moved {
   from = module.autoheal_apps
-  to   = module.base.module.autoheal["apps"]
+  to   = module.base.module.autoheal["tools"]
+}
+
+moved {
+  from = module.base.module.autoheal["apps"]
+  to   = module.base.module.autoheal["tools"]
+}
+
+moved {
+  from = module.base.module.autoheal["authentik"]
+  to   = module.base.module.autoheal["identity"]
 }

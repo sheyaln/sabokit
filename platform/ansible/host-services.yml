@@ -10,15 +10,26 @@
 # didn't disable, so disabled hosts evaluate to null and skip.
 - import_playbook: ../base/host-services/autoheal/ansible/playbook.yml
   vars:
-    autoheal_host_group: "{{ enabled_apps.autoheal_apps.ansible_group }}"
-    autoheal_image: "{{ enabled_apps.autoheal_apps.ansible_vars.autoheal_image }}"
-    autoheal_image_tag: "{{ enabled_apps.autoheal_apps.ansible_vars.autoheal_image_tag }}"
-    autoheal_container_label: "{{ enabled_apps.autoheal_apps.ansible_vars.autoheal_container_label }}"
-    autoheal_interval_seconds: "{{ enabled_apps.autoheal_apps.ansible_vars.autoheal_interval_seconds }}"
-    autoheal_start_period_seconds: "{{ enabled_apps.autoheal_apps.ansible_vars.autoheal_start_period_seconds }}"
-    autoheal_timezone: "{{ enabled_apps.autoheal_apps.ansible_vars.autoheal_timezone }}"
-  when: enabled_apps.autoheal_apps is defined and enabled_apps.autoheal_apps is not none
-  tags: [host_services, autoheal, autoheal_apps]
+    autoheal_host_group: "{{ enabled_apps.autoheal_tools.ansible_group }}"
+    autoheal_image: "{{ enabled_apps.autoheal_tools.ansible_vars.autoheal_image }}"
+    autoheal_image_tag: "{{ enabled_apps.autoheal_tools.ansible_vars.autoheal_image_tag }}"
+    autoheal_container_label: "{{ enabled_apps.autoheal_tools.ansible_vars.autoheal_container_label }}"
+    autoheal_interval_seconds: "{{ enabled_apps.autoheal_tools.ansible_vars.autoheal_interval_seconds }}"
+    autoheal_start_period_seconds: "{{ enabled_apps.autoheal_tools.ansible_vars.autoheal_start_period_seconds }}"
+    autoheal_timezone: "{{ enabled_apps.autoheal_tools.ansible_vars.autoheal_timezone }}"
+  when: enabled_apps.autoheal_tools is defined and enabled_apps.autoheal_tools is not none
+  tags: [host_services, autoheal, autoheal_tools]
+- import_playbook: ../base/host-services/autoheal/ansible/playbook.yml
+  vars:
+    autoheal_host_group: "{{ enabled_apps.autoheal_identity.ansible_group }}"
+    autoheal_image: "{{ enabled_apps.autoheal_identity.ansible_vars.autoheal_image }}"
+    autoheal_image_tag: "{{ enabled_apps.autoheal_identity.ansible_vars.autoheal_image_tag }}"
+    autoheal_container_label: "{{ enabled_apps.autoheal_identity.ansible_vars.autoheal_container_label }}"
+    autoheal_interval_seconds: "{{ enabled_apps.autoheal_identity.ansible_vars.autoheal_interval_seconds }}"
+    autoheal_start_period_seconds: "{{ enabled_apps.autoheal_identity.ansible_vars.autoheal_start_period_seconds }}"
+    autoheal_timezone: "{{ enabled_apps.autoheal_identity.ansible_vars.autoheal_timezone }}"
+  when: enabled_apps.autoheal_identity is defined and enabled_apps.autoheal_identity is not none
+  tags: [host_services, autoheal, autoheal_identity]
 - import_playbook: ../base/host-services/autoheal/ansible/playbook.yml
   vars:
     autoheal_host_group: "{{ enabled_apps.autoheal_management.ansible_group }}"
@@ -30,14 +41,3 @@
     autoheal_timezone: "{{ enabled_apps.autoheal_management.ansible_vars.autoheal_timezone }}"
   when: enabled_apps.autoheal_management is defined and enabled_apps.autoheal_management is not none
   tags: [host_services, autoheal, autoheal_management]
-- import_playbook: ../base/host-services/autoheal/ansible/playbook.yml
-  vars:
-    autoheal_host_group: "{{ enabled_apps.autoheal_authentik.ansible_group }}"
-    autoheal_image: "{{ enabled_apps.autoheal_authentik.ansible_vars.autoheal_image }}"
-    autoheal_image_tag: "{{ enabled_apps.autoheal_authentik.ansible_vars.autoheal_image_tag }}"
-    autoheal_container_label: "{{ enabled_apps.autoheal_authentik.ansible_vars.autoheal_container_label }}"
-    autoheal_interval_seconds: "{{ enabled_apps.autoheal_authentik.ansible_vars.autoheal_interval_seconds }}"
-    autoheal_start_period_seconds: "{{ enabled_apps.autoheal_authentik.ansible_vars.autoheal_start_period_seconds }}"
-    autoheal_timezone: "{{ enabled_apps.autoheal_authentik.ansible_vars.autoheal_timezone }}"
-  when: enabled_apps.autoheal_authentik is defined and enabled_apps.autoheal_authentik is not none
-  tags: [host_services, autoheal, autoheal_authentik]

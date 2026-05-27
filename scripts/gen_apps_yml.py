@@ -59,7 +59,7 @@ BOOTSTRAP_BUNDLES = [
 # emitted by consumer-template/modules/stack/outputs.tf's enabled_apps merge.
 # This generator emits one playbook-import block per host listed in
 # HOST_SERVICE_HOSTS; the apps.yml when-guard skips disabled hosts.
-HOST_SERVICE_HOSTS = ["apps", "management", "authentik"]
+HOST_SERVICE_HOSTS = ["tools", "identity", "management"]
 
 HOST_SERVICES_BUNDLES = [
     # (dir, role-slug)

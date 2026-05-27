@@ -321,20 +321,36 @@
       when: enabled_apps.wazuh_agent_apps is defined and enabled_apps.wazuh_agent_apps is not none
       ignore_errors: true  # compose file may already be gone
 - name: "down: autoheal"
-  hosts: "{{ (enabled_apps.autoheal_apps | default({})).ansible_group | default('all') }}"
+  hosts: "{{ (enabled_apps.autoheal_tools | default({})).ansible_group | default('all') }}"
   become: true
   gather_facts: false
-  tags: [down, autoheal_apps]
+  tags: [down, autoheal_tools]
   tasks:
     - name: Load role defaults
       ansible.builtin.include_vars:
         file: "../base/host-services/autoheal/ansible/roles/autoheal/defaults/main.yml"
-      when: enabled_apps.autoheal_apps is defined and enabled_apps.autoheal_apps is not none
+      when: enabled_apps.autoheal_tools is defined and enabled_apps.autoheal_tools is not none
     - name: Stop and remove the compose stack
       community.docker.docker_compose_v2:
         project_src: "{{ autoheal_install_dir | default('/opt/autoheal') }}"
         state: absent
-      when: enabled_apps.autoheal_apps is defined and enabled_apps.autoheal_apps is not none
+      when: enabled_apps.autoheal_tools is defined and enabled_apps.autoheal_tools is not none
+      ignore_errors: true  # compose file may already be gone
+- name: "down: autoheal"
+  hosts: "{{ (enabled_apps.autoheal_identity | default({})).ansible_group | default('all') }}"
+  become: true
+  gather_facts: false
+  tags: [down, autoheal_identity]
+  tasks:
+    - name: Load role defaults
+      ansible.builtin.include_vars:
+        file: "../base/host-services/autoheal/ansible/roles/autoheal/defaults/main.yml"
+      when: enabled_apps.autoheal_identity is defined and enabled_apps.autoheal_identity is not none
+    - name: Stop and remove the compose stack
+      community.docker.docker_compose_v2:
+        project_src: "{{ autoheal_install_dir | default('/opt/autoheal') }}"
+        state: absent
+      when: enabled_apps.autoheal_identity is defined and enabled_apps.autoheal_identity is not none
       ignore_errors: true  # compose file may already be gone
 - name: "down: autoheal"
   hosts: "{{ (enabled_apps.autoheal_management | default({})).ansible_group | default('all') }}"
@@ -351,20 +367,4 @@
         project_src: "{{ autoheal_install_dir | default('/opt/autoheal') }}"
         state: absent
       when: enabled_apps.autoheal_management is defined and enabled_apps.autoheal_management is not none
-      ignore_errors: true  # compose file may already be gone
-- name: "down: autoheal"
-  hosts: "{{ (enabled_apps.autoheal_authentik | default({})).ansible_group | default('all') }}"
-  become: true
-  gather_facts: false
-  tags: [down, autoheal_authentik]
-  tasks:
-    - name: Load role defaults
-      ansible.builtin.include_vars:
-        file: "../base/host-services/autoheal/ansible/roles/autoheal/defaults/main.yml"
-      when: enabled_apps.autoheal_authentik is defined and enabled_apps.autoheal_authentik is not none
-    - name: Stop and remove the compose stack
-      community.docker.docker_compose_v2:
-        project_src: "{{ autoheal_install_dir | default('/opt/autoheal') }}"
-        state: absent
-      when: enabled_apps.autoheal_authentik is defined and enabled_apps.autoheal_authentik is not none
       ignore_errors: true  # compose file may already be gone
