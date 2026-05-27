@@ -18,7 +18,6 @@
 - postiz S3 storage support - when `gitroomhq/postiz-app#1124` merges
 - backrest per-instance slug collision fix - if collision surfaces
 - SCIM bridge: authentik → app provisioning (outline / espocrm / nextcloud / vikunja / decidim)
-- verify status of upstream notifuse OIDC SSO contribution
 - `outline-authentik-group-sync` bundle - blocked on outline shipping a service-account-token CLI or admin-bootstrap env-var
 
 ## sibling-project integration

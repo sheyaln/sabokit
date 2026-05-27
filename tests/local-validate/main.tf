@@ -90,6 +90,11 @@ module "authentik" {
   org_name       = "Sabokit Test"
   org_slug       = "sabokittest"
   infra_email    = "ops@example.org"
+
+  tier_slots = [
+    { name = "tier-1", peers = { member = "member" } },
+    { name = "tier-2", peers = { admin = "admin" } },
+  ]
 }
 
 locals {
@@ -185,13 +190,13 @@ module "n8n" {
   base     = local.base
 }
 
-module "backrest_mgmt" {
+module "backrest" {
   source = "../../platform/apps/backrest/terraform"
 
   enabled             = true
-  hostname            = "backup.mgmt.example.org"
-  instance_name       = "mgmt"
-  deployment_host_key = "apps"
+  hostname            = "backup.tools.example.org"
+  instance_name       = "tools"
+  deployment_host_key = "tools"
   backup_plans = [
     {
       id       = "daily"
@@ -209,18 +214,21 @@ module "backrest_mgmt" {
   base = local.base
 }
 
-module "autoheal_apps" {
-  source              = "../../platform/apps/autoheal/terraform"
+# host-services tier — at v3.4.0+ these auto-instantiate from module.base
+# via for_each over var.compute_hosts. Standalone instantiation here just
+# validates the bundles compile in isolation.
+module "autoheal" {
+  source              = "../../platform/base/host-services/autoheal/terraform"
   enabled             = true
-  deployment_host_key = "apps"
+  deployment_host_key = "tools"
   base                = local.base
 }
 
-module "diun_mgmt" {
-  source              = "../../platform/apps/diun/terraform"
+module "diun" {
+  source              = "../../platform/base/host-services/diun/terraform"
   enabled             = true
-  instance_name       = "apps"
-  deployment_host_key = "apps"
+  instance_name       = "tools"
+  deployment_host_key = "tools"
   base                = local.base
 }
 
@@ -254,10 +262,10 @@ module "wazuh" {
   base                = local.base
 }
 
-module "wazuh_agent_apps" {
-  source               = "../../platform/apps/wazuh-agent/terraform"
+module "wazuh_agent" {
+  source               = "../../platform/base/host-services/wazuh-agent/terraform"
   enabled              = true
-  deployment_host_key  = "apps"
+  deployment_host_key  = "tools"
   manager_address      = "10.0.0.10"
   fim_enabled          = true
   fim_extra_paths      = ["/opt/custom-app/conf"]

@@ -2,8 +2,9 @@ locals {
   slug = "backrest"
 
   # Every cloud resource is namespaced by qualified_slug so two instances
-  # under the same base (e.g. backrest_mgmt + backrest_tools) cannot collide
-  # on S3 bucket names, IAM application names, Authentik slugs, etc.
+  # under the same base (e.g. backrest["management"] + backrest["tools"] under
+  # the v3.4.0+ for_each fan-out) cannot collide on S3 bucket names, IAM
+  # application names, Authentik slugs, etc.
   qualified_slug = "${local.slug}-${var.instance_name}"
 
   authorized_groups = var.enabled ? (

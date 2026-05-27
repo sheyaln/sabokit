@@ -81,7 +81,7 @@ resource "scaleway_secret_version" "app" {
     AUTHENTIK_API_TOKEN = local.authentik_api_token
   })
 
-  # Same logic as notifuse: encryption_key + runners_auth_token are ignore_changes,
+  # Same logic as broadsheet: encryption_key + runners_auth_token are ignore_changes,
   # so re-applying with the same plan produces identical JSON. Skipping replace
   # avoids version churn when OIDC client_secret rotates underneath us.
   lifecycle {

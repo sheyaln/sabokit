@@ -58,19 +58,6 @@ locals {
   }
 }
 
-output "host_services" {
-  description = "Per-host host-services instances keyed by service name then host key. Consumer-template's enabled_apps aggregation reads each service map and emits an `<service>_<host>` entry per running instance, so the existing ansible apps.yml playbook-import dispatch still works."
-  value = {
-    autoheal = {
-      for k, m in module.autoheal : k => {
-        enabled       = m.enabled
-        ansible_vars  = m.ansible.vars
-        ansible_group = m.ansible.host_group
-      }
-    }
-  }
-}
-
 output "scaleway" {
   description = "Scaleway platform handles. Apps use these to provision their own resources."
   value       = local.scaleway_output
@@ -84,18 +71,6 @@ output "compute" {
 output "domains" {
   description = "Domain configuration. Apps reference these via base.domains."
   value       = local.domains_output
-}
-
-output "host_services" {
-  description = "Per-host instances of host-services bundles, keyed by service then by compute_host key. Consumer-template aggregates these into enabled_apps so Ansible deploys them via the standard per-app pipeline."
-  value = {
-    wazuh_agent = {
-      for k, m in module.wazuh_agent : k => {
-        ansible_vars  = m.ansible.vars
-        ansible_group = m.ansible.host_group
-      }
-    }
-  }
 }
 
 # Convenience flat outputs (most consumers prefer the structured maps above)
@@ -112,7 +87,7 @@ output "spf_include" {
 # over instances and dispatch one play per host.
 
 output "host_services" {
-  description = "Per-host instance maps for the host-services sub-tier. Each service key holds a map keyed by compute_host name; entries are null on disabled hosts. Consumed by consumer-template to expose per-host ansible_vars to the generated host-services playbook."
+  description = "Per-host instance maps for the host-services sub-tier. Each service key holds a map keyed by compute_host name; entries are null on hosts where the service is disabled. Consumer-template aggregates these into enabled_apps so Ansible deploys them via the standard per-app pipeline."
   value = {
     diun = {
       for k, _ in var.compute_hosts : k => (
@@ -125,6 +100,19 @@ output "host_services" {
         }
         : null
       )
+    }
+    autoheal = {
+      for k, m in module.autoheal : k => {
+        enabled       = m.enabled
+        ansible_vars  = m.ansible.vars
+        ansible_group = m.ansible.host_group
+      }
+    }
+    wazuh_agent = {
+      for k, m in module.wazuh_agent : k => {
+        ansible_vars  = m.ansible.vars
+        ansible_group = m.ansible.host_group
+      }
     }
   }
 }

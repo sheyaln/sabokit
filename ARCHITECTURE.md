@@ -670,14 +670,14 @@ In the consumer:
 
 ```hcl
 module "base" {
-  source = "git::...//base?ref=v2.1.0"
+  source = "git::...//base?ref=v3.4.0"
   # ...
-  extra_forward_auth_provider_ids = compact([
-    module.backrest_mgmt.authentik_provider_id,
-    module.backrest_tools.authentik_provider_id,
-    module.backrest_gateway.authentik_provider_id,
-    module.bentopdf.authentik_provider_id,
-  ])
+  extra_forward_auth_provider_ids = compact(concat(
+    [for inst in module.backrest : inst.authentik_provider_id],
+    [
+      module.bentopdf.authentik_provider_id,
+    ],
+  ))
 }
 ```
 
