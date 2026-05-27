@@ -194,6 +194,16 @@ variable "postgres_credentials_preserve" {
   default     = false
 }
 
+variable "postgres_credentials_preserve_source" {
+  description = "Greenfield-to-v3 cutover support. Sibling to `postgres_credentials_preserve` (gated separately, both null/false by default). When non-null AND `postgres_credentials_preserve = false`, supplies admin + per-database canonical passwords directly to the Scaleway bags on first apply, instead of pulling them from pre-populated bags. Shape: `{ admin = string, databases = map(string) }`. Forwarded to `modules/infrastructure/storage/postgres`; see its variable docs for the full semantics."
+  type = object({
+    admin     = optional(string)
+    databases = optional(map(string), {})
+  })
+  default   = null
+  sensitive = true
+}
+
 # ── Scaleway TEM (outbound SMTP) ────────────────────────────────────────────
 # Every app sends transactional mail through Scaleway TEM. Base owns the
 # domain registration, DNS records (SPF/DKIM/DMARC), API key, and the

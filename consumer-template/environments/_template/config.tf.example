@@ -143,6 +143,17 @@ locals {
         #                                # outline-app-secrets bag. Drop on
         #                                # the next apply once cutover is
         #                                # verified.
+        #
+        # credentials_preserve_source = { # Greenfield-to-v3 cutover only.
+        #   SECRET_KEY   = "<32-byte hex>" # Supplies canonical-key values
+        #   UTILS_SECRET = "<32-byte hex>" # straight into the app-secrets
+        # }                                # bag on first apply, instead of
+        #                                  # pre-populating the bag yourself.
+        #                                  # See platform/apps/outline/
+        #                                  # terraform/variables.tf for the
+        #                                  # full key list. Plaintext —
+        #                                  # gitignore this file or load
+        #                                  # from a Scaleway data source.
       }
 
       # Steward: simplified Authentik admin UI for non-technical org admins.

@@ -158,15 +158,17 @@ variable "private_network_subnet" {
 }
 
 variable "apps" {
-  description = "Per-app enable flag and overrides. Each app has its own schema; see platform/apps/<name>/terraform/variables.tf."
+  description = "Per-app enable flag and overrides. Each app has its own schema; see platform/apps/<name>/terraform/variables.tf. Includes `credentials_preserve` (in-place legacy cutover) and `credentials_preserve_source` (greenfield-to-v3 cutover; `map(string)`, sensitive) on every credential-generating bundle. The source map carries plaintext credentials — gitignore your tfvars or load from a Scaleway data source."
   type        = any
   default     = {}
+  sensitive   = true
 }
 
 variable "base" {
-  description = "Base-layer overrides (postgres, network, etc). Currently exposes `postgres_credentials_preserve` and `smtp_config_preserve` (bools) for in-place legacy cutover. See platform/base/terraform/variables.tf."
+  description = "Base-layer overrides (postgres, network, etc). Currently exposes `postgres_credentials_preserve` and `smtp_config_preserve` (bools) for in-place legacy cutover, plus `postgres_credentials_preserve_source` (`{ admin = string, databases = map(string) }`) for greenfield-to-v3 consumers supplying canonical postgres passwords directly. See platform/base/terraform/variables.tf."
   type        = any
   default     = {}
+  sensitive   = true
 }
 
 variable "bootstrap" {
@@ -176,8 +178,9 @@ variable "bootstrap" {
 }
 
 variable "identity" {
-  description = "Identity-bundle inputs. Required fields: `tier_slots = list(object({ name, peers = map(string) }))` — the org's authority hierarchy as a DAG (lowest slot first, each peer_name → group_name). Optional fields: `extra_groups = map(object({ is_superuser, description }))` — additional Authentik groups beyond the tier_slots DAG; `icon_base_url` — where app icons are fetched from; `admin_group_name` / `member_group_name` / `delegate_group_name` / `delegate_role_name` — override the named-group pointers when the tier_slots DAG uses different group_names than the platform defaults (\"admin\" / \"member\" / \"delegate\")."
+  description = "Identity-bundle inputs. Required fields: `tier_slots = list(object({ name, peers = map(string) }))` — the org's authority hierarchy as a DAG (lowest slot first, each peer_name → group_name). Optional fields: `extra_groups = map(object({ is_superuser, description }))` — additional Authentik groups beyond the tier_slots DAG; `icon_base_url` — where app icons are fetched from; `admin_group_name` / `member_group_name` / `delegate_group_name` / `delegate_role_name` — override the named-group pointers when the tier_slots DAG uses different group_names than the platform defaults (\"admin\" / \"member\" / \"delegate\"); `bootstrap_credentials_preserve` / `bootstrap_credentials_preserve_source` — cutover knobs for the identity_bootstrap module."
   type        = any
+  sensitive   = true
 
   validation {
     condition     = try(length(var.identity.tier_slots), 0) >= 1

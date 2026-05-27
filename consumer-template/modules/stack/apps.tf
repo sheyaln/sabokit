@@ -24,7 +24,8 @@ module "outline" {
   bucket_name_override    = try(var.apps.outline.bucket_name_override, "")
   dns_zone_override       = try(var.apps.outline.dns_zone_override, "")
 
-  credentials_preserve = try(var.apps.outline.credentials_preserve, false)
+  credentials_preserve        = try(var.apps.outline.credentials_preserve, false)
+  credentials_preserve_source = try(var.apps.outline.credentials_preserve_source, null)
 }
 
 module "steward" {
@@ -53,8 +54,9 @@ module "steward" {
   deployment_host_key          = try(var.apps.steward.deployment_host_key, "apps")
   dns_zone_override            = try(var.apps.steward.dns_zone_override, "")
 
-  credentials_preserve = try(var.apps.steward.credentials_preserve, false)
-  extra_env_vars       = try(var.apps.steward.extra_env_vars, {})
+  credentials_preserve        = try(var.apps.steward.credentials_preserve, false)
+  credentials_preserve_source = try(var.apps.steward.credentials_preserve_source, null)
+  extra_env_vars              = try(var.apps.steward.extra_env_vars, {})
 }
 
 module "vikunja" {
@@ -83,8 +85,9 @@ module "vikunja" {
   deployment_host_key     = try(var.apps.vikunja.deployment_host_key, "apps")
   dns_zone_override       = try(var.apps.vikunja.dns_zone_override, "")
 
-  credentials_preserve = try(var.apps.vikunja.credentials_preserve, false)
-  extra_env_vars       = try(var.apps.vikunja.extra_env_vars, {})
+  credentials_preserve        = try(var.apps.vikunja.credentials_preserve, false)
+  credentials_preserve_source = try(var.apps.vikunja.credentials_preserve_source, null)
+  extra_env_vars              = try(var.apps.vikunja.extra_env_vars, {})
 }
 
 # Forward-auth app (no OIDC). Its provider_id MUST also be added to the
@@ -151,8 +154,9 @@ module "notifuse" {
   bucket_name_override    = try(var.apps.notifuse.bucket_name_override, "")
   dns_zone_override       = try(var.apps.notifuse.dns_zone_override, "")
 
-  credentials_preserve = try(var.apps.notifuse.credentials_preserve, false)
-  extra_env_vars       = try(var.apps.notifuse.extra_env_vars, {})
+  credentials_preserve        = try(var.apps.notifuse.credentials_preserve, false)
+  credentials_preserve_source = try(var.apps.notifuse.credentials_preserve_source, null)
+  extra_env_vars              = try(var.apps.notifuse.extra_env_vars, {})
 }
 
 # Broadsheet — sabokit-broadsheet fork of notifuse. Replaces notifuse going
@@ -182,8 +186,9 @@ module "broadsheet" {
   bucket_name_override    = try(var.apps.broadsheet.bucket_name_override, "")
   dns_zone_override       = try(var.apps.broadsheet.dns_zone_override, "")
 
-  credentials_preserve = try(var.apps.broadsheet.credentials_preserve, false)
-  extra_env_vars       = try(var.apps.broadsheet.extra_env_vars, {})
+  credentials_preserve        = try(var.apps.broadsheet.credentials_preserve, false)
+  credentials_preserve_source = try(var.apps.broadsheet.credentials_preserve_source, null)
+  extra_env_vars              = try(var.apps.broadsheet.extra_env_vars, {})
 }
 
 # Nextcloud + OnlyOffice + Talk HPB ship as one stack — three hostnames
@@ -240,8 +245,9 @@ module "nextcloud" {
   talk_memory_limit       = try(var.apps.nextcloud.talk_memory_limit, "1G")
   talk_cpu_limit          = try(var.apps.nextcloud.talk_cpu_limit, "1.0")
 
-  credentials_preserve = try(var.apps.nextcloud.credentials_preserve, false)
-  extra_env_vars       = try(var.apps.nextcloud.extra_env_vars, {})
+  credentials_preserve        = try(var.apps.nextcloud.credentials_preserve, false)
+  credentials_preserve_source = try(var.apps.nextcloud.credentials_preserve_source, null)
+  extra_env_vars              = try(var.apps.nextcloud.extra_env_vars, {})
 }
 
 module "decidim" {
@@ -276,8 +282,9 @@ module "decidim" {
   bucket_name_override          = try(var.apps.decidim.bucket_name_override, "")
   dns_zone_override             = try(var.apps.decidim.dns_zone_override, "")
 
-  credentials_preserve = try(var.apps.decidim.credentials_preserve, false)
-  extra_env_vars       = try(var.apps.decidim.extra_env_vars, {})
+  credentials_preserve        = try(var.apps.decidim.credentials_preserve, false)
+  credentials_preserve_source = try(var.apps.decidim.credentials_preserve_source, null)
+  extra_env_vars              = try(var.apps.decidim.extra_env_vars, {})
 }
 
 # OIDC via an adapter (NOT forward-auth — don't add jitsi.authentik_provider_id
@@ -313,8 +320,9 @@ module "jitsi" {
   deployment_host_key        = try(var.apps.jitsi.deployment_host_key, "apps")
   dns_zone_override          = try(var.apps.jitsi.dns_zone_override, "")
 
-  credentials_preserve = try(var.apps.jitsi.credentials_preserve, false)
-  extra_env_vars       = try(var.apps.jitsi.extra_env_vars, {})
+  credentials_preserve        = try(var.apps.jitsi.credentials_preserve, false)
+  credentials_preserve_source = try(var.apps.jitsi.credentials_preserve_source, null)
+  extra_env_vars              = try(var.apps.jitsi.extra_env_vars, {})
 }
 
 module "espocrm" {
@@ -347,8 +355,9 @@ module "espocrm" {
   deployment_host_key            = try(var.apps.espocrm.deployment_host_key, "apps")
   dns_zone_override              = try(var.apps.espocrm.dns_zone_override, "")
 
-  credentials_preserve = try(var.apps.espocrm.credentials_preserve, false)
-  extra_env_vars       = try(var.apps.espocrm.extra_env_vars, {})
+  credentials_preserve        = try(var.apps.espocrm.credentials_preserve, false)
+  credentials_preserve_source = try(var.apps.espocrm.credentials_preserve_source, null)
+  extra_env_vars              = try(var.apps.espocrm.extra_env_vars, {})
 }
 
 module "n8n" {
@@ -400,7 +409,8 @@ module "n8n" {
     try(var.apps.n8n.extra_env_vars, {}),
   )
 
-  credentials_preserve = try(var.apps.n8n.credentials_preserve, false)
+  credentials_preserve        = try(var.apps.n8n.credentials_preserve, false)
+  credentials_preserve_source = try(var.apps.n8n.credentials_preserve_source, null)
 }
 
 # App bundles export their backup contribution as `backup_plan` (null when
@@ -609,8 +619,9 @@ module "wazuh" {
   manager_enrollment_port = try(var.apps.wazuh.manager_enrollment_port, 1515)
   manager_syslog_port     = try(var.apps.wazuh.manager_syslog_port, 514)
 
-  credentials_preserve = try(var.apps.wazuh.credentials_preserve, false)
-  extra_env_vars       = try(var.apps.wazuh.extra_env_vars, {})
+  credentials_preserve        = try(var.apps.wazuh.credentials_preserve, false)
+  credentials_preserve_source = try(var.apps.wazuh.credentials_preserve_source, null)
+  extra_env_vars              = try(var.apps.wazuh.extra_env_vars, {})
 }
 
 module "grafana" {
@@ -655,8 +666,9 @@ module "grafana" {
   jsm_priority_mapping       = try(var.apps.grafana.jsm_priority_mapping, { critical = "P1", warning = "P3", info = "P5" })
   jsm_alert_tags             = try(var.apps.grafana.jsm_alert_tags, ["sabokit"])
 
-  credentials_preserve = try(var.apps.grafana.credentials_preserve, false)
-  extra_env_vars       = try(var.apps.grafana.extra_env_vars, {})
+  credentials_preserve        = try(var.apps.grafana.credentials_preserve, false)
+  credentials_preserve_source = try(var.apps.grafana.credentials_preserve_source, null)
+  extra_env_vars              = try(var.apps.grafana.extra_env_vars, {})
 }
 
 # Backrest is multi-instance: each backed-up host gets its own module block,
@@ -695,8 +707,9 @@ module "backrest_mgmt" {
   bucket_name_override                  = try(var.apps.backrest_mgmt.bucket_name_override, "")
   dns_zone_override                     = try(var.apps.backrest_mgmt.dns_zone_override, "")
 
-  credentials_preserve = try(var.apps.backrest_mgmt.credentials_preserve, false)
-  extra_env_vars       = try(var.apps.backrest_mgmt.extra_env_vars, {})
+  credentials_preserve        = try(var.apps.backrest_mgmt.credentials_preserve, false)
+  credentials_preserve_source = try(var.apps.backrest_mgmt.credentials_preserve_source, null)
+  extra_env_vars              = try(var.apps.backrest_mgmt.extra_env_vars, {})
 }
 
 # ── Platform host-services (one container per host) ─────────────────────────

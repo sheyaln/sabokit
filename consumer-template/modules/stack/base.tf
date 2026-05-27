@@ -24,8 +24,9 @@ module "base" {
 
   custom_dns_records = var.custom_dns_records
 
-  postgres_credentials_preserve = try(var.base.postgres_credentials_preserve, false)
-  smtp_config_preserve          = try(var.base.smtp_config_preserve, false)
+  postgres_credentials_preserve        = try(var.base.postgres_credentials_preserve, false)
+  postgres_credentials_preserve_source = try(var.base.postgres_credentials_preserve_source, null)
+  smtp_config_preserve                 = try(var.base.smtp_config_preserve, false)
 
   # Auto-wire TEM delivery webhook → SNS → n8n when n8n is enabled and exports
   # a URL. The base module emits zero webhook resources when the URL is empty.
