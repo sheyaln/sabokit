@@ -122,3 +122,81 @@ resource "authentik_policy_expression" "shared_inactive_user_gate" {
     return not pending_user.is_active
   EOT
 }
+
+# =============================================================================
+# MEMBER_ID NORMALIZE + UNIQUENESS
+# =============================================================================
+# Both policies attach as `validation_policies` on every prompt stage that
+# carries a member_id field: manual-enrollment, source-enrollment profile, and
+# user-settings. Order in `validation_policies` is the order they execute, so
+# normalize MUST be listed before unique — the unique check reads the value
+# normalize wrote back.
+#
+# The user_settings prompt uses field_key="attributes.member_id" (so user_write
+# nests it under user.attributes); the enrollment flows use bare "member_id"
+# (user_write writes non-User-model prompt_data keys to attributes anyway).
+# Both policies handle either key.
+
+# Strip + lowercase member_id in prompt_data so the unique check + downstream
+# storage all see a single canonical form. Empty values pass through unchanged
+# (member_id is optional).
+resource "authentik_policy_expression" "shared_member_id_normalize" {
+  name              = "policy-shared-member-id-normalize"
+  execution_logging = true
+  expression        = <<-EOT
+    prompt_data = request.context.get('prompt_data', {}) or {}
+    # Either key may carry the value depending on the prompt field_key the
+    # calling flow uses. Whichever one is set, normalize in place.
+    for key in ('member_id', 'attributes.member_id'):
+        value = prompt_data.get(key)
+        if value is None:
+            continue
+        prompt_data[key] = str(value).strip().lower()
+    request.context['prompt_data'] = prompt_data
+    return True
+  EOT
+}
+
+# Reject when ANOTHER user already has this member_id (case-insensitive,
+# whitespace-stripped — relies on normalize running first). Empty values pass
+# through (optional field). Excludes pending_user.pk (the user being modified
+# by the flow) so re-saving without changing member_id doesn't self-collide.
+# pending_user.pk is the right identifier — request.user is the *submitter*
+# (which happens to equal the modified user on self-edits + is anonymous on
+# enrollments, but would diverge on any hypothetical admin-edits-other flow).
+resource "authentik_policy_expression" "shared_member_id_unique" {
+  name              = "policy-shared-member-id-unique"
+  execution_logging = true
+  expression        = <<-EOT
+    prompt_data = request.context.get('prompt_data', {}) or {}
+    member_id = prompt_data.get('member_id') or prompt_data.get('attributes.member_id') or ''
+    member_id = str(member_id).strip().lower()
+    if not member_id:
+        return True
+
+    try:
+        from authentik.core.models import User
+        # member_id lives in the JSONField user.attributes. iexact against
+        # already-normalized incoming + attribute may be missing on legacy users.
+        qs = User.objects.filter(attributes__member_id__iexact=member_id)
+
+        # pending_user is the user the flow is editing/creating. On self-edits
+        # that's request.user; on admin-edits-other that's the target user; on
+        # enrollment (new user) pk is None so no exclusion happens.
+        pending_user = request.context.get('pending_user', None)
+        pending_pk = getattr(pending_user, 'pk', None)
+        if pending_pk:
+            qs = qs.exclude(pk=pending_pk)
+
+        if qs.exists():
+            ak_message("That member ID is already in use. Leave the field blank or pick a different value.")
+            return False
+    except Exception as e:
+        ak_logger.error(f"Error checking member_id uniqueness: {e}")
+        # Fail open — don't block legitimate users on a query bug. This is a
+        # data-quality nudge, not a security boundary.
+        return True
+
+    return True
+  EOT
+}

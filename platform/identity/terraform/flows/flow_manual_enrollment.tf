@@ -64,6 +64,22 @@ resource "authentik_stage_prompt_field" "manual_enrollment_password_repeat" {
   order                  = 5
 }
 
+# Member ID field — optional, mirrors source-enrollment's member_id prompt so
+# manual + social enrollees populate the same user.attributes['member_id']
+# downstream automations key off. Bare field_key (no `attributes.` prefix);
+# user_write writes non-User-model prompt_data keys into attributes
+# automatically, matching source-enrollment's shape.
+resource "authentik_stage_prompt_field" "manual_enrollment_member_id" {
+  name                   = "manual-enrollment-field-member-id"
+  field_key              = "member_id"
+  label                  = var.member_id_label
+  type                   = "text"
+  required               = false
+  placeholder            = ""
+  placeholder_expression = false
+  order                  = 3
+}
+
 # STAGES
 
 # Single prompt stage - All fields
@@ -73,8 +89,14 @@ resource "authentik_stage_prompt" "manual_enrollment_prompt_all" {
   fields = [
     authentik_stage_prompt_field.manual_enrollment_name.id,
     authentik_stage_prompt_field.manual_enrollment_email.id,
+    authentik_stage_prompt_field.manual_enrollment_member_id.id,
     authentik_stage_prompt_field.manual_enrollment_password.id,
     authentik_stage_prompt_field.manual_enrollment_password_repeat.id,
+  ]
+
+  validation_policies = [
+    authentik_policy_expression.shared_member_id_normalize.id,
+    authentik_policy_expression.shared_member_id_unique.id,
   ]
 }
 
@@ -230,6 +252,74 @@ resource "authentik_policy_expression" "manual_enrollment_set_username_from_emai
 resource "authentik_policy_binding" "manual_enrollment_set_username_from_email_binding" {
   target  = authentik_flow_stage_binding.manual_enrollment_user_write_binding.id
   policy  = authentik_policy_expression.manual_enrollment_set_username_from_email.id
+  order   = 0
+  enabled = true
+  timeout = 30
+}
+
+# ALREADY-REGISTERED SHORT-CIRCUIT
+#
+# Catches users re-submitting manual-enrollment with an email that already has
+# an account. Without this, user_write at order 20 fails with a generic
+# uniqueness error and the user has no idea what happened. Bound at order 17
+# (between AUP at 15 and user_write at 20); renders only when the
+# email-uniqueness policy returns True. The rendered HTML installs a JS
+# submit-interceptor that redirects to / so the user exits cleanly.
+
+resource "authentik_stage_prompt_field" "manual_enrollment_already_registered_message" {
+  name                   = "manual-enrollment-field-already-registered"
+  field_key              = "already_registered_info"
+  label                  = "Account Already Exists"
+  type                   = "static"
+  required               = false
+  placeholder            = ""
+  placeholder_expression = false
+  initial_value = templatefile("${path.module}/../assets/already-registered-message.html.tpl", {
+    organisation_name = var.organisation_name
+  })
+}
+
+resource "authentik_stage_prompt" "manual_enrollment_already_registered" {
+  name = "manual-enrollment-already-registered"
+  fields = [
+    authentik_stage_prompt_field.manual_enrollment_already_registered_message.id,
+  ]
+}
+
+# True when an existing user already has the submitted email. Authentik's
+# prompt-stage uniqueness semantics don't catch arbitrary email collisions —
+# they surface as a generic backend error at user_write time — so we query
+# User.objects directly. __iexact handles users re-enrolling with
+# differently-cased email.
+resource "authentik_policy_expression" "manual_enrollment_email_already_exists" {
+  name              = "policy-manual-enrollment-email-already-exists"
+  execution_logging = true
+  expression        = <<-EOT
+    prompt_data = request.context.get('prompt_data', {})
+    email = (prompt_data.get('email') or '').strip().lower()
+    if not email:
+        return False
+    try:
+        from authentik.core.models import User
+        return User.objects.filter(email__iexact=email).exists()
+    except Exception as e:
+        ak_logger.error(f"Error checking email existence: {e}")
+        return False
+  EOT
+}
+
+resource "authentik_flow_stage_binding" "manual_enrollment_already_registered_binding" {
+  target               = authentik_flow.manual_enrollment.uuid
+  stage                = authentik_stage_prompt.manual_enrollment_already_registered.id
+  order                = 17
+  policy_engine_mode   = "any"
+  re_evaluate_policies = true
+  evaluate_on_plan     = false
+}
+
+resource "authentik_policy_binding" "manual_enrollment_already_registered_policy" {
+  target  = authentik_flow_stage_binding.manual_enrollment_already_registered_binding.id
+  policy  = authentik_policy_expression.manual_enrollment_email_already_exists.id
   order   = 0
   enabled = true
   timeout = 30
