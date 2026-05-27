@@ -26,3 +26,9 @@ bentopdf_cpu_reservation: "0.25"
 # `docker compose` against the rendered files without escalation.
 bentopdf_file_owner: "ubuntu"
 bentopdf_file_group: "ubuntu"
+
+
+# Extra docker networks attached to the bentopdf container alongside the bundle's
+# traefik network. Networks must already exist on the host (created by whichever
+# bundle owns them) and are declared `external: true` in compose.
+bentopdf_extra_docker_networks: []

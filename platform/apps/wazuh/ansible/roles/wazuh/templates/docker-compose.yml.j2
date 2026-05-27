@@ -128,6 +128,9 @@ services:
     networks:
       - wazuh-net
       - "{{ wazuh_traefik_docker_network }}"
+{% for net in wazuh_extra_docker_networks %}
+      - "{{ net }}"
+{% endfor %}
     labels:
       - "traefik.enable=true"
       - "traefik.docker.network={{ wazuh_traefik_docker_network }}"
@@ -159,3 +162,7 @@ networks:
     driver: bridge
   "{{ wazuh_traefik_docker_network }}":
     external: true
+{% for net in wazuh_extra_docker_networks %}
+  "{{ net }}":
+    external: true
+{% endfor %}

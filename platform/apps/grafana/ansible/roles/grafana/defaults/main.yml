@@ -56,3 +56,9 @@ grafana_jsm_severity_gate: ""
 grafana_file_owner: "ubuntu"
 grafana_file_group: "ubuntu"
 grafana_extra_env_vars: {}
+
+# Extra docker networks attached to the grafana container alongside the bundle's
+# traefik network. Networks must already exist on the host (created by whichever
+# bundle owns them) and are declared `external: true` in compose.
+grafana_extra_docker_networks: []
+

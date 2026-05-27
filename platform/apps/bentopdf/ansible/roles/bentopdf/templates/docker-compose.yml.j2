@@ -11,6 +11,9 @@ services:
       - "8080"
     networks:
       - "{{ bentopdf_traefik_docker_network }}"
+{% for net in bentopdf_extra_docker_networks %}
+      - "{{ net }}"
+{% endfor %}
     security_opt:
       - no-new-privileges:true
     labels:
@@ -40,3 +43,7 @@ services:
 networks:
   "{{ bentopdf_traefik_docker_network }}":
     external: true
+{% for net in bentopdf_extra_docker_networks %}
+  "{{ net }}":
+    external: true
+{% endfor %}

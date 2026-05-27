@@ -22,6 +22,9 @@ services:
       - "143"  # IMAP — SMTP is handled by Scaleway TEM at the base tier.
     networks:
       - "{{ protonmail_bridge_network }}"
+{% for net in protonmail_bridge_extra_docker_networks %}
+      - "{{ net }}"
+{% endfor %}
     security_opt:
       - no-new-privileges:true
     healthcheck:
@@ -52,3 +55,7 @@ volumes:
 networks:
   "{{ protonmail_bridge_network }}":
     external: true
+{% for net in protonmail_bridge_extra_docker_networks %}
+  "{{ net }}":
+    external: true
+{% endfor %}

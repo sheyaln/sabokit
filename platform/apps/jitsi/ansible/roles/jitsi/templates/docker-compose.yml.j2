@@ -101,6 +101,9 @@ services:
     networks:
       - "{{ jitsi_traefik_docker_network }}"
       - meet.jitsi
+{% for net in jitsi_extra_docker_networks %}
+      - "{{ net }}"
+{% endfor %}
     depends_on:
       - prosody
     security_opt:
@@ -227,5 +230,9 @@ services:
 networks:
   "{{ jitsi_traefik_docker_network }}":
     external: true
+{% for net in jitsi_extra_docker_networks %}
+  "{{ net }}":
+    external: true
+{% endfor %}
   meet.jitsi:
     driver: bridge

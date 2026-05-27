@@ -33,6 +33,9 @@ services:
 {% endfor %}
     networks:
       - "{{ prometheus_internal_network }}"
+{% for net in prometheus_extra_docker_networks %}
+      - "{{ net }}"
+{% endfor %}
     security_opt:
       - no-new-privileges:true
     healthcheck:
@@ -161,3 +164,7 @@ volumes:
 networks:
   "{{ prometheus_internal_network }}":
     external: true
+{% for net in prometheus_extra_docker_networks %}
+  "{{ net }}":
+    external: true
+{% endfor %}

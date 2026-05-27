@@ -24,6 +24,9 @@ services:
     env_file: .env
     networks:
       - "{{ backrest_traefik_docker_network }}"
+{% for net in backrest_extra_docker_networks %}
+      - "{{ net }}"
+{% endfor %}
     labels:
       - "traefik.enable=true"
       - "traefik.docker.network={{ backrest_traefik_docker_network }}"
@@ -60,3 +63,7 @@ services:
 networks:
   "{{ backrest_traefik_docker_network }}":
     external: true
+{% for net in backrest_extra_docker_networks %}
+  "{{ net }}":
+    external: true
+{% endfor %}

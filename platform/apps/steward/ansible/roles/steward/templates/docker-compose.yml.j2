@@ -30,6 +30,9 @@ services:
     networks:
       - "{{ steward_traefik_docker_network }}"
       - steward_network
+{% for net in steward_extra_docker_networks %}
+      - "{{ net }}"
+{% endfor %}
     security_opt:
       - no-new-privileges:true
     deploy:
@@ -83,3 +86,7 @@ networks:
     driver: bridge
   "{{ steward_traefik_docker_network }}":
     external: true
+{% for net in steward_extra_docker_networks %}
+  "{{ net }}":
+    external: true
+{% endfor %}

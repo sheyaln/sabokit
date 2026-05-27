@@ -197,6 +197,9 @@ services:
     networks:
       - "{{ decidim_traefik_docker_network }}"
       - decidim_network
+{% for net in decidim_extra_docker_networks %}
+      - "{{ net }}"
+{% endfor %}
     security_opt:
       - no-new-privileges:true
     healthcheck:
@@ -263,3 +266,7 @@ networks:
     driver: bridge
   "{{ decidim_traefik_docker_network }}":
     external: true
+{% for net in decidim_extra_docker_networks %}
+  "{{ net }}":
+    external: true
+{% endfor %}

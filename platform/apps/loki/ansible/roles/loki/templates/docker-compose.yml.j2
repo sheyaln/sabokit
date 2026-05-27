@@ -23,6 +23,9 @@ services:
 {% endfor %}
     networks:
       - "{{ loki_internal_network }}"
+{% for net in loki_extra_docker_networks %}
+      - "{{ net }}"
+{% endfor %}
     security_opt:
       - no-new-privileges:true
     healthcheck:
@@ -52,3 +55,7 @@ volumes:
 networks:
   "{{ loki_internal_network }}":
     external: true
+{% for net in loki_extra_docker_networks %}
+  "{{ net }}":
+    external: true
+{% endfor %}

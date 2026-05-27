@@ -52,6 +52,7 @@ output "ansible" {
       steward_diun_watch_enabled       = var.diun_watch_enabled
       steward_autoheal_enabled         = var.autoheal_enabled
       steward_extra_env_vars           = var.extra_env_vars
+      steward_extra_docker_networks    = var.extra_docker_networks
     }
   } : null
 }

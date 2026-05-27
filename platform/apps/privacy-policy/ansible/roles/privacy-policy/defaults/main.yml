@@ -41,3 +41,9 @@ privacy_policy_autoheal_enabled: true
 # `docker compose` against the rendered files without escalation.
 privacy_policy_file_owner: "ubuntu"
 privacy_policy_file_group: "ubuntu"
+
+
+# Extra docker networks attached to the privacy-policy container alongside the bundle's
+# traefik network. Networks must already exist on the host (created by whichever
+# bundle owns them) and are declared `external: true` in compose.
+privacy_policy_extra_docker_networks: []

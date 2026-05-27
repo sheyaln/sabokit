@@ -77,6 +77,9 @@ services:
     networks:
       - "{{ nextcloud_traefik_docker_network }}"
       - nextcloud_network
+{% for net in nextcloud_extra_docker_networks %}
+      - "{{ net }}"
+{% endfor %}
     security_opt:
       - no-new-privileges:true
     deploy:
@@ -262,3 +265,7 @@ networks:
     driver: bridge
   "{{ nextcloud_traefik_docker_network }}":
     external: true
+{% for net in nextcloud_extra_docker_networks %}
+  "{{ net }}":
+    external: true
+{% endfor %}

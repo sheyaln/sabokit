@@ -34,6 +34,7 @@ output "ansible" {
       loki_diun_watch_enabled      = var.diun_watch_enabled
       loki_autoheal_enabled        = var.autoheal_enabled
       loki_extra_env_vars          = var.extra_env_vars
+      loki_extra_docker_networks   = var.extra_docker_networks
     }
   } : null
 }
