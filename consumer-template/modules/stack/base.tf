@@ -58,7 +58,7 @@ module "base" {
   default_security_group_extra_inbound_rules = concat(
     module.jitsi.required_inbound_rules,
     module.nextcloud.required_inbound_rules,
-    module.wazuh.required_inbound_rules,
+    module.core.required_inbound_rules,
   )
 
   # Host-services tier. Default-on; consumers opt out via

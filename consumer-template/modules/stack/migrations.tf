@@ -76,3 +76,27 @@ moved {
   from = module.base.module.wazuh_agent["authentik"]
   to   = module.base.module.wazuh_agent["identity"]
 }
+
+# ── Core tier relocation (v3.4.0) ────────────────────────────────────────
+# loki / prometheus / grafana / wazuh manager moved from platform/apps/ to
+# platform/core/ and compose under a single module.core block.
+
+moved {
+  from = module.loki
+  to   = module.core.module.loki
+}
+
+moved {
+  from = module.prometheus
+  to   = module.core.module.prometheus
+}
+
+moved {
+  from = module.grafana
+  to   = module.core.module.grafana
+}
+
+moved {
+  from = module.wazuh
+  to   = module.core.module.wazuh
+}

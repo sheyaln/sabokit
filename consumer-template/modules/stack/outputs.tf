@@ -38,7 +38,7 @@ output "spf_include" {
 
 output "monitoring_loki_push_url" {
   description = "Push URL the bootstrap monitoring-agent role wires into Alloy. Empty when loki isn't deployed in-cluster; consumers shipping logs to an external Loki should override via extra ansible vars."
-  value       = module.loki.enabled ? module.loki.push_url : ""
+  value       = module.core.loki.enabled ? module.core.loki.push_url : ""
 }
 
 output "split_dns_overrides" {
@@ -62,8 +62,8 @@ locals {
 }
 
 output "enabled_apps" {
-  description = "Map of enabled app name -> bundle outputs. Consumed by Ansible via `terraform output -json enabled_apps`. Includes per-host host-services entries keyed `<service>_<host>` (e.g. `autoheal_tools`, `wazuh_agent_management`)."
-  value = merge(local.host_services_enabled_apps, {
+  description = "Map of enabled app name -> bundle outputs. Consumed by Ansible via `terraform output -json enabled_apps`. Includes per-host host-services entries keyed `<service>_<host>` (e.g. `autoheal_tools`, `wazuh_agent_management`), plus the core-tier services (loki/prometheus/grafana/wazuh) merged through module.core.core_apps."
+  value = merge(local.host_services_enabled_apps, module.core.core_apps, {
     outline = module.outline.enabled ? {
       url           = module.outline.app_url
       ansible_vars  = module.outline.ansible.vars
@@ -128,28 +128,6 @@ output "enabled_apps" {
       ansible_vars  = module.n8n.ansible.vars
       ansible_group = module.n8n.ansible.host_group
       monitoring    = module.n8n.monitoring
-    } : null
-    prometheus = module.prometheus.enabled ? {
-      ansible_vars  = module.prometheus.ansible.vars
-      ansible_group = module.prometheus.ansible.host_group
-      monitoring    = module.prometheus.monitoring
-    } : null
-    loki = module.loki.enabled ? {
-      ansible_vars  = module.loki.ansible.vars
-      ansible_group = module.loki.ansible.host_group
-      push_url      = module.loki.push_url
-    } : null
-    grafana = module.grafana.enabled ? {
-      url           = module.grafana.app_url
-      ansible_vars  = module.grafana.ansible.vars
-      ansible_group = module.grafana.ansible.host_group
-      monitoring    = module.grafana.monitoring
-    } : null
-    wazuh = module.wazuh.enabled ? {
-      url           = module.wazuh.app_url
-      ansible_vars  = module.wazuh.ansible.vars
-      ansible_group = module.wazuh.ansible.host_group
-      monitoring    = module.wazuh.monitoring
     } : null
     # Per-host backrest instances. One entry per compute_hosts key not in
     # var.apps.backrest.disabled_hosts. apps.yml consumes the .instances map

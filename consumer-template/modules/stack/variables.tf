@@ -178,6 +178,13 @@ variable "apps" {
   sensitive   = true
 }
 
+variable "core" {
+  description = "Core-tier service overrides (loki, prometheus, grafana, wazuh). Each service ships enabled by default; flip individual ones off via var.core.<svc>.enabled = false. Per-service knobs documented in platform/core/<svc>/terraform/variables.tf."
+  type        = any
+  default     = {}
+  sensitive   = true
+}
+
 variable "base" {
   description = "Base-layer overrides (postgres, network, etc). Currently exposes `postgres_credentials_preserve` and `smtp_config_preserve` (bools) for in-place legacy cutover, plus `postgres_credentials_preserve_source` (`{ admin = string, databases = map(string) }`) for greenfield-to-v3 consumers supplying canonical postgres passwords directly. See platform/base/terraform/variables.tf."
   type        = any

@@ -53,7 +53,15 @@ for entry in "${entries[@]}"; do
   id="${entry#*:}"
 
   case "$tier" in
-    apps)          vars_tf="$REPO_ROOT/platform/apps/$id/terraform/variables.tf" ;;
+    apps)
+      # Apps tier may live under platform/apps/ or, for the core-services
+      # subset (loki/prometheus/grafana/wazuh), under platform/core/. Try
+      # apps first, then core.
+      vars_tf="$REPO_ROOT/platform/apps/$id/terraform/variables.tf"
+      if [[ ! -f "$vars_tf" ]]; then
+        vars_tf="$REPO_ROOT/platform/core/$id/terraform/variables.tf"
+      fi
+      ;;
     host_services) vars_tf="$REPO_ROOT/platform/base/host-services/$id/terraform/variables.tf" ;;
     *)             echo "ERROR: unknown tier '$tier'" >&2; errors=$((errors+1)); continue ;;
   esac

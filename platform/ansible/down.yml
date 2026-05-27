@@ -32,6 +32,70 @@
         state: absent
       when: enabled_apps.protonmail_bridge is defined and enabled_apps.protonmail_bridge is not none
       ignore_errors: true  # compose file may already be gone
+- name: "down: loki"
+  hosts: "{{ (enabled_apps.loki | default({})).ansible_group | default('all') }}"
+  become: true
+  gather_facts: false
+  tags: [down, loki]
+  tasks:
+    - name: Load role defaults
+      ansible.builtin.include_vars:
+        file: "../core/loki/ansible/roles/loki/defaults/main.yml"
+      when: enabled_apps.loki is defined and enabled_apps.loki is not none
+    - name: Stop and remove the compose stack
+      community.docker.docker_compose_v2:
+        project_src: "{{ loki_install_dir | default('/opt/loki') }}"
+        state: absent
+      when: enabled_apps.loki is defined and enabled_apps.loki is not none
+      ignore_errors: true  # compose file may already be gone
+- name: "down: prometheus"
+  hosts: "{{ (enabled_apps.prometheus | default({})).ansible_group | default('all') }}"
+  become: true
+  gather_facts: false
+  tags: [down, prometheus]
+  tasks:
+    - name: Load role defaults
+      ansible.builtin.include_vars:
+        file: "../core/prometheus/ansible/roles/prometheus/defaults/main.yml"
+      when: enabled_apps.prometheus is defined and enabled_apps.prometheus is not none
+    - name: Stop and remove the compose stack
+      community.docker.docker_compose_v2:
+        project_src: "{{ prometheus_install_dir | default('/opt/prometheus') }}"
+        state: absent
+      when: enabled_apps.prometheus is defined and enabled_apps.prometheus is not none
+      ignore_errors: true  # compose file may already be gone
+- name: "down: grafana"
+  hosts: "{{ (enabled_apps.grafana | default({})).ansible_group | default('all') }}"
+  become: true
+  gather_facts: false
+  tags: [down, grafana]
+  tasks:
+    - name: Load role defaults
+      ansible.builtin.include_vars:
+        file: "../core/grafana/ansible/roles/grafana/defaults/main.yml"
+      when: enabled_apps.grafana is defined and enabled_apps.grafana is not none
+    - name: Stop and remove the compose stack
+      community.docker.docker_compose_v2:
+        project_src: "{{ grafana_install_dir | default('/opt/grafana') }}"
+        state: absent
+      when: enabled_apps.grafana is defined and enabled_apps.grafana is not none
+      ignore_errors: true  # compose file may already be gone
+- name: "down: wazuh"
+  hosts: "{{ (enabled_apps.wazuh | default({})).ansible_group | default('all') }}"
+  become: true
+  gather_facts: false
+  tags: [down, wazuh]
+  tasks:
+    - name: Load role defaults
+      ansible.builtin.include_vars:
+        file: "../core/wazuh/ansible/roles/wazuh/defaults/main.yml"
+      when: enabled_apps.wazuh is defined and enabled_apps.wazuh is not none
+    - name: Stop and remove the compose stack
+      community.docker.docker_compose_v2:
+        project_src: "{{ wazuh_install_dir | default('/opt/wazuh') }}"
+        state: absent
+      when: enabled_apps.wazuh is defined and enabled_apps.wazuh is not none
+      ignore_errors: true  # compose file may already be gone
 - name: "down: outline"
   hosts: "{{ (enabled_apps.outline | default({})).ansible_group | default('all') }}"
   become: true
@@ -207,70 +271,6 @@
         project_src: "{{ n8n_install_dir | default('/opt/n8n') }}"
         state: absent
       when: enabled_apps.n8n is defined and enabled_apps.n8n is not none
-      ignore_errors: true  # compose file may already be gone
-- name: "down: prometheus"
-  hosts: "{{ (enabled_apps.prometheus | default({})).ansible_group | default('all') }}"
-  become: true
-  gather_facts: false
-  tags: [down, prometheus]
-  tasks:
-    - name: Load role defaults
-      ansible.builtin.include_vars:
-        file: "../apps/prometheus/ansible/roles/prometheus/defaults/main.yml"
-      when: enabled_apps.prometheus is defined and enabled_apps.prometheus is not none
-    - name: Stop and remove the compose stack
-      community.docker.docker_compose_v2:
-        project_src: "{{ prometheus_install_dir | default('/opt/prometheus') }}"
-        state: absent
-      when: enabled_apps.prometheus is defined and enabled_apps.prometheus is not none
-      ignore_errors: true  # compose file may already be gone
-- name: "down: loki"
-  hosts: "{{ (enabled_apps.loki | default({})).ansible_group | default('all') }}"
-  become: true
-  gather_facts: false
-  tags: [down, loki]
-  tasks:
-    - name: Load role defaults
-      ansible.builtin.include_vars:
-        file: "../apps/loki/ansible/roles/loki/defaults/main.yml"
-      when: enabled_apps.loki is defined and enabled_apps.loki is not none
-    - name: Stop and remove the compose stack
-      community.docker.docker_compose_v2:
-        project_src: "{{ loki_install_dir | default('/opt/loki') }}"
-        state: absent
-      when: enabled_apps.loki is defined and enabled_apps.loki is not none
-      ignore_errors: true  # compose file may already be gone
-- name: "down: grafana"
-  hosts: "{{ (enabled_apps.grafana | default({})).ansible_group | default('all') }}"
-  become: true
-  gather_facts: false
-  tags: [down, grafana]
-  tasks:
-    - name: Load role defaults
-      ansible.builtin.include_vars:
-        file: "../apps/grafana/ansible/roles/grafana/defaults/main.yml"
-      when: enabled_apps.grafana is defined and enabled_apps.grafana is not none
-    - name: Stop and remove the compose stack
-      community.docker.docker_compose_v2:
-        project_src: "{{ grafana_install_dir | default('/opt/grafana') }}"
-        state: absent
-      when: enabled_apps.grafana is defined and enabled_apps.grafana is not none
-      ignore_errors: true  # compose file may already be gone
-- name: "down: wazuh"
-  hosts: "{{ (enabled_apps.wazuh | default({})).ansible_group | default('all') }}"
-  become: true
-  gather_facts: false
-  tags: [down, wazuh]
-  tasks:
-    - name: Load role defaults
-      ansible.builtin.include_vars:
-        file: "../apps/wazuh/ansible/roles/wazuh/defaults/main.yml"
-      when: enabled_apps.wazuh is defined and enabled_apps.wazuh is not none
-    - name: Stop and remove the compose stack
-      community.docker.docker_compose_v2:
-        project_src: "{{ wazuh_install_dir | default('/opt/wazuh') }}"
-        state: absent
-      when: enabled_apps.wazuh is defined and enabled_apps.wazuh is not none
       ignore_errors: true  # compose file may already be gone
 - name: "down: backrest"
   hosts: all
