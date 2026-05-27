@@ -101,21 +101,31 @@ jobs:
 
       - name: Scan qcow2 with trivy
         run: |
-          # trivy vm scans VM images directly (no nbd mount required since
-          # trivy 0.43). Fail the build on CRITICAL; HIGH is reported but
-          # non-blocking.
-          trivy vm \
-            --severity HIGH,CRITICAL \
-            --exit-code 0 \
-            --no-progress \
-            --format table \
-            "fc-base-${{ steps.ver.outputs.version }}.qcow2"
-          trivy vm \
-            --severity CRITICAL \
-            --exit-code 1 \
-            --no-progress \
-            --format table \
-            "fc-base-${{ steps.ver.outputs.version }}.qcow2"
+          # `trivy vm` only understands MBR-partitioned images; Ubuntu cloud
+          # qcow2s are GPT. nbd-mount the rootfs and run `trivy fs` against
+          # it instead — same vulnerability DB, same severity gating.
+          qcow2="fc-base-${{ steps.ver.outputs.version }}.qcow2"
+          sudo modprobe nbd max_part=8
+          sudo qemu-nbd --read-only --connect=/dev/nbd0 "$qcow2"
+          # Give the kernel a beat to enumerate partitions.
+          for _ in $(seq 1 10); do
+            sudo partprobe /dev/nbd0 2>/dev/null || true
+            ls /dev/nbd0p* >/dev/null 2>&1 && break
+            sleep 1
+          done
+          # Rootfs is the largest partition on Ubuntu cloud images.
+          root_part="$(lsblk -lnpo NAME,SIZE -b /dev/nbd0 \
+            | awk '$1 ~ /^\/dev\/nbd0p[0-9]+$/ {print $2, $1}' \
+            | sort -nr | head -1 | awk '{print $2}')"
+          [ -n "$root_part" ] || { echo "no partitions found on /dev/nbd0" >&2; exit 1; }
+          echo "Mounting $root_part as rootfs"
+          sudo mkdir -p /mnt/img
+          sudo mount -o ro "$root_part" /mnt/img
+          # Report HIGH+CRITICAL (non-blocking) then fail only on CRITICAL.
+          trivy fs --severity HIGH,CRITICAL --exit-code 0 --no-progress /mnt/img
+          trivy fs --severity CRITICAL --exit-code 1 --no-progress /mnt/img
+          sudo umount /mnt/img
+          sudo qemu-nbd --disconnect /dev/nbd0
 
       - name: Write image metadata sidecar
         run: |
