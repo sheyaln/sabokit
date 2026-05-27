@@ -8,34 +8,43 @@ The blueprint covers the two layers that are tedious to get right: provider-side
 
 ## Quick start
 
-```bash
-# 1. Copy the template into your own repo.
-cp -r sabokit/consumer-template my-infra
-cd my-infra/environments/_template     && mv ../_template ../staging
-cd staging
-cp terraform.tfvars.example terraform.tfvars      && $EDITOR terraform.tfvars
-cp backend.hcl.example      backend.hcl           && $EDITOR backend.hcl
-cp inventory.ini.example    inventory.ini
+Install the CLI once:
 
-# 2. Deploy.
-./preflight.sh         # one-time per env: CLI deps, SSH key, DNS zone check
-./up.sh                # provision infra + install Authentik (~10 min cold-start)
-./configure.sh         # configure Authentik (flows, brand, groups) + app TF
-# Then deploy apps:
-ansible-playbook ../../sabokit/platform/ansible/apps.yml \
-  -i inventory.ini -e @.ansible-vars.json \
-  -e env_name=staging -e gateway_domain=$(awk -F= '/^[[:space:]]*gateway_domain/{gsub(/[ "#]/,"",$2); print $2; exit}' terraform.tfvars)
+```bash
+curl -fsSL https://raw.githubusercontent.com/sheyaln/sabokit-cli/master/install.sh | bash
 ```
 
-Each step has a verifiable checkpoint. See [`consumer-template/environments/_template/README.md`](./consumer-template/environments/_template/README.md) for details.
+Scaffold a project + deploy:
+
+```bash
+sabokit init my-stack --env prod --base-domain example.com
+cd my-stack/environments/prod
+
+# fill in the env config
+cp config.tf.example     config.tf     && $EDITOR config.tf
+cp backend.hcl.example   backend.hcl   && $EDITOR backend.hcl
+cp inventory.ini.example inventory.ini
+
+# Scaleway credentials + arm64 fallback (runner image is amd64-only)
+export SCW_ACCESS_KEY=... SCW_SECRET_KEY=... SCW_DEFAULT_PROJECT_ID=...
+export SABOKIT_PLATFORM=linux/amd64   # arm64 hosts only
+
+sabokit up        # preflight + provision + Authentik install
+sabokit deploy    # deploy apps via the runner container
+sabokit status    # terraform outputs + docker ps across hosts
+```
+
+`sabokit init` clones consumer-template at a pinned tag and writes `.sabokit/config.yml`. `sabokit up` chains the consumer-template scaffolding scripts locally. `sabokit deploy` runs ansible against the env via the published runner image — no local terraform or ansible install required for redeploys.
+
+Full CLI reference: [github.com/sheyaln/sabokit-cli](https://github.com/sheyaln/sabokit-cli).
 
 ### Faster cold-starts with a pre-baked image
 
-Optional but recommended: import the sabokit base image once per Scaleway project and `up.sh` skips ~7 minutes of apt installs:
+Import the sabokit base image once per Scaleway project and provisioning skips ~7 minutes of apt installs:
 
 ```bash
-./consumer-template/scripts/import-base-image.sh v2.1.0
-# → prints IMAGE_ID; paste into terraform.tfvars under compute_hosts.<name>.image
+./consumer-template/scripts/import-base-image.sh v3.3.2
+# → prints IMAGE_ID; paste into config.tf under compute_hosts.<host>.image
 ```
 
 See [`packer/README.md`](./packer/README.md) for the maintainer-side build flow.
@@ -159,7 +168,7 @@ Per-module documentation lives next to each module's `main.tf`.
 
 ## Project status
 
-The 3-step consumer flow (`preflight.sh` / `up.sh` / `configure.sh`) is dogfooded against a real staging Scaleway project every release cycle. The platform↔app contract is validated in CI by `tests/local-validate/`. Shipping app bundles: Outline (wiki) and Steward (Authentik admin UI). More land per minor release; the pattern is the same every time — start from `platform/apps/outline/` as the reference.
+The end-to-end consumer flow (`sabokit init` → `sabokit up` → `sabokit deploy`) is dogfooded against a real staging Scaleway project every release cycle. The platform↔app contract is validated in CI by `tests/local-validate/`. Adding a new app: copy `platform/apps/outline/` as the reference and follow the bundle contract in [CONVENTIONS.md](./CONVENTIONS.md).
 
 ## License
 
