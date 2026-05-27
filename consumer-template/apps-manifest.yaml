@@ -1768,6 +1768,13 @@ apps:
           description: Extra docker networks to attach n8n's container to (beyond the bundle's defaults). For cross-bundle integration with sidecars like protonmail-bridge that live in their own bootstrap-tier network. Networks must already exist on the host.
           ui: advanced
 
+        workflows_dir:
+          type: string
+          default: ""
+          description: Path to a local directory of n8n workflow JSON exports to auto-import on each deploy. Resolved by the Ansible controller — relative paths resolve against the playbook invocation cwd (consumer-template root), absolute paths used verbatim. When set, the role syncs the directory to the apps host and runs `n8n import:workflow --separate --input=/workflows-import/` inside the container after it's healthy. n8n upserts by workflow `id`, so re-runs are idempotent. Empty = feature off. Convention is `consumer-template/workflows/` with `workflows_dir = "../../workflows"`.
+          example: ../../workflows
+          ui: advanced
+
   # ── Backrest ────────────────────────────────────────────────────────────
   # Restic-based backups per host (each host = its own instance + bucket).
   # Forward-auth via the embedded outpost. Multi-instance: consumers

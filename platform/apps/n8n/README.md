@@ -65,6 +65,7 @@ In `site.yml`:
 | `webhook_rate_limit_average` | `number` | `100` | Traefik average req/period for the webhook router. |
 | `webhook_rate_limit_burst` | `number` | `50` | Traefik burst. |
 | `webhook_rate_limit_period` | `string` | `"1m"` | Traefik period (Go duration). |
+| `workflows_dir` | `string` | `""` | Path to a controller-side directory of workflow JSON exports to auto-import on each deploy. Empty = feature off. See "Workflow auto-import" below. |
 
 ## Outputs
 
@@ -116,9 +117,33 @@ After `terraform apply && ansible-playbook site.yml`:
 
 Set `apps.n8n.enabled = false` in tfvars and `terraform apply`. Drops the Authentik resources, the DNS record, the database (⚠ data loss — all workflows and credentials gone), and the Scaleway secret. The compose stack and the `/opt/n8n/` directory on the host are not auto-torn-down — `ssh apps && cd /opt/n8n && docker compose down -v && sudo rm -rf /opt/n8n` to fully remove.
 
+## Workflow auto-import
+
+Drop n8n workflow JSON exports (from `Workflows → ⋯ → Download`) into a directory of your choice and point `workflows_dir` at it:
+
+```hcl
+apps = {
+  n8n = {
+    enabled       = true
+    hostname      = "flows.example.org"
+    workflows_dir = "../../workflows"   # convention: consumer-template/workflows/
+  }
+}
+```
+
+On each `ansible-playbook ansible-local/site.yml ...` run the role syncs the directory to the apps host at `/opt/n8n/workflows-import/`, bind-mounts it read-only into the n8n container at `/workflows-import/`, and runs `n8n import:workflow --separate --input=/workflows-import/` after the container is healthy.
+
+- Path resolution: relative paths resolve against the playbook invocation cwd (i.e. `environments/<env>/` where `up.sh` runs); absolute paths used verbatim.
+- Idempotence: n8n's importer upserts by workflow `id`. Re-runs are no-ops against the DB.
+- Active state: imported workflows land `active: false`. Activate via the UI on first deploy; the flag lives in the DB and survives subsequent imports (`--activeState=fromJson` is NOT passed — it would reactivate paused workflows every deploy).
+- Credentials: not in the JSON. Re-bind in the UI once after first import; bindings live in the DB and survive subsequent imports.
+- Workflow JSONs committed to the consumer's repo are the source of truth. Editing in the UI without re-exporting back to the repo means your next deploy clobbers your UI edits — same trade-off as any source-controlled config.
+
+Empty / unset `workflows_dir` = feature off. No host directory created, no compose mount, no import task.
+
 ## Bundled workflows
 
-`ansible/roles/n8n/files/workflows/` ships JSON exports that pair with `platform/identity/`'s notification webhook. They are **not auto-imported** — import once from the n8n UI (`Workflows → Import from File`).
+`ansible/roles/n8n/files/workflows/` ships JSON exports that pair with `platform/identity/`'s notification webhook. They are **not auto-imported** by this bundle — import once from the n8n UI (`Workflows → Import from File`), or copy them into your consumer's `workflows_dir` to opt them into auto-import.
 
 | File | Purpose |
 |------|---------|

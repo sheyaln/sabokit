@@ -62,6 +62,18 @@ n8n_extra_env_vars: {}
 # host (created by whichever bundle owns them).
 n8n_extra_docker_networks: []
 
+# Local directory of n8n workflow JSON files to sync to the apps host and
+# auto-import on each deploy. Resolved by the controller — relative paths
+# resolve against the playbook invocation cwd; absolute paths used verbatim.
+# Empty = feature off (no host directory created, no compose mount, no import
+# task). n8n's importer upserts by workflow `id`, so re-runs are idempotent.
+n8n_workflows_dir: ""
+
+# Host-side directory the controller syncs workflow JSON files into. Bind-
+# mounted read-only into the n8n container at /workflows-import/ when
+# n8n_workflows_dir is non-empty.
+n8n_workflows_host_dir: "/opt/n8n/workflows-import"
+
 # Filesystem owner/group for /opt/<slug>/ artifacts (compose file, .env).
 # Defaults to the deploy user (ubuntu on stock cloud images) so the role
 # doesn't leave the install dir root-owned. The deploy user is already in

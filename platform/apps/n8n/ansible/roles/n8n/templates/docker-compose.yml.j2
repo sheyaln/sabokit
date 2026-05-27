@@ -28,6 +28,12 @@ services:
       # OIDC external-hook file — bind-mounted read-only into n8n's data dir.
       # n8n's EXTERNAL_HOOK_FILES env var (set in env.j2) points at this path.
       - ./hooks.js:/home/node/.n8n/hooks.js:ro
+{% if n8n_workflows_dir | default('') | length > 0 %}
+      # Workflow auto-import staging dir. Populated by the role from
+      # n8n_workflows_dir on the controller; consumed by `n8n import:workflow
+      # --separate --input=/workflows-import/` run after the container is up.
+      - {{ n8n_workflows_host_dir }}:/workflows-import:ro
+{% endif %}
     networks:
       - "{{ n8n_traefik_docker_network }}"
       - n8n_internal
