@@ -1,12 +1,13 @@
-# Per-env root. Wires `local.config` (from config.tf) into the shared stack
-# module. Upstream-maintained — consumers should not need to edit this file
-# during normal operation. Add sibling .tf files in this directory for
-# consumer-owned resources (Cloudflare records, custom IAM, etc.).
+# Per-env root. Wires per-env vars (from terraform.tfvars) + persistent config
+# (from config.tf) into the shared stack module. Upstream-maintained —
+# consumers should not need to edit this file during normal operation. Add
+# sibling .tf files in this directory for consumer-owned resources.
 #
-# `config.tf`     → consumer's authoritative committable config
-# `secrets.tf`    → Scaleway secret data sources (bag IDs committable; payloads not)
-# `backend.hcl`   → remote state config (gitignored)
-# `inventory.ini` → Ansible inventory (gitignored; built from `terraform output compute_hosts`)
+# `terraform.tfvars` → per-env values (project_id, domains, instance sizes; gitignored)
+# `config.tf`        → persistent infra shape (apps catalog, host topology, tier_slots; committable)
+# `secrets.tf`       → Scaleway secret data sources (bag IDs committable; payloads not)
+# `backend.hcl`      → remote state config (gitignored)
+# `inventory.ini`    → Ansible inventory (gitignored; built from `terraform output compute_hosts`)
 
 module "stack" {
   source = "../../modules/stack"
@@ -15,22 +16,26 @@ module "stack" {
     scaleway.dns = scaleway.dns
   }
 
-  org_slug    = local.config.org_slug
-  org_name    = local.config.org_name
-  environment = local.config.environment
+  # Persistent (config.tf)
+  org_slug = local.config.org_slug
+  org_name = local.config.org_name
 
-  scaleway_project_id = local.config.scaleway_project_id
-  scaleway_region     = local.config.scaleway_region
-  scaleway_zone       = local.config.scaleway_zone
+  # Per-env (terraform.tfvars)
+  environment = var.environment
 
-  base_domain    = local.config.base_domain
-  mgmt_domain    = try(local.config.mgmt_domain, null)
-  gateway_domain = local.config.gateway_domain
-  infra_email    = local.config.infra_email
+  scaleway_project_id = var.scaleway_project_id
+  scaleway_region     = var.scaleway_region
+  scaleway_zone       = var.scaleway_zone
+
+  base_domain    = var.base_domain
+  mgmt_domain    = var.mgmt_domain != "" ? var.mgmt_domain : null
+  gateway_domain = var.gateway_domain
+  infra_email    = var.infra_email
 
   compute_hosts          = local.config.compute_hosts
-  private_network_subnet = try(local.config.private_network_subnet, "10.0.0.0/22")
+  private_network_subnet = var.private_network_subnet
 
+  # Persistent (config.tf)
   identity         = local.config.identity
   apps             = try(local.config.apps, {})
   bootstrap        = try(local.config.bootstrap, {})

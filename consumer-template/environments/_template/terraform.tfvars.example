@@ -1,0 +1,39 @@
+# Per-env tfvars. Copy to `terraform.tfvars` and fill in.
+#
+# `terraform.tfvars` is gitignored — never commit it. It carries values that
+# differ between envs (project IDs, domains, instance sizes, env name).
+# Persistent infra shape lives in `config.tf` (committable).
+#
+# Runtime credentials are NOT here — supply via env vars instead:
+#   export SCW_ACCESS_KEY=...
+#   export SCW_SECRET_KEY=...
+# (or TF_VAR_scaleway_access_key / TF_VAR_scaleway_secret_key)
+
+# ── Scaleway project + region ──────────────────────────────────────────────
+scaleway_project_id = "00000000-0000-0000-0000-000000000000"  # replace with your project UUID
+scaleway_region     = "fr-par"
+scaleway_zone       = "fr-par-1"
+
+# ── Env identity + contact ─────────────────────────────────────────────────
+environment    = "prod"             # match the env directory name (prod / staging / etc.)
+base_domain    = "example.org"
+gateway_domain = "auth.example.org"
+# mgmt_domain  = "ops.example.org"  # optional; defaults to base_domain
+infra_email    = "ops@example.org"
+
+# ── Compute sizing ─────────────────────────────────────────────────────────
+# Per-host instance type + disk. Staging is typically smaller than prod.
+compute_instance_types = {
+  tools      = "DEV1-L"
+  identity   = "DEV1-M"
+  management = "DEV1-M"
+}
+
+compute_disk_sizes = {
+  tools      = 100
+  identity   = 30
+  management = 60
+}
+
+# ── Network ────────────────────────────────────────────────────────────────
+private_network_subnet = "10.0.0.0/22"

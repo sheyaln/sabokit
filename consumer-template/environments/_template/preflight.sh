@@ -41,11 +41,9 @@ fatal() {
 
 # ── Helpers ─────────────────────────────────────────────────────────────────
 
-# Extract `key = "value"` from config.tf. String values only. Same shape as
-# _lib.sh's config_value — works for any leaf string inside the
-# `locals { config = { ... } }` block since the regex anchors only on the
-# leading-whitespace `key = "..."` pattern.
-config_value() {
+# Extract `key = "value"` from terraform.tfvars. Per-env values (project_id,
+# domains, infra_email, instance sizes) live there. Strings only.
+tfvar_value() {
   local key="$1"
   awk -v key="$key" '
     $0 ~ "^[[:space:]]*" key "[[:space:]]*=" {
@@ -55,7 +53,7 @@ config_value() {
       print
       exit
     }
-  ' config.tf
+  ' terraform.tfvars
 }
 
 # ── 1. Required CLIs ────────────────────────────────────────────────────────
@@ -82,7 +80,7 @@ fi
 
 section "Required config files in $ENV_DIR"
 
-required_files=(config.tf backend.hcl inventory.ini)
+required_files=(config.tf terraform.tfvars backend.hcl inventory.ini)
 missing_files=()
 for f in "${required_files[@]}"; do
   if [[ -f "$f" ]]; then
@@ -102,19 +100,19 @@ if [[ ${#missing_files[@]} -gt 0 ]]; then
   fatal "Create the missing files before continuing." "${msg[@]}"
 fi
 
-# ── 3. Read what we need from config.tf ─────────────────────────────────────
+# ── 3. Read what we need from terraform.tfvars ──────────────────────────────
 
-section "Parsing config.tf"
+section "Parsing terraform.tfvars"
 
-scw_project_id="$(config_value scaleway_project_id || true)"
-base_domain="$(config_value base_domain || true)"
-gateway_domain="$(config_value gateway_domain || true)"
+scw_project_id="$(tfvar_value scaleway_project_id || true)"
+base_domain="$(tfvar_value base_domain || true)"
+gateway_domain="$(tfvar_value gateway_domain || true)"
 
 for k in scw_project_id base_domain gateway_domain; do
   v="${!k}"
   if [[ -z "$v" ]]; then
-    fatal "config.tf is missing or empty: $k" \
-      "Open config.tf and set: $k = \"...\""
+    fatal "terraform.tfvars is missing or empty: $k" \
+      "Open terraform.tfvars and set: $k = \"...\""
   fi
   c_ok "$k = $v"
 done
