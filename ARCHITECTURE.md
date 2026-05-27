@@ -48,6 +48,14 @@ Counter-examples: an app that other apps merely *can* call (Outline isn't bootst
 
 SMTP (Scaleway TEM) lives in **base**, not bootstrap, because (a) every app uses it, (b) it's a managed Scaleway product with no host-side runtime — base already owns Scaleway resources. The bootstrap tier is for runtime-host-bound services where base would be the wrong owner.
 
+### Host-services sub-tier (under base)
+
+`platform/base/host-services/` holds per-host runtime watchers — one instance per `compute_hosts` entry, fanned out automatically by `platform/base/terraform/host_services.tf`. Consumer surface is `var.base.<service>.{enabled, disabled_hosts, per_host, ...}`; no per-host `module ".." { ... }` blocks in the consumer.
+
+Earmarked for this sub-tier: `diun/` (notify-on-new-image), `autoheal/` (container restart on unhealthy), `wazuh-agent/` (log shipper to wazuh manager). These currently still live in `platform/apps/` and are scheduled to move in subsequent v3.4.0 tickets; the sub-tree exists in v3.4.0-prep as scaffolding only.
+
+Host-services are distinct from `platform/bootstrap/`: bootstrap is shared infrastructure providers (SMTP/IMAP gateways) consumed by many apps; host-services are per-host runtime watchers consumed by nobody. They sit under `base/` because every host needs them by default and they bind to the host's lifecycle, not an app's.
+
 ---
 
 ## Layered model

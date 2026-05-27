@@ -1,9 +1,12 @@
 # The base contract. Apps consume var.base which receives these outputs.
 # See ARCHITECTURE.md for the full contract.
+#
+# Each top-level output reads from a local of the same shape. Future
+# host-services modules under platform/base/host-services/ pull these same
+# locals via a self-reference rather than re-deriving the data.
 
-output "scaleway" {
-  description = "Scaleway platform handles. Apps use these to provision their own resources."
-  value = {
+locals {
+  scaleway_output = {
     project_id             = var.scaleway_project_id
     region                 = var.scaleway_region
     zone                   = var.scaleway_zone
@@ -28,11 +31,8 @@ output "scaleway" {
     smtp_config_secret_id = local.smtp_config_secret_id
     smtp_from_email       = var.tem_enabled ? local.tem_from_email_resolved : null
   }
-}
 
-output "compute" {
-  description = "Compute hosts apps can target via Ansible."
-  value = {
+  compute_output = {
     hosts = {
       for k, h in module.compute_host : k => {
         id             = h.instance_id
@@ -45,11 +45,8 @@ output "compute" {
       }
     }
   }
-}
 
-output "domains" {
-  description = "Domain configuration. Apps reference these via base.domains."
-  value = {
+  domains_output = {
     base_domain    = var.base_domain
     mgmt_domain    = local.mgmt_domain
     gateway_domain = local.gateway_domain
@@ -59,6 +56,21 @@ output "domains" {
     # collapse the common case where mgmt_domain defaults to base_domain.
     zones = distinct(compact([var.base_domain, local.mgmt_domain]))
   }
+}
+
+output "scaleway" {
+  description = "Scaleway platform handles. Apps use these to provision their own resources."
+  value       = local.scaleway_output
+}
+
+output "compute" {
+  description = "Compute hosts apps can target via Ansible."
+  value       = local.compute_output
+}
+
+output "domains" {
+  description = "Domain configuration. Apps reference these via base.domains."
+  value       = local.domains_output
 }
 
 # Convenience flat outputs (most consumers prefer the structured maps above)
