@@ -251,87 +251,6 @@
     backrest_extra_docker_networks: "{{ enabled_apps.backrest_mgmt.ansible_vars.backrest_extra_docker_networks }}"
   when: enabled_apps.backrest_mgmt is defined and enabled_apps.backrest_mgmt is not none
   tags: [apps, backrest_mgmt]
-- import_playbook: ../apps/prometheus/ansible/playbook.yml
-  vars:
-    prometheus_host_group: "{{ enabled_apps.prometheus.ansible_group }}"
-    prometheus_image: "{{ enabled_apps.prometheus.ansible_vars.prometheus_image }}"
-    prometheus_image_tag: "{{ enabled_apps.prometheus.ansible_vars.prometheus_image_tag }}"
-    prometheus_retention: "{{ enabled_apps.prometheus.ansible_vars.prometheus_retention }}"
-    prometheus_scrape_configs: "{{ enabled_apps.prometheus.ansible_vars.prometheus_scrape_configs }}"
-    prometheus_extra_scrape_targets: "{{ enabled_apps.prometheus.ansible_vars.prometheus_extra_scrape_targets }}"
-    prometheus_alert_rules: "{{ enabled_apps.prometheus.ansible_vars.prometheus_alert_rules }}"
-    prometheus_exporters_enabled: "{{ enabled_apps.prometheus.ansible_vars.prometheus_exporters_enabled }}"
-    prometheus_remote_write_enabled: "{{ enabled_apps.prometheus.ansible_vars.prometheus_remote_write_enabled }}"
-    prometheus_private_ip_bind: "{{ enabled_apps.prometheus.ansible_vars.prometheus_private_ip_bind }}"
-    prometheus_memory_limit: "{{ enabled_apps.prometheus.ansible_vars.prometheus_memory_limit }}"
-    prometheus_memory_reservation: "{{ enabled_apps.prometheus.ansible_vars.prometheus_memory_reservation }}"
-    prometheus_cpu_limit: "{{ enabled_apps.prometheus.ansible_vars.prometheus_cpu_limit }}"
-    prometheus_cpu_reservation: "{{ enabled_apps.prometheus.ansible_vars.prometheus_cpu_reservation }}"
-    prometheus_timezone: "{{ enabled_apps.prometheus.ansible_vars.prometheus_timezone }}"
-    prometheus_diun_watch_enabled: "{{ enabled_apps.prometheus.ansible_vars.prometheus_diun_watch_enabled }}"
-    prometheus_autoheal_enabled: "{{ enabled_apps.prometheus.ansible_vars.prometheus_autoheal_enabled }}"
-    prometheus_extra_env_vars: "{{ enabled_apps.prometheus.ansible_vars.prometheus_extra_env_vars }}"
-    prometheus_extra_docker_networks: "{{ enabled_apps.prometheus.ansible_vars.prometheus_extra_docker_networks }}"
-    prometheus_blackbox_exporter_enabled: "{{ enabled_apps.prometheus.ansible_vars.prometheus_blackbox_exporter_enabled }}"
-    prometheus_blackbox_exporter_image_tag: "{{ enabled_apps.prometheus.ansible_vars.prometheus_blackbox_exporter_image_tag }}"
-    prometheus_blackbox_targets: "{{ enabled_apps.prometheus.ansible_vars.prometheus_blackbox_targets }}"
-    prometheus_tem_exporter_enabled: "{{ enabled_apps.prometheus.ansible_vars.prometheus_tem_exporter_enabled }}"
-    prometheus_tem_smtp_secret_id: "{{ enabled_apps.prometheus.ansible_vars.prometheus_tem_smtp_secret_id }}"
-    prometheus_tem_scaleway_project_id: "{{ enabled_apps.prometheus.ansible_vars.prometheus_tem_scaleway_project_id }}"
-    prometheus_tem_scaleway_region: "{{ enabled_apps.prometheus.ansible_vars.prometheus_tem_scaleway_region }}"
-    prometheus_tem_exporter_poll_interval: "{{ enabled_apps.prometheus.ansible_vars.prometheus_tem_exporter_poll_interval }}"
-    prometheus_tem_exporter_lookback_minutes: "{{ enabled_apps.prometheus.ansible_vars.prometheus_tem_exporter_lookback_minutes }}"
-  when: enabled_apps.prometheus is defined and enabled_apps.prometheus is not none
-  tags: [apps, prometheus]
-- import_playbook: ../apps/loki/ansible/playbook.yml
-  vars:
-    loki_host_group: "{{ enabled_apps.loki.ansible_group }}"
-    loki_image: "{{ enabled_apps.loki.ansible_vars.loki_image }}"
-    loki_image_tag: "{{ enabled_apps.loki.ansible_vars.loki_image_tag }}"
-    loki_retention: "{{ enabled_apps.loki.ansible_vars.loki_retention }}"
-    loki_ingestion_rate_mb: "{{ enabled_apps.loki.ansible_vars.loki_ingestion_rate_mb }}"
-    loki_ingestion_burst_size_mb: "{{ enabled_apps.loki.ansible_vars.loki_ingestion_burst_size_mb }}"
-    loki_private_ip_bind: "{{ enabled_apps.loki.ansible_vars.loki_private_ip_bind }}"
-    loki_memory_limit: "{{ enabled_apps.loki.ansible_vars.loki_memory_limit }}"
-    loki_memory_reservation: "{{ enabled_apps.loki.ansible_vars.loki_memory_reservation }}"
-    loki_cpu_limit: "{{ enabled_apps.loki.ansible_vars.loki_cpu_limit }}"
-    loki_cpu_reservation: "{{ enabled_apps.loki.ansible_vars.loki_cpu_reservation }}"
-    loki_timezone: "{{ enabled_apps.loki.ansible_vars.loki_timezone }}"
-    loki_diun_watch_enabled: "{{ enabled_apps.loki.ansible_vars.loki_diun_watch_enabled }}"
-    loki_autoheal_enabled: "{{ enabled_apps.loki.ansible_vars.loki_autoheal_enabled }}"
-    loki_extra_env_vars: "{{ enabled_apps.loki.ansible_vars.loki_extra_env_vars }}"
-    loki_extra_docker_networks: "{{ enabled_apps.loki.ansible_vars.loki_extra_docker_networks }}"
-  when: enabled_apps.loki is defined and enabled_apps.loki is not none
-  tags: [apps, loki]
-- import_playbook: ../apps/grafana/ansible/playbook.yml
-  vars:
-    grafana_host_group: "{{ enabled_apps.grafana.ansible_group }}"
-    grafana_hostname: "{{ enabled_apps.grafana.ansible_vars.grafana_hostname }}"
-    grafana_image: "{{ enabled_apps.grafana.ansible_vars.grafana_image }}"
-    grafana_image_tag: "{{ enabled_apps.grafana.ansible_vars.grafana_image_tag }}"
-    grafana_plugins: "{{ enabled_apps.grafana.ansible_vars.grafana_plugins }}"
-    grafana_oidc_admin_group: "{{ enabled_apps.grafana.ansible_vars.grafana_oidc_admin_group }}"
-    grafana_oidc_editor_group: "{{ enabled_apps.grafana.ansible_vars.grafana_oidc_editor_group }}"
-    grafana_prometheus_url: "{{ enabled_apps.grafana.ansible_vars.grafana_prometheus_url }}"
-    grafana_loki_url: "{{ enabled_apps.grafana.ansible_vars.grafana_loki_url }}"
-    grafana_prometheus_scrape_interval: "{{ enabled_apps.grafana.ansible_vars.grafana_prometheus_scrape_interval }}"
-    grafana_app_secret_id: "{{ enabled_apps.grafana.ansible_vars.grafana_app_secret_id }}"
-    grafana_memory_limit: "{{ enabled_apps.grafana.ansible_vars.grafana_memory_limit }}"
-    grafana_memory_reservation: "{{ enabled_apps.grafana.ansible_vars.grafana_memory_reservation }}"
-    grafana_cpu_limit: "{{ enabled_apps.grafana.ansible_vars.grafana_cpu_limit }}"
-    grafana_cpu_reservation: "{{ enabled_apps.grafana.ansible_vars.grafana_cpu_reservation }}"
-    grafana_diun_watch_enabled: "{{ enabled_apps.grafana.ansible_vars.grafana_diun_watch_enabled }}"
-    grafana_autoheal_enabled: "{{ enabled_apps.grafana.ansible_vars.grafana_autoheal_enabled }}"
-    grafana_extra_env_vars: "{{ enabled_apps.grafana.ansible_vars.grafana_extra_env_vars }}"
-    grafana_extra_docker_networks: "{{ enabled_apps.grafana.ansible_vars.grafana_extra_docker_networks }}"
-    grafana_dashboards: "{{ enabled_apps.grafana.ansible_vars.grafana_dashboards }}"
-    grafana_jsm_api_key_secret_id: "{{ enabled_apps.grafana.ansible_vars.grafana_jsm_api_key_secret_id }}"
-    grafana_jsm_api_region: "{{ enabled_apps.grafana.ansible_vars.grafana_jsm_api_region }}"
-    grafana_jsm_priority_mapping: "{{ enabled_apps.grafana.ansible_vars.grafana_jsm_priority_mapping }}"
-    grafana_jsm_alert_tags: "{{ enabled_apps.grafana.ansible_vars.grafana_jsm_alert_tags }}"
-    grafana_jsm_severity_gate: "{{ enabled_apps.grafana.ansible_vars.grafana_jsm_severity_gate }}"
-  when: enabled_apps.grafana is defined and enabled_apps.grafana is not none
-  tags: [apps, grafana]
 - import_playbook: ../apps/diun/ansible/playbook.yml
   vars:
     diun_host_group: "{{ enabled_apps.diun_mgmt.ansible_group }}"
@@ -352,28 +271,6 @@
     diun_extra_env_vars: "{{ enabled_apps.diun_mgmt.ansible_vars.diun_extra_env_vars }}"
   when: enabled_apps.diun_mgmt is defined and enabled_apps.diun_mgmt is not none
   tags: [apps, diun_mgmt]
-- import_playbook: ../apps/wazuh/ansible/playbook.yml
-  vars:
-    wazuh_host_group: "{{ enabled_apps.wazuh.ansible_group }}"
-    wazuh_hostname: "{{ enabled_apps.wazuh.ansible_vars.wazuh_hostname }}"
-    wazuh_version: "{{ enabled_apps.wazuh.ansible_vars.wazuh_version }}"
-    wazuh_indexer_heap_size: "{{ enabled_apps.wazuh.ansible_vars.wazuh_indexer_heap_size }}"
-    wazuh_manager_agent_port: "{{ enabled_apps.wazuh.ansible_vars.wazuh_manager_agent_port }}"
-    wazuh_manager_enrollment_port: "{{ enabled_apps.wazuh.ansible_vars.wazuh_manager_enrollment_port }}"
-    wazuh_manager_syslog_port: "{{ enabled_apps.wazuh.ansible_vars.wazuh_manager_syslog_port }}"
-    wazuh_app_secret_id: "{{ enabled_apps.wazuh.ansible_vars.wazuh_app_secret_id }}"
-    wazuh_oidc_admin_group: "{{ enabled_apps.wazuh.ansible_vars.wazuh_oidc_admin_group }}"
-    wazuh_oidc_readonly_group: "{{ enabled_apps.wazuh.ansible_vars.wazuh_oidc_readonly_group }}"
-    wazuh_memory_limit: "{{ enabled_apps.wazuh.ansible_vars.wazuh_memory_limit }}"
-    wazuh_memory_reservation: "{{ enabled_apps.wazuh.ansible_vars.wazuh_memory_reservation }}"
-    wazuh_cpu_limit: "{{ enabled_apps.wazuh.ansible_vars.wazuh_cpu_limit }}"
-    wazuh_cpu_reservation: "{{ enabled_apps.wazuh.ansible_vars.wazuh_cpu_reservation }}"
-    wazuh_diun_watch_enabled: "{{ enabled_apps.wazuh.ansible_vars.wazuh_diun_watch_enabled }}"
-    wazuh_autoheal_enabled: "{{ enabled_apps.wazuh.ansible_vars.wazuh_autoheal_enabled }}"
-    wazuh_extra_env_vars: "{{ enabled_apps.wazuh.ansible_vars.wazuh_extra_env_vars }}"
-    wazuh_extra_docker_networks: "{{ enabled_apps.wazuh.ansible_vars.wazuh_extra_docker_networks }}"
-  when: enabled_apps.wazuh is defined and enabled_apps.wazuh is not none
-  tags: [apps, wazuh]
 - import_playbook: ../apps/wazuh-agent/ansible/playbook.yml
   vars:
     wazuh_agent_host_group: "{{ enabled_apps.wazuh_agent_apps.ansible_group }}"

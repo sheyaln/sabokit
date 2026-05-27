@@ -1,11 +1,14 @@
 ---
-# Full deploy: bootstrap (if not skipped) followed by every enabled app.
+# Full deploy: bootstrap (if not skipped) followed by core-tier monitoring
+# stack and then every enabled app.
 #
 # Common invocations:
-#   ansible-playbook site.yml                          # full bootstrap + apps
-#   ansible-playbook site.yml --skip-tags bootstrap    # apps only (fast redeploy)
+#   ansible-playbook site.yml                          # full bootstrap + core + apps
+#   ansible-playbook site.yml --skip-tags bootstrap    # core + apps only (fast redeploy)
 #   ansible-playbook site.yml --tags outline           # just one app + its bootstrap prereqs
-#   ansible-playbook site.yml --tags apps              # all apps, skip bootstrap
+#   ansible-playbook site.yml --tags apps              # all apps, skip bootstrap + core
+#   ansible-playbook site.yml --tags core              # core-tier only (loki, prometheus, grafana, wazuh)
 
 - import_playbook: bootstrap.yml
+- import_playbook: core.yml
 - import_playbook: apps.yml

@@ -45,9 +45,19 @@ app_ids=()
 while IFS= read -r line; do app_ids+=("$line"); done < <(yq '.apps[].id' "$MANIFEST")
 
 for id in "${app_ids[@]}"; do
-  vars_tf="$REPO_ROOT/platform/apps/$id/terraform/variables.tf"
-  if [[ ! -f "$vars_tf" ]]; then
-    echo "ERROR [$id]: declared in manifest but $vars_tf is missing" >&2
+  # Tier search order: apps, core, bootstrap. The manifest identifies the
+  # bundle by id only; the layout (which tier dir it lives in) is hidden
+  # from consumers.
+  vars_tf=""
+  for tier in apps core bootstrap; do
+    candidate="$REPO_ROOT/platform/$tier/$id/terraform/variables.tf"
+    if [[ -f "$candidate" ]]; then
+      vars_tf="$candidate"
+      break
+    fi
+  done
+  if [[ -z "$vars_tf" ]]; then
+    echo "ERROR [$id]: declared in manifest but no variables.tf under platform/{apps,core,bootstrap}/$id/terraform/" >&2
     errors=$((errors+1))
     continue
   fi
