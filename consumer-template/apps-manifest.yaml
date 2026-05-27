@@ -2438,52 +2438,62 @@ apps:
           description: Extra docker networks to attach the bundle's main container to (beyond the bundle's defaults). Networks must already exist on the host. Use for cross-bundle integration with sidecars like protonmail-bridge that live in their own bootstrap-tier network.
           ui: advanced
 
+# ── Host-services tier ────────────────────────────────────────────────────
+# Per-host services auto-instantiated by module.base for every compute_host.
+# Default-on; consumers turn off via `var.base.<service>.enabled = false`
+# (whole service) or `var.base.<service>.disabled_hosts = [...]` (per-host).
+# Consumer-template wires these via `var.base.<service>` in terraform.tfvars.
+host_services:
   # ── Wazuh Agent ─────────────────────────────────────────────────────────
-  # Host-network container that ships logs to a Wazuh manager. Multi-instance
-  # like backrest — one block per host you want monitored.
+  # HIDS log-shipper. One instance per compute_host, auto-instantiated by
+  # module.base. Default on because SSH-as-deploy means hosts are always
+  # exposed and host-level intrusion detection is a sensible production
+  # default. Consumers without a wazuh manager set `enabled = false`.
   - id: wazuh-agent
     display_name: Wazuh Agent
     category: ops
-    description_short: Wazuh agent for a managed host
+    description_short: HIDS log-shipper running on every host
     description: |
       Auto-enrolls against the manager via WAZUH_MANAGER_SERVER. Uses
       host networking so the agent can monitor host-level logs and reach
       the manager directly. release_version MUST match the manager's.
+      Manager address auto-wires from `module.wazuh.manager_private_ip`
+      when the wazuh manager app is enabled in the same stack.
     icon: icons/wazuh.svg
     upstream_url: https://documentation.wazuh.com/current/installation-guide/wazuh-agent/
 
     tfvars:
-      key: wazuh_agent_apps
+      key: wazuh_agent
       schema:
         enabled:
           type: bool
-          default: false
-          description: Whether this agent instance is deployed.
-          ui: hidden
+          default: true
+          description: Master toggle for the whole service. Set false when no wazuh manager is reachable.
+          ui: advanced
 
-        deployment_host_key:
-          type: string
-          required: true
-          description: Which host this agent runs on.
-          ui: text
+        disabled_hosts:
+          type: list(string)
+          default: []
+          description: compute_host keys to skip. Lists every host name to opt that host out of agent provisioning while keeping the service on for the rest.
+          ui: advanced
 
         manager_address:
           type: string
-          required: true
-          description: Network address of the Wazuh manager (private IP or DNS).
-          ui: text
-
-        agent_name:
-          type: string
           default: ""
-          description: Stable name registered with the manager. Defaults to deployment_host_key.
-          ui: advanced
+          description: Network address of the Wazuh manager (private IP or DNS). Auto-wires from module.wazuh.manager_private_ip when the manager app is enabled.
+          ui: text
 
         release_version:
           type: string
           default: "4.9.0"
           description: Image tag. MUST match the manager's release_version.
           ui: text
+
+        image:
+          type: string
+          default: "wazuh/wazuh-agent"
+          description: Image repo without tag.
+          ui: advanced
 
         fim_enabled:
           type: bool
@@ -2503,10 +2513,22 @@ apps:
           description: Paths to suppress from FIM reporting (syscheck `<ignore>` entries).
           ui: advanced
 
+        diun_watch_enabled:
+          type: bool
+          default: true
+          description: Whether Diun watches the agent's containers for upstream image updates.
+          ui: advanced
+
+        autoheal_enabled:
+          type: bool
+          default: true
+          description: Whether autoheal restarts the agent on healthcheck failure.
+          ui: advanced
+
         extra_env_vars:
           type: map(string)
           default: {}
-          description: Map of KEY -> value rendered into the container .env after first-class vars. Use for env-driven feature flags / third-party integrations / debug toggles not exposed first-class on the bundle.
+          description: Map of KEY -> value rendered into the container .env after first-class vars.
           ui: advanced
 
 # ── Bootstrap-tier bundles ────────────────────────────────────────────────

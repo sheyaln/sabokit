@@ -52,6 +52,18 @@ BOOTSTRAP_BUNDLES = [
     ("protonmail-bridge", "protonmail_bridge", "protonmail_bridge"),
 ]
 
+# Host-services tier. Bundles under platform/base/host-services/ auto-instantiate
+# once per compute_host inside module.base. The consumer-template's enabled_apps
+# output flattens those into `<service>_<host>` keys (e.g. wazuh_agent_apps,
+# wazuh_agent_management) — but the import_playbook block emitted here doesn't
+# encode the host suffix. It uses a Jinja iteration in apps.yml instead so the
+# single block fans out across however many host instances exist at deploy
+# time. See render_host_services_bundle below.
+HOST_SERVICES_BUNDLES = [
+    # (dir, consumer-key-prefix, role-slug)
+    ("wazuh-agent", "wazuh_agent", "wazuh_agent"),
+]
+
 BUNDLES = [
     # (dir, consumer-key, role-slug)
     ("outline",        "outline",         "outline"),
@@ -71,7 +83,6 @@ BUNDLES = [
     ("grafana",        "grafana",         "grafana"),
     ("diun",           "diun_mgmt",       "diun"),
     ("wazuh",          "wazuh",           "wazuh"),
-    ("wazuh-agent",    "wazuh_agent_apps","wazuh_agent"),
     ("autoheal",       "autoheal_apps",   "autoheal"),
 ]
 
@@ -185,6 +196,49 @@ def render_bundle(dir_name: str, consumer_key: str, role_slug: str,
     return "\n".join(lines) + "\n"
 
 
+def render_host_services_bundle(dir_name: str, key_prefix: str, role_slug: str,
+                                vars: list[str]) -> str:
+    """Render a host-services import_playbook block.
+
+    Host-services bundles auto-instantiate per compute_host inside module.base,
+    so a single host-service surfaces multiple `<prefix>_<host>` keys in
+    enabled_apps. Ansible's import_playbook is a static import — it can't
+    loop. The workaround is to join every matching instance's ansible_group
+    with `:` (Ansible host-pattern separator) and pass that to the playbook's
+    `hosts:` field. Per-instance ansible_vars are read from the first match;
+    bundles where ansible_vars vary materially per host (e.g. wazuh-agent's
+    auto-derived `agent_name` defaults to the host key) currently only honor
+    the first instance's values across the run — keep per-host divergence to
+    `manager_address` / version / fim_* (uniform across the fleet by design)
+    and pin per-host overrides via group_vars on the inventory side.
+    """
+    matches_expr = (
+        "enabled_apps | dict2items "
+        f"| selectattr('key', 'match', '^{key_prefix}_') | list"
+    )
+    lines: list[str] = []
+    lines.append(
+        f"- import_playbook: ../base/host-services/{dir_name}/ansible/playbook.yml"
+    )
+    lines.append("  vars:")
+    lines.append(
+        f"    {role_slug}_host_group: "
+        f"\"{{{{ ({matches_expr}) "
+        "| map(attribute='value.ansible_group') | join(':') }}\""
+    )
+    for v in vars:
+        lines.append(
+            f"    {v}: "
+            f"\"{{{{ (({matches_expr}) "
+            f"| first).value.ansible_vars.{v} }}}}\""
+        )
+    lines.append(
+        f"  when: ({matches_expr}) | length > 0"
+    )
+    lines.append(f"  tags: [host_services, {key_prefix}]")
+    return "\n".join(lines) + "\n"
+
+
 def render_down_bundle(dir_name: str, consumer_key: str,
                        role_slug: str, tier: str = "apps") -> str:
     """Render one teardown play. Targets `all` and scopes via tags + a
@@ -242,7 +296,63 @@ def generate() -> str:
                 )
             out.append("")  # blank line between blocks
             out.append(render_bundle(dir_name, consumer_key, role_slug, vars, tier))
+
+    for dir_name, key_prefix, role_slug in HOST_SERVICES_BUNDLES:
+        outputs_tf = REPO_ROOT / f"platform/base/host-services/{dir_name}/terraform/outputs.tf"
+        if not outputs_tf.exists():
+            raise SystemExit(
+                f"ERROR: {outputs_tf} not found (host-services bundle dir mismatch?)"
+            )
+        vars = extract_ansible_vars(outputs_tf)
+        if not vars:
+            raise SystemExit(
+                f"ERROR: no ansible.vars block found in {outputs_tf} — "
+                "did the output shape change?"
+            )
+        out.append("")
+        out.append(render_host_services_bundle(dir_name, key_prefix, role_slug, vars))
     return "".join(out)
+
+
+def render_host_services_down_bundle(dir_name: str, key_prefix: str,
+                                     role_slug: str) -> str:
+    """Per-host-service teardown play. Iterates every matching
+    `<prefix>_<host>` key in enabled_apps and stops the compose stack
+    on each."""
+    matches_expr = (
+        "enabled_apps | dict2items "
+        f"| selectattr('key', 'match', '^{key_prefix}_') | list"
+    )
+    lines: list[str] = []
+    lines.append(f'- name: "down: {dir_name}"')
+    lines.append(
+        f"  hosts: \"{{{{ ({matches_expr}) "
+        "| map(attribute='value.ansible_group') | join(':') | default('localhost', true) }}\""
+    )
+    lines.append("  become: true")
+    lines.append("  gather_facts: false")
+    lines.append(f"  tags: [down, {key_prefix}]")
+    lines.append("  tasks:")
+    lines.append("    - name: Load role defaults")
+    lines.append("      ansible.builtin.include_vars:")
+    lines.append(
+        f'        file: "../base/host-services/{dir_name}/ansible/roles/{role_slug}/defaults/main.yml"'
+    )
+    lines.append(
+        f"      when: ({matches_expr}) | length > 0"
+    )
+    lines.append("    - name: Stop and remove the compose stack")
+    lines.append("      community.docker.docker_compose_v2:")
+    lines.append(
+        f'        project_src: "{{{{ {role_slug}_install_dir '
+        f"| default('/opt/{dir_name}') }}}}\""
+    )
+    lines.append("        state: absent")
+    lines.append(
+        f"      when: ({matches_expr}) | length > 0"
+    )
+    lines.append("      ignore_errors: true  # compose file may already be gone")
+    return "\n".join(lines) + "\n"
 
 
 def generate_down() -> str:
@@ -251,6 +361,9 @@ def generate_down() -> str:
         for dir_name, consumer_key, role_slug in bundles:
             out.append("")  # blank line between plays
             out.append(render_down_bundle(dir_name, consumer_key, role_slug, tier))
+    for dir_name, key_prefix, role_slug in HOST_SERVICES_BUNDLES:
+        out.append("")
+        out.append(render_host_services_down_bundle(dir_name, key_prefix, role_slug))
     return "".join(out)
 
 

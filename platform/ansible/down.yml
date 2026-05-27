@@ -304,22 +304,6 @@
         state: absent
       when: enabled_apps.wazuh is defined and enabled_apps.wazuh is not none
       ignore_errors: true  # compose file may already be gone
-- name: "down: wazuh-agent"
-  hosts: "{{ (enabled_apps.wazuh_agent_apps | default({})).ansible_group | default('all') }}"
-  become: true
-  gather_facts: false
-  tags: [down, wazuh_agent_apps]
-  tasks:
-    - name: Load role defaults
-      ansible.builtin.include_vars:
-        file: "../apps/wazuh-agent/ansible/roles/wazuh_agent/defaults/main.yml"
-      when: enabled_apps.wazuh_agent_apps is defined and enabled_apps.wazuh_agent_apps is not none
-    - name: Stop and remove the compose stack
-      community.docker.docker_compose_v2:
-        project_src: "{{ wazuh_agent_install_dir | default('/opt/wazuh-agent') }}"
-        state: absent
-      when: enabled_apps.wazuh_agent_apps is defined and enabled_apps.wazuh_agent_apps is not none
-      ignore_errors: true  # compose file may already be gone
 - name: "down: autoheal"
   hosts: "{{ (enabled_apps.autoheal_apps | default({})).ansible_group | default('all') }}"
   become: true
@@ -335,4 +319,20 @@
         project_src: "{{ autoheal_install_dir | default('/opt/autoheal') }}"
         state: absent
       when: enabled_apps.autoheal_apps is defined and enabled_apps.autoheal_apps is not none
+      ignore_errors: true  # compose file may already be gone
+- name: "down: wazuh-agent"
+  hosts: "{{ (enabled_apps | dict2items | selectattr('key', 'match', '^wazuh_agent_') | list) | map(attribute='value.ansible_group') | join(':') | default('localhost', true) }}"
+  become: true
+  gather_facts: false
+  tags: [down, wazuh_agent]
+  tasks:
+    - name: Load role defaults
+      ansible.builtin.include_vars:
+        file: "../base/host-services/wazuh-agent/ansible/roles/wazuh_agent/defaults/main.yml"
+      when: (enabled_apps | dict2items | selectattr('key', 'match', '^wazuh_agent_') | list) | length > 0
+    - name: Stop and remove the compose stack
+      community.docker.docker_compose_v2:
+        project_src: "{{ wazuh_agent_install_dir | default('/opt/wazuh-agent') }}"
+        state: absent
+      when: (enabled_apps | dict2items | selectattr('key', 'match', '^wazuh_agent_') | list) | length > 0
       ignore_errors: true  # compose file may already be gone

@@ -41,20 +41,39 @@ errors=0
 warnings=0
 
 # Read into bash 3.2-portable arrays (no mapfile).
-app_ids=()
-while IFS= read -r line; do app_ids+=("$line"); done < <(yq '.apps[].id' "$MANIFEST")
+# Each entry is "<tier>:<id>" so we can locate the right HCL path.
+entries=()
+while IFS= read -r line; do entries+=("apps:$line"); done < <(yq '.apps[].id' "$MANIFEST")
+while IFS= read -r line; do entries+=("host_services:$line"); done < <(
+  yq '.host_services[].id // ""' "$MANIFEST" | awk 'NF'
+)
 
-for id in "${app_ids[@]}"; do
-  vars_tf="$REPO_ROOT/platform/apps/$id/terraform/variables.tf"
+for entry in "${entries[@]}"; do
+  tier="${entry%%:*}"
+  id="${entry#*:}"
+
+  case "$tier" in
+    apps)          vars_tf="$REPO_ROOT/platform/apps/$id/terraform/variables.tf" ;;
+    host_services) vars_tf="$REPO_ROOT/platform/base/host-services/$id/terraform/variables.tf" ;;
+    *)             echo "ERROR: unknown tier '$tier'" >&2; errors=$((errors+1)); continue ;;
+  esac
+
   if [[ ! -f "$vars_tf" ]]; then
     echo "ERROR [$id]: declared in manifest but $vars_tf is missing" >&2
     errors=$((errors+1))
     continue
   fi
 
+  # host_services manifest entries describe the consumer-facing var.base.<svc>
+  # nested-object shape (enabled, disabled_hosts, ...) — not the underlying
+  # bundle's flat HCL variables. Skip cross-referencing; trust the manifest.
+  if [[ "$tier" == "host_services" ]]; then
+    continue
+  fi
+
   manifest_inputs=()
   while IFS= read -r line; do manifest_inputs+=("$line"); done < <(
-    yq ".apps[] | select(.id == \"$id\") | .tfvars.schema | keys | .[]" "$MANIFEST"
+    yq ".${tier}[] | select(.id == \"$id\") | .tfvars.schema | keys | .[]" "$MANIFEST"
   )
 
   hcl_vars=()
@@ -101,4 +120,4 @@ if (( errors > 0 )); then
   echo "FAIL: $errors error(s), $warnings warning(s)"
   exit 1
 fi
-echo "OK: ${#app_ids[@]} app(s) checked, $warnings warning(s)"
+echo "OK: ${#entries[@]} bundle(s) checked, $warnings warning(s)"
