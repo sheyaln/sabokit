@@ -22,22 +22,6 @@ moved {
   to   = module.base.module.compute_host["identity"]
 }
 
-# ── Backrest per-host fan-out (v3.4.0) ───────────────────────────────────
-
-moved {
-  from = module.backrest_mgmt
-  to   = module.backrest["management"]
-}
-
-moved {
-  from = module.backrest["apps"]
-  to   = module.backrest["tools"]
-}
-
-moved {
-  from = module.backrest["authentik"]
-  to   = module.backrest["identity"]
-}
 
 # ── Diun → host-services tier (v3.4.0) ───────────────────────────────────
 # Zero TF resources in diun bundle, no moved{} needed. Consumers remove

@@ -1,0 +1,31 @@
+---
+# Stack composition layer validate.
+#
+# tests/local-validate/ exercises platform BUNDLES in isolation. This
+# workflow exercises consumer-template/modules/stack/'s composition layer,
+# which is where bugs that only manifest when bundles are wired together
+# slip through. Three v3.5.x patches in a row (v3.5.1 wazuh-ref,
+# v3.5.2 moved-ambiguity, v3.5.3 sensitive-flag propagation) all attributed
+# to the same coverage gap; this closes it.
+
+name: stack-composition-validate
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+    branches: [master]
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "1.7.5"
+          terraform_wrapper: false
+
+      - name: Run stack composition validate
+        run: bash tests/stack-composition-validate/validate.sh

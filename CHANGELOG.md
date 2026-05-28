@@ -2,6 +2,19 @@
 
 All notable changes to sabokit go here. Versioning follows semver; major bumps signal breaking contract changes for consumers.
 
+## v3.5.4 - 2026-05-27
+
+Closes the test-coverage gap that let three v3.5.x patches slip in a row. The existing `tests/local-validate/` fixture exercises platform bundles in isolation but does NOT go through `consumer-template/modules/stack/`'s composition layer — so bugs that only manifest when consumer-template wires bundles together (`module.wazuh` vs `module.core.wazuh` references, ambiguous moved{} blocks, sensitive-flag propagation into for_each) bypass CI.
+
+### Added
+
+- **`tests/stack-composition-validate/`** — companion fixture that exercises the composition layer end-to-end. The `validate.sh` script sed-rewrites every `?ref=v...` git URL in `consumer-template/modules/stack/*.tf` to point at the working tree's local `platform/` paths, runs `terraform init + validate`, then restores the source via `git checkout`. Refuses to run with uncommitted changes in the stack tree (cleanup uses `git checkout`). Catches the bug classes from v3.5.1 / v3.5.2 / v3.5.3 against the current working tree, not a previously-tagged release.
+- **`.github/workflows/stack-composition-validate.yml`** — wires the fixture into CI on every PR + push to master.
+
+### Operator migration notes
+
+- **No tfvars or config.tf changes.** Pure CI-side. Bump consumer-template/modules/stack/ refs to v3.5.4 when convenient; nothing forces it.
+
 ## v3.5.3 - 2026-05-27
 
 Third blocking-bug patch on the v3.5.x cycle. `sensitive = true` flags on wrapper variables (`var.apps`, `var.base`, `var.core`, `var.identity` in consumer-template, plus `var.loki`/`prometheus`/`grafana`/`wazuh` in platform/core) propagated sensitivity into every nested attribute, blocking `for_each` arguments downstream. Terraform refuses sensitive values as `for_each` keys because the key would leak into resource instance addresses.
