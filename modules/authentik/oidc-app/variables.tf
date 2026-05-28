@@ -59,16 +59,6 @@ variable "oidc_scopes" {
   description = "OIDC scopes the provider will expose. Defaults cover the common set; pass a different list to opt out of any."
   type        = list(string)
   default     = ["openid", "profile", "email", "groups"]
-
-  validation {
-    condition = alltrue([
-      for scope in var.oidc_scopes : contains([
-        "openid", "profile", "email", "entitlements", "offline_access", "groups",
-        "goauthentik.io/api", "user", "read:user", "user:email", "read:org"
-      ], scope)
-    ])
-    error_message = "OIDC scope must be one of: openid, profile, email, entitlements, offline_access, groups, goauthentik.io/api, user, read:user, user:email, read:org. Custom scopes are injected via additional_property_mapping_ids."
-  }
 }
 
 variable "additional_property_mapping_ids" {
