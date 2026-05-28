@@ -246,6 +246,12 @@ variable "tem_webhook_sns_topic_name" {
   default     = "tem-delivery-events"
 }
 
+variable "tem_webhook_name_override" {
+  description = "Override the auto-generated webhook name (default `<org_slug>-<environment>-tem-delivery`). Set when the auto-generated name collides with a leaked-name reservation from a previously-failed Scaleway create call — TEM holds names for an indeterminate period after a partial create, and the only operator escape is renaming. Empty string keeps the auto-generated name."
+  type        = string
+  default     = ""
+}
+
 # ── Host services ───────────────────────────────────────────────────────────
 # Per-host runtime watchers (autoheal, diun, wazuh-agent). Each service is
 # default-on at the category level. Consumer flips `enabled = false` to turn

@@ -32,7 +32,8 @@ module "base" {
 
   # Auto-wire TEM delivery webhook → SNS → n8n when n8n is enabled and exports
   # a URL. The base module emits zero webhook resources when the URL is empty.
-  tem_webhook_n8n_url = module.n8n.enabled ? coalesce(module.n8n.app_url, "") : ""
+  tem_webhook_n8n_url       = module.n8n.enabled ? coalesce(module.n8n.app_url, "") : ""
+  tem_webhook_name_override = try(var.base.tem_webhook_name_override, "")
 
   # Host-services sub-tier (one container per compute_host). Default-on as a
   # category; consumers flip `enabled = false` to turn a service off entirely
