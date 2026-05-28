@@ -40,40 +40,49 @@ consumer-template/
 
 ## Quick start
 
+The supported path is [sabokit-cli](https://github.com/sheyaln/sabokit-cli). It wraps every terraform / ansible / scaleway-cli invocation in pinned docker images — the only host requirements are `docker` and `ssh`. No local terraform, ansible, jq, python, scw.
+
 ```bash
-# 1. cp the template into your infra repo (sabokit as a submodule)
-git clone https://github.com/sheyaln/sabokit.git
-cp -r sabokit/consumer-template/* my-infra/
+curl -fsSL https://raw.githubusercontent.com/sheyaln/sabokit-cli/master/install.sh | bash
 
-# 2. Create your first environment
-cd my-infra
-cp -r environments/_template environments/prod
-cd environments/prod
+export SCW_ACCESS_KEY=... SCW_SECRET_KEY=... SCW_DEFAULT_PROJECT_ID=...
 
-# 3. Configure
-cp terraform.tfvars.example terraform.tfvars   && $EDITOR terraform.tfvars
-cp backend.hcl.example      backend.hcl        && $EDITOR backend.hcl
-cp inventory.ini.example    inventory.ini
+# 1. Scaffold the project (clones this template at a pinned tag, prompts for
+#    base_domain / org / first env / ssh user+key, writes .sabokit/config.yml)
+sabokit init my-stack
+cd my-stack
 
-# 4. Deploy (each step is idempotent; re-run any of them anytime)
-./preflight.sh
-./up.sh
-./configure.sh
-ansible-playbook ../../sabokit/platform/ansible/apps.yml \
-  -i inventory.ini -e @.ansible-vars.json \
-  -e env_name=prod -e gateway_domain=$(awk -F= '/^[[:space:]]*gateway_domain/{gsub(/[ "#]/,"",$2); print $2; exit}' terraform.tfvars)
+# 2. Optionally tweak compute_hosts / identity / apps before first deploy
+$EDITOR environments/prod/config.tf
+
+# 3. Full first deploy: terraform apply (base + identity), ansible bootstrap,
+#    terraform apply (full), every enabled app's ansible playbook, end-to-end.
+sabokit up
+
+# 4. Subsequent app redeploys / config pushes
+sabokit deploy                    # all enabled apps
+sabokit deploy --apps wazuh       # one app (its playbook + tags)
+sabokit deploy --apps backrest    # re-render config + restart on every host
+sabokit status                    # tf outputs + docker ps across hosts
+sabokit secrets list --tag authentik
 ```
 
-For staging or any other env, copy `_template` again and repeat. Each env has its own state, its own credentials, its own deploy.
+`sabokit init` does the equivalent of `cp -r consumer-template/` + `cp -r environments/_template environments/prod` + `cp *.example` + scaffolding state buckets. The shell scripts (`preflight.sh` / `up.sh` / `configure.sh`) and the per-env `_template/` layout described below still exist as a fallback for operators who want raw terraform / ansible without docker — `sabokit up` shells through to the same playbooks and state files.
 
-See `environments/_template/README.md` for the per-step checkpoints and re-deploy patterns.
+For staging or any other env, `sabokit init --env staging` repeats the scaffold under `environments/staging/`. Each env has its own state, its own credentials, its own deploy.
+
+See `environments/_template/README.md` for per-step checkpoints if you're driving terraform / ansible manually.
 
 ## Adding an app
 
-1. Find the app under `platform/apps/<name>/` in `sabokit`. Read its README.
-2. In `modules/stack/apps.tf`, add a `module "<name>"` block following the Outline pattern.
-3. In each env's `terraform.tfvars`, add `apps.<name> = { enabled = true, hostname = "…" }`.
-4. Re-run `./configure.sh` to apply the new TF, then `ansible-playbook ... apps.yml` to deploy.
+```bash
+sabokit apps list                 # browse the catalog (NAME, CATEGORY, DESCRIPTION)
+sabokit apps add wazuh            # edits environments/<env>/config.tf — uncomments the module, flips enabled
+$EDITOR environments/prod/config.tf  # set hostname + any per-app overrides
+sabokit up                        # picks up the new app on next apply + deploys
+```
+
+The manual path is still supported: add a `module "<name>"` block to `modules/stack/apps.tf` (following the Outline pattern), set `apps.<name> = { enabled = true, hostname = "…" }` in `config.tf`, then `./configure.sh` + `ansible-playbook ../../sabokit/platform/ansible/site.yml -i inventory.ini -e @.ansible-vars.json --tags <name>`. The umbrella playbook is `site.yml` (which imports `bootstrap.yml` + `host-services.yml` + `core.yml` + `apps.yml`); use `--tags <name>` to scope to one app, `--tags core` for monitoring stack only, `--tags apps` to skip bootstrap + host-services + core.
 
 ## Bumping sabokit
 
