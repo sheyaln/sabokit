@@ -50,6 +50,23 @@ module "identity" {
   # module's default (sabokit-assets pinned tag). Override to point at your
   # own CDN / internal mirror to retheme every app icon at once.
   icon_base_url = try(var.identity.icon_base_url, "")
+
+  # Optional fields. All default-empty / default-false at the platform module
+  # level; surfaced here so consumers can flip via var.identity.X without
+  # forking this file. `try()` keeps each independent — set only what you need.
+  admin_email                               = try(var.identity.admin_email, "")
+  from_name                                 = try(var.identity.from_name, "")
+  admin_user_pks                            = try(var.identity.admin_user_pks, [])
+  branding_logo                             = try(var.identity.branding_logo, "")
+  branding_favicon                          = try(var.identity.branding_favicon, "")
+  branding_default_flow_background          = try(var.identity.branding_default_flow_background, "")
+  enable_google_social_login                = try(var.identity.enable_google_social_login, false)
+  enable_apple_social_login                 = try(var.identity.enable_apple_social_login, false)
+  notification_webhook_url                  = try(var.identity.notification_webhook_url, "")
+  notification_test_mode                    = try(var.identity.notification_test_mode, false)
+  notification_support_contact_instructions = try(var.identity.notification_support_contact_instructions, "")
+  notification_welcome_message              = try(var.identity.notification_welcome_message, "")
+  member_id_label                           = try(var.identity.member_id_label, "")
 }
 
 # The merged "base" object app bundles consume. Apps reference
