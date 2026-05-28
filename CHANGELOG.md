@@ -2,6 +2,22 @@
 
 All notable changes to sabokit go here. Versioning follows semver; major bumps signal breaking contract changes for consumers.
 
+## v3.5.1 - 2026-05-27
+
+Blocking bug fix on the v3.5.0 cycle: `consumer-template/modules/stack/base.tf` referenced `module.wazuh` (relocated to `module.core.wazuh` at v3.4.0), making `terraform validate` fail on any consumer with `var.base.wazuh_agent` enabled (which is default-on at v3.4.0+). One-line fix.
+
+### Fixed
+
+- **`consumer-template/modules/stack/base.tf` wazuh-agent manager_address fallback.** Line 69 referenced `module.wazuh.{enabled,manager_private_ip}` — a path that disappeared when the wazuh manager moved to `platform/core/` at v3.4.0. Updated to `try(module.core.wazuh.enabled, false) ? module.core.wazuh.manager_private_ip : ""`. The `try(...)` wrap is defensive: when `var.core.wazuh.enabled = false` the module still exists but the attribute access on a count-0 module would otherwise plan-error.
+
+### Operator migration notes
+
+- **No tfvars or config.tf changes.** Bump `consumer-template/modules/stack/` refs from `v3.5.0` to `v3.5.1` and re-validate. The bug was purely in the upstream composition layer; consumer-side state is unaffected.
+
+### Fixture coverage gap (follow-up, not gating)
+
+The `tests/local-validate/` fixture instantiates platform bundles directly but does not exercise `consumer-template/modules/stack/`'s composition layer, which is why this bug slipped past validation. Tracked as a follow-up; not gating v3.5.1.
+
 ## v3.5.0 - 2026-05-27
 
 Operator config rule enforcement + credentials_preserve removal. Two breaking changes for consumers running v3.4.0: per-env values move to `terraform.tfvars` (split from `config.tf`), and the credentials_preserve / credentials_preserve_source knobs are gone. Both require operator action on the v3.4.0 → v3.5.0 bump.
