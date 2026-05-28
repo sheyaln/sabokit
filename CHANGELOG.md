@@ -4,16 +4,32 @@ All notable changes to sabokit go here. Versioning follows semver; major bumps s
 
 ## v3.5.4 - 2026-05-27
 
-Closes the test-coverage gap that let three v3.5.x patches slip in a row. The existing `tests/local-validate/` fixture exercises platform bundles in isolation but does NOT go through `consumer-template/modules/stack/`'s composition layer — so bugs that only manifest when consumer-template wires bundles together (`module.wazuh` vs `module.core.wazuh` references, ambiguous moved{} blocks, sensitive-flag propagation into for_each) bypass CI.
+Stops shipping upstream `moved {}` blocks entirely. Every state migration is now fork-local. Upstream can't know what addresses a fork has in state, and any defensive block here collides with the fork's matching block targeting the same address (terraform's "Each module instance can have moved from only one source instance" check). Greenfield consumers have nothing to migrate; upgrading consumers write their own.
+
+Also closes the test-coverage gap that let multiple v3.5.x patches slip.
+
+### Removed
+
+- **`consumer-template/modules/stack/migrations.tf` deleted outright** — every `moved {}` block gone: compute_host renames, backrest_mgmt → backrest["management"], autoheal_apps → base.module.autoheal["tools"], wazuh_agent_apps → base.module.wazuh_agent["tools"], the core relocations (loki/prometheus/grafana/wazuh → core.module.X). All of it. Consumers write their own fork-local moved blocks. The rule is documented in `consumer-template/modules/stack/README.md` for future reference.
 
 ### Added
 
-- **`tests/stack-composition-validate/`** — companion fixture that exercises the composition layer end-to-end. The `validate.sh` script sed-rewrites every `?ref=v...` git URL in `consumer-template/modules/stack/*.tf` to point at the working tree's local `platform/` paths, runs `terraform init + validate`, then restores the source via `git checkout`. Refuses to run with uncommitted changes in the stack tree (cleanup uses `git checkout`). Catches the bug classes from v3.5.1 / v3.5.2 / v3.5.3 against the current working tree, not a previously-tagged release.
+- **`tests/stack-composition-validate/`** — companion fixture that exercises the composition layer end-to-end. The `validate.sh` script sed-rewrites every `?ref=v...` git URL in `consumer-template/modules/stack/*.tf` to point at the working tree's local `platform/` paths, runs `terraform init + validate`, then restores the source via `git checkout`.
 - **`.github/workflows/stack-composition-validate.yml`** — wires the fixture into CI on every PR + push to master.
 
 ### Operator migration notes
 
-- **No tfvars or config.tf changes.** Pure CI-side. Bump consumer-template/modules/stack/ refs to v3.5.4 when convenient; nothing forces it.
+- **Every consumer upgrading from v3.3.x / v3.4.x writes their own moved blocks** in a fork-local migrations.tf. The shapes you need:
+  - `module.backrest_mgmt → module.backrest["management"]` (if you had the upstream-default single instance)
+  - Whatever per-host backrest blocks your fork has → `module.backrest["<host_key>"]`
+  - `module.compute_host["apps"] → module.compute_host["tools"]` (if you renamed compute_hosts keys to canonical)
+  - `module.compute_host["authentik"] → module.compute_host["identity"]` (same)
+  - Whatever autoheal/wazuh-agent/diun/loki/prometheus/grafana/wazuh-manager addresses your fork had → their new addresses under `module.base.module.<svc>["<host>"]` / `module.core.module.<svc>`
+- Greenfield consumers do nothing — `migrations.tf` is empty of moves and there's nothing to migrate from.
+
+### Why this is the rule from here on
+
+Upstream tests can't see fork-local moved.tf entries. Any upstream `moved { to = X }` is a landmine for any fork that ships its own `moved { to = X }` from a different `from`. Caught four times in the v3.5.x patch series (autoheal apps/identity, wazuh_agent apps/identity, backrest apps/identity, then backrest_mgmt). Not catchable on the upstream side. The only safe-by-construction shape: upstream ships zero moves, consumers own all state migrations.
 
 ## v3.5.3 - 2026-05-27
 
