@@ -71,7 +71,7 @@ output "ansible" {
       jitsi_oidc_adapter_repo     = var.oidc_adapter_image_repo
       jitsi_oidc_adapter_version  = var.oidc_adapter_image_version
       jitsi_oidc_log_level        = var.oidc_log_level
-      jitsi_authentik_gateway     = var.base.authentik.gateway_domain
+      jitsi_authentik_gateway     = var.base.authentik.identity_domain
       jitsi_app_secret_id         = local.app_secret_id
       jitsi_diun_watch_enabled    = var.diun_watch_enabled
       jitsi_autoheal_enabled      = var.autoheal_enabled

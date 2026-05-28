@@ -18,7 +18,7 @@ Add this env's block to `environments/env-values.yml` (copy
 prod:
   scaleway_project_id: "…"
   base_domain: "example.org"
-  gateway_domain: "auth.example.org"
+  identity_domain: "auth.example.org"
   infra_email: "ops@example.org"
 ```
 

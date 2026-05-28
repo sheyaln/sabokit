@@ -1,9 +1,9 @@
 # ── Domain inputs ───────────────────────────────────────────────────────────
 # Mirrors what base/scaleway/ outputs in its `domains` object. The consumer
-# typically wires these as `base.domains.gateway_domain` / `base.domains.base_domain`.
+# typically wires these as `base.domains.identity_domain` / `base.domains.base_domain`.
 
-variable "gateway_domain" {
-  description = "Hostname of the Authentik gateway (e.g. \"auth.example.org\"). Matches base.domains.gateway_domain."
+variable "identity_domain" {
+  description = "Hostname of the Authentik gateway (e.g. \"auth.example.org\"). Matches base.domains.identity_domain."
   type        = string
 }
 

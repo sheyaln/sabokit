@@ -73,11 +73,11 @@ resource "scaleway_secret_version" "app" {
 
     OIDC_CLIENT_ID     = module.authentik[0].client_id
     OIDC_CLIENT_SECRET = module.authentik[0].client_secret
-    OIDC_AUTH_URI      = "https://${var.base.authentik.gateway_domain}/application/o/authorize/"
-    OIDC_TOKEN_URI     = "https://${var.base.authentik.gateway_domain}/application/o/token/"
-    OIDC_USERINFO_URI  = "https://${var.base.authentik.gateway_domain}/application/o/userinfo/"
-    OIDC_LOGOUT_URI    = "https://${var.base.authentik.gateway_domain}/application/o/${local.application_slug}/end-session/"
-    OIDC_ISSUER_URL    = "https://${var.base.authentik.gateway_domain}/application/o/${local.application_slug}/"
+    OIDC_AUTH_URI      = "https://${var.base.authentik.identity_domain}/application/o/authorize/"
+    OIDC_TOKEN_URI     = "https://${var.base.authentik.identity_domain}/application/o/token/"
+    OIDC_USERINFO_URI  = "https://${var.base.authentik.identity_domain}/application/o/userinfo/"
+    OIDC_LOGOUT_URI    = "https://${var.base.authentik.identity_domain}/application/o/${local.application_slug}/end-session/"
+    OIDC_ISSUER_URL    = "https://${var.base.authentik.identity_domain}/application/o/${local.application_slug}/"
     OIDC_SCOPES        = "openid profile email"
 
     # Decidim reads AWS_BUCKET / AWS_ENDPOINT / AWS_PUBLIC (boolean), not the

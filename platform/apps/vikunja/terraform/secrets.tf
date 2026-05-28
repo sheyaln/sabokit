@@ -34,8 +34,8 @@ resource "scaleway_secret_version" "app" {
 
     VIKUNJA_AUTH_OPENID_CLIENTID     = module.authentik[0].client_id
     VIKUNJA_AUTH_OPENID_CLIENTSECRET = module.authentik[0].client_secret
-    VIKUNJA_AUTH_OPENID_AUTHURL      = "https://${var.base.authentik.gateway_domain}/application/o/${local.application_slug}/"
-    VIKUNJA_AUTH_OPENID_LOGOUTURL    = "https://${var.base.authentik.gateway_domain}/application/o/${local.application_slug}/end-session/"
+    VIKUNJA_AUTH_OPENID_AUTHURL      = "https://${var.base.authentik.identity_domain}/application/o/${local.application_slug}/"
+    VIKUNJA_AUTH_OPENID_LOGOUTURL    = "https://${var.base.authentik.identity_domain}/application/o/${local.application_slug}/end-session/"
 
     # SMTP from-address. Actual SMTP host/port/username/password come from
     # the platform-wide smtp-config secret (looked up by the Ansible role

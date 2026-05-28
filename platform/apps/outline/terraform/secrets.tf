@@ -48,10 +48,10 @@ resource "scaleway_secret_version" "app" {
     # OIDC_CLIENT_SECRET is also available at scaleway secret module.authentik[0].scaleway_secret_id;
     # we embed here too for convenience of the ansible role.
     OIDC_CLIENT_SECRET  = module.authentik[0].client_secret
-    OIDC_AUTH_URI       = "https://${var.base.authentik.gateway_domain}/application/o/authorize/"
-    OIDC_TOKEN_URI      = "https://${var.base.authentik.gateway_domain}/application/o/token/"
-    OIDC_USERINFO_URI   = "https://${var.base.authentik.gateway_domain}/application/o/userinfo/"
-    OIDC_LOGOUT_URI     = "https://${var.base.authentik.gateway_domain}/application/o/${local.application_slug}/end-session/"
+    OIDC_AUTH_URI       = "https://${var.base.authentik.identity_domain}/application/o/authorize/"
+    OIDC_TOKEN_URI      = "https://${var.base.authentik.identity_domain}/application/o/token/"
+    OIDC_USERINFO_URI   = "https://${var.base.authentik.identity_domain}/application/o/userinfo/"
+    OIDC_LOGOUT_URI     = "https://${var.base.authentik.identity_domain}/application/o/${local.application_slug}/end-session/"
     OIDC_USERNAME_CLAIM = var.oidc_username_claim
     OIDC_DISPLAY_NAME   = "Authentik"
     OIDC_SCOPES         = "openid profile email"

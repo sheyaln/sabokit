@@ -33,8 +33,8 @@ resource "authentik_outpost" "embedded" {
   protocol_providers = var.extra_forward_auth_provider_ids
 
   config = jsonencode({
-    authentik_host          = "https://${var.gateway_domain}/"
-    authentik_host_browser  = "https://${var.gateway_domain}/"
+    authentik_host          = "https://${var.identity_domain}/"
+    authentik_host_browser  = "https://${var.identity_domain}/"
     authentik_host_insecure = false
     log_level               = "info"
     object_naming_template  = "ak-outpost-%(name)s"

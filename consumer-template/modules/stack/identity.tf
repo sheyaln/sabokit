@@ -1,8 +1,8 @@
 module "identity" {
   source = "git::https://github.com/sheyaln/sabokit.git//platform/identity/terraform?ref=v0.1.0"
 
-  gateway_domain = module.base.domains.gateway_domain
-  base_domain    = module.base.domains.base_domain
+  identity_domain = module.base.domains.identity_domain
+  base_domain     = module.base.domains.base_domain
 
   org_name    = var.org_name
   org_slug    = var.org_slug

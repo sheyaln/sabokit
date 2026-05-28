@@ -4,7 +4,7 @@
 # Template variables (rendered by Terraform templatefile()):
 #   - webhook_url:                   URL for the lifecycle webhook (may be empty)
 #   - tools_domain:                  base apps domain (e.g. example.org)
-#   - gateway_domain:                Authentik gateway hostname (e.g. auth.example.org)
+#   - identity_domain:                Authentik gateway hostname (e.g. auth.example.org)
 #   - org_name:                      Organization display name
 #   - test_mode:                     "True" or "False" — controls recipient set
 #   - target_groups_json:            JSON list of group names notified in normal mode
@@ -46,7 +46,7 @@ def send_webhook_notification(event_type, user_data):
     payload = {
         "event": event_type,
         "user": user_data,
-        "gateway_url": "https://${gateway_domain}"
+        "gateway_url": "https://${identity_domain}"
     }
 
     try:
@@ -217,7 +217,7 @@ try:
 
 Your account on the ${org_name} Gateway has been activated.
 
-You can now log in at: https://${gateway_domain}/{login_instruction}
+You can now log in at: https://${identity_domain}/{login_instruction}
 
 ${support_contact_instructions}
 

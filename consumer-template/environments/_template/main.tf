@@ -28,10 +28,10 @@ module "stack" {
   scaleway_region     = local.env.scaleway_region
   scaleway_zone       = local.env.scaleway_zone
 
-  base_domain    = local.env.base_domain
-  mgmt_domain    = local.env.mgmt_domain != "" ? local.env.mgmt_domain : null
-  gateway_domain = local.env.gateway_domain
-  infra_email    = local.env.infra_email
+  base_domain     = local.env.base_domain
+  mgmt_domain     = local.env.mgmt_domain != "" ? local.env.mgmt_domain : null
+  identity_domain = local.env.identity_domain
+  infra_email     = local.env.infra_email
 
   compute_hosts          = local.config.compute_hosts
   private_network_subnet = local.env.private_network_subnet
@@ -56,8 +56,8 @@ output "compute_hosts" {
   value = module.stack.compute_hosts
 }
 
-output "authentik_gateway_domain" {
-  value = module.stack.authentik_gateway_domain
+output "authentik_identity_domain" {
+  value = module.stack.authentik_identity_domain
 }
 
 output "postgres_admin_credentials_secret_id" {

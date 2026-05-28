@@ -36,10 +36,10 @@ resource "scaleway_secret_version" "app" {
 
     OIDC_CLIENT_ID              = module.authentik[0].client_id
     OIDC_CLIENT_SECRET          = module.authentik[0].client_secret
-    OIDC_AUTHORIZATION_ENDPOINT = "https://${var.base.authentik.gateway_domain}/application/o/authorize/"
-    OIDC_TOKEN_ENDPOINT         = "https://${var.base.authentik.gateway_domain}/application/o/token/"
-    OIDC_USERINFO_ENDPOINT      = "https://${var.base.authentik.gateway_domain}/application/o/userinfo/"
-    OIDC_JWKS_ENDPOINT          = "https://${var.base.authentik.gateway_domain}/application/o/${local.application_slug}/jwks/"
+    OIDC_AUTHORIZATION_ENDPOINT = "https://${var.base.authentik.identity_domain}/application/o/authorize/"
+    OIDC_TOKEN_ENDPOINT         = "https://${var.base.authentik.identity_domain}/application/o/token/"
+    OIDC_USERINFO_ENDPOINT      = "https://${var.base.authentik.identity_domain}/application/o/userinfo/"
+    OIDC_JWKS_ENDPOINT          = "https://${var.base.authentik.identity_domain}/application/o/${local.application_slug}/jwks/"
     OIDC_REDIRECT_URI           = local.oidc_callback_url
     OIDC_LOGOUT_URL             = local.oidc_logout_url
 

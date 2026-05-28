@@ -23,10 +23,10 @@ locals {
     try(sort(keys(var.compute_hosts))[0], null),
   )
 
-  # Subdomain = gateway_domain with the trailing ".${base_domain}" stripped.
+  # Subdomain = identity_domain with the trailing ".${base_domain}" stripped.
   # "auth.example.org" with base_domain="example.org" → "auth".
   # "auth.staging.example.org" with base_domain="staging.example.org" → "auth".
-  gateway_subdomain = trimsuffix(replace(var.gateway_domain, ".${var.base_domain}", ""), ".${var.base_domain}")
+  gateway_subdomain = trimsuffix(replace(var.identity_domain, ".${var.base_domain}", ""), ".${var.base_domain}")
 }
 
 resource "scaleway_domain_record" "gateway" {

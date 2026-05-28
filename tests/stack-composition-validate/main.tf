@@ -68,10 +68,10 @@ module "stack" {
   scaleway_region     = "fr-par"
   scaleway_zone       = "fr-par-1"
 
-  base_domain    = "example.org"
-  mgmt_domain    = "example.org"
-  gateway_domain = "auth.example.org"
-  infra_email    = "ops@example.org"
+  base_domain     = "example.org"
+  mgmt_domain     = "example.org"
+  identity_domain = "auth.example.org"
+  infra_email     = "ops@example.org"
 
   private_network_subnet = "10.0.0.0/22"
 

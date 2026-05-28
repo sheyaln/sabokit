@@ -35,10 +35,10 @@ resource "scaleway_secret_version" "app" {
     GRAFANA_ADMIN_PASSWORD = local.admin_password
     OIDC_CLIENT_ID         = module.authentik[0].client_id
     OIDC_CLIENT_SECRET     = module.authentik[0].client_secret
-    OIDC_AUTH_URL          = "https://${var.base.authentik.gateway_domain}/application/o/authorize/"
-    OIDC_TOKEN_URL         = "https://${var.base.authentik.gateway_domain}/application/o/token/"
-    OIDC_API_URL           = "https://${var.base.authentik.gateway_domain}/application/o/userinfo/"
-    OIDC_SIGNOUT_URL       = "https://${var.base.authentik.gateway_domain}/application/o/${local.application_slug}/end-session/"
+    OIDC_AUTH_URL          = "https://${var.base.authentik.identity_domain}/application/o/authorize/"
+    OIDC_TOKEN_URL         = "https://${var.base.authentik.identity_domain}/application/o/token/"
+    OIDC_API_URL           = "https://${var.base.authentik.identity_domain}/application/o/userinfo/"
+    OIDC_SIGNOUT_URL       = "https://${var.base.authentik.identity_domain}/application/o/${local.application_slug}/end-session/"
   })
 
   lifecycle {

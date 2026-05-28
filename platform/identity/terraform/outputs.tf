@@ -27,7 +27,7 @@ output "authentik" {
   value = {
     api_url             = var.api_url
     api_token_secret_id = var.api_token_secret_id
-    gateway_domain      = var.gateway_domain
+    identity_domain     = var.identity_domain
     org_name            = var.org_name
 
     flows = {

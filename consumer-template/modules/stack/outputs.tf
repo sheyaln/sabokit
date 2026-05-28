@@ -6,9 +6,9 @@ output "compute_hosts" {
   value       = module.base.compute.hosts
 }
 
-output "authentik_gateway_domain" {
+output "authentik_identity_domain" {
   description = "Where to point DNS so users can reach Authentik."
-  value       = module.base.domains.gateway_domain
+  value       = module.base.domains.identity_domain
 }
 
 output "postgres_admin_credentials_secret_id" {

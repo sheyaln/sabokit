@@ -47,9 +47,9 @@ locals {
   }
 
   domains_output = {
-    base_domain    = var.base_domain
-    mgmt_domain    = local.mgmt_domain
-    gateway_domain = local.gateway_domain
+    base_domain     = var.base_domain
+    mgmt_domain     = local.mgmt_domain
+    identity_domain = local.identity_domain
 
     # Set of DNS zones the consumer owns. Per-app DNS modules consult this for
     # longest-suffix-match zone routing (split-domain setups). compact + distinct

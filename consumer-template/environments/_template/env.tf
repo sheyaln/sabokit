@@ -14,7 +14,7 @@ locals {
   env_name = basename(abspath(path.root))
 
   # Non-secret defaults for rarely-varied keys; a slice's explicit values win.
-  # Required keys (scaleway_project_id, base_domain, gateway_domain, infra_email)
+  # Required keys (scaleway_project_id, base_domain, identity_domain, infra_email)
   # are intentionally absent here so an incomplete slice fails loudly.
   _env_defaults = {
     scaleway_region        = "fr-par"

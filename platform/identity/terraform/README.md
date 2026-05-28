@@ -13,7 +13,7 @@ See [`ARCHITECTURE.md`](../../ARCHITECTURE.md) for the full base/app contract.
 
 ## What this provisions
 
-- A default brand bound to `var.gateway_domain` with custom CSS and the
+- A default brand bound to `var.identity_domain` with custom CSS and the
   branding asset filenames you pass in.
 - The standard flow set (authentication, source-auth, source-enrollment,
   manual enrollment, password reset, MFA reset, email-invitation, user
@@ -51,7 +51,7 @@ The full input set is documented in `variables.tf`. The minimum required is:
 
 | Input            | Why                                                  |
 |------------------|------------------------------------------------------|
-| `gateway_domain` | Hostname the Authentik admin/portal answers on       |
+| `identity_domain` | Hostname the Authentik admin/portal answers on       |
 | `base_domain`    | Apps domain (used in flow titles and email bodies)   |
 | `org_name`       | Organization display name                            |
 | `org_slug`       | URL-safe slug                                        |
@@ -69,7 +69,7 @@ and provision the corresponding Scaleway secret
 output "authentik" = {
   api_url              = string
   api_token_secret_id  = string
-  gateway_domain       = string
+  identity_domain       = string
   org_name             = string
   flows = {
     authentication_flow        = string  # UUID
@@ -95,7 +95,7 @@ the canonical names apps look up — keep them stable across forks.
 
 ## Integration with `base/scaleway`
 
-`base/scaleway/` outputs `domains.gateway_domain` and `domains.base_domain`;
+`base/scaleway/` outputs `domains.identity_domain` and `domains.base_domain`;
 wire them through to this module.
 
 ## SMTP (optional)

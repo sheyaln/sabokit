@@ -243,7 +243,7 @@ output "authentik" {
   value = {
     api_url              = string  # for the provider block
     api_token_secret_id  = string  # Scaleway Secret Manager ID
-    gateway_domain       = string  # e.g. "auth.example.org"
+    identity_domain       = string  # e.g. "auth.example.org"
     org_name             = string
     flows = object({
       authentication_flow      = string  # UUID

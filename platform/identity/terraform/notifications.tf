@@ -55,7 +55,7 @@ resource "authentik_policy_expression" "user_activated_send_email" {
   expression = templatefile("${path.module}/expressions/policy-user-activation-notification.py.tpl", {
     webhook_url                  = var.notification_webhook_url
     tools_domain                 = var.base_domain
-    gateway_domain               = var.gateway_domain
+    identity_domain              = var.identity_domain
     org_name                     = var.org_name
     test_mode                    = var.notification_test_mode ? "True" : "False"
     target_groups_json           = local.notification_target_groups_json

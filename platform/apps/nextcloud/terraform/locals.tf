@@ -16,7 +16,7 @@ locals {
 
   # Nextcloud's user_oidc app expects the callback at /apps/user_oidc/code.
   oidc_callback_url = "https://${var.hostname}/apps/user_oidc/code"
-  oidc_issuer_url   = "https://${var.base.authentik.gateway_domain}/application/o/${local.application_slug}/"
+  oidc_issuer_url   = "https://${var.base.authentik.identity_domain}/application/o/${local.application_slug}/"
   app_url           = "https://${var.hostname}"
   onlyoffice_url    = "https://${var.onlyoffice_hostname}"
   talk_url          = "https://${var.talk_hostname}"

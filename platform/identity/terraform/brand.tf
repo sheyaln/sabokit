@@ -1,10 +1,10 @@
 resource "authentik_brand" "default" {
-  domain = var.gateway_domain
+  domain = var.identity_domain
 
   # Authentik auto-creates exactly one default-fallback brand on first boot
   # (domain="authentik-default"), and refuses a second `default = true`. We
   # leave the auto-default in place as the catch-all and match-by-domain
-  # routes requests to gateway_domain into THIS brand. Set default = true
+  # routes requests to identity_domain into THIS brand. Set default = true
   # manually post-deploy if you want this brand to also be the fallback.
   default = false
 

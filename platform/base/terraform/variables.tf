@@ -54,7 +54,7 @@ variable "mgmt_domain" {
   default     = null
 }
 
-variable "gateway_domain" {
+variable "identity_domain" {
   description = "Hostname of the Authentik gateway (e.g. \"auth.example.org\"). Used by base/authentik/."
   type        = string
   default     = null

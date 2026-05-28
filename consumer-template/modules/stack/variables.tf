@@ -85,13 +85,13 @@ variable "mgmt_domain" {
   }
 }
 
-variable "gateway_domain" {
+variable "identity_domain" {
   description = "Hostname Authentik is served at (e.g. \"auth.example.org\")."
   type        = string
 
   validation {
-    condition     = can(regex("^([a-z0-9]([a-z0-9-]*[a-z0-9])?\\.)+[a-z]{2,}$", var.gateway_domain))
-    error_message = "gateway_domain must be a valid DNS name (e.g. auth.example.org)."
+    condition     = can(regex("^([a-z0-9]([a-z0-9-]*[a-z0-9])?\\.)+[a-z]{2,}$", var.identity_domain))
+    error_message = "identity_domain must be a valid DNS name (e.g. auth.example.org)."
   }
 }
 

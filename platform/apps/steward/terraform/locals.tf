@@ -20,7 +20,7 @@ locals {
   # URLs Steward talks back to Authentik on. The OIDC ones are reachable from
   # both the browser and the Steward container (same hostname in prod, unlike
   # the dev compose stack). The API URL is server-to-server only.
-  authentik_base      = "https://${var.base.authentik.gateway_domain}"
+  authentik_base      = "https://${var.base.authentik.identity_domain}"
   oidc_auth_endpoint  = "${local.authentik_base}/application/o/authorize/"
   oidc_token_endpoint = "${local.authentik_base}/application/o/token/"
   oidc_userinfo_endpt = "${local.authentik_base}/application/o/userinfo/"

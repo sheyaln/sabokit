@@ -58,7 +58,7 @@ module "base" {
   org_slug               = "fctest"
   environment            = "dev"
   base_domain            = "example.org"
-  gateway_domain         = "auth.example.org"
+  identity_domain        = "auth.example.org"
   private_network_subnet = "10.0.0.0/22"
 
   compute_hosts = {
@@ -85,11 +85,11 @@ module "identity_bootstrap" {
 module "authentik" {
   source = "../../platform/identity/terraform"
 
-  gateway_domain = module.base.domains.gateway_domain
-  base_domain    = module.base.domains.base_domain
-  org_name       = "Sabokit Test"
-  org_slug       = "sabokittest"
-  infra_email    = "ops@example.org"
+  identity_domain = module.base.domains.identity_domain
+  base_domain     = module.base.domains.base_domain
+  org_name        = "Sabokit Test"
+  org_slug        = "sabokittest"
+  infra_email     = "ops@example.org"
 
   tier_slots = [
     { name = "tier-1", peers = { member = "member" } },

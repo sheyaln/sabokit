@@ -53,6 +53,6 @@ provider "scaleway" {
 }
 
 provider "authentik" {
-  url   = "https://${local.env.gateway_domain}"
+  url   = "https://${local.env.identity_domain}"
   token = var.authentik_admin_token
 }
