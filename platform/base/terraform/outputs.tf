@@ -110,6 +110,7 @@ output "host_services" {
     }
     wazuh_agent = {
       for k, m in module.wazuh_agent : k => {
+        enabled       = m.enabled
         ansible_vars  = m.ansible.vars
         ansible_group = m.ansible.host_group
       }
