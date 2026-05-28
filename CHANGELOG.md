@@ -2,6 +2,18 @@
 
 All notable changes to sabokit go here. Versioning follows semver; major bumps signal breaking contract changes for consumers.
 
+## v3.5.11 - 2026-05-28
+
+Fixes broadsheet OIDC redirect URI: the Authentik provider was registered with `https://<hostname>/auth/oidc/callback` but the broadsheet app actually mounts its OIDC callback at `/api/auth/oidc/callback`. Login attempts fail with "Redirect URI does not match" until the URI is corrected.
+
+### Fixed
+
+- **`platform/apps/broadsheet/terraform/locals.tf`** — `oidc_callback_url` path corrected from `/auth/oidc/callback` to `/api/auth/oidc/callback`.
+
+### Operator migration notes
+
+- **Bump `consumer-template/modules/stack/` refs from `v3.5.10` to `v3.5.11`.** On apply the broadsheet Authentik provider's allowed redirect URI updates in place; login works immediately after.
+
 ## v3.5.10 - 2026-05-28
 
 Adds `var.base.tem_webhook_name_override` so consumers can dodge Scaleway's TEM webhook name-reservation bug. When a `scaleway_tem_webhook` create call partial-succeeds (e.g. quota hit on a parallel SNS namespace create), Scaleway holds the name in an unreachable internal state — `scw tem webhook list` returns empty but a subsequent create with the same name 409s "A webhook with the same name already exists" indefinitely. The only operator escape is renaming. Default behaviour unchanged: empty override keeps the auto-generated `<org_slug>-<environment>-tem-delivery` name.

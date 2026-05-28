@@ -11,7 +11,7 @@ locals {
     )
   ) : {}
 
-  oidc_callback_url = "https://${var.hostname}/auth/oidc/callback"
+  oidc_callback_url = "https://${var.hostname}/api/auth/oidc/callback"
   app_url           = "https://${var.hostname}"
   api_endpoint      = local.app_url
 
