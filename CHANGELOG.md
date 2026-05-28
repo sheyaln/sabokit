@@ -2,6 +2,36 @@
 
 All notable changes to sabokit go here. Versioning follows semver; major bumps signal breaking contract changes for consumers.
 
+## v3.5.6 - 2026-05-28
+
+Four bugs that surfaced when planning v3.5.5 against a real consumer (dciww):
+
+1. **Per-app DB user passwords rotate on apply.** The per-app postgres_database module had `ignore_changes = [data]` on `scaleway_secret_version.this` (secret bag pinned) but no `ignore_changes = [password]` on `scaleway_rdb_user.this`. When `random_password.this[0]` rebuilds — which happens on every consumer cutover off `credentials_preserve` mode — the RDB user gets the new password while the secret bag stays on the old value. Apps pull old creds → DB rejects → every app DB connection breaks.
+2. **Authentik admin group gets emptied** when consumer doesn't set `var.identity.admin_user_pks`. The consumer-template defaulted to `[]` (empty list) instead of `null`. Platform module treats `[]` as "set to zero users" and `null` as "UI-managed, TF doesn't touch". Net effect: live admin users removed from the admin group on first apply.
+3. **App icons + Authentik branding wiped** on first apply. Consumer-template forwarded `icon_url = try(..., null)` and `branding_* = try(..., "")` — the wrong sentinels. Platform module logic treats `null` icon_url as "set icon to null" instead of falling through to `icon_filename`, and treats `""` branding values as "set branding to empty" instead of using the platform default ("logo.png" / "favicon.png" / "background.jpg"). Effect: every app's portal icon goes blank, brand logo/favicon/flow-background all wipe.
+4. **Enrollment prompt labels + notification messages wipe** for the same reason. `member_id_label`, `notification_support_contact_instructions`, `notification_welcome_message` all had platform defaults the consumer-template overrode with `""`.
+
+### Fixed
+
+- **`modules/infrastructure/storage/postgres_database/main.tf`** — added `lifecycle { ignore_changes = [password] }` to `scaleway_rdb_user.this`. Live DB user password now pins alongside the secret bag. Rotate by tainting `random_password.this` and applying both resources together.
+- **`consumer-template/modules/stack/apps.tf`** — every `icon_url = try(var.apps.<app>.icon_url, null)` flipped to `try(..., "")`. Eleven apps: outline, steward, vikunja, bentopdf, broadsheet, nextcloud, decidim, jitsi, espocrm, n8n, backrest. Empty string falls through to the `icon_filename`-driven URL the platform module computes.
+- **`platform/core/terraform/main.tf`** — same fix for grafana + wazuh `icon_url` defaults.
+- **`consumer-template/modules/stack/identity.tf`** — every optional `try(var.identity.X, ...)` default now mirrors the platform module's variable default verbatim:
+  - `admin_user_pks` → `null` (was `[]`)
+  - `branding_logo` → `"logo.png"` (was `""`)
+  - `branding_favicon` → `"favicon.png"` (was `""`)
+  - `branding_default_flow_background` → `"background.jpg"` (was `""`)
+  - `member_id_label` → `"Member ID"` (was `""`)
+  - `notification_support_contact_instructions` → `"Contact your administrator if you have questions."` (was `""`)
+  - `notification_welcome_message` → `"Welcome!"` (was `""`)
+  - String/bool fields that genuinely default to `""`/`false` upstream stay the same.
+
+### Operator migration notes
+
+- **Bump `consumer-template/modules/stack/` refs from `v3.5.5` to `v3.5.6`.** No tfvars changes required. Consumers who explicitly set any of the affected `var.identity.*` / `var.apps.*.icon_url` fields keep their override behaviour (the `try()` short-circuits before the default kicks in).
+- **Consumers that hit per-app DB password rotation in v3.5.x** (any plan that showed `scaleway_rdb_user.this.password = (sensitive value)` for an app whose `random_password.this[0]` was being created): bumping to v3.5.6 makes the live password sticky again. The pending random_password value lands in state on apply but `ignore_changes = [password]` blocks it from reaching the live RDB user.
+- **The `consumer-template-forwards-all-vars` rule extends:** every `try(var.X, <default>)` in the composition layer must mirror the platform module's own default exactly. A passthrough with the wrong sentinel is worse than no passthrough — it silently overrides the platform default with something semantically different.
+
 ## v3.5.5 - 2026-05-28
 
 Two behaviour fixes a consumer upgrade off v3.5.4 trips into immediately.

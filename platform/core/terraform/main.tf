@@ -173,7 +173,7 @@ module "grafana" {
   category_group    = try(var.grafana.category_group, "Technical Management")
   application_name  = try(var.grafana.application_name, "Grafana")
   application_slug  = try(var.grafana.application_slug, "")
-  icon_url          = try(var.grafana.icon_url, null)
+  icon_url          = try(var.grafana.icon_url, "")
   icon_filename     = try(var.grafana.icon_filename, "grafana-icon.png")
 
   image          = try(var.grafana.image, "grafana/grafana")
@@ -233,7 +233,7 @@ module "wazuh" {
   category_group    = try(var.wazuh.category_group, "Technical Management")
   application_name  = try(var.wazuh.application_name, "Wazuh")
   application_slug  = try(var.wazuh.application_slug, "")
-  icon_url          = try(var.wazuh.icon_url, null)
+  icon_url          = try(var.wazuh.icon_url, "")
   icon_filename     = try(var.wazuh.icon_filename, "wazuh-icon.png")
 
   release_version     = try(var.wazuh.release_version, "4.9.0")

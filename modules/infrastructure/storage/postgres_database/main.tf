@@ -40,6 +40,17 @@ resource "scaleway_rdb_user" "this" {
   instance_id = var.instance_id
 
   depends_on = [scaleway_rdb_database.this]
+
+  lifecycle {
+    # The matching scaleway_secret_version.this below has ignore_changes=[data]
+    # so the secret bag pins the live password across refresh. Without the same
+    # treatment here, every plan that rebuilds random_password.this (e.g. fork
+    # cutovers from credentials_preserve mode) would rotate the live RDB user
+    # password while the secret bag stays on the old value — apps pull the old
+    # creds and fail to authenticate. Rotate by tainting random_password.this
+    # and applying both this resource and the secret_version together.
+    ignore_changes = [password]
+  }
 }
 
 resource "scaleway_rdb_privilege" "this" {

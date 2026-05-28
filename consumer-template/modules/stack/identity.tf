@@ -51,22 +51,24 @@ module "identity" {
   # own CDN / internal mirror to retheme every app icon at once.
   icon_base_url = try(var.identity.icon_base_url, "")
 
-  # Optional fields. All default-empty / default-false at the platform module
-  # level; surfaced here so consumers can flip via var.identity.X without
-  # forking this file. `try()` keeps each independent — set only what you need.
+  # Optional fields. Each `try()` default MUST mirror the platform module's
+  # own variable default. Passing the wrong sentinel here (`""` when the
+  # platform default is `"Member ID"`, or `[]` when the platform default is
+  # `null`) overrides the platform's intent and wipes live values on apply.
+  # Audit by diffing against `platform/identity/terraform/variables.tf`.
   admin_email                               = try(var.identity.admin_email, "")
   from_name                                 = try(var.identity.from_name, "")
-  admin_user_pks                            = try(var.identity.admin_user_pks, [])
-  branding_logo                             = try(var.identity.branding_logo, "")
-  branding_favicon                          = try(var.identity.branding_favicon, "")
-  branding_default_flow_background          = try(var.identity.branding_default_flow_background, "")
+  admin_user_pks                            = try(var.identity.admin_user_pks, null)
+  branding_logo                             = try(var.identity.branding_logo, "logo.png")
+  branding_favicon                          = try(var.identity.branding_favicon, "favicon.png")
+  branding_default_flow_background          = try(var.identity.branding_default_flow_background, "background.jpg")
   enable_google_social_login                = try(var.identity.enable_google_social_login, false)
   enable_apple_social_login                 = try(var.identity.enable_apple_social_login, false)
   notification_webhook_url                  = try(var.identity.notification_webhook_url, "")
   notification_test_mode                    = try(var.identity.notification_test_mode, false)
-  notification_support_contact_instructions = try(var.identity.notification_support_contact_instructions, "")
-  notification_welcome_message              = try(var.identity.notification_welcome_message, "")
-  member_id_label                           = try(var.identity.member_id_label, "")
+  notification_support_contact_instructions = try(var.identity.notification_support_contact_instructions, "Contact your administrator if you have questions.")
+  notification_welcome_message              = try(var.identity.notification_welcome_message, "Welcome!")
+  member_id_label                           = try(var.identity.member_id_label, "Member ID")
 }
 
 # The merged "base" object app bundles consume. Apps reference
