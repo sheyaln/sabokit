@@ -2,6 +2,36 @@
 
 All notable changes to sabokit go here. Versioning follows semver; major bumps signal breaking contract changes for consumers.
 
+## v3.5.5 - 2026-05-28
+
+Two behaviour fixes a consumer upgrade off v3.5.4 trips into immediately.
+
+First: the tier_slots DAG refactor at v2.16+ flipped every app's consumer-template `tier_access_level` default from `"member"` to `"admin"` for security-conservatism. Effect on any live consumer: every member-tier policy binding (`union-*` etc.) destroyed on next plan, members lose portal access to every app. Wrong default for a federation/union/co-op starter kit. Per-app defaults now reflect each app's intended audience (member-collaboration / delegate-management / admin-infra).
+
+Second: Vikunja's team auto-provisioning needs the `vikunja_groups` claim with `[{name, oidcID}, ...]` shape (https://vikunja.io/docs/openid/) — `oidcID` not `id`, `vikunja_groups` not `groups`. The v3.x bundle wired `oidc_groups_scope_name = "vikunja_scope"` into the provider's scopes but never created a matching Authentik property mapping, so the provider referenced a scope that didn't exist (count = 0 destroy on every plan, no team sync on login). Bundle now ships the property mapping with the correct claim shape, scope name wired through the variable, ansible env template parameterised on the same variable so all three layers stay in lockstep.
+
+### Changed
+
+- **Per-app `tier_access_level` defaults in `consumer-template/modules/stack/apps.tf`**:
+  - `outline`, `vikunja`, `bentopdf`, `nextcloud`, `decidim`, `jitsi` → `"member"` (user-facing collaboration tools)
+  - `steward`, `broadsheet`, `espocrm` → `"delegate"` (service management)
+  - `n8n`, `backrest` → `"admin"` (unchanged — infra/ops)
+- **`platform/core/terraform/main.tf`** grafana + wazuh still default to `"admin"` (correct — both are ops tooling).
+- Platform-module variable defaults in `platform/apps/<bundle>/terraform/variables.tf` stay at `"admin"` — they're the universally-safe fallback for consumers importing the platform module directly. The composition-layer (consumer-template) is where per-app sensible defaults live.
+- **`platform/apps/vikunja/terraform/variables.tf`** — `oidc_groups_scope_name` default flipped from `"groups"` to `"vikunja_scope"`. Description rewritten to reflect that the bundle now creates the scope itself.
+- **`platform/apps/vikunja/ansible/roles/vikunja/templates/env.j2`** — `VIKUNJA_AUTH_OPENID_PROVIDERS_AUTHENTIK_SCOPE` now templates `{{ vikunja_oidc_groups_scope_name }}` instead of hardcoding `vikunja_scope`. Output surfaced via `vikunja_oidc_groups_scope_name` ansible var.
+
+### Added
+
+- **`platform/apps/vikunja/terraform/authentik.tf`** — bundle now creates a dedicated `authentik_property_mapping_provider_scope.vikunja_team_claim` emitting the `vikunja_groups` claim with `[{name, oidcID}, ...]` per Authentik group the user belongs to. Wired into the provider via `additional_property_mapping_ids`. Vikunja's team auto-provisioning creates one team per group on first login, reconciles on every subsequent token exchange.
+
+### Operator migration notes
+
+- **Bump `consumer-template/modules/stack/` refs from `v3.5.4` to `v3.5.5`.**
+- Consumers with explicit `var.apps.<app>.tier_access_level = "admin"` keep the v3.5.4 behaviour. Consumers relying on the v3.5.4 default see member-tier bindings restored on plan; this is the intended fix.
+- Consumers who want the v3.5.4 admin-only behaviour back must set `tier_access_level = "admin"` explicitly on each app's config block. Recommended even when you agree with the new defaults — explicit > implicit, especially after this default-change history.
+- Vikunja's live `groups[0]` property mapping (named e.g. `vikunja-groups-scope` with `scope_name = "groups"`) is destroyed on first plan and replaced by the new `vikunja_team_claim[0]` with `scope_name = "vikunja_scope"`. Vikunja teams persist on the application side; the claim re-flows on next login.
+
 ## v3.5.4 - 2026-05-27
 
 Stops shipping upstream `moved {}` blocks entirely. Every state migration is now fork-local. Upstream can't know what addresses a fork has in state, and any defensive block here collides with the fork's matching block targeting the same address (terraform's "Each module instance can have moved from only one source instance" check). Greenfield consumers have nothing to migrate; upgrading consumers write their own.
