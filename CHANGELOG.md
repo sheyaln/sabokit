@@ -2,6 +2,27 @@
 
 All notable changes to sabokit go here. Versioning follows semver; major bumps signal breaking contract changes for consumers.
 
+## v3.5.9 - 2026-05-28
+
+Makes the rest of the `random_password` / `random_id` resources `terraform import`-able. v3.5.8 documented the import path for cutting over from `credentials_preserve` mode but several resources didn't have the `lifecycle { ignore_changes = ... }` block required to land an import cleanly. `terraform import` populates `result` but leaves generation attributes (`length`, `special`, `byte_length`, `min_*`, `override_special`) at their schema defaults. Those attributes are `ForceNew` in the random provider — any post-import refresh diff against the resource's config triggers force-replacement, rotating the credential the import just preserved.
+
+Pattern: every importable `random_*` resource gets `lifecycle { ignore_changes = all }`. Generation attributes are immutable once the value is set anyway (the resource is one-shot); ignoring them on refresh costs nothing and makes import the path of least resistance instead of a footgun. Resources whose values are derived from external systems (Authentik client_id assigned by the server, postgres user passwords seen by the RDB, etc.) already had this treatment — this commit closes the gap for the rest.
+
+### Fixed
+
+- **`platform/apps/jitsi/terraform/secrets.tf`** — `ignore_changes = all` added to all 5 `random_password` resources (`jwt_app_secret`, `jicofo_auth`, `jvb_auth`, `jibri_xmpp`, `jibri_recorder`).
+- **`platform/apps/outline/terraform/secrets.tf`** — added to both `random_id` resources (`secret_key`, `utils_secret`).
+- **`platform/apps/vikunja/terraform/secrets.tf`** — added to `random_password.jwt_secret`.
+- **`platform/apps/steward/terraform/secrets.tf`** — added to `random_id.django_secret_key`.
+- **`platform/identity/bootstrap/main.tf`** — added to `random_id.server_key`.
+- **`platform/core/grafana/terraform/secrets.tf`** — added to `random_password.admin`.
+- **`platform/core/wazuh/terraform/secrets.tf`** — added to all 3 `random_password` resources (`indexer_admin`, `api`, `dashboard`).
+
+### Operator migration notes
+
+- **Bump `consumer-template/modules/stack/` refs from `v3.5.8` to `v3.5.9`.** No tfvars or config.tf changes needed.
+- **Consumers who already imported one of the listed `random_*` resources at v3.5.8** and saw it as `must be replaced` on subsequent plan: bumping to v3.5.9 takes the replacement out of the diff. The fresh `result` in TF state is preserved; the secret bag content (which has `ignore_changes = [data]` on the corresponding `scaleway_secret_version`) stays pinned to whatever's live. No rotation, no apply-time outage.
+
 ## v3.5.8 - 2026-05-28
 
 Reverts the `ignore_changes = [password]` added to `scaleway_rdb_user.this` in v3.5.6. That was the wrong fix — it papered over a state-vs-live drift instead of resolving it. The principled answer is to import `random_password.this[0]` with the live password value (extractable from the `postgres-<dbname>-credentials` Scaleway bag), so TF state reflects what's deployed and nothing rotates. The same pattern applies to OIDC `random_uuid.oidc_client_id[0]` / `random_password.oidc_client_secret[0]` and to every per-app `random_password.*` / `random_id.*` whose value already lives in a Scaleway bag — consumers cutting over from `credentials_preserve` mode write `import {}` blocks for each generator alongside the existing secret-version imports.

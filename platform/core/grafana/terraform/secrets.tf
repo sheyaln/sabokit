@@ -5,6 +5,12 @@ resource "random_password" "admin" {
   count   = var.enabled ? 1 : 0
   length  = 32
   special = false
+
+  lifecycle {
+    # Required for `terraform import`: imported state has null length/special
+    # which would otherwise conflict and trigger force-replacement.
+    ignore_changes = all
+  }
 }
 
 resource "scaleway_secret" "app" {
