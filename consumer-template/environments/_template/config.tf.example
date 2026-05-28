@@ -1,13 +1,13 @@
-# Persistent infrastructure config. Committed to git; identical across envs.
+# Persistent infrastructure SHAPE. Committed to git; identical across envs.
 #
-# Per-env values (scaleway_project_id, domains, instance sizes, env name)
-# live in `terraform.tfvars` (gitignored — copy from `terraform.tfvars.example`).
-# This file references those values via `var.X` interpolation, so a fresh
-# env directory = copy this whole tree + update terraform.tfvars only.
+# Per-env values (scaleway_project_id, domains, instance sizes) live in
+# `environments/env-values.yml` (committed, keyed by env) and are resolved by
+# env.tf as `local.env.*`. This file references those via `local.env.X`, so a
+# fresh env = copy this whole dir; it carries no env-specific values itself.
 #
-# Runtime credentials NEVER live here. SCW_ACCESS_KEY / SCW_SECRET_KEY come
-# from env vars. authentik_admin_token is fetched at runtime from the
-# bootstrap secret by configure.sh.
+# Secrets NEVER live here. SCW_ACCESS_KEY / SCW_SECRET_KEY come from the
+# environment; authentik_admin_token via TF_VAR_authentik_admin_token (the CLI
+# fetches it from the bootstrap secret; export it yourself for a manual apply).
 
 locals {
   config = {
@@ -19,15 +19,15 @@ locals {
     # ── Compute hosts ────────────────────────────────────────────────────
     # Canonical 3-host topology: tools (apps), identity (Authentik),
     # management (monitoring + automation). Topology shape is persistent;
-    # instance sizes + disk sizes come from terraform.tfvars and may differ
+    # instance sizes + disk sizes come from env-values.yml and may differ
     # between staging and prod.
     #
     # Single-VM dev: collapse to one host by listing every group selector
     # under ansible_groups so plays still find their target group:
     #   compute_hosts = {
     #     all = {
-    #       instance_type  = var.compute_instance_types.tools
-    #       disk_size      = var.compute_disk_sizes.tools
+    #       instance_type  = local.env.compute_instance_types.tools
+    #       disk_size      = local.env.compute_disk_sizes.tools
     #       role           = "tools"
     #       ansible_group  = "tools"
     #       ansible_groups = ["tools", "identity", "management"]
@@ -35,22 +35,22 @@ locals {
     #   }
     compute_hosts = {
       tools = {
-        instance_type = var.compute_instance_types.tools
-        disk_size     = var.compute_disk_sizes.tools
+        instance_type = local.env.compute_instance_types.tools
+        disk_size     = local.env.compute_disk_sizes.tools
         role          = "tools"
         ansible_group = "tools"
         protected     = true
       }
       identity = {
-        instance_type = var.compute_instance_types.identity
-        disk_size     = var.compute_disk_sizes.identity
+        instance_type = local.env.compute_instance_types.identity
+        disk_size     = local.env.compute_disk_sizes.identity
         role          = "identity"
         ansible_group = "identity"
         protected     = true
       }
       management = {
-        instance_type = var.compute_instance_types.management
-        disk_size     = var.compute_disk_sizes.management
+        instance_type = local.env.compute_instance_types.management
+        disk_size     = local.env.compute_disk_sizes.management
         role          = "management"
         ansible_group = "management"
         protected     = true
@@ -105,7 +105,7 @@ locals {
     bootstrap = {
       # protonmail_bridge = {
       #   enabled                = true
-      #   imap_username          = "ops@${var.base_domain}"
+      #   imap_username          = "ops@${local.env.base_domain}"
       #   bridge_login_secret_id = "00000000-0000-0000-0000-000000000000"
       # }
     }
@@ -116,7 +116,7 @@ locals {
     # {base_domain, mgmt_domain}); records for unknown zones are dropped
     # silently. Co-exists with TEM's auto-managed SPF/DKIM/DMARC.
     custom_dns_records = {
-      # (var.base_domain) = [
+      # (local.env.base_domain) = [
       #   { subdomain = "@", type = "MX",  target = "10 mail.protonmail.ch.",    ttl = 3600 },
       #   { subdomain = "@", type = "MX",  target = "20 mailsec.protonmail.ch.", ttl = 3600 },
       #   { subdomain = "@", type = "TXT", target = "v=spf1 include:_spf.protonmail.ch -all" },
@@ -127,12 +127,12 @@ locals {
     # Per-app enable + overrides. See apps-manifest.yaml for the full input
     # surface of each bundle. Disabled apps can be omitted entirely.
     #
-    # Hostnames interpolate `${var.base_domain}` so staging vs prod share
+    # Hostnames interpolate `${local.env.base_domain}` so staging vs prod share
     # the same subdomain pattern (wiki.example.org vs wiki.staging.example.org).
     apps = {
       outline = {
         enabled  = true
-        hostname = "wiki.${var.base_domain}"
+        hostname = "wiki.${local.env.base_domain}"
         # deployment_host_key must be a key in compute_hosts above. Defaults
         # to "tools".
       }
@@ -141,19 +141,19 @@ locals {
       # Members of the `admin_group_name` group in Authentik can sign in.
       # steward = {
       #   enabled  = true
-      #   hostname = "members.${var.base_domain}"
+      #   hostname = "members.${local.env.base_domain}"
       # }
 
       # Vikunja: task and project tracker. OIDC-only by default.
       # vikunja = {
       #   enabled  = true
-      #   hostname = "tasks.${var.base_domain}"
+      #   hostname = "tasks.${local.env.base_domain}"
       # }
 
       # BentoPDF: browser PDF toolkit. Forward-auth (no OIDC inside the app).
       # bentopdf = {
       #   enabled  = true
-      #   hostname = "pdf.${var.base_domain}"
+      #   hostname = "pdf.${local.env.base_domain}"
       # }
 
       # Broadsheet: newsletters + transactional email. OIDC via Authentik;
@@ -161,16 +161,16 @@ locals {
       # immutable after first apply. See platform/apps/broadsheet/README.md.
       # broadsheet = {
       #   enabled          = true
-      #   hostname         = "email.${var.base_domain}"
-      #   root_admin_email = var.infra_email
-      #   smtp_from_email  = "notify@${var.base_domain}"
+      #   hostname         = "email.${local.env.base_domain}"
+      #   root_admin_email = local.env.infra_email
+      #   smtp_from_email  = "notify@${local.env.base_domain}"
       # }
 
       # Privacy policy: public static page (no auth). Supply HTML + logo via
       # the Ansible role vars.
       # privacy_policy = {
       #   enabled  = true
-      #   hostname = "privacy.${var.base_domain}"
+      #   hostname = "privacy.${local.env.base_domain}"
       # }
 
       # Nextcloud + OnlyOffice + Talk HPB. One stack, three hostnames.
@@ -178,20 +178,20 @@ locals {
       # group on top of the host UFW. Pin image_tag to a major.
       # nextcloud = {
       #   enabled              = true
-      #   hostname             = "cloud.${var.base_domain}"
-      #   onlyoffice_hostname  = "docs.${var.base_domain}"
-      #   talk_hostname        = "talk.${var.base_domain}"
-      #   smtp_from_email      = "cloud@${var.base_domain}"
+      #   hostname             = "cloud.${local.env.base_domain}"
+      #   onlyoffice_hostname  = "docs.${local.env.base_domain}"
+      #   talk_hostname        = "talk.${local.env.base_domain}"
+      #   smtp_from_email      = "cloud@${local.env.base_domain}"
       #   default_phone_region = "US"
       # }
 
       # Decidim: participatory democracy platform.
       # decidim = {
       #   enabled            = true
-      #   hostname           = "voting.${var.base_domain}"
+      #   hostname           = "voting.${local.env.base_domain}"
       #   organization_name  = "Example Assembly"
-      #   system_admin_email = var.infra_email
-      #   smtp_from_email    = "voting@${var.base_domain}"
+      #   system_admin_email = local.env.infra_email
+      #   smtp_from_email    = "voting@${local.env.base_domain}"
       #   image_tag          = "0.28"
       # }
 
@@ -199,13 +199,13 @@ locals {
       # group on top of the host UFW.
       # jitsi = {
       #   enabled  = true
-      #   hostname = "meet.${var.base_domain}"
+      #   hostname = "meet.${local.env.base_domain}"
       # }
 
       # EspoCRM: PHP CRM. Member-entity bootstrap is opt-in.
       # espocrm = {
       #   enabled                        = true
-      #   hostname                       = "crm.${var.base_domain}"
+      #   hostname                       = "crm.${local.env.base_domain}"
       #   timezone                       = "America/New_York"
       #   enable_member_entity_bootstrap = false
       # }
@@ -213,7 +213,7 @@ locals {
       # n8n: workflow automation.
       # n8n = {
       #   enabled  = true
-      #   hostname = "automate.${var.base_domain}"
+      #   hostname = "automate.${local.env.base_domain}"
       #   timezone = "America/New_York"
       # }
 
@@ -222,7 +222,7 @@ locals {
       # backrest = {
       #   per_host = {
       #     management = {
-      #       hostname = "backup.management.${var.base_domain}"
+      #       hostname = "backup.management.${local.env.base_domain}"
       #     }
       #   }
       # }

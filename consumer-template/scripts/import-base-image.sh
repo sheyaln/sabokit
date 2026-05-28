@@ -7,8 +7,8 @@
 #   2. Uploads it to a temporary bucket in the consumer's Scaleway Object Storage.
 #   3. Imports the object as a Scaleway block snapshot.
 #   4. Registers the snapshot as a Scaleway instance image.
-#   5. Prints the resulting image_id — paste it into terraform.tfvars under
-#      compute_hosts.<name>.image.
+#   5. Prints the resulting image_id — paste it into config.tf under
+#      locals.config.compute_hosts.<name>.image.
 #
 # Prerequisites:
 #   - scw CLI configured (run `scw init` if not — the SCW_ACCESS_KEY /
@@ -131,7 +131,7 @@ c_ok "bucket removed"
 
 section "Done"
 echo
-echo "Paste this into terraform.tfvars (compute_hosts.<name>.image):"
+echo "Paste this into config.tf under locals.config.compute_hosts.<name>.image:"
 echo
 echo "  image = \"${IMAGE_ID}\""
 echo

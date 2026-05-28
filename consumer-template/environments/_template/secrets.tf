@@ -3,8 +3,8 @@
 # Bag IDs (UUIDs) are committable — they identify the bag, not its payload.
 # The payload itself stays in Scaleway and never enters the repo.
 #
-# Use this file when a value that used to live inline in terraform.tfvars
-# needs to flow through Terraform — e.g. an API key consumed by a downstream
+# Use this file when a secret needs to flow through Terraform — e.g. an API
+# key consumed by a downstream
 # provider, or a credential surfaced as an env var to a sibling resource.
 # For values consumed only by app bundles (e.g. smtp_secret_name), pass the
 # bag NAME through `local.config.*` and let the bundle resolve it via its

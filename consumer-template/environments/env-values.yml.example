@@ -1,0 +1,45 @@
+# Per-env values — committed to git, reviewable and diffable. NOT secret.
+#
+# Keyed by environment name. The directory you `terraform apply` from selects
+# its block by name: environments/prod/ reads the `prod:` key here. The env
+# roots are byte-identical; only this file and backend.hcl differ per env, so
+# staging's project_id can never leak into prod via a copied directory.
+#
+# Secrets do NOT belong here — SCW_ACCESS_KEY / SCW_SECRET_KEY and the
+# authentik admin token come from the environment (.envrc). See .envrc.example.
+#
+# Required per slice: scaleway_project_id, base_domain, gateway_domain,
+# infra_email. Everything else has a default (see _template/env.tf) and may be
+# omitted. Each env MUST use a distinct scaleway_project_id.
+
+prod:
+  scaleway_project_id: "00000000-0000-0000-0000-000000000000" # replace with your project UUID
+  base_domain: "example.org"
+  gateway_domain: "auth.example.org"
+  infra_email: "ops@example.org"
+
+  # Optional (defaults shown):
+  scaleway_region: "fr-par"
+  scaleway_zone: "fr-par-1"
+  mgmt_domain: "" # empty collapses to base_domain
+  private_network_subnet: "10.0.0.0/22"
+  compute_instance_types:
+    tools: "DEV1-L"
+    identity: "DEV1-M"
+    management: "DEV1-M"
+  compute_disk_sizes:
+    tools: 100
+    identity: 30
+    management: 60
+
+# A second env needs only the required keys (the rest default). Create
+# environments/staging/ as a copy of environments/prod/ — the dirs are
+# identical, so nothing here travels with the copy.
+#
+# staging:
+#   scaleway_project_id: "11111111-1111-1111-1111-111111111111"
+#   base_domain: "staging.example.org"
+#   gateway_domain: "auth.staging.example.org"
+#   infra_email: "ops@example.org"
+#   compute_instance_types: { tools: "DEV1-S", identity: "DEV1-S", management: "DEV1-S" }
+#   compute_disk_sizes: { tools: 40, identity: 20, management: 20 }

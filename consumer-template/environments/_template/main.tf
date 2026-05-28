@@ -1,13 +1,14 @@
-# Per-env root. Wires per-env vars (from terraform.tfvars) + persistent config
-# (from config.tf) into the shared stack module. Upstream-maintained —
-# consumers should not need to edit this file during normal operation. Add
-# sibling .tf files in this directory for consumer-owned resources.
+# Per-env root. Wires per-env values (from env-values.yml via env.tf) + the
+# persistent shape (from config.tf) into the shared stack module. Upstream-
+# maintained — consumers should not need to edit this file during normal
+# operation. Add sibling .tf files in this directory for consumer-owned resources.
 #
-# `terraform.tfvars` → per-env values (project_id, domains, instance sizes; gitignored)
-# `config.tf`        → persistent infra shape (apps catalog, host topology, tier_slots; committable)
-# `secrets.tf`       → Scaleway secret data sources (bag IDs committable; payloads not)
-# `backend.hcl`      → remote state config (gitignored)
-# `inventory.ini`    → Ansible inventory (gitignored; built from `terraform output compute_hosts`)
+# `../env-values.yml` → per-env NON-secret values, keyed by env name (committed)
+# `env.tf`            → resolves this dir's slice -> local.env / local.env_name
+# `config.tf`         → persistent infra shape (apps catalog, host topology, tier_slots; committed)
+# `secrets.tf`        → Scaleway secret data sources (bag IDs committable; payloads not)
+# `backend.hcl`       → remote state config (gitignored)
+# `inventory.ini`     → Ansible inventory (gitignored; built from `terraform output compute_hosts`)
 
 module "stack" {
   source = "../../modules/stack"
@@ -20,20 +21,20 @@ module "stack" {
   org_slug = local.config.org_slug
   org_name = local.config.org_name
 
-  # Per-env (terraform.tfvars)
-  environment = var.environment
+  # Per-env (env-values.yml, selected by directory name -> local.env / local.env_name)
+  environment = local.env_name
 
-  scaleway_project_id = var.scaleway_project_id
-  scaleway_region     = var.scaleway_region
-  scaleway_zone       = var.scaleway_zone
+  scaleway_project_id = local.env.scaleway_project_id
+  scaleway_region     = local.env.scaleway_region
+  scaleway_zone       = local.env.scaleway_zone
 
-  base_domain    = var.base_domain
-  mgmt_domain    = var.mgmt_domain != "" ? var.mgmt_domain : null
-  gateway_domain = var.gateway_domain
-  infra_email    = var.infra_email
+  base_domain    = local.env.base_domain
+  mgmt_domain    = local.env.mgmt_domain != "" ? local.env.mgmt_domain : null
+  gateway_domain = local.env.gateway_domain
+  infra_email    = local.env.infra_email
 
   compute_hosts          = local.config.compute_hosts
-  private_network_subnet = var.private_network_subnet
+  private_network_subnet = local.env.private_network_subnet
 
   # Persistent (config.tf)
   identity         = local.config.identity

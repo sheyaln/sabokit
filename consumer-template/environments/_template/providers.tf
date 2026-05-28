@@ -26,32 +26,33 @@ terraform {
   }
 }
 
-# All Scaleway provider configuration is supplied via SCW_* environment
-# variables exported by _lib.sh (credentials from the env, project/region/zone
-# from config.tf). We deliberately leave this block empty so the provider
-# sees exactly one credential source (env) instead of three (env +
-# provider-block + ~/.config/scw/config.yaml active profile), which produces
-# a noisy "Multiple variable sources detected" warning on every plan/apply.
+# Scaleway provider authenticates from SCW_ACCESS_KEY / SCW_SECRET_KEY in the
+# environment (exported via .envrc, or by sabokit-cli). The block is left empty
+# on purpose so the provider sees exactly one credential source (env) instead
+# of three (env + provider-block + ~/.config/scw/config.yaml active profile),
+# which otherwise emits a noisy "Multiple variable sources detected" warning on
+# every plan/apply. project_id/region/zone reach resources through the stack
+# module's inputs (local.env.*), not this provider block.
 provider "scaleway" {}
 
 # Aliased provider used by platform/base/terraform for the gateway DNS A
-# record. Most consumers share credentials with the main provider — leave
-# both blocks empty and let _lib.sh's SCW_* exports drive both. Override
-# below when your DNS zone lives in a different Scaleway project than the
-# rest of your infra:
+# record. Most consumers share credentials with the main provider — leave both
+# blocks empty and let the SCW_* env exports drive both. Override below when
+# your DNS zone lives in a different Scaleway project than the rest of your
+# infra (declare the referenced secret vars yourself):
 #
 #   provider "scaleway" {
 #     alias      = "dns"
 #     access_key = var.scaleway_dns_access_key
 #     secret_key = var.scaleway_dns_secret_key
 #     project_id = var.scaleway_dns_project_id
-#     region     = var.scaleway_region
+#     region     = local.env.scaleway_region
 #   }
 provider "scaleway" {
   alias = "dns"
 }
 
 provider "authentik" {
-  url   = "https://${local.config.gateway_domain}"
+  url   = "https://${local.env.gateway_domain}"
   token = var.authentik_admin_token
 }

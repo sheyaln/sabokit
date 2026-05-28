@@ -156,17 +156,7 @@ module "<name>" {
 ```
 
 No fluff. No "why we built this" essays — that's for ARCHITECTURE.md and commit messages. The README is a reference card.
-
----
-
-## Commit messages and versioning
-
-- Conventional Commits: `feat:`, `fix:`, `refactor:`, `docs:`, `chore:`, `test:`.
-- Scope when useful: `feat(authentik): add Apple social source`.
-- Breaking changes: `!` after type/scope. `refactor!(oidc-app)!: rename group_ids to authorized_group_ids`.
 - Tag releases at the repo root: `v1.0.0`, `v1.0.1`, `v1.1.0`. See [ARCHITECTURE.md "Versioning"](./ARCHITECTURE.md#versioning).
-
----
 
 ## When in doubt
 

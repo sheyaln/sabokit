@@ -3,7 +3,7 @@
 The starter you copy into your own infrastructure repo. Two layers:
 
 - **`modules/stack/`** — shared TF wiring. Every environment calls this module. When `sabokit` ships a new app bundle, you add one `module` block here once and every env picks it up.
-- **`environments/<env>/`** — one dir per environment (prod, staging, …). Per-env tfvars, remote-state backend config, Ansible inventory, and the 3 scripts (`preflight.sh` / `up.sh` / `configure.sh`) that drive a deploy.
+- **`environments/<env>/`** — one dir per environment (prod, staging, …). The per-env root that `terraform` / `sabokit` deploy; non-secret per-env values live keyed in `environments/env-values.yml`.
 
 ## Layout
 
@@ -16,19 +16,18 @@ consumer-template/
 │   ├── variables.tf, outputs.tf, versions.tf
 │   └── README.md
 ├── environments/
-│   ├── _template/                # Copy this to create new envs
+│   ├── env-values.yml.example    # per-env NON-secret values, keyed by env — copy to env-values.yml
+│   ├── _template/                # Copy this to create new envs (dir name = env name)
 │   │   ├── main.tf               # module "stack" { source = "../../modules/stack" ... }
-│   │   ├── providers.tf          # Scaleway + Authentik provider config + S3 backend
-│   │   ├── variables.tf
-│   │   ├── terraform.tfvars.example
+│   │   ├── env.tf                # resolves ../env-values.yml[<dir name>] -> local.env
+│   │   ├── config.tf.example     # persistent infra SHAPE (locals.config) — copy to config.tf
+│   │   ├── providers.tf          # Scaleway + Authentik providers + S3 backend
+│   │   ├── variables.tf          # secrets only (SCW creds, authentik token)
+│   │   ├── secrets.tf            # optional scaleway_secret_version data sources
 │   │   ├── backend.hcl.example
 │   │   ├── inventory.ini.example
-│   │   ├── preflight.sh          # Step 0: env readiness check
-│   │   ├── up.sh                 # Step 1: provision + bootstrap + install Authentik
-│   │   ├── configure.sh          # Step 2: configure Authentik + per-app TF
-│   │   ├── _lib.sh               # Shared helpers
 │   │   ├── .gitignore
-│   │   └── README.md             # Per-env runbook
+│   │   └── README.md             # per-env runbook (manual + CLI)
 │   └── (your envs land here)
 ├── apps-manifest.yaml            # GUI-consumable declaration of every app bundle
 ├── scripts/
@@ -48,12 +47,14 @@ curl -fsSL https://raw.githubusercontent.com/sheyaln/sabokit-cli/master/install.
 export SCW_ACCESS_KEY=... SCW_SECRET_KEY=... SCW_DEFAULT_PROJECT_ID=...
 
 # 1. Scaffold the project (clones this template at a pinned tag, prompts for
-#    base_domain / org / first env / ssh user+key, writes .sabokit/config.yml)
+#    base_domain / org / first env / ssh user+key, writes .sabokit/config.yml
+#    and environments/env-values.yml)
 sabokit init my-stack
 cd my-stack
 
-# 2. Optionally tweak compute_hosts / identity / apps before first deploy
-$EDITOR environments/prod/config.tf
+# 2. Optionally tweak per-env values, or the shape, before first deploy
+$EDITOR environments/env-values.yml      # project_id / domains / sizes (per env)
+$EDITOR environments/prod/config.tf      # compute_hosts / identity / apps (shape)
 
 # 3. Full first deploy: terraform apply (base + identity), ansible bootstrap,
 #    terraform apply (full), every enabled app's ansible playbook, end-to-end.
@@ -67,11 +68,11 @@ sabokit status                    # tf outputs + docker ps across hosts
 sabokit secrets list --tag authentik
 ```
 
-`sabokit init` does the equivalent of `cp -r consumer-template/` + `cp -r environments/_template environments/prod` + `cp *.example` + scaffolding state buckets. The shell scripts (`preflight.sh` / `up.sh` / `configure.sh`) and the per-env `_template/` layout described below still exist as a fallback for operators who want raw terraform / ansible without docker — `sabokit up` shells through to the same playbooks and state files.
+`sabokit init` does the equivalent of `cp -r consumer-template/` + `cp -r environments/_template environments/prod` + `cp *.example` + scaffolding state buckets. **The CLI is an assistant, not a requirement:** `env.tf` reads `env-values.yml` itself, so plain `terraform apply` works in any env dir with no CLI. `sabokit up` just orchestrates the two terraform phases + ansible + admin-token fetch.
 
-For staging or any other env, `sabokit init --env staging` repeats the scaffold under `environments/staging/`. Each env has its own state, its own credentials, its own deploy.
+For staging or any other env, `sabokit init --env staging` repeats the scaffold under `environments/staging/` (and adds a `staging:` key to `env-values.yml`). Each env has its own state, its own credentials, its own deploy.
 
-See `environments/_template/README.md` for per-step checkpoints if you're driving terraform / ansible manually.
+See `environments/_template/README.md` for the per-env runbook — the same deploy by hand (plain terraform + ansible) and via the CLI.
 
 ## Adding an app
 
@@ -82,7 +83,7 @@ $EDITOR environments/prod/config.tf  # set hostname + any per-app overrides
 sabokit up                        # picks up the new app on next apply + deploys
 ```
 
-The manual path is still supported: add a `module "<name>"` block to `modules/stack/apps.tf` (following the Outline pattern), set `apps.<name> = { enabled = true, hostname = "…" }` in `config.tf`, then `./configure.sh` + `ansible-playbook ../../sabokit/platform/ansible/site.yml -i inventory.ini -e @.ansible-vars.json --tags <name>`. The umbrella playbook is `site.yml` (which imports `bootstrap.yml` + `host-services.yml` + `core.yml` + `apps.yml`); use `--tags <name>` to scope to one app, `--tags core` for monitoring stack only, `--tags apps` to skip bootstrap + host-services + core.
+The manual path: add a `module "<name>"` block to `modules/stack/apps.tf` (following the Outline pattern), set `apps.<name> = { enabled = true, hostname = "…" }` in `config.tf`, then `terraform -chdir=environments/<env> apply` + `ansible-playbook "$SABOKIT_DIR/platform/ansible/site.yml" -i inventory.ini -e @.ansible-vars.json --tags <name>`. The umbrella playbook is `site.yml` (which imports `bootstrap.yml` + `host-services.yml` + `core.yml` + `apps.yml`); use `--tags <name>` to scope to one app, `--tags core` for monitoring stack only, `--tags apps` to skip bootstrap + host-services + core.
 
 ## Bumping sabokit
 
@@ -98,7 +99,7 @@ Major bumps may require `terraform state mv` — check the release notes.
 
 ## Secrets hygiene
 
-`terraform.tfvars`, `backend.hcl`, `inventory.ini`, and any `.json` runtime artifact are gitignored. `.example` siblings are tracked. Prefer `TF_VAR_*` env vars in CI; tfvars files for local apply.
+`environments/env-values.yml` is committed — it holds only NON-secret per-env values. `backend.hcl`, `inventory.ini`, `.json` runtime artifacts, and `.envrc` (secrets) are gitignored; `.example` siblings are tracked. Credentials come from `SCW_*` / `TF_VAR_*` env vars (or a gitignored `.envrc`), never a committed file.
 
 ## Required tools
 

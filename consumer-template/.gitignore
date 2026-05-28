@@ -23,10 +23,13 @@ crash.log
 .ansible/
 .vault_pass.txt
 
-# Secrets
+# Secrets — never committed. Per-env NON-secret values are committed in
+# environments/env-values.yml; only credentials stay out of git.
 .env
 .env.*
 !.env.example
+.envrc
+!.envrc.example
 *.pem
 *.key
 credentials.json

@@ -1,5 +1,5 @@
 # One module call per app. All gated by var.apps.<name>.enabled (default false).
-# Uncomment / enable in terraform.tfvars to turn an app on.
+# Uncomment / enable in config.tf (locals.config.apps) to turn an app on.
 
 module "outline" {
   source = "git::https://github.com/sheyaln/sabokit.git//platform/apps/outline/terraform?ref=v3.5.12-beta1"

@@ -8,9 +8,9 @@ module "identity" {
   org_slug    = var.org_slug
   infra_email = var.infra_email
 
-  # SMTP is off by default (empty secret name). Set smtp_secret_name in your
-  # terraform.tfvars once you've created a {smtp_host, smtp_port, smtp_username,
-  # smtp_password} secret in Scaleway Secret Manager.
+  # SMTP is off by default (empty secret name). Set smtp_secret_name in
+  # config.tf (locals.config) once you've created a {smtp_host, smtp_port,
+  # smtp_username, smtp_password} secret in Scaleway Secret Manager.
   smtp_secret_name = var.smtp_secret_name
 
   # Forward-auth providers from any enabled apps/* bundles register here.
@@ -27,7 +27,7 @@ module "identity" {
 
   # Tier DAG. Required input — the consumer declares their authority
   # hierarchy as a list of slots, each holding a map of peer_name → group_name.
-  # See terraform.tfvars.example for the shape and platform/identity/terraform/
+  # See config.tf.example for the shape and platform/identity/terraform/
   # README.md for the cascade-up semantics.
   tier_slots = var.identity.tier_slots
 

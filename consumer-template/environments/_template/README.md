@@ -1,93 +1,113 @@
 # environments/_template
 
-Copy this dir to create a new environment:
+Copy this directory to create an environment. The directory **name is the
+environment name** — `env.tf` uses it to select this env's slice from
+`../env-values.yml` at plan time.
 
 ```bash
 cp -r environments/_template environments/prod
-cp -r environments/_template environments/staging
-```
-
-Then per env:
-
-```bash
 cd environments/prod
-cp config.tf.example  config.tf                  # the consumer's authoritative config — commit this
-cp backend.hcl.example backend.hcl               # remote state config (gitignored)
-cp inventory.ini.example inventory.ini           # placeholder; up.sh rebuilds from terraform output
-chmod +x preflight.sh up.sh configure.sh
+cp config.tf.example   config.tf       # persistent infra shape — commit it
+cp backend.hcl.example backend.hcl     # remote-state bucket — gitignored
 ```
 
-`config.tf` is committable. It carries the entire infra spec for this env as
-a `locals { config = {...} }` block. The only things that stay out of git
-are runtime credentials (`SCW_ACCESS_KEY` / `SCW_SECRET_KEY` via env) and
-the Authentik admin token (auto-fetched by `configure.sh` after `up.sh`).
+Add this env's block to `environments/env-values.yml` (copy
+`env-values.yml.example` first if it doesn't exist yet):
 
-Need a value from Scaleway Secret Manager wired through Terraform? Add a
-`data "scaleway_secret_version"` block in `secrets.tf` — bag UUIDs are
-committable, payloads stay in Scaleway.
+```yaml
+prod:
+  scaleway_project_id: "…"
+  base_domain: "example.org"
+  gateway_domain: "auth.example.org"
+  infra_email: "ops@example.org"
+```
 
-## Deploy in three steps
+## What lives where
 
-Each step has a verifiable checkpoint — stop, look, then continue. Re-running any step is safe.
+| File | In git? | Holds |
+|---|---|---|
+| `config.tf` | yes | persistent infra SHAPE (`locals.config`), identical across envs |
+| `../env-values.yml` | yes | per-env NON-secret values, keyed by env name |
+| `env.tf` | yes | resolves this dir's slice → `local.env` / `local.env_name` |
+| `main.tf` `providers.tf` `variables.tf` `secrets.tf` | yes | wiring, identical across envs |
+| `backend.hcl` | no | this env's remote-state bucket |
+| `.envrc` | no | secrets: `SCW_ACCESS_KEY` / `SCW_SECRET_KEY`, `TF_VAR_authentik_admin_token` |
+
+No env-specific value is stored in this directory — they live keyed in
+`env-values.yml` — so copying an env dir can't carry another env's project_id
+or domains into the wrong place.
+
+Need a Scaleway Secret Manager value wired through Terraform? Add a
+`data "scaleway_secret_version"` to `secrets.tf` (bag UUIDs are committable,
+payloads stay in Scaleway).
+
+## Deploy
+
+Export credentials first (both paths need them):
 
 ```bash
-./preflight.sh          # one-time per env: CLI deps, SSH key, DNS placeholder
-./up.sh                 # provision infra + install Authentik
-./configure.sh          # configure Authentik (flows, brand, groups) + app TF
+export SCW_ACCESS_KEY=… SCW_SECRET_KEY=…
 ```
 
-Checkpoints:
+### sabokit CLI — assisted (recommended)
 
-| After | Verify with |
-|---|---|
-| `up.sh`        | `curl -sf https://<gateway_domain>/api/v3/root/config/` returns 200. Authentik is reachable but unconfigured. |
-| `configure.sh` | Log in to the gateway as `akadmin`. Flows, brand, groups, any enabled app's OIDC provider are visible. |
+Orchestrates the two terraform phases, the ansible bootstrap, the Authentik
+admin-token fetch, and every enabled app's playbook:
+
+```bash
+sabokit --env prod up
+```
+
+### Plain terraform + ansible — manual (no CLI)
+
+`terraform apply` works here standalone: `env.tf` reads `env-values.yml`
+itself. Authentik doesn't exist on the first deploy, so terraform runs in two
+phases:
+
+```bash
+terraform -chdir=environments/prod init -backend-config=backend.hcl
+
+# Phase 1 — Scaleway primitives + Authentik install (no token yet)
+terraform -chdir=environments/prod apply \
+  -target=module.stack.module.base \
+  -target=module.stack.module.identity_bootstrap
+
+# Host bootstrap. Needs inventory.ini + .ansible-vars.json derived from TF
+# output — `sabokit deploy` generates both; by hand, build them from
+# `terraform output -json`.
+ansible-playbook "$SABOKIT_DIR/platform/ansible/site.yml" \
+  -i inventory.ini -e @.ansible-vars.json --tags bootstrap
+
+# Phase 2 — full apply, now with the Authentik admin token
+export TF_VAR_authentik_admin_token="…"   # from the bootstrap admin scaleway secret
+terraform -chdir=environments/prod apply
+```
+
+That orchestration is exactly what `sabokit up` automates. The point of the
+manual path is that nothing is hidden — `terraform plan/apply` is always
+runnable on its own.
 
 ## Deploy / update apps
 
-Apps are deployed by the `apps.yml` Ansible playbook. No wrapper script — the
-command is short enough to copy:
+Apps converge via the `site.yml` ansible playbook:
 
 ```bash
-ansible-playbook \
-  "$FED_COMMONS_DIR/platform/ansible/apps.yml" \
-  -i inventory.ini \
-  -e @.ansible-vars.json \
+ansible-playbook "$SABOKIT_DIR/platform/ansible/site.yml" \
+  -i inventory.ini -e @.ansible-vars.json \
   -e env_name="$(basename "$PWD")" \
-  -e gateway_domain="$(awk -F= '/^[[:space:]]*gateway_domain/{gsub(/[ "#]/, "", $2); print $2; exit}' config.tf)"
+  --tags outline          # one app; drop --tags for the full run
 ```
 
-Common variants:
-
-```bash
-# Deploy a single app + dependencies
-...apps.yml ... --tags outline
-
-# Skip the full Ansible run, just re-render configs
-...apps.yml ... --skip-tags compose
-```
-
-`FED_COMMONS_DIR` defaults to `../../../sabokit` (sibling of the
-consumer repo). Override with `FED_COMMONS_DIR=/path/to/sabokit`
-if your layout differs.
+`SABOKIT_DIR` defaults to `../../../sabokit` (sibling of the consumer repo);
+override if your layout differs. `sabokit deploy --apps outline` does the same
+with the inventory + vars generated for you.
 
 ## Smoke test
 
 ```bash
-# Each enabled app's URL should redirect to Authentik (302/303) or
-# render its own UI (200).
+# Each enabled app's URL should redirect to Authentik (302/303) or render its
+# own UI (200). -L follows redirects to the final code.
 jq -r '.enabled_apps.value | to_entries[] | select(.value != null) | .value.url' .tf-output.json | while read -r url; do
-  printf "%-50s %s\n" "$url" "$(curl -sfo /dev/null -w '%{http_code}' --max-time 15 "$url" || echo CONNECT_FAIL)"
+  printf "%-50s %s\n" "$url" "$(curl -sfo /dev/null -w '%{http_code}' --max-time 15 -L "$url" || echo CONNECT_FAIL)"
 done
 ```
-
-## Re-deploys
-
-Day-to-day work usually only needs `apps.yml`. Re-run `configure.sh` when you
-add/remove an app in `config.tf` or change platform/identity config. Re-run
-`up.sh` only when the VPC/host topology or Authentik install changes —
-usually after a sabokit version bump.
-
-`./up.sh` accepts trailing args that get forwarded to `ansible-playbook
-bootstrap.yml` — for example `./up.sh --skip-tags bootstrap` to short-circuit
-the heavy roles if you know the host is already bootstrapped.
