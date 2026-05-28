@@ -2,6 +2,19 @@
 
 All notable changes to sabokit go here. Versioning follows semver; major bumps signal breaking contract changes for consumers.
 
+## v3.5.7 - 2026-05-28
+
+One bug surfaced when planning v3.5.6 against the dciww consumer with `smtp_secret_name` wired: identity module's secret-bag schema didn't match what the base TEM bundle writes. `platform/base/terraform/tem.tf` emits `host` / `port` / `username` / `password` (plus `use_tls` / `domain` / `from_email`). `platform/identity/terraform/data.tf` was trying to read `smtp_host` / `smtp_port` / `smtp_username` / `smtp_password` from the decoded bag. Plan hard-errored with four "Missing map element" lines the moment a consumer enabled SMTP.
+
+### Fixed
+
+- **`platform/identity/terraform/data.tf`** — split the bag decode (`local.smtp_config_raw`, matching what base writes) from the variable-shaped projection (`local.smtp_config`, matching what `module.flows` consumes). `port` casts via `tonumber()` since base stringifies it for the Scaleway key_value schema and flows want a number.
+
+### Operator migration notes
+
+- **Bump `consumer-template/modules/stack/` refs from `v3.5.6` to `v3.5.7`.** No tfvars or config.tf changes needed.
+- Consumers who previously skipped wiring `smtp_secret_name` (because plan errored on it) can wire it now: set it to whatever secret the base TEM bundle writes (default `smtp-config`).
+
 ## v3.5.6 - 2026-05-28
 
 Four bugs that surfaced when planning v3.5.5 against a real consumer (dciww):

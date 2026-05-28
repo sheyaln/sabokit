@@ -49,11 +49,24 @@ data "scaleway_secret_version" "social_logins_apple" {
 
 locals {
   smtp_enabled = var.smtp_secret_name != ""
-  smtp_config = local.smtp_enabled ? jsondecode(base64decode(data.scaleway_secret_version.smtp_config[0].data)) : {
-    smtp_host     = ""
-    smtp_port     = 587
-    smtp_username = ""
-    smtp_password = ""
+
+  # Schema matches what `platform/base/terraform/tem.tf` writes into the
+  # smtp-config secret bag: host / port / username / password (plus optional
+  # use_tls / domain / from_email which identity doesn't consume).
+  # Disabled-shape mirrors the same keys (empty strings, port=587) so the
+  # downstream interpolation evaluates without conditional null-handling
+  # at every reference site.
+  smtp_config_raw = local.smtp_enabled ? jsondecode(base64decode(data.scaleway_secret_version.smtp_config[0].data)) : {
+    host     = ""
+    port     = "587"
+    username = ""
+    password = ""
+  }
+  smtp_config = {
+    smtp_host     = local.smtp_config_raw.host
+    smtp_port     = tonumber(local.smtp_config_raw.port)
+    smtp_username = local.smtp_config_raw.username
+    smtp_password = local.smtp_config_raw.password
   }
 
   google_oauth = var.enable_google_social_login ? jsondecode(base64decode(data.scaleway_secret_version.social_logins_google[0].data)) : { client_id = "", client_secret = "" }
