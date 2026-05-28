@@ -2,7 +2,7 @@
 # Uncomment / enable in terraform.tfvars to turn an app on.
 
 module "outline" {
-  source = "git::https://github.com/sheyaln/sabokit.git//platform/apps/outline/terraform?ref=v3.5.11"
+  source = "git::https://github.com/sheyaln/sabokit.git//platform/apps/outline/terraform?ref=v3.5.12-beta1"
 
   enabled  = try(var.apps.outline.enabled, false)
   hostname = try(var.apps.outline.hostname, "")
@@ -28,7 +28,7 @@ module "outline" {
 }
 
 module "steward" {
-  source = "git::https://github.com/sheyaln/sabokit.git//platform/apps/steward/terraform?ref=v3.5.11"
+  source = "git::https://github.com/sheyaln/sabokit.git//platform/apps/steward/terraform?ref=v3.5.12-beta1"
 
   enabled  = try(var.apps.steward.enabled, false)
   hostname = try(var.apps.steward.hostname, "")
@@ -58,7 +58,7 @@ module "steward" {
 }
 
 module "vikunja" {
-  source = "git::https://github.com/sheyaln/sabokit.git//platform/apps/vikunja/terraform?ref=v3.5.11"
+  source = "git::https://github.com/sheyaln/sabokit.git//platform/apps/vikunja/terraform?ref=v3.5.12-beta1"
 
   enabled  = try(var.apps.vikunja.enabled, false)
   hostname = try(var.apps.vikunja.hostname, "")
@@ -90,7 +90,7 @@ module "vikunja" {
 # Forward-auth app (no OIDC). Its provider_id MUST also be added to the
 # identity module's extra_forward_auth_provider_ids list — see identity.tf.
 module "bentopdf" {
-  source = "git::https://github.com/sheyaln/sabokit.git//platform/apps/bentopdf/terraform?ref=v3.5.11"
+  source = "git::https://github.com/sheyaln/sabokit.git//platform/apps/bentopdf/terraform?ref=v3.5.12-beta1"
 
   enabled  = try(var.apps.bentopdf.enabled, false)
   hostname = try(var.apps.bentopdf.hostname, "")
@@ -115,7 +115,7 @@ module "bentopdf" {
 
 # Public — no auth integration. Privacy policies must be reachable without login.
 module "privacy_policy" {
-  source = "git::https://github.com/sheyaln/sabokit.git//platform/apps/privacy-policy/terraform?ref=v3.5.11"
+  source = "git::https://github.com/sheyaln/sabokit.git//platform/apps/privacy-policy/terraform?ref=v3.5.12-beta1"
 
   enabled  = try(var.apps.privacy_policy.enabled, false)
   hostname = try(var.apps.privacy_policy.hostname, "")
@@ -133,7 +133,7 @@ module "privacy_policy" {
 # labels were renamed at v3.2.1; consumers cutting over from notifuse should
 # export storage state before destroying the old bundle.
 module "broadsheet" {
-  source = "git::https://github.com/sheyaln/sabokit.git//platform/apps/broadsheet/terraform?ref=v3.5.11"
+  source = "git::https://github.com/sheyaln/sabokit.git//platform/apps/broadsheet/terraform?ref=v3.5.12-beta1"
 
   enabled          = try(var.apps.broadsheet.enabled, false)
   hostname         = try(var.apps.broadsheet.hostname, "")
@@ -167,7 +167,7 @@ module "broadsheet" {
 # top of the host firewall — extend default_security_group_extra_inbound_rules
 # in module.base accordingly.
 module "nextcloud" {
-  source = "git::https://github.com/sheyaln/sabokit.git//platform/apps/nextcloud/terraform?ref=v3.5.11"
+  source = "git::https://github.com/sheyaln/sabokit.git//platform/apps/nextcloud/terraform?ref=v3.5.12-beta1"
 
   enabled             = try(var.apps.nextcloud.enabled, false)
   hostname            = try(var.apps.nextcloud.hostname, "")
@@ -220,7 +220,7 @@ module "nextcloud" {
 }
 
 module "decidim" {
-  source = "git::https://github.com/sheyaln/sabokit.git//platform/apps/decidim/terraform?ref=v3.5.11"
+  source = "git::https://github.com/sheyaln/sabokit.git//platform/apps/decidim/terraform?ref=v3.5.12-beta1"
 
   enabled            = try(var.apps.decidim.enabled, false)
   hostname           = try(var.apps.decidim.hostname, "")
@@ -259,7 +259,7 @@ module "decidim" {
 # to extra_forward_auth_provider_ids below). The adapter brokers between
 # Authentik's OIDC dance and Jitsi's JWT room-token model.
 module "jitsi" {
-  source = "git::https://github.com/sheyaln/sabokit.git//platform/apps/jitsi/terraform?ref=v3.5.11"
+  source = "git::https://github.com/sheyaln/sabokit.git//platform/apps/jitsi/terraform?ref=v3.5.12-beta1"
 
   enabled  = try(var.apps.jitsi.enabled, false)
   hostname = try(var.apps.jitsi.hostname, "")
@@ -293,7 +293,7 @@ module "jitsi" {
 }
 
 module "espocrm" {
-  source = "git::https://github.com/sheyaln/sabokit.git//platform/apps/espocrm/terraform?ref=v3.5.11"
+  source = "git::https://github.com/sheyaln/sabokit.git//platform/apps/espocrm/terraform?ref=v3.5.12-beta1"
 
   enabled  = try(var.apps.espocrm.enabled, false)
   hostname = try(var.apps.espocrm.hostname, "")
@@ -327,7 +327,7 @@ module "espocrm" {
 }
 
 module "n8n" {
-  source = "git::https://github.com/sheyaln/sabokit.git//platform/apps/n8n/terraform?ref=v3.5.11"
+  source = "git::https://github.com/sheyaln/sabokit.git//platform/apps/n8n/terraform?ref=v3.5.12-beta1"
 
   enabled  = try(var.apps.n8n.enabled, false)
   hostname = try(var.apps.n8n.hostname, "")
@@ -523,7 +523,7 @@ locals {
 }
 
 module "backrest" {
-  source   = "git::https://github.com/sheyaln/sabokit.git//platform/apps/backrest/terraform?ref=v3.5.11"
+  source   = "git::https://github.com/sheyaln/sabokit.git//platform/apps/backrest/terraform?ref=v3.5.12-beta1"
   for_each = local.backrest_instances
 
   enabled       = true
@@ -604,7 +604,7 @@ module "backrest" {
 # platform/bootstrap/ rather than platform/apps/ — it's a host-service the
 # rest of the stack depends on, not a user-facing app.
 module "protonmail_bridge" {
-  source = "git::https://github.com/sheyaln/sabokit.git//platform/bootstrap/protonmail-bridge/terraform?ref=v3.5.11"
+  source = "git::https://github.com/sheyaln/sabokit.git//platform/bootstrap/protonmail-bridge/terraform?ref=v3.5.12-beta1"
 
   enabled = try(var.bootstrap.protonmail_bridge.enabled, false)
   base    = local.base
