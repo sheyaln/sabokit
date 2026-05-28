@@ -2,6 +2,19 @@
 
 All notable changes to sabokit go here. Versioning follows semver; major bumps signal breaking contract changes for consumers.
 
+## v3.5.12 - 2026-05-28
+
+Rewrites consumer-template `README.md` quickstart to lead with sabokit-cli. The previous quickstart told operators to `git clone` + `cp -r consumer-template/*` + run raw `ansible-playbook` against the wrong playbook (`apps.yml`, which doesn't cover core-tier monitoring); the new path is `sabokit init` + `sabokit up` + `sabokit deploy --apps X`. Manual terraform/ansible flow stays documented as the fallback, but with the right playbook (`site.yml` umbrella + `--tags` for scoping) since `core.yml` (loki/prometheus/grafana/wazuh) is a separate sub-playbook.
+
+### Changed
+
+- **`consumer-template/README.md`** — quickstart now installs sabokit-cli (`curl -fsSL .../install.sh | bash`) and uses `sabokit init` / `sabokit up` / `sabokit deploy`. Adding an app is `sabokit apps add <name>` + edit + `sabokit up`. The manual `ansible-playbook` fallback corrected: invoke `site.yml` (the umbrella that imports bootstrap + host-services + core + apps) with `--tags <name>` rather than `apps.yml` alone.
+
+### Operator migration notes
+
+- **Bump `consumer-template/modules/stack/` refs from `v3.5.11` to `v3.5.12`.** No tfvars or config.tf changes; the bump is doc-only.
+- The shell scripts (`preflight.sh` / `up.sh` / `configure.sh`) and per-env `_template/` layout still work — sabokit-cli shells through to the same scripts and playbooks.
+
 ## v3.5.11 - 2026-05-28
 
 Fixes broadsheet OIDC redirect URI: the Authentik provider was registered with `https://<hostname>/auth/oidc/callback` but the broadsheet app actually mounts its OIDC callback at `/api/auth/oidc/callback`. Login attempts fail with "Redirect URI does not match" until the URI is corrected.
