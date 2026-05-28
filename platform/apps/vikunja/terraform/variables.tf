@@ -179,9 +179,9 @@ variable "default_week_start" {
 }
 
 variable "oidc_groups_scope_name" {
-  description = "OIDC scope the Authentik provider attaches the groups claim under. Default `groups` is Authentik's stock scope and works without extra provider setup. Override only if you've defined a custom scope mapping (e.g. `vikunja_scope`) in Authentik and want the provider bound to it — that requires the scope to exist in Authentik first, or the provider apply errors out."
+  description = "Authentik scope_name the bundle's custom `vikunja_groups` claim mapping is registered under. Default `vikunja_scope` matches Vikunja's docs (https://vikunja.io/docs/openid/) and gets bound to the provider + threaded into VIKUNJA_AUTH_OPENID_PROVIDERS_AUTHENTIK_SCOPE on the Ansible side. The custom scope ships per-bundle — no manual Authentik setup. Override only when you need to coexist with an existing custom scope of the same name registered outside this bundle."
   type        = string
-  default     = "groups"
+  default     = "vikunja_scope"
 }
 
 variable "extra_env_vars" {
