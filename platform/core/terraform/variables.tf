@@ -12,28 +12,24 @@ variable "loki" {
   description = "Loki bundle knobs. See platform/core/loki/terraform/variables.tf. Defaults to {enabled = true}."
   type        = any
   default     = {}
-  sensitive   = true
 }
 
 variable "prometheus" {
   description = "Prometheus bundle knobs. See platform/core/prometheus/terraform/variables.tf. Defaults to {enabled = true}."
   type        = any
   default     = {}
-  sensitive   = true
 }
 
 variable "grafana" {
   description = "Grafana bundle knobs. See platform/core/grafana/terraform/variables.tf. Defaults to {enabled = true}."
   type        = any
   default     = {}
-  sensitive   = true
 }
 
 variable "wazuh" {
   description = "Wazuh-manager bundle knobs. See platform/core/wazuh/terraform/variables.tf. Defaults to {enabled = true}."
   type        = any
   default     = {}
-  sensitive   = true
 }
 
 # Auto-aggregated inputs the composition layer needs but each sub-bundle

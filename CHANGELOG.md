@@ -2,6 +2,31 @@
 
 All notable changes to sabokit go here. Versioning follows semver; major bumps signal breaking contract changes for consumers.
 
+## v3.5.3 - 2026-05-27
+
+Third blocking-bug patch on the v3.5.x cycle. `sensitive = true` flags on wrapper variables (`var.apps`, `var.base`, `var.core`, `var.identity` in consumer-template, plus `var.loki`/`prometheus`/`grafana`/`wazuh` in platform/core) propagated sensitivity into every nested attribute, blocking `for_each` arguments downstream. Terraform refuses sensitive values as `for_each` keys because the key would leak into resource instance addresses.
+
+### Fixed
+
+- **Dropped `sensitive = true` from `any`-typed wrapper variables** that carry nested config but no actual secrets:
+  - `consumer-template/modules/stack/variables.tf`: `var.apps`, `var.base`, `var.core`, `var.identity`
+  - `platform/core/terraform/variables.tf`: `var.loki`, `var.prometheus`, `var.grafana`, `var.wazuh`
+  
+  These wrappers carry config (which apps enabled, host topology, tier_slots, OIDC group names, etc.) — none of it is secret. Real secrets live in Scaleway Secret Manager and surface as secret IDs (pointers, not values). The over-defensive `sensitive` flags were blocking:
+  - `platform/base/terraform/host_services.tf` line 31: `for_each = var.diun.enabled ? { ... } : {}` (diun was tainted via `var.base` sensitivity)
+  - `platform/base/terraform/host_services.tf` line 58: `for_each = local.autoheal_hosts` (autoheal_hosts derives from var.autoheal which inherited sensitivity)
+  - `platform/identity/terraform/user_groups.tf` line 72: `for_each = local.slot_0` (tier_slots derived via var.identity)
+  - `platform/identity/terraform/user_groups.tf` line 432: `for_each = var.extra_groups` (via var.identity)
+
+### Operator migration notes
+
+- **Bump `consumer-template/modules/stack/` refs from `v3.5.2` to `v3.5.3`.** No tfvars or config.tf changes. `terraform validate` and `terraform plan` should be clean on the bump.
+- Sensitive values that legitimately ARE secret (TEM SMTP password, postgres admin password, Authentik admin token, app-specific keys) still flow through Scaleway Secret Manager and are still marked sensitive at the secret-version output level. Nothing about actual secret protection regresses.
+
+### Known follow-up
+
+- `tests/local-validate/` still doesn't exercise `consumer-template/modules/stack/`'s composition layer — which is why all three v3.5.x patches (`v3.5.1` base.tf wazuh-ref, `v3.5.2` moved.tf ambiguity, this one's sensitive-flag propagation) slipped past CI. Adding a stack-composition validation step is the next infrastructure work.
+
 ## v3.5.2 - 2026-05-27
 
 Second blocking-bug patch on the v3.5.x cycle: ambiguous `moved {}` blocks in `consumer-template/modules/stack/migrations.tf`. Two pairs (autoheal, wazuh-agent) had distinct `from` addresses pointing at the same `to`, which terraform rejects with "Multiple `moved` blocks ... have the same target address." Drops the redundant defensive blocks that targeted a hypothetical beta-v3.4 interim state nobody actually had.
