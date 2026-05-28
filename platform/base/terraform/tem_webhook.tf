@@ -48,7 +48,7 @@ resource "scaleway_tem_webhook" "delivery_alerts" {
   count = local.tem_webhook_enabled ? 1 : 0
 
   domain_id   = scaleway_tem_domain.this[0].id
-  name        = "${local.name_suffix}-tem-delivery"
+  name        = var.tem_webhook_name_override != "" ? var.tem_webhook_name_override : "${local.name_suffix}-tem-delivery"
   event_types = var.tem_webhook_event_types
   sns_arn     = scaleway_mnq_sns_topic.tem_events[0].arn
 }

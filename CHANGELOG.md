@@ -2,6 +2,21 @@
 
 All notable changes to sabokit go here. Versioning follows semver; major bumps signal breaking contract changes for consumers.
 
+## v3.5.10 - 2026-05-28
+
+Adds `var.base.tem_webhook_name_override` so consumers can dodge Scaleway's TEM webhook name-reservation bug. When a `scaleway_tem_webhook` create call partial-succeeds (e.g. quota hit on a parallel SNS namespace create), Scaleway holds the name in an unreachable internal state — `scw tem webhook list` returns empty but a subsequent create with the same name 409s "A webhook with the same name already exists" indefinitely. The only operator escape is renaming. Default behaviour unchanged: empty override keeps the auto-generated `<org_slug>-<environment>-tem-delivery` name.
+
+### Added
+
+- **`platform/base/terraform/variables.tf`** — new `tem_webhook_name_override` variable (string, default `""`).
+- **`platform/base/terraform/tem_webhook.tf`** — webhook name now `var.tem_webhook_name_override != "" ? var.tem_webhook_name_override : "${local.name_suffix}-tem-delivery"`.
+- **`consumer-template/modules/stack/base.tf`** — forwards `tem_webhook_name_override = try(var.base.tem_webhook_name_override, "")` to the platform module.
+
+### Operator migration notes
+
+- **Bump `consumer-template/modules/stack/` refs from `v3.5.9` to `v3.5.10`.** No tfvars changes required if you're not hitting the name-collision bug.
+- Set `var.base.tem_webhook_name_override = "<distinct-name>"` only if a previous apply leaked the canonical name and the create call now 409s — the upstream default behaviour is preserved for everyone else.
+
 ## v3.5.9 - 2026-05-28
 
 Makes the rest of the `random_password` / `random_id` resources `terraform import`-able. v3.5.8 documented the import path for cutting over from `credentials_preserve` mode but several resources didn't have the `lifecycle { ignore_changes = ... }` block required to land an import cleanly. `terraform import` populates `result` but leaves generation attributes (`length`, `special`, `byte_length`, `min_*`, `override_special`) at their schema defaults. Those attributes are `ForceNew` in the random provider — any post-import refresh diff against the resource's config triggers force-replacement, rotating the credential the import just preserved.
