@@ -1,6 +1,19 @@
 # Changelog
 
-All notable changes to sabokit go here. Versioning follows semver; major bumps signal breaking contract changes for consumers.
+All notable changes to sabokit go here. Versioning follows semver; major bumps signal breaking contract changes for consumers. As of v0.1.0, sabokit and sabokit-cli release in tandem on one shared semver line.
+
+## v0.1.0 - 2026-05-28
+
+Version reset. All prior tags (`infra-modules-v0.x`, `v1.0.0` through `v3.5.12-beta1`) and their GitHub releases were deleted; sabokit restarts at `v0.1.0` and now releases in tandem with sabokit-cli on a single shared version line. No code or contract change from `v3.5.12-beta1` — this only re-baselines the version number and the `consumer-template/modules/stack/` pins.
+
+### Changed
+
+- **`consumer-template/modules/stack/*.tf`** — all `?ref=` pins moved from `v3.5.12-beta1` to `v0.1.0`.
+
+### Operator migration notes
+
+- **Consumers must re-pin the stack source from the old `v3.x` tag to `v0.1.0`** in `consumer-template/modules/stack/*.tf` and in each `environments/<env>/main.tf` (`module "stack"`). The blueprint content is unchanged; only the tag name differs. `dciww-commons` `environments/prod/main.tf` moves from `?ref=v3.5.11` to `?ref=v0.1.0`.
+- **Upgrade sabokit-cli to the matching `v0.1.0` release.** Its default runner image and template-clone tag now point at `v0.1.0` (`ghcr.io/sheyaln/sabokit-runner:v0.1.0`); older CLI builds reference deleted tags.
 
 ## v3.5.12 - 2026-05-28
 
