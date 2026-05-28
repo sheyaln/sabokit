@@ -74,6 +74,7 @@
     vikunja_db_credentials_secret_id: "{{ enabled_apps.vikunja.ansible_vars.vikunja_db_credentials_secret_id }}"
     vikunja_smtp_secret_name: "{{ enabled_apps.vikunja.ansible_vars.vikunja_smtp_secret_name }}"
     vikunja_default_week_start: "{{ enabled_apps.vikunja.ansible_vars.vikunja_default_week_start }}"
+    vikunja_oidc_groups_scope_name: "{{ enabled_apps.vikunja.ansible_vars.vikunja_oidc_groups_scope_name }}"
     vikunja_diun_watch_enabled: "{{ enabled_apps.vikunja.ansible_vars.vikunja_diun_watch_enabled }}"
     vikunja_autoheal_enabled: "{{ enabled_apps.vikunja.ansible_vars.vikunja_autoheal_enabled }}"
     vikunja_extra_env_vars: "{{ enabled_apps.vikunja.ansible_vars.vikunja_extra_env_vars }}"
