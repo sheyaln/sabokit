@@ -44,14 +44,14 @@ moved {
 # `var.apps.diun_mgmt` from tfvars and configure `var.base.diun.*` instead.
 
 # ── Autoheal → host-services tier (v3.4.0) ───────────────────────────────
+# Single move from the v3.3.x apps-tier address to the canonical "tools" key
+# under the new for_each. Forks with additional per-host autoheal instances
+# (e.g. `autoheal_management`, `autoheal_authentik`) add their own moved{}
+# blocks in their fork-local migrations.tf — upstream can't cover every
+# fork's pre-v3.4 instance set.
 
 moved {
   from = module.autoheal_apps
-  to   = module.base.module.autoheal["tools"]
-}
-
-moved {
-  from = module.base.module.autoheal["apps"]
   to   = module.base.module.autoheal["tools"]
 }
 
@@ -61,14 +61,10 @@ moved {
 }
 
 # ── Wazuh-agent → host-services tier (v3.4.0) ────────────────────────────
+# Same shape as autoheal above.
 
 moved {
   from = module.wazuh_agent_apps
-  to   = module.base.module.wazuh_agent["tools"]
-}
-
-moved {
-  from = module.base.module.wazuh_agent["apps"]
   to   = module.base.module.wazuh_agent["tools"]
 }
 
