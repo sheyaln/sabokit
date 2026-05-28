@@ -175,21 +175,18 @@ variable "apps" {
   description = "Per-app enable flag and overrides. Each app has its own schema; see platform/apps/<name>/terraform/variables.tf."
   type        = any
   default     = {}
-  sensitive   = true
 }
 
 variable "core" {
   description = "Core-tier service overrides (loki, prometheus, grafana, wazuh). Each service ships enabled by default; flip individual ones off via var.core.<svc>.enabled = false. Per-service knobs documented in platform/core/<svc>/terraform/variables.tf."
   type        = any
   default     = {}
-  sensitive   = true
 }
 
 variable "base" {
   description = "Base-layer overrides (postgres, network, TEM, host-services). See platform/base/terraform/variables.tf for the full input surface."
   type        = any
   default     = {}
-  sensitive   = true
 }
 
 variable "bootstrap" {
@@ -203,7 +200,6 @@ variable "bootstrap" {
 variable "identity" {
   description = "Identity-bundle inputs. Required fields: `tier_slots = list(object({ name, peers = map(string) }))` — the org's authority hierarchy as a DAG (lowest slot first, each peer_name → group_name). Optional fields: `extra_groups = map(object({ is_superuser, description }))` — additional Authentik groups beyond the tier_slots DAG; `icon_base_url` — where app icons are fetched from; `admin_group_name` / `member_group_name` / `delegate_group_name` / `delegate_role_name` — override the named-group pointers when the tier_slots DAG uses different group_names than the platform defaults (\"admin\" / \"member\" / \"delegate\")."
   type        = any
-  sensitive   = true
 
   validation {
     condition     = try(length(var.identity.tier_slots), 0) >= 1
