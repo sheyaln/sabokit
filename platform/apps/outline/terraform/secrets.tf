@@ -4,11 +4,21 @@
 resource "random_id" "secret_key" {
   count       = var.enabled ? 1 : 0
   byte_length = 32
+
+  lifecycle {
+    # Required for `terraform import`: imported state has null byte_length
+    # which would otherwise conflict and trigger force-replacement.
+    ignore_changes = all
+  }
 }
 
 resource "random_id" "utils_secret" {
   count       = var.enabled ? 1 : 0
   byte_length = 32
+
+  lifecycle {
+    ignore_changes = all
+  }
 }
 
 resource "scaleway_secret" "app" {

@@ -7,18 +7,32 @@ resource "random_password" "indexer_admin" {
   count   = var.enabled ? 1 : 0
   length  = 32
   special = false
+
+  lifecycle {
+    # Required for `terraform import`: imported state has null length/special
+    # which would otherwise conflict and trigger force-replacement.
+    ignore_changes = all
+  }
 }
 
 resource "random_password" "api" {
   count   = var.enabled ? 1 : 0
   length  = 32
   special = false
+
+  lifecycle {
+    ignore_changes = all
+  }
 }
 
 resource "random_password" "dashboard" {
   count   = var.enabled ? 1 : 0
   length  = 32
   special = false
+
+  lifecycle {
+    ignore_changes = all
+  }
 }
 
 resource "scaleway_secret" "app" {

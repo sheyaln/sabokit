@@ -113,6 +113,12 @@ resource "scaleway_secret_version" "admin" {
 resource "random_id" "server_key" {
   count       = 1
   byte_length = 32
+
+  lifecycle {
+    # Required for `terraform import`: imported state has null byte_length
+    # which would otherwise conflict and trigger force-replacement.
+    ignore_changes = all
+  }
 }
 
 # ── Preserved bags (in-place legacy cutover) ────────────────────────────────

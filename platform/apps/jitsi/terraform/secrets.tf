@@ -21,30 +21,53 @@ resource "random_password" "jwt_app_secret" {
   count   = var.enabled ? 1 : 0
   length  = 48
   special = false
+
+  lifecycle {
+    # Required for `terraform import`: imported state has null length/special
+    # which would otherwise conflict with these and trigger force-replacement.
+    # Generation attributes are immutable once set; rotate via taint.
+    ignore_changes = all
+  }
 }
 
 resource "random_password" "jicofo_auth" {
   count   = var.enabled ? 1 : 0
   length  = 32
   special = false
+
+  lifecycle {
+    ignore_changes = all
+  }
 }
 
 resource "random_password" "jvb_auth" {
   count   = var.enabled ? 1 : 0
   length  = 32
   special = false
+
+  lifecycle {
+    ignore_changes = all
+  }
 }
 
 resource "random_password" "jibri_xmpp" {
   count   = var.enabled ? 1 : 0
   length  = 32
   special = false
+
+  lifecycle {
+    ignore_changes = all
+  }
 }
 
 resource "random_password" "jibri_recorder" {
   count   = var.enabled ? 1 : 0
   length  = 32
   special = false
+
+  lifecycle {
+    ignore_changes = all
+  }
 }
 
 resource "scaleway_secret" "app" {
