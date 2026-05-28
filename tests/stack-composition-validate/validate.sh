@@ -21,13 +21,14 @@ STACK_DIR="${REPO_ROOT}/consumer-template/modules/stack"
 # Files we'll rewrite + restore.
 TF_FILES=("${STACK_DIR}"/*.tf)
 
+REWROTE=0  # set to 1 after sed runs; gates cleanup so we don't clobber
+           # uncommitted operator edits on the early-exit path.
+
 cleanup() {
   cd "$REPO_ROOT"
-  # Restore any rewritten files from git. Safer than maintaining .bak copies
-  # — guarantees we're back to the committed shape regardless of script exit.
-  git -C "$REPO_ROOT" checkout -- "${STACK_DIR}"/*.tf 2>/dev/null || true
-  # Clean the test fixture's .terraform cache so it doesn't pin to local
-  # paths across runs.
+  if [[ "$REWROTE" == "1" ]]; then
+    git -C "$REPO_ROOT" checkout -- "${STACK_DIR}"/*.tf 2>/dev/null || true
+  fi
   rm -rf "${SCRIPT_DIR}/.terraform" "${SCRIPT_DIR}/.terraform.lock.hcl"
 }
 trap cleanup EXIT
@@ -47,6 +48,7 @@ sed -i.tmp -E \
   's|git::https://github\.com/[^/]+/[^/]+\.git//([^"?]+)\?ref=v[0-9]+\.[0-9]+\.[0-9]+|../../../\1|g' \
   "${TF_FILES[@]}"
 rm -f "${STACK_DIR}"/*.tf.tmp
+REWROTE=1
 
 echo "==> terraform init ..."
 cd "$SCRIPT_DIR"

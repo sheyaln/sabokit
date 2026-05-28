@@ -56,7 +56,7 @@ locals {
       for host_key, inst in instances : "${svc}_${host_key}" => {
         ansible_vars  = inst.ansible_vars
         ansible_group = inst.ansible_group
-      } if inst.enabled
+      } if inst != null && try(inst.enabled, true)
     }
   ]...)
 }
