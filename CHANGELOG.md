@@ -2,6 +2,21 @@
 
 All notable changes to sabokit go here. Versioning follows semver; major bumps signal breaking contract changes for consumers.
 
+## v3.5.8 - 2026-05-28
+
+Reverts the `ignore_changes = [password]` added to `scaleway_rdb_user.this` in v3.5.6. That was the wrong fix — it papered over a state-vs-live drift instead of resolving it. The principled answer is to import `random_password.this[0]` with the live password value (extractable from the `postgres-<dbname>-credentials` Scaleway bag), so TF state reflects what's deployed and nothing rotates. The same pattern applies to OIDC `random_uuid.oidc_client_id[0]` / `random_password.oidc_client_secret[0]` and to every per-app `random_password.*` / `random_id.*` whose value already lives in a Scaleway bag — consumers cutting over from `credentials_preserve` mode write `import {}` blocks for each generator alongside the existing secret-version imports.
+
+The Scaleway-API-limitation `ignore_changes = [data]` on `scaleway_secret_version` resources stays — that's a legitimate workaround for the fact that Scaleway's secret API doesn't return values on read, not an architectural patch.
+
+### Reverted
+
+- **`modules/infrastructure/storage/postgres_database/main.tf`** — `lifecycle { ignore_changes = [password] }` removed from `scaleway_rdb_user.this`.
+
+### Operator migration notes
+
+- **Bump `consumer-template/modules/stack/` refs from `v3.5.7` to `v3.5.8`.**
+- **Consumers that finished cutting over from `credentials_preserve` mode at v3.5.0+ and saw `random_password.*` / `random_uuid.*` / `random_id.*` resources land in "will be created" state** on first v3.5.x plan: write `import {}` blocks for each, sourcing the value from the corresponding Scaleway bag (decode via `scw secret version access secret-id=<id> revision=latest | base64 -d | jq`, extract the field). The random_* imports go alongside the existing secret + secret_version imports for the same cutover.
+
 ## v3.5.7 - 2026-05-28
 
 One bug surfaced when planning v3.5.6 against the dciww consumer with `smtp_secret_name` wired: identity module's secret-bag schema didn't match what the base TEM bundle writes. `platform/base/terraform/tem.tf` emits `host` / `port` / `username` / `password` (plus `use_tls` / `domain` / `from_email`). `platform/identity/terraform/data.tf` was trying to read `smtp_host` / `smtp_port` / `smtp_username` / `smtp_password` from the decoded bag. Plan hard-errored with four "Missing map element" lines the moment a consumer enabled SMTP.
