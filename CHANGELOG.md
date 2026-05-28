@@ -2,6 +2,22 @@
 
 All notable changes to sabokit go here. Versioning follows semver; major bumps signal breaking contract changes for consumers.
 
+## v3.5.2 - 2026-05-27
+
+Second blocking-bug patch on the v3.5.x cycle: ambiguous `moved {}` blocks in `consumer-template/modules/stack/migrations.tf`. Two pairs (autoheal, wazuh-agent) had distinct `from` addresses pointing at the same `to`, which terraform rejects with "Multiple `moved` blocks ... have the same target address." Drops the redundant defensive blocks that targeted a hypothetical beta-v3.4 interim state nobody actually had.
+
+### Fixed
+
+- **Ambiguous `moved {}` blocks for autoheal + wazuh_agent.** Two blocks each:
+  - `module.autoheal_apps → module.base.module.autoheal["tools"]` (real: covers v3.3.x → v3.4.0+ apps-tier-to-host-services relocation)
+  - `module.base.module.autoheal["apps"] → module.base.module.autoheal["tools"]` (defensive: covered a hypothetical beta-v3.4 state where the bundle landed in base with the old "apps" key before canonical-3-host rename)
+
+  Same shape for `wazuh_agent`. The defensive blocks shared a `to` address with the real blocks; terraform refuses to plan because it can't disambiguate which `from` to apply when only one is in state. Dropped the defensive blocks — no real consumer transitioned through the hypothetical state.
+
+### Operator migration notes
+
+- **Bump `consumer-template/modules/stack/` refs from `v3.5.1` to `v3.5.2`.** No tfvars or config.tf changes. `terraform validate` and `terraform plan` should be clean on the bump.
+
 ## v3.5.1 - 2026-05-27
 
 Blocking bug fix on the v3.5.0 cycle: `consumer-template/modules/stack/base.tf` referenced `module.wazuh` (relocated to `module.core.wazuh` at v3.4.0), making `terraform validate` fail on any consumer with `var.base.wazuh_agent` enabled (which is default-on at v3.4.0+). One-line fix.
