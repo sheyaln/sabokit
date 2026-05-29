@@ -1,6 +1,6 @@
 # Build + push ghcr.io/<owner>/sabokit-runner:<tag> on every v*
 # tag push. The image bakes ansible-core + collections + the entire platform/
-# tree at the matching repo tag — see docker/runner/README.md for the
+# tree at the matching repo tag — see platform/infra/runner-image/README.md for the
 # consumer-side usage.
 #
 # Triggers:
@@ -66,7 +66,7 @@ jobs:
         uses: docker/build-push-action@v6
         with:
           context: .
-          file: docker/runner/Dockerfile
+          file: platform/infra/runner-image/Dockerfile
           platforms: linux/amd64,linux/arm64
           push: true
           build-args: |

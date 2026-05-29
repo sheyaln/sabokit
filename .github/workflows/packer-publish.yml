@@ -83,12 +83,12 @@ jobs:
           version: '1.11.2'
 
       - name: packer init
-        working-directory: packer
+        working-directory: platform/infra/base-image
         run: packer init .
 
       - name: packer build
         id: build
-        working-directory: packer
+        working-directory: platform/infra/base-image
         run: |
           packer build \
             -var image_version=${{ steps.ver.outputs.version }} \
@@ -96,7 +96,7 @@ jobs:
           qcow2_path="output/fc-base-${{ steps.ver.outputs.version }}/fc-base-${{ steps.ver.outputs.version }}.qcow2"
           [ -f "$qcow2_path" ] || { echo "qcow2 not found at $qcow2_path" >&2; exit 1; }
           ls -lh "$qcow2_path"
-          mv "$qcow2_path" "../fc-base-${{ steps.ver.outputs.version }}.qcow2"
+          mv "$qcow2_path" "../../../fc-base-${{ steps.ver.outputs.version }}.qcow2"
           echo "qcow2_asset=fc-base-${{ steps.ver.outputs.version }}.qcow2" >> "$GITHUB_OUTPUT"
 
       - name: Scan qcow2 with trivy
