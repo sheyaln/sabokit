@@ -1,5 +1,5 @@
 module "compute_host" {
-  source   = "../../../modules/infrastructure/compute"
+  source   = "../../_shared/infrastructure/compute"
   for_each = var.compute_hosts
 
   instance_name      = "${local.name_suffix}-${each.key}"

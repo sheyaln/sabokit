@@ -1,5 +1,5 @@
 module "database" {
-  source = "../../../../modules/infrastructure/storage/postgres_database"
+  source = "../../../_shared/infrastructure/storage/postgres_database"
   count  = var.enabled ? 1 : 0
 
   instance_id       = var.base.scaleway.postgres_instance_id

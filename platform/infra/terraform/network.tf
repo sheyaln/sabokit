@@ -1,5 +1,5 @@
 module "network" {
-  source = "../../../modules/infrastructure/network"
+  source = "../../_shared/infrastructure/network"
 
   name   = "${local.name_suffix}-network"
   region = var.scaleway_region

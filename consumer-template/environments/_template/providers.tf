@@ -2,7 +2,10 @@
 # project, different Authentik instance per env in most setups).
 
 terraform {
-  required_version = ">= 1.5.0"
+  # >= 1.10: the backend below uses use_lockfile (S3-native state locking),
+  # added in Terraform 1.10. An older CLI fails with a cryptic backend-hash
+  # error instead of a clear version mismatch.
+  required_version = ">= 1.10.0"
 
   required_providers {
     scaleway  = { source = "scaleway/scaleway", version = ">= 2.7.0" }

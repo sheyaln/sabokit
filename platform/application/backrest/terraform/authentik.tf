@@ -4,7 +4,7 @@
 # `extra_forward_auth_provider_ids` for the outpost to protect this instance.
 
 module "authentik" {
-  source = "../../../../modules/authentik/traefik-forward-auth"
+  source = "../../../_shared/authentik/traefik-forward-auth"
   count  = var.enabled ? 1 : 0
 
   application_name = var.application_name != "" ? var.application_name : "Backrest (${var.instance_name})"
