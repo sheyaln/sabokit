@@ -17,7 +17,7 @@ output "postgres_admin_credentials_secret_id" {
 }
 
 output "identity_bootstrap" {
-  description = "Map of Scaleway secret IDs the Ansible bootstrap.yml feeds to the authentik-server role. Passed verbatim as -e identity_bootstrap=$(terraform output -json identity_bootstrap)."
+  description = "Map of Scaleway secret IDs (plus the non-secret authentik_version pin) the Ansible bootstrap.yml feeds to the authentik-server role. Passed verbatim as -e identity_bootstrap=$(terraform output -json identity_bootstrap)."
   value       = module.identity_bootstrap.identity_bootstrap
 }
 

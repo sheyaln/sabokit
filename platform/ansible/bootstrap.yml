@@ -66,3 +66,7 @@
         authentik_server_secret_id: "{{ identity_bootstrap.server_secret_id }}"
         authentik_media_s3_secret_id: "{{ identity_bootstrap.media_s3_secret_id | default('') }}"
         authentik_smtp_secret_id: "{{ identity_bootstrap.smtp_secret_id | default('') }}"
+        # Consumer-pinned image tag. Empty/unset falls through to the role
+        # default (defaults/main.yml) — `omit` drops the key entirely so an
+        # empty string can't shadow the default into a broken `image:tag` ref.
+        authentik_version: "{{ identity_bootstrap.authentik_version | default('') or omit }}"

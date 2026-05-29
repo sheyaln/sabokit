@@ -25,4 +25,10 @@ module "identity_bootstrap" {
   # feature off. See platform/identity/bootstrap/README.md.
   media_s3_secret_id = try(var.identity.media_s3_secret_id, "")
   smtp_secret_id     = try(var.identity.smtp_secret_id, "")
+
+  # Pin the Authentik image tag. Empty (default) tracks the version this
+  # blueprint release was validated against (the authentik-server role
+  # default). Authentik has breaking inter-release DB migrations — set
+  # deliberately and read upstream release notes before bumping.
+  authentik_version = try(var.identity.authentik_version, "")
 }
