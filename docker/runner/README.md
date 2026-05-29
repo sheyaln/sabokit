@@ -1,6 +1,6 @@
 # sabokit-runner image
 
-The runner image is `ghcr.io/sheyaln/sabokit-runner:<tag>`. It bundles ansible-core + four collections + the Terraform CLI + the entire `platform/` tree at the matching repo tag. Published on every `v*` tag push by `.github/workflows/runner-publish.yml`.
+The runner image is `ghcr.io/sheyaln/sabokit-runner:<tag>`. It bundles ansible-core + four collections + the Terraform CLI + the entire `platform/` tree at the matching repo tag. Published on every `v*` tag push by `.github/workflows/runner-publish.yml`, multi-arch for `linux/amd64` + `linux/arm64`.
 
 **Consumers use [sabokit-cli](https://github.com/sheyaln/sabokit-cli) as the wrapper** — `sabokit deploy` / `sabokit down` / `sabokit status` run this image with the right flags, mounts, and SSH-agent passthrough. The standalone shell wrapper (`scripts/sabokit-runner.sh`) was removed at v3.4.0; sabokit-cli replaces it.
 
