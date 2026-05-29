@@ -2,17 +2,12 @@ locals {
   slug             = "steward"
   application_slug = var.application_slug != "" ? var.application_slug : local.slug
 
-  # Authorized groups = the access-level group from base + any extras.
-  # Map keys are static role names so for_each can plan before identity-apply
-  # has populated the actual group UUIDs.
-  authorized_groups = var.enabled ? (
-    var.tier_cascade_enabled
-    ? var.base.authentik.tier_cascade[var.tier_access_level]
-    : merge(
-      { (var.access_level) = var.base.authentik.groups[var.access_level] },
-      var.extra_authorized_groups,
-    )
-  ) : {}
+  # Authorized groups = the consumer's explicit group-name list, resolved to IDs
+  # via base.authentik.groups. Map keys are the group names (static at plan), so
+  # the leaf module's for_each plans before identity-apply fills the UUIDs.
+  authorized_groups = var.enabled ? {
+    for g in var.authorized_groups : g => var.base.authentik.groups[g]
+  } : {}
 
   oidc_callback_url = "https://${var.hostname}/oidc/callback/"
   app_url           = "https://${var.hostname}"

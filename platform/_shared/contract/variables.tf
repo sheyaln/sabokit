@@ -84,16 +84,8 @@ variable "icon_base_url" {
   default     = ""
 }
 
-variable "tier_slots" {
-  description = "The identity tier DAG, same shape identity consumes: ordered list of { name, peers = map(peer_name -> group_name) }, lowest privilege first. Config-known — drives both which groups to discover and the tier_cascade recompute."
-  type = list(object({
-    name  = string
-    peers = map(string)
-  }))
-}
-
-variable "extra_group_names" {
-  description = "Names of the non-cascade platform groups identity created from its extra_groups input (service-account scopes, org roles). Discovered by name and merged into base.authentik.groups, but excluded from the tier_cascade."
+variable "group_names" {
+  description = "Names of every Authentik group identity created (tier_slots peers + extra_groups) that a bundle in this layer might bind via its authorized_groups. Discovered by name into base.authentik.groups. The contract is deliberately tier-agnostic — it discovers a flat name set; which groups gate which app is the consumer's call, expressed per-bundle as authorized_groups."
   type        = list(string)
   default     = []
 }

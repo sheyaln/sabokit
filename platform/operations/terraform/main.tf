@@ -162,12 +162,9 @@ module "grafana" {
   base     = var.base
 
 
-  access_level            = try(var.grafana.access_level, "admin")
-  extra_authorized_groups = try(var.grafana.extra_authorized_groups, {})
-  tier_cascade_enabled    = try(var.grafana.tier_cascade_enabled, true)
-  tier_access_level       = try(var.grafana.tier_access_level, "admin")
-  monitoring_enabled      = try(var.grafana.monitoring_enabled, true)
-  deployment_host_key     = try(var.grafana.deployment_host_key, "management")
+  authorized_groups   = try(var.grafana.authorized_groups, ["admin"])
+  monitoring_enabled  = try(var.grafana.monitoring_enabled, true)
+  deployment_host_key = try(var.grafana.deployment_host_key, "management")
 
   dns_zone_override = try(var.grafana.dns_zone_override, "")
   category_group    = try(var.grafana.category_group, "Technical Management")
@@ -222,12 +219,9 @@ module "wazuh" {
   base     = var.base
 
 
-  access_level            = try(var.wazuh.access_level, "admin")
-  extra_authorized_groups = try(var.wazuh.extra_authorized_groups, {})
-  tier_cascade_enabled    = try(var.wazuh.tier_cascade_enabled, true)
-  tier_access_level       = try(var.wazuh.tier_access_level, "admin")
-  monitoring_enabled      = try(var.wazuh.monitoring_enabled, true)
-  deployment_host_key     = try(var.wazuh.deployment_host_key, "management")
+  authorized_groups   = try(var.wazuh.authorized_groups, ["admin"])
+  monitoring_enabled  = try(var.wazuh.monitoring_enabled, true)
+  deployment_host_key = try(var.wazuh.deployment_host_key, "management")
 
   dns_zone_override = try(var.wazuh.dns_zone_override, "")
   category_group    = try(var.wazuh.category_group, "Technical Management")

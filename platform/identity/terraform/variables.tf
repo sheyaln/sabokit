@@ -45,14 +45,15 @@ variable "from_name" {
 
 # ── Tier DAG ────────────────────────────────────────────────────────────────
 # The org's authority hierarchy as a partial-order DAG. Each slot is a row
-# (rank); each peer within a slot is an independent role at that rank. A
-# bundle's `tier_access_level` references a `peer_name` from this structure;
-# `base.authentik.tier_cascade[peer]` resolves to that peer's group plus every
-# group in every strictly-higher slot. See platform/identity/terraform/README.md
-# for the full cascade-up semantics + a worked example.
+# (rank); each peer within a slot is an independent role at that rank. Peers in
+# slot S+1 nest under every peer in slot S, so Authentik's group-nesting
+# evaluator transitively gives higher-slot users membership in every group
+# below them. This is what app access leans on: a bundle lists explicit group
+# names in `authorized_groups`, and listing a baseline group admits every
+# higher slot via the nesting. See platform/identity/terraform/README.md.
 
 variable "tier_slots" {
-  description = "Ordered list of tier slots, lowest privilege first. Each slot has a logical name and a map of peer_name → group_name. peer_name is the stable token bundles' tier_access_level matches against; group_name is what the underlying Authentik group is called. Cascade-up: an app scoped to peer P in slot S admits P's group + every group in every strictly-higher slot (all peers in those slots). Required — no default."
+  description = "Ordered list of tier slots, lowest privilege first. Each slot has a logical name and a map of peer_name → group_name. group_name is what the underlying Authentik group is called; peers in slot S+1 nest under every peer in slot S, giving transitive (cascade-up) membership. Bundles bind explicit group names via authorized_groups — there is no platform-computed cascade. Required — no default."
   type = list(object({
     name  = string
     peers = map(string)

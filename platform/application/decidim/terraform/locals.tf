@@ -2,14 +2,9 @@ locals {
   slug             = "decidim"
   application_slug = var.application_slug != "" ? var.application_slug : local.slug
 
-  authorized_groups = var.enabled ? (
-    var.tier_cascade_enabled
-    ? var.base.authentik.tier_cascade[var.tier_access_level]
-    : merge(
-      { (var.access_level) = var.base.authentik.groups[var.access_level] },
-      var.extra_authorized_groups,
-    )
-  ) : {}
+  authorized_groups = var.enabled ? {
+    for g in var.authorized_groups : g => var.base.authentik.groups[g]
+  } : {}
 
   # Decidim's decidim-omniauth-oauth2 plugin posts back to /users/auth/oauth2_authentik/callback.
   oidc_callback_url = "https://${var.hostname}/users/auth/oauth2_authentik/callback"
