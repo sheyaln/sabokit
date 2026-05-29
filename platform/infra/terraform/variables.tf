@@ -70,15 +70,15 @@ variable "private_network_subnet" {
 
 # ── Security groups ─────────────────────────────────────────────────────────
 
-variable "default_security_group_extra_inbound_rules" {
-  description = "Additional inbound rules appended to the default security group beyond SSH/HTTP/HTTPS. Same shape as modules/infrastructure/security_group inbound_rules."
-  type = list(object({
+variable "extra_inbound_rules_by_role" {
+  description = "Per-role inbound rules appended to that role's static SG superset. Map of role name → list of rules (same shape as the security_group module's inbound_rules). The blueprint ships the apps/identity/ops supersets; use this to open additional ports for a role without forking. Stateful SG → only inbound need be declared."
+  type = map(list(object({
     protocol   = string
     port       = optional(number)
     port_range = optional(string)
     ip_range   = optional(string, "0.0.0.0/0")
-  }))
-  default = []
+  })))
+  default = {}
 }
 
 # ── Custom DNS records ──────────────────────────────────────────────────────

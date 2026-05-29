@@ -13,7 +13,7 @@ locals {
     private_network_id     = module.network.id
     private_network_subnet = var.private_network_subnet
 
-    default_security_group_id = module.default_security_group.id
+    security_group_ids        = { for r, m in module.role_sg : r => m.id }
 
     postgres_instance_id                 = var.postgres_enabled ? module.postgres[0].instance_id : null
     postgres_endpoint                    = var.postgres_enabled ? module.postgres[0].endpoint : null
@@ -123,7 +123,7 @@ output "private_network_id" {
   value       = module.network.id
 }
 
-output "default_security_group_id" {
-  description = "Convenience alias for scaleway.default_security_group_id."
-  value       = module.default_security_group.id
+output "security_group_ids" {
+  description = "Map of role → security group ID. Each compute host is assigned the SG for its role; consumers needing a custom SG pass compute_hosts[*].security_group_id."
+  value       = { for r, m in module.role_sg : r => m.id }
 }
