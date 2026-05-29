@@ -52,7 +52,10 @@ RUN ansible-galaxy collection install --force \
 
 # Terraform CLI. Pinned via TERRAFORM_VERSION build arg. Bumped per sabokit
 # release; consumers override with --build-arg TERRAFORM_VERSION=X.Y.Z.
-RUN curl -fsSL https://releases.hashicorp.com/terraform/${TERRAFORM_VERSION}/terraform_${TERRAFORM_VERSION}_linux_amd64.zip \
+# TARGETARCH (amd64/arm64) is injected by buildx and matches HashiCorp's
+# linux_<arch> artifact naming, so the image builds natively on both arches.
+ARG TARGETARCH
+RUN curl -fsSL https://releases.hashicorp.com/terraform/${TERRAFORM_VERSION}/terraform_${TERRAFORM_VERSION}_linux_${TARGETARCH}.zip \
       -o /tmp/tf.zip \
     && unzip /tmp/tf.zip -d /usr/local/bin \
     && rm /tmp/tf.zip \
