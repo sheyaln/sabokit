@@ -1,6 +1,6 @@
-# platform/core/
+# platform/operations/
 
-Core-tier bundles. The monitoring/SIEM stack every consumer gets by default — logs, metrics, dashboards, alerts, host security telemetry.
+Operations-tier bundles (formerly `core`). The monitoring/SIEM stack every consumer gets by default — logs, metrics, dashboards, alerts, host security telemetry — plus the runtime mail providers folded in from the dissolved `bootstrap` tier.
 
 Sibling to `platform/base/`, `platform/identity/`, `platform/bootstrap/`, `platform/apps/`. Consumers wire bundles here via `var.core.<svc>` — see `consumer-template/modules/stack/core.tf`.
 
@@ -56,4 +56,13 @@ core = {
 
 ## Per-bundle docs
 
-Per-service variable surface and ansible role contract live in each bundle's `README.md`. The composition module at `platform/core/terraform/` wires them together with the right defaults; consumers don't instantiate sub-bundles directly.
+Per-service variable surface and ansible role contract live in each bundle's `README.md`. The composition module at `platform/operations/terraform/` wires them together with the right defaults; consumers don't instantiate sub-bundles directly.
+
+## Runtime mail providers (folded from the former bootstrap tier)
+
+The old `platform/bootstrap/` tier is dissolved. Its one shipping bundle, `protonmail-bridge`, now lives here as an operations-tier bundle; its pre-Authentik secret/DB provisioning is owned by `platform/infra/`.
+
+- **IMAP inbound** — `protonmail-bridge/` runs the community ProtonMail Bridge container (bound to an apps-shared docker network) for apps that *fetch* mail (typically n8n polling an inbox). It writes the well-known `imap-config` Scaleway secret; consuming apps read that by name and don't care which provider produced it. Requires an interactive first-login (see the bundle README).
+- **SMTP outbound** — written by `platform/infra/` from Scaleway TEM (always-on when `tem_enabled = true`) into the well-known `smtp-config` secret. No runtime container. A future in-cluster relay (TEM-backed or BYO-credentials) would land as another operations bundle writing the same secret.
+
+> Stage-4 doc sweep: the `var.core.<svc>` / `consumer-template/modules/stack/core.tf` references in this README are renamed alongside the Stage-2 composition rework.
