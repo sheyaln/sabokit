@@ -8,5 +8,6 @@
 **/node_modules
 **/.DS_Store
 consumer-template/
-packer/
+platform/infra/base-image/
+platform/infra/runner-image/
 .github/

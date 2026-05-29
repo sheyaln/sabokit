@@ -1,4 +1,4 @@
-# platform/identity/bootstrap — pre-Authentik secret + database provisioning.
+# platform/infra/authentik-bootstrap — pre-Authentik secret + database provisioning.
 #
 # platform/identity/terraform/ configures Authentik via the goauthentik/authentik
 # provider, which can only function once Authentik itself is running and has an
