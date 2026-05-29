@@ -41,6 +41,7 @@ module "authentik_bootstrap" {
   admin_username     = var.authentik_admin_username
   media_s3_secret_id = var.authentik_media_s3_secret_id
   smtp_secret_id     = var.authentik_smtp_secret_id
+  authentik_version  = var.authentik_version
 }
 
 # ── Inputs ──────────────────────────────────────────────────────────────────
@@ -64,6 +65,15 @@ variable "authentik_media_s3_secret_id" {
 
 variable "authentik_smtp_secret_id" {
   description = "Scaleway secret ID for Authentik's own SMTP credentials. Empty = email steps no-op. Provisioned out-of-band."
+  type        = string
+  default     = ""
+}
+
+# Backported from master's authentik-version-knob (arrived via rebase): the
+# consumer-facing knob to pin the Authentik image tag. Threaded through to the
+# bootstrap module → identity_bootstrap output → authentik-server ansible role.
+variable "authentik_version" {
+  description = "Authentik image tag to pin (e.g. \"2025.12.1\"). Empty (default) defers to the authentik-server role's validated default. Authentik has breaking inter-release DB migrations — set deliberately."
   type        = string
   default     = ""
 }
