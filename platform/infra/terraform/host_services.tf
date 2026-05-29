@@ -24,6 +24,15 @@ locals {
     for k, _ in var.compute_hosts : k => k
     if !contains(var.wazuh_agent.disabled_hosts, k)
   } : {}
+
+  # Wazuh manager runs on the ops-role host (operations layer). The agent here
+  # (infra host-services) needs the manager's reachable address — infra owns
+  # compute, so resolve the ops host's private IP in-layer (no cross-layer edge).
+  # Empty when no ops host exists; an explicit var.wazuh_agent.manager_address wins.
+  ops_host_private_ip = try(
+    [for k, h in module.compute_host : h.private_ip if var.compute_hosts[k].role == "ops"][0],
+    "",
+  )
 }
 
 module "diun" {
@@ -76,7 +85,7 @@ module "wazuh_agent" {
 
   image                = var.wazuh_agent.image
   release_version      = var.wazuh_agent.release_version
-  manager_address      = var.wazuh_agent.manager_address
+  manager_address      = var.wazuh_agent.manager_address != "" ? var.wazuh_agent.manager_address : local.ops_host_private_ip
   fim_enabled          = var.wazuh_agent.fim_enabled
   fim_extra_paths      = var.wazuh_agent.fim_extra_paths
   fim_extra_exclusions = var.wazuh_agent.fim_extra_exclusions
