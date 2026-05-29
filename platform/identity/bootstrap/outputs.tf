@@ -6,13 +6,14 @@
 #     extra-var shaped as below.
 
 output "identity_bootstrap" {
-  description = "Map consumed verbatim by platform/ansible/bootstrap.yml via -e identity_bootstrap=...; each *_secret_id is a Scaleway Secret Manager ID the authentik-server role hands to the scaleway_secret lookup plugin. media_s3_secret_id + smtp_secret_id default to empty and only need values when those Authentik features are turned on."
+  description = "Map consumed verbatim by platform/ansible/bootstrap.yml via -e identity_bootstrap=...; each *_secret_id is a Scaleway Secret Manager ID the authentik-server role hands to the scaleway_secret lookup plugin. media_s3_secret_id + smtp_secret_id default to empty and only need values when those Authentik features are turned on. authentik_version is the only non-secret field: the pinned Authentik image tag (empty = role default)."
   value = {
     postgres_secret_id = module.database.secret_id
     admin_secret_id    = local.admin_secret_id
     server_secret_id   = local.server_secret_id
     media_s3_secret_id = var.media_s3_secret_id
     smtp_secret_id     = var.smtp_secret_id
+    authentik_version  = var.authentik_version
   }
 }
 

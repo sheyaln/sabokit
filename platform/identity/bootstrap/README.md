@@ -25,6 +25,11 @@ module "identity_bootstrap" {
   postgres_instance_id = module.base.scaleway.postgres_instance_id
   postgres_endpoint    = module.base.scaleway.postgres_endpoint
   postgres_engine      = module.base.scaleway.postgres_engine
+
+  # Optional: pin the Authentik image tag. Empty (default) defers to the
+  # authentik-server role's pinned default. Authentik has breaking
+  # inter-release DB migrations — set deliberately.
+  # authentik_version = "2025.12.1"
 }
 ```
 
@@ -53,7 +58,7 @@ TF_VAR_authentik_admin_token="$ADMIN_TOKEN" terraform apply -auto-approve
 
 | Name | Description |
 |------|-------------|
-| `identity_bootstrap` | Map `{postgres_secret_id, admin_secret_id, server_secret_id}` — consumed verbatim by `platform/ansible/bootstrap.yml` via `-e identity_bootstrap=...`. |
+| `identity_bootstrap` | Map `{postgres_secret_id, admin_secret_id, server_secret_id, media_s3_secret_id, smtp_secret_id, authentik_version}` — consumed verbatim by `platform/ansible/bootstrap.yml` via `-e identity_bootstrap=...`. `authentik_version` is the only non-secret field (the pinned image tag; empty defers to the role default). |
 | `admin_secret_id` | Admin credentials secret — JSON `{username, email, password, api_token}`. |
 | `server_secret_id` | Server `secret_key` secret. |
 | `database_secret_id` | PostgreSQL database credentials secret. |

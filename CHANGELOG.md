@@ -6,6 +6,10 @@ All notable changes to sabokit go here. Versioning follows semver; major bumps s
 
 Version reset. All prior tags (`infra-modules-v0.x`, `v1.0.0` through `v3.5.12-beta1`) and their GitHub releases were deleted; sabokit restarts at `v0.1.0` and now releases in tandem with sabokit-cli on a single shared version line. No code or contract change from `v3.5.12-beta1` — this only re-baselines the version number and the `consumer-template/modules/stack/` pins.
 
+### Added
+
+- **Consumer knob to pin the Authentik version.** `platform/identity/bootstrap` gains an optional `authentik_version` input, surfaced as a non-secret field on its `identity_bootstrap` output and wired through `platform/ansible/bootstrap.yml` to the `authentik-server` role. Set it via `var.identity.authentik_version` (`config.tf`); empty defers to the role's pinned default. Backward compatible — existing consumers need no change.
+
 ### Changed
 
 - **`consumer-template/modules/stack/*.tf`** — all `?ref=` pins moved from `v3.5.12-beta1` to `v0.1.0`.

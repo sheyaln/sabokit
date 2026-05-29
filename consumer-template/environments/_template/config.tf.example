@@ -92,6 +92,12 @@ locals {
       # member_group_name   = "member"
       # delegate_group_name = "delegate"
       # delegate_role_name  = "delegate"
+
+      # Authentik image tag. Empty/unset tracks the version this blueprint
+      # release was validated against (the authentik-server role default).
+      # Authentik has breaking DB migrations between releases — pin
+      # deliberately and read the upstream release notes before bumping.
+      # authentik_version = "2025.12.1"
     }
 
     # ── SMTP (optional) ──────────────────────────────────────────────────

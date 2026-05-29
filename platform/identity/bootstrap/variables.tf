@@ -55,3 +55,9 @@ variable "smtp_secret_id" {
   default     = ""
 }
 
+variable "authentik_version" {
+  description = "Authentik image tag to pin (e.g. \"2025.12.1\"). Not a secret — surfaced verbatim in the identity_bootstrap output and wired to the authentik-server Ansible role's authentik_version. Empty (default) defers to the role's pinned default (the version this blueprint release was validated against). Authentik has breaking inter-release DB migrations; set this deliberately and read the upstream release notes before bumping."
+  type        = string
+  default     = ""
+}
+
