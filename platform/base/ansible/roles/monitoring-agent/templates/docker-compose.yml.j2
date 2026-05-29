@@ -4,6 +4,11 @@ services:
     image: {{ monitoring_agent_node_exporter_image }}
     container_name: node-exporter
     restart: unless-stopped
+    logging:
+      driver: json-file
+      options:
+        max-size: "{{ monitoring_agent_log_max_size }}"
+        max-file: "{{ monitoring_agent_log_max_file }}"
     command:
       - --path.procfs=/host/proc
       - --path.rootfs=/rootfs
@@ -35,6 +40,11 @@ services:
     image: {{ monitoring_agent_cadvisor_image }}
     container_name: cadvisor
     restart: unless-stopped
+    logging:
+      driver: json-file
+      options:
+        max-size: "{{ monitoring_agent_log_max_size }}"
+        max-file: "{{ monitoring_agent_log_max_file }}"
     command:
       - --housekeeping_interval=30s
       - --docker_only=true
@@ -70,6 +80,11 @@ services:
     image: {{ monitoring_agent_alloy_image }}
     container_name: alloy
     restart: unless-stopped
+    logging:
+      driver: json-file
+      options:
+        max-size: "{{ monitoring_agent_log_max_size }}"
+        max-file: "{{ monitoring_agent_log_max_file }}"
     command:
       - run
       - /etc/alloy/config.alloy

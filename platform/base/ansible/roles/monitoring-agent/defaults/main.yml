@@ -65,3 +65,14 @@ monitoring_agent_enable_alloy: true
 
 # Alloy log level: error | warn | info | debug.
 monitoring_agent_alloy_log_level: warn
+
+# -----------------------------------------------------------------------------
+# Log rotation
+# -----------------------------------------------------------------------------
+# Pinned at the compose level so rotation is deterministic regardless of the
+# host's docker daemon.json default — that default drifts across hosts and only
+# binds at container *creation*, so a host provisioned before it was set (or
+# at an older value) runs unbounded until recreated. A looping node-exporter
+# collector has been seen producing >20 GB of json-log on such a host.
+monitoring_agent_log_max_size: "50m"
+monitoring_agent_log_max_file: "3"
