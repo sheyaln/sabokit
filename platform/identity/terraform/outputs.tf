@@ -55,20 +55,11 @@ output "authentik" {
       var.enable_apple_social_login ? { apple = authentik_source_oauth.apple[0].uuid } : {},
     )
 
-    # Always source outpost_id from the data source — never the managed
-    # resource. Both point at the same singleton Authentik outpost (the
-    # built-in "authentik Embedded Outpost"), so their UUIDs are equal.
-    # Referencing the managed resource creates a static graph cycle:
-    #   output.authentik -> resource.authentik_outpost.embedded
-    #     -> var.extra_forward_auth_provider_ids
-    #     -> (consumer's compact() list)
-    #     -> module.<app>.authentik_provider_id
-    #     -> module.<app>.var.base
-    #     -> local.base.authentik (this output)
-    # Sourcing the id from the data source breaks the edge from output to
-    # resource without losing any functionality — the resource still
-    # exists, still attaches providers, terraform still applies it.
-    outpost_id           = data.authentik_outpost.embedded.id
+    # No outpost_id: the embedded outpost relocated to the application layer
+    # (v1.0 — all forward-auth providers are app-tier, so the outpost + its
+    # protocol_providers binding live where the providers are born). Apps bind
+    # to it via the application layer's own authentik_outpost.embedded, not via
+    # this output (nothing consumed base.authentik.outpost_id anyway).
     branding_assets_path = "${path.module}/assets"
 
     icon_base_url = local.effective_icon_base_url
