@@ -166,6 +166,14 @@ build {
     script          = "./provisioners/08-firstboot-lockdown.sh"
   }
 
+  // Weekly docker disk-reclaim timer (image prune + build-cache prune +
+  // runaway-log truncate). Pure host hygiene with no per-env config, so unlike
+  // the exporter units it ships enabled and runs on every clone without Ansible.
+  provisioner "shell" {
+    execute_command = "echo 'packer' | sudo -S env {{ .Vars }} {{ .Path }}"
+    script          = "./provisioners/09-docker-prune.sh"
+  }
+
   // Final cleanup: apt caches, logs (text + binary + journal), machine-id,
   // ssh host keys, cloud-init seed, /tmp, /var/tmp, hostname, zero free
   // space. Every clone boots clean.
