@@ -180,14 +180,6 @@ variable "smtp_secret_name" {
   default     = ""
 }
 
-# ── Forward-auth outpost binding ────────────────────────────────────────────
-
-variable "extra_forward_auth_provider_ids" {
-  description = "Authentik provider IDs from apps/* bundles that need to be bound to the embedded outpost (Traefik forward-auth providers). Pass module.<app>.authentik_provider_id from each enabled forward-auth app, then compact() the result. See ARCHITECTURE.md \"Outpost binding mechanism\"."
-  type        = list(string)
-  default     = []
-}
-
 # ── Notifications ───────────────────────────────────────────────────────────
 
 variable "notification_webhook_url" {

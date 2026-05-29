@@ -38,8 +38,6 @@ See [`ARCHITECTURE.md`](../../ARCHITECTURE.md) for the full base/app contract.
   Worked example for `tier_slots = [{ l1, { member = "member" }}, { l2, { delegate = "delegate" }}, { l3, { treasurer = "treasurer", comms = "comms-officer" }}, { l4, { admin = "admin", st = "secretary-treasurer" }}]`: members of `admin`/`secretary-treasurer` are transitively members of every lower group via nesting, so an app with `authorized_groups = ["member"]` admits everyone, while `["admin"]` admits only the top slot. The consumer lists exactly the groups each app should let in.
 - Optional Google and Apple OAuth social-login sources (each gated by a
   toggle and a Scaleway secret lookup).
-- A configured embedded outpost that binds whatever forward-auth provider IDs
-  the consumer passes in `var.extra_forward_auth_provider_ids`.
 - Generic user-lifecycle notifications: events fire on user
   create/activate, emails go to the admin-tier group(s), and an optional
   webhook gets POST'd JSON for downstream wiring (chat, ticketing, etc.).
