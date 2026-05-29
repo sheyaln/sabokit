@@ -19,8 +19,9 @@ The builder is **qemu**: the build runs offline against the upstream Ubuntu 22.0
 | Pre-pulled docker images: `prom/node-exporter`, `gcr.io/cadvisor/cadvisor`, `grafana/alloy`, `traefik`, `haproxy` | docker pull | `monitoring-agent`, `traefik` |
 | `/etc/sabokit-base-image` marker file (with `SABOKIT_BASE_VERSION`) | stamp script | every role's guard |
 | `/etc/ssh/sshd_config.d/00-sabokit-hardening.conf` (PermitRootLogin no, PasswordAuth no, modern crypto, no agent/X11 fwd, AllowTcpForwarding local) | sshd hardening script | applies on first boot |
+| `docker-prune.timer` + `/usr/local/sbin/docker-prune.sh` + `/etc/default/docker-prune` (weekly image/build-cache/runaway-log reclaim, **enabled**) | docker-prune script | none — host hygiene, no Ansible role |
 
-Services are intentionally **stopped + disabled** in the image — every clone of the image runs Ansible on first boot, which configures and starts them with the right per-env config.
+Service units with a per-env runtime form (node_exporter, cadvisor, traefik, …) ship **stopped + disabled** — every clone runs Ansible on first boot, which configures and starts them with the right per-env config. The exceptions are units with no per-env config that must run regardless of which bundles a host carries: the first-boot lockdown one-shot and the `docker-prune.timer`, which ship **enabled**.
 
 ## Source OS
 
