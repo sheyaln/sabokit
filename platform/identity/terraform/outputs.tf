@@ -41,23 +41,14 @@ output "authentik" {
       source_enrollment_flow     = module.flows.source_enrollment_flow_uuid
     }
 
-    # Flat group_name → group ID. Apps not using the cascade read
-    # base.authentik.groups[var.access_level] (default access_level is a
-    # group_name, not a peer_name).
+    # Flat group_name → group ID. Bundles resolve their authorized_groups
+    # name list against this map (base.authentik.groups[<name>]).
     groups = merge(
       local.slot_group_ids,
       { for k, g in authentik_group.extra : k => g.id },
     )
 
-    # peer_name → map(group_name → group_id) of every group an app scoped to
-    # that peer should bind. The inner map is { the peer's own group } merged
-    # with { every peer-group in every strictly-higher slot }. Bundles with
-    # tier_cascade_enabled = true consume
-    # base.authentik.tier_cascade[var.tier_access_level] directly for their
-    # authorized_groups. See platform/identity/terraform/README.md for the
-    # cascade-up worked example.
-    tier_cascade = local.tier_cascade
-    admin_tier   = var.admin_group_name
+    admin_tier = var.admin_group_name
 
     sources = merge(
       var.enable_google_social_login ? { google = authentik_source_oauth.google[0].uuid } : {},

@@ -16,10 +16,12 @@ locals {
   # Roles to resolve a per-role SG for. Infra names role SGs ${org}-${env}-<role>.
   roles = distinct([for _, h in var.compute_hosts : h.role])
 
-  # Group names to discover: every peer-group across the tier DAG plus the
-  # named extra groups. distinct() collapses a name reused across slots.
-  cascade_group_names = distinct(flatten([for s in var.tier_slots : values(s.peers)]))
-  all_group_names     = distinct(concat(local.cascade_group_names, var.extra_group_names))
+  # Flat set of group names to discover, deduped.
+  group_names = distinct(var.group_names)
+
+  # group_name → group_id, the lookup table bundles resolve authorized_groups
+  # against (and the whole of base.authentik.groups).
+  discovered_groups = { for n in local.group_names : n => data.authentik_group.this[n].id }
 }
 
 # ── Scaleway substrate (produced by infra) ───────────────────────────────────
@@ -65,7 +67,7 @@ data "scaleway_secret" "smtp_config" {
 # ── Authentik objects (produced by identity) ─────────────────────────────────
 
 data "authentik_group" "this" {
-  for_each = toset(local.all_group_names)
+  for_each = toset(local.group_names)
   name     = each.value
 }
 

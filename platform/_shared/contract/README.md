@@ -28,8 +28,8 @@ module "base" {
   mgmt_domain     = var.mgmt_domain
   identity_domain = var.identity_domain
 
-  tier_slots        = var.tier_slots
-  extra_group_names = keys(var.extra_groups)
+  # Flat set of every group identity created that a bundle here might bind.
+  group_names = concat(local.tier_group_names, keys(var.extra_groups))
 
   # Project the full consumer compute_hosts down to the role/ansible subset.
   compute_hosts = {
@@ -65,23 +65,27 @@ at the root.
 | `scaleway.postgres_*` | `data.scaleway_rdb_instance` `${org}-${env}-postgres` (+ admin-credentials secret) |
 | `scaleway.smtp_config_secret_id` | `data.scaleway_secret` by name (`smtp-config`) |
 | `compute.hosts[*].{id,public_ip,private_ip}` | `data.scaleway_instance_server` per host, `${org}-${env}-<key>` |
-| `authentik.groups`, `authentik.tier_cascade` | `data.authentik_group` per name + the lifted cascade recompute |
+| `authentik.groups` | `data.authentik_group` per name in `group_names` |
 | `authentik.flows.*` | `data.authentik_flow` by slug |
 | everything else (project/region/zone, subnet, engine, domains, roles, ansible groups, icon URL) | the layer's own variables (consumer config) |
 
 ## Trimmed `authentik` surface
 
 `base.authentik` here carries only the fields bundles read:
-`identity_domain`, `icon_base_url`, `groups`, `tier_cascade`, and
+`identity_domain`, `icon_base_url`, `groups`, and
 `flows.{authentication,authorization,invalidation}`. Identity's full output also
 exposes `api_url`, `api_token_secret_id`, `org_name`, `sources`, `outpost_id`,
-`branding_assets_path`, and five more flows — none consumed by an
+`branding_assets_path`, `tier_cascade`, and five more flows — none consumed by an
 operations/application bundle, so none reconstructed. A new bundle that needs
 one adds the discovery here.
 
-## tier_cascade
+## No tier_cascade — groups are explicit
 
-Not preserved across the boundary — recomputed in `cascade.tf` from `tier_slots`
-(config) + the discovered groups, using the same algorithm as identity's
-`locals.tf`. The two copies are coupled: change the cascade semantics in one,
-change the other.
+The tiered-access cascade is gone. Bundles no longer derive their authorized
+groups from a platform-computed `tier_cascade` map; each takes an explicit
+`authorized_groups` name list and resolves it against `base.authentik.groups`.
+Deciding which groups gate which app — and computing any tier cascade — is a
+consumer-level concern, so this module stays tier-agnostic: it discovers the
+flat `group_names` set and nothing more. (Identity still creates the groups and
+their Authentik nesting, which is what makes "list the baseline group, higher
+tiers inherit via nesting" work without an explicit cascade map.)

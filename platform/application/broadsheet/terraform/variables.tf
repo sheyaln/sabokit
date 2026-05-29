@@ -53,30 +53,6 @@ variable "icon_filename" {
   default     = "broadsheet-icon.png"
 }
 
-variable "access_level" {
-  description = "Key in base.authentik.groups granting baseline access."
-  type        = string
-  default     = "admin"
-}
-
-variable "extra_authorized_groups" {
-  description = "Additional Authentik groups allowed to access Broadsheet beyond access_level. Map of role-name → group ID; keys MUST be static strings so for_each can plan even when group IDs are not yet known."
-  type        = map(string)
-  default     = {}
-}
-
-variable "tier_cascade_enabled" {
-  description = "Whether to derive authorized_groups from the platform tier_slots cascade. When true, the app binds every group in base.authentik.tier_cascade[var.tier_access_level] (the peer's own group + all groups in strictly-higher slots). Default true. Set false to use the primitive access_level + extra_authorized_groups path instead."
-  type        = bool
-  default     = true
-}
-
-variable "tier_access_level" {
-  description = "peer_name from your tier_slots schema that grants baseline access. The app binds every group in base.authentik.tier_cascade[<this>], which is the peer's own group plus every group in every strictly-higher slot. Only consulted when tier_cascade_enabled = true. Default \"admin\" — the safest fallback (admin must exist as a peer in tier_slots); override per-app to the peer_name your org uses for the intended baseline (e.g. \"member\", \"delegate\")."
-  type        = string
-  default     = "admin"
-}
-
 variable "monitoring_enabled" {
   description = "If true and a monitoring app is enabled, Broadsheet's log paths wire in. No effect when monitoring apps are disabled."
   type        = bool
@@ -221,3 +197,9 @@ variable "extra_docker_networks" {
   default     = []
 }
 
+
+variable "authorized_groups" {
+  description = "Authentik group NAMES allowed to access this app; each must exist in base.authentik.groups (declared in your tier_slots/extra_groups). The bundle binds one access policy per group. Tiering/cascade is a consumer decision — list every group that should have access. Default [\"admin\"] = admin-only."
+  type        = list(string)
+  default     = ["admin"]
+}

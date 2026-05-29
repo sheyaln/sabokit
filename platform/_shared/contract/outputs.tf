@@ -2,9 +2,11 @@
 # `base = module.base.base`. Shape matches v0.1.0's in-memory local.base
 # (`{ scaleway, compute, domains, authentik }`) so bundles are unchanged —
 # the authentik sub-map is trimmed to the fields bundles actually consume
-# (tier_cascade, groups, icon_base_url, identity_domain, three flows); the
-# rest of identity's output (api_url, sources, outpost_id, branding paths,
-# the unused flows) is not reconstructed because nothing reads it.
+# (groups, icon_base_url, identity_domain, three flows). No tier_cascade: the
+# tiered-access cascade was removed; bundles take an explicit authorized_groups
+# name list and resolve it against `groups`, so the cascade (if any) is a
+# consumer decision. The rest of identity's output (api_url, sources,
+# outpost_id, branding paths, the unused flows) is not reconstructed.
 
 output "base" {
   description = "The base contract object. Pass verbatim as `base` to every bundle in the layer. See ARCHITECTURE.md for the field contract."
@@ -66,7 +68,6 @@ output "base" {
       identity_domain = local.identity_domain
       icon_base_url   = var.icon_base_url != "" ? var.icon_base_url : "https://raw.githubusercontent.com/sheyaln/sabokit-assets/master/application-icons"
       groups          = local.discovered_groups
-      tier_cascade    = local.tier_cascade
       flows = {
         authentication_flow = data.authentik_flow.authentication.id
         authorization_flow  = data.authentik_flow.authorization.id

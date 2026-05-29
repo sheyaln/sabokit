@@ -4,16 +4,14 @@
 # is an independent role at that rank (e.g. multiple L3 officers each owning
 # their own scope). A peer's group nests under every peer-group in the slot
 # immediately below, so Authentik's group-nesting evaluator transitively gives
-# higher-slot users membership in every group below them. The tier_cascade
-# output (in outputs.tf) materialises this explicitly for bundles that bind
-# per-group instead of relying on nesting.
+# higher-slot users membership in every group below them. App access leans on
+# this directly: a bundle binds explicit group names (var.authorized_groups),
+# and listing a baseline group admits every higher slot via the nesting — there
+# is no platform-computed tier_cascade.
 #
-# Cascade semantics for an app scoped to peer P in slot S:
-#   admit P's own group + every peer-group in every strictly-higher slot.
-# Within a slot, peers are equivalent for the cascade output but NOT linked by
-# nesting (admin and secretary-treasurer in the same slot do not see each
-# other's groups via inheritance; the cascade output binds both because they
-# both grant access at-or-above that rank).
+# Within a slot, peers are NOT linked by nesting (admin and secretary-treasurer
+# in the same slot do not inherit each other's membership); to admit both, the
+# consumer lists both in an app's authorized_groups.
 #
 # The DAG is implemented as twelve per-slot resources, each `for_each` over
 # the peers in that slot. The fan-out (multiple peers per slot, parents =

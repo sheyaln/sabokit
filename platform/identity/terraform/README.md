@@ -23,20 +23,19 @@ See [`ARCHITECTURE.md`](../../ARCHITECTURE.md) for the full base/app contract.
   within a slot is an independent role at that rank. Peers in slot S+1 nest
   under every peer in slot S, so Authentik's group-nesting evaluator
   transitively gives higher-slot users membership in every group below them.
-  In-slot peers do NOT bridge — an app scoped to peer P in slot S binds P's
-  own group plus every group in every strictly-higher slot, but NOT P's
-  sibling peers. The `delegate_group_name` group (if non-null and present
-  in tier_slots) carries the user/group-management RBAC role wired in
-  `roles.tf`. Extra non-DAG groups (service accounts, app-integration
-  groups) go through `var.extra_groups`.
+  The `delegate_group_name` group (if non-null and present in tier_slots)
+  carries the user/group-management RBAC role wired in `roles.tf`. Extra
+  non-DAG groups (service accounts, app-integration groups) go through
+  `var.extra_groups`.
 
-  Worked example for `tier_slots = [{ l1, { member = "member" }}, { l2, { delegate = "delegate" }}, { l3, { treasurer = "treasurer", comms = "comms-officer" }}, { l4, { admin = "admin", st = "secretary-treasurer" }}]`:
-  - `tier_cascade["member"]    = { member, delegate, treasurer, comms-officer, admin, secretary-treasurer }`
-  - `tier_cascade["delegate"]  = { delegate, treasurer, comms-officer, admin, secretary-treasurer }`
-  - `tier_cascade["treasurer"] = { treasurer, admin, secretary-treasurer }`
-  - `tier_cascade["comms"]     = { comms-officer, admin, secretary-treasurer }`
-  - `tier_cascade["st"]        = { secretary-treasurer }`
-  - `tier_cascade["admin"]     = { admin }`
+  **App access is an explicit decision, not a platform cascade.** Bundles take
+  an `authorized_groups` name list and bind one access policy per group
+  (resolved against `groups` below). There is no `tier_cascade` output — the
+  nesting above does the inheritance work: list a baseline group on an app and
+  Authentik's nesting transitively admits every higher slot. Which groups gate
+  which app is the consumer's call.
+
+  Worked example for `tier_slots = [{ l1, { member = "member" }}, { l2, { delegate = "delegate" }}, { l3, { treasurer = "treasurer", comms = "comms-officer" }}, { l4, { admin = "admin", st = "secretary-treasurer" }}]`: members of `admin`/`secretary-treasurer` are transitively members of every lower group via nesting, so an app with `authorized_groups = ["member"]` admits everyone, while `["admin"]` admits only the top slot. The consumer lists exactly the groups each app should let in.
 - Optional Google and Apple OAuth social-login sources (each gated by a
   toggle and a Scaleway secret lookup).
 - A configured embedded outpost that binds whatever forward-auth provider IDs
@@ -82,7 +81,6 @@ output "authentik" = {
     source_enrollment_flow     = string  # UUID
   }
   groups               = map(string)  # group_name → group ID (every peer + extra)
-  tier_cascade         = map(map(string))  # peer_name → map(group_name → group_id) for the peer's own group + every group in strictly-higher slots
   admin_tier           = string       # group_name flagged is_superuser (= var.admin_group_name)
   sources              = map(string)  # "google" | "apple" → source UUID (may be {})
   outpost_id           = string
