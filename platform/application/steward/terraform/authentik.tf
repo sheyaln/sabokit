@@ -1,6 +1,6 @@
 # OIDC application (front door: end-user login redirect flow).
 module "authentik" {
-  source = "../../../../modules/authentik/oidc-app"
+  source = "../../../_shared/authentik/oidc-app"
   count  = var.enabled ? 1 : 0
 
   application_name = var.application_name

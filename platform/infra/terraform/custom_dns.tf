@@ -10,7 +10,7 @@
 # short-key indirection. Unknown zones are dropped silently per the
 # app_dns module convention.
 module "custom_dns" {
-  source = "../../../modules/infrastructure/app_dns"
+  source = "../../_shared/infrastructure/app_dns"
 
   dns_records  = var.custom_dns_records
   domain_zones = { for z in distinct(compact([var.base_domain, local.mgmt_domain])) : z => z }

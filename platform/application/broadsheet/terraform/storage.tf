@@ -1,5 +1,5 @@
 module "files_bucket" {
-  source = "../../../../modules/infrastructure/storage/object_bucket"
+  source = "../../../_shared/infrastructure/storage/object_bucket"
   count  = var.enabled ? 1 : 0
 
   name   = local.bucket_name

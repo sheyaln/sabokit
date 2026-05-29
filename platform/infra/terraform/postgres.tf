@@ -1,6 +1,6 @@
 module "postgres" {
   count  = var.postgres_enabled ? 1 : 0
-  source = "../../../modules/infrastructure/storage/postgres"
+  source = "../../_shared/infrastructure/storage/postgres"
 
   instance_name     = local.postgres_instance_name
   database_engine   = var.postgres_engine

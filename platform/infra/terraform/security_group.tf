@@ -4,7 +4,7 @@
 # security group in their bundle and pass its ID via compute_hosts[*].security_group_id.
 
 module "default_security_rules" {
-  source = "../../../modules/infrastructure/common_security_rules"
+  source = "../../_shared/infrastructure/common_security_rules"
 
   enable_ssh   = true
   enable_http  = true
@@ -12,7 +12,7 @@ module "default_security_rules" {
 }
 
 module "default_security_group" {
-  source = "../../../modules/infrastructure/security_group"
+  source = "../../_shared/infrastructure/security_group"
 
   name        = "${local.name_suffix}-default"
   description = "Default SG for ${var.org_slug} ${var.environment}: SSH/HTTP/HTTPS + consumer extras"

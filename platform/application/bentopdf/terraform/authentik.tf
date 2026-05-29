@@ -4,7 +4,7 @@
 # so the outpost knows to handle this app.
 
 module "authentik" {
-  source = "../../../../modules/authentik/traefik-forward-auth"
+  source = "../../../_shared/authentik/traefik-forward-auth"
   count  = var.enabled ? 1 : 0
 
   application_name = var.application_name

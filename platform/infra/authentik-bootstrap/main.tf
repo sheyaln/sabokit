@@ -38,7 +38,7 @@ locals {
 # ── PostgreSQL database ─────────────────────────────────────────────────────
 
 module "database" {
-  source = "../../../modules/infrastructure/storage/postgres_database"
+  source = "../../_shared/infrastructure/storage/postgres_database"
 
   instance_id       = var.postgres_instance_id
   instance_endpoint = var.postgres_endpoint
