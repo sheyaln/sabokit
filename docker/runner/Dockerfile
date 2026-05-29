@@ -41,13 +41,18 @@ RUN pip install --no-cache-dir \
       "requests" \
       "jmespath" \
       "passlib" \
-      "docker"
+      "docker" \
+      "scaleway"
 
+# scaleway.scaleway's lookups (eg. scaleway_secret, used by the authentik role
+# to read DB/admin/server secrets) need the official `scaleway` Python SDK at
+# runtime — installed above. Pin the collection so a later rebuild can't drift
+# onto a version with different requirements without us noticing.
 RUN ansible-galaxy collection install --force \
       community.docker \
       community.general \
       ansible.posix \
-      scaleway.scaleway \
+      scaleway.scaleway:2.7.2 \
     && rm -rf /root/.ansible/tmp
 
 # Terraform CLI. Pinned via TERRAFORM_VERSION build arg. Bumped per sabokit
