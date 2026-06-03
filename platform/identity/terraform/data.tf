@@ -63,13 +63,8 @@ locals {
     password = ""
   }
   smtp_config = {
-    smtp_host = local.smtp_config_raw.host
-    # Identity email stages use implicit SSL (use_ssl=true in flows/*.tf), so they
-    # need TEM's implicit-SSL submission port 2465 — NOT the STARTTLS port the
-    # shared smtp-config secret carries for the app bundles. Authentik's SMTP
-    # client raises SSLError WRONG_VERSION_NUMBER doing implicit SSL on a STARTTLS
-    # port (manifested on 2025.12.6). Decoupled from the secret's port on purpose.
-    smtp_port     = 2465
+    smtp_host     = local.smtp_config_raw.host
+    smtp_port     = tonumber(local.smtp_config_raw.port)
     smtp_username = local.smtp_config_raw.username
     smtp_password = local.smtp_config_raw.password
   }

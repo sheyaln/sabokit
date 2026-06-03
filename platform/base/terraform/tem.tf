@@ -109,13 +109,16 @@ resource "scaleway_secret_version" "smtp_config" {
 
   secret_id = scaleway_secret.smtp_config[0].id
   data = jsonencode({
-    # TEM SMTP endpoint. Port 2587 = STARTTLS, 2465 = implicit TLS.
-    # Port stringified — the smtp-config secret schema wants strings end-to-end
-    # (Scaleway secret store validates) and apps consuming the secret parse
-    # accordingly.
+    # TEM SMTP endpoint: implicit SSL on port 2465 — the transport sabokit uses.
+    # (2587 = STARTTLS; not used. Authentik's SMTP client raises SSLError
+    # WRONG_VERSION_NUMBER doing implicit SSL on a STARTTLS port — see
+    # platform/identity/terraform/flows/*.tf which set use_ssl=true.) use_ssl +
+    # use_tls are explicit string booleans so every consumer maps the same
+    # transport. Stringified — the Scaleway secret store validates strings.
     host       = "smtp.tem.scaleway.com"
-    port       = "2587"
-    use_tls    = "starttls"
+    port       = "2465"
+    use_ssl    = "true"
+    use_tls    = "false"
     username   = var.scaleway_project_id
     password   = scaleway_iam_api_key.tem[0].secret_key
     domain     = local.tem_sender_domain_resolved
