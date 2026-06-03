@@ -76,11 +76,50 @@ locals {
   ]
 }
 
+# The data-source contract: rebuilds `base` ({scaleway, compute, domains,
+# authentik}) from the infra + identity layers by name/tag — no remote_state,
+# no passed-in var.base. Every sub-bundle consumes module.base.base exactly as
+# it consumed the passed-in var.base in v0.1.0. The authentik provider this
+# module's data.authentik_* lookups need is configured at the consumer root
+# (from the ${org}-${env}-authentik-admin secret) and inherited here.
+module "base" {
+  source = "../../_shared/contract"
+
+  org_slug    = var.org_slug
+  environment = var.environment
+
+  scaleway_project_id = var.scaleway_project_id
+  scaleway_region     = var.scaleway_region
+  scaleway_zone       = var.scaleway_zone
+
+  private_network_subnet = var.private_network_subnet
+  postgres_enabled       = var.postgres_enabled
+  postgres_engine        = var.postgres_engine
+
+  base_domain     = var.base_domain
+  mgmt_domain     = var.mgmt_domain
+  identity_domain = var.identity_domain
+
+  smtp_secret_name = var.smtp_secret_name
+  icon_base_url    = var.icon_base_url
+  group_names      = var.group_names
+
+  # Project the consumer's full compute_hosts to the role/ansible subset the
+  # contract's object type accepts.
+  compute_hosts = {
+    for k, h in var.compute_hosts : k => {
+      role           = h.role
+      ansible_group  = try(h.ansible_group, "")
+      ansible_groups = try(h.ansible_groups, [])
+    }
+  }
+}
+
 module "loki" {
   source = "../loki/terraform"
 
   enabled = try(var.loki.enabled, true)
-  base    = var.base
+  base    = module.base.base
 
   deployment_host_key     = try(var.loki.deployment_host_key, "management")
   image                   = try(var.loki.image, "grafana/loki")
@@ -108,7 +147,7 @@ module "prometheus" {
   source = "../prometheus/terraform"
 
   enabled = try(var.prometheus.enabled, true)
-  base    = var.base
+  base    = module.base.base
 
   deployment_host_key  = try(var.prometheus.deployment_host_key, "management")
   image                = try(var.prometheus.image, "prom/prometheus")
@@ -118,14 +157,13 @@ module "prometheus" {
   remote_write_enabled = try(var.prometheus.remote_write_enabled, true)
   private_ip_bind      = try(var.prometheus.private_ip_bind, "")
 
-  # Apps-tier monitoring contribs come in via var.aggregated_*. Core-tier
-  # bundles' own monitoring contributions (grafana + wazuh /metrics scrape
-  # entries, dashboards) are folded in at the composition layer below via
-  # local._core_self_contribs to avoid a cross-module reference cycle with
-  # the consumer-template.
-  scrape_configs   = concat(var.aggregated_scrape_configs, local._self_scrape_configs, try(var.prometheus.scrape_configs, []))
-  alert_rules      = concat(var.aggregated_alert_rules, local._self_alert_rules, try(var.prometheus.alert_rules, []))
-  blackbox_targets = concat(var.aggregated_blackbox_targets, local._self_blackbox_targets, try(var.prometheus.blackbox_targets, []))
+  # v1.0: no cross-layer aggregation. Per-app scrape/alert/blackbox contribs
+  # arrive at deploy time via Alloy remote_write / ansible push to this host,
+  # not a TF input (dropped var.aggregated_*). What stays is this layer's OWN
+  # self-wiring (grafana + wazuh /metrics) + the consumer's explicit overrides.
+  scrape_configs   = concat(local._self_scrape_configs, try(var.prometheus.scrape_configs, []))
+  alert_rules      = concat(local._self_alert_rules, try(var.prometheus.alert_rules, []))
+  blackbox_targets = concat(local._self_blackbox_targets, try(var.prometheus.blackbox_targets, []))
 
   extra_scrape_targets = try(var.prometheus.extra_scrape_targets, {})
 
@@ -159,7 +197,7 @@ module "grafana" {
 
   enabled  = try(var.grafana.enabled, true)
   hostname = try(var.grafana.hostname, "")
-  base     = var.base
+  base     = module.base.base
 
 
   authorized_groups   = try(var.grafana.authorized_groups, ["admin"])
@@ -191,8 +229,10 @@ module "grafana" {
   jsm_alert_tags        = try(var.grafana.jsm_alert_tags, ["sabokit"])
   jsm_severity_gate     = try(var.grafana.jsm_severity_gate, "")
 
+  # v1.0: no var.aggregated_grafana_dashboards — per-app dashboards land via
+  # ansible push to grafana's provisioning dir at deploy time. This layer's own
+  # dashboards (_self_dashboards) + consumer overrides remain TF-managed.
   grafana_dashboards = concat(
-    var.aggregated_grafana_dashboards,
     local._self_dashboards,
     try(var.grafana.grafana_dashboards, []),
   )
@@ -216,7 +256,7 @@ module "wazuh" {
 
   enabled  = try(var.wazuh.enabled, true)
   hostname = try(var.wazuh.hostname, "")
-  base     = var.base
+  base     = module.base.base
 
 
   authorized_groups   = try(var.wazuh.authorized_groups, ["admin"])

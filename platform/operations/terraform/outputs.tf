@@ -85,8 +85,8 @@ output "wazuh" {
     enabled               = module.wazuh.enabled
     authentik_provider_id = module.wazuh.authentik_provider_id
     manager_private_ip    = try(module.wazuh.manager_private_ip, null)
-    # Ports are consumer-supplied via var.core.wazuh.manager_*_port (re-echoed
-    # here so host-services can read everything off module.core.wazuh).
+    # Ports are consumer-supplied via var.wazuh.manager_*_port (re-echoed here
+    # so host-services can read everything off the operations wazuh output).
     manager_agent_port      = try(var.wazuh.manager_agent_port, 1514)
     manager_enrollment_port = try(var.wazuh.manager_enrollment_port, 1515)
     manager_syslog_port     = try(var.wazuh.manager_syslog_port, 514)

@@ -1,62 +1,121 @@
-# Core-tier composition variables. Same `any`-typed pass-through pattern the
-# consumer-template uses for var.apps — each sub-service unpacks its own
-# knobs from these maps via try() against the upstream bundle defaults.
-# Per-service variable shape is documented in each bundle's variables.tf.
+# Operations-tier composition variables.
+#
+# This layer self-discovers its `base` object (scaleway / compute / domains /
+# authentik) from the infra + identity layers via the _shared/contract module
+# (see main.tf) — there is no passed-in var.base and no remote_state. The
+# inputs below split into two groups: the discovery config the contract needs
+# (consumer-supplied, the same env-identity values infra got), and the
+# per-service `any`-typed pass-through knobs (each bundle unpacks its own via
+# try() against the upstream bundle defaults).
 
-variable "base" {
-  description = "Outputs from module.base (scaleway, compute, domains, authentik passthrough)."
+# ── Discovery config (forwarded to module.base) ──────────────────────────────
+
+variable "org_slug" {
+  description = "Org slug. With environment forms the <org>-<env> prefix every infra resource is discovered by."
+  type        = string
+}
+
+variable "environment" {
+  description = "Environment slug (e.g. prod, staging)."
+  type        = string
+}
+
+variable "scaleway_project_id" {
+  description = "Scaleway project ID."
+  type        = string
+}
+
+variable "scaleway_region" {
+  description = "Scaleway region (e.g. fr-par)."
+  type        = string
+}
+
+variable "scaleway_zone" {
+  description = "Scaleway zone (e.g. fr-par-1). Scopes the per-host instance lookups."
+  type        = string
+}
+
+variable "private_network_subnet" {
+  description = "VPC private-network CIDR. Config-known; the network ID itself is discovered."
+  type        = string
+  default     = null
+}
+
+variable "postgres_enabled" {
+  description = "Whether infra provisioned the shared RDB instance."
+  type        = bool
+  default     = true
+}
+
+variable "postgres_engine" {
+  description = "RDB engine string (e.g. PostgreSQL-15)."
+  type        = string
+  default     = ""
+}
+
+variable "base_domain" {
+  description = "Primary domain."
+  type        = string
+}
+
+variable "mgmt_domain" {
+  description = "Management/ops domain. null defaults to base_domain."
+  type        = string
+  default     = null
+}
+
+variable "identity_domain" {
+  description = "Authentik domain. null/empty defaults to auth.<base_domain>."
+  type        = string
+  default     = null
+}
+
+variable "smtp_secret_name" {
+  description = "Name of the Scaleway secret infra (TEM) wrote with SMTP credentials. Empty leaves smtp_config_secret_id null."
+  type        = string
+  default     = "smtp-config"
+}
+
+variable "icon_base_url" {
+  description = "App-icon CDN base. Empty resolves to the sabokit-assets default."
+  type        = string
+  default     = ""
+}
+
+variable "group_names" {
+  description = "Names of every Authentik group an operations bundle might bind via authorized_groups (grafana/wazuh). Forwarded to module.base for discovery into base.authentik.groups."
+  type        = list(string)
+  default     = []
+}
+
+variable "compute_hosts" {
+  description = "Consumer compute_hosts map (full shape). Projected to {role, ansible_group, ansible_groups} when forwarded to module.base; the sub-bundles read deployment hosts off base.compute.hosts."
   type        = any
 }
 
+# ── Per-service knobs (any-typed pass-through) ───────────────────────────────
+# Per-service variable shape is documented in each bundle's variables.tf.
+
 variable "loki" {
-  description = "Loki bundle knobs. See platform/core/loki/terraform/variables.tf. Defaults to {enabled = true}."
+  description = "Loki bundle knobs. See platform/operations/loki/terraform/variables.tf. Defaults to {enabled = true}."
   type        = any
   default     = {}
 }
 
 variable "prometheus" {
-  description = "Prometheus bundle knobs. See platform/core/prometheus/terraform/variables.tf. Defaults to {enabled = true}."
+  description = "Prometheus bundle knobs. See platform/operations/prometheus/terraform/variables.tf. Defaults to {enabled = true}."
   type        = any
   default     = {}
 }
 
 variable "grafana" {
-  description = "Grafana bundle knobs. See platform/core/grafana/terraform/variables.tf. Defaults to {enabled = true}."
+  description = "Grafana bundle knobs. See platform/operations/grafana/terraform/variables.tf. Defaults to {enabled = true}."
   type        = any
   default     = {}
 }
 
 variable "wazuh" {
-  description = "Wazuh-manager bundle knobs. See platform/core/wazuh/terraform/variables.tf. Defaults to {enabled = true}."
+  description = "Wazuh-manager bundle knobs. See platform/operations/wazuh/terraform/variables.tf. Defaults to {enabled = true}."
   type        = any
   default     = {}
-}
-
-# Auto-aggregated inputs the composition layer needs but each sub-bundle
-# would otherwise reach across modules for. Consumer-template builds these
-# from every enabled app's monitoring/backup_plan output before calling
-# module.core, same way it builds the aggregated_* locals today.
-
-variable "aggregated_scrape_configs" {
-  description = "Pre-aggregated prometheus scrape entries from every enabled app's monitoring.prometheus_scrape_configs. Consumer-template emits this; the core module concats it onto var.prometheus.scrape_configs."
-  type        = any
-  default     = []
-}
-
-variable "aggregated_alert_rules" {
-  description = "Pre-aggregated prometheus alert rules from every enabled app's monitoring.alert_rules."
-  type        = any
-  default     = []
-}
-
-variable "aggregated_blackbox_targets" {
-  description = "Pre-aggregated blackbox exporter target list."
-  type        = any
-  default     = []
-}
-
-variable "aggregated_grafana_dashboards" {
-  description = "Pre-aggregated dashboard files. Each entry: {filename, contents}. Consumer-template reads the source files via file()."
-  type        = any
-  default     = []
 }
