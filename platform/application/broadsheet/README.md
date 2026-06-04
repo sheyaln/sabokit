@@ -14,8 +14,7 @@ Broadsheet — newsletters + transactional email manager. Ships the [sabokit-bro
 | `category_group` | `string` | `"Productivity"` | Authentik portal category. |
 | `icon_filename` | `string` | `"broadsheet-icon.png"` | Fetched from `base.authentik.icon_base_url`. |
 | `icon_url` | `string` | `""` | Full URL override; bypasses `icon_filename`. |
-| `access_level` | `string` | `"admin"` | Defaults to admin-only — Broadsheet is an ops tool. |
-| `extra_authorized_groups` | `map(string)` | `{}` | Extra groups allowed beyond `access_level`. |
+| `authorized_groups` | `list(string)` | `["delegate"]` | Authentik group names allowed in. Mass-email tool → delegates and up by default; higher tiers nest under lower. |
 | `monitoring_enabled` | `bool` | `true` | Wire log paths into monitoring. |
 | `deployment_host_key` | `string` | `"apps"` | Target host. |
 | `image` | `string` | `"ghcr.io/sheyaln/broadsheet"` | Published image. Used by default. |

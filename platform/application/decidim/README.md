@@ -11,8 +11,7 @@ Decidim — Rails-based participatory democracy platform. Deploys app + sidekiq 
 | `hostname` | `string` | — (required when enabled) | Full hostname Decidim is served at. |
 | `category_group` | `string` | `"Participation"` | Authentik portal category. |
 | `icon_url` | `string` | `null` | Optional icon path in Authentik media. |
-| `access_level` | `string` | `"member"` | Key in `base.authentik.groups` granting baseline access. |
-| `extra_authorized_groups` | `map(string)` | `{}` | Additional Authentik groups beyond `access_level`. |
+| `authorized_groups` | `list(string)` | `["member"]` | Authentik group names allowed in. Higher tiers nest under lower, so a baseline tier admits everyone above. |
 | `monitoring_enabled` | `bool` | `true` | Wire log paths into monitoring. |
 | `deployment_host_key` | `string` | `"apps"` | Target host. |
 | `image` | `string` | `"ghcr.io/decidim/decidim"` | Docker image (without tag). Used as the BASE for the locally-built image. |

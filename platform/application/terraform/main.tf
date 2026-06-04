@@ -46,7 +46,7 @@ module "outline" {
   enabled           = try(var.outline.enabled, false)
   hostname          = try(var.outline.hostname, "")
   base              = module.base.base
-  authorized_groups = try(var.outline.authorized_groups, ["admin"])
+  authorized_groups = try(var.outline.authorized_groups, ["member"])
 
   # Optional overrides
   smtp_from_email      = try(var.outline.smtp_from_email, "")
@@ -69,7 +69,7 @@ module "steward" {
   enabled           = try(var.steward.enabled, false)
   hostname          = try(var.steward.hostname, "")
   base              = module.base.base
-  authorized_groups = try(var.steward.authorized_groups, ["admin"])
+  authorized_groups = try(var.steward.authorized_groups, ["delegate"])
 
   # Optional overrides
   admin_group_name             = try(var.steward.admin_group_name, "union-delegate")
@@ -96,7 +96,7 @@ module "vikunja" {
   enabled           = try(var.vikunja.enabled, false)
   hostname          = try(var.vikunja.hostname, "")
   base              = module.base.base
-  authorized_groups = try(var.vikunja.authorized_groups, ["admin"])
+  authorized_groups = try(var.vikunja.authorized_groups, ["member"])
 
   # Optional overrides
   timezone               = try(var.vikunja.timezone, "UTC")
@@ -126,7 +126,7 @@ module "bentopdf" {
   enabled           = try(var.bentopdf.enabled, false)
   hostname          = try(var.bentopdf.hostname, "")
   base              = module.base.base
-  authorized_groups = try(var.bentopdf.authorized_groups, ["admin"])
+  authorized_groups = try(var.bentopdf.authorized_groups, ["member"])
 
   # Optional overrides
   image                 = try(var.bentopdf.image, "ghcr.io/digital-blueprint/bento-pdf:latest")
@@ -169,7 +169,7 @@ module "broadsheet" {
   hostname          = try(var.broadsheet.hostname, "")
   root_admin_email  = try(var.broadsheet.root_admin_email, "")
   base              = module.base.base
-  authorized_groups = try(var.broadsheet.authorized_groups, ["admin"])
+  authorized_groups = try(var.broadsheet.authorized_groups, ["delegate"])
 
   smtp_from_email       = try(var.broadsheet.smtp_from_email, "")
   oidc_auto_provision   = try(var.broadsheet.oidc_auto_provision, true)
@@ -202,7 +202,7 @@ module "nextcloud" {
   onlyoffice_hostname = try(var.nextcloud.onlyoffice_hostname, "")
   talk_hostname       = try(var.nextcloud.talk_hostname, "")
   base                = module.base.base
-  authorized_groups   = try(var.nextcloud.authorized_groups, ["admin"])
+  authorized_groups   = try(var.nextcloud.authorized_groups, ["member"])
 
   image_tag             = try(var.nextcloud.image_tag, "32-apache")
   admin_username        = try(var.nextcloud.admin_username, "ncadmin")
@@ -252,7 +252,7 @@ module "decidim" {
   organization_name  = try(var.decidim.organization_name, "")
   system_admin_email = try(var.decidim.system_admin_email, "")
   base               = module.base.base
-  authorized_groups  = try(var.decidim.authorized_groups, ["admin"])
+  authorized_groups  = try(var.decidim.authorized_groups, ["member"])
 
   image_tag                     = try(var.decidim.image_tag, "0.28")
   default_locale                = try(var.decidim.default_locale, "en")
@@ -287,7 +287,7 @@ module "jitsi" {
   enabled           = try(var.jitsi.enabled, false)
   hostname          = try(var.jitsi.hostname, "")
   base              = module.base.base
-  authorized_groups = try(var.jitsi.authorized_groups, ["admin"])
+  authorized_groups = try(var.jitsi.authorized_groups, ["member"])
 
   image_tag                  = try(var.jitsi.image_tag, "stable-9823")
   timezone                   = try(var.jitsi.timezone, "UTC")
@@ -318,7 +318,7 @@ module "espocrm" {
   enabled           = try(var.espocrm.enabled, false)
   hostname          = try(var.espocrm.hostname, "")
   base              = module.base.base
-  authorized_groups = try(var.espocrm.authorized_groups, ["admin"])
+  authorized_groups = try(var.espocrm.authorized_groups, ["delegate"])
 
   image_tag                      = try(var.espocrm.image_tag, "8.5")
   timezone                       = try(var.espocrm.timezone, "UTC")

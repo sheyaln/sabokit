@@ -15,8 +15,7 @@ Nextcloud only supports one-major-at-a-time upgrades. Step through majors (`32` 
 | `talk_hostname` | `string` | — (required when enabled) | Full hostname Talk HPB signaling (WSS) is served at. Same DNS name also resolves to TURN on UDP/TCP 3478. |
 | `category_group` | `string` | `"Files"` | Authentik portal category. |
 | `icon_url` | `string` | `null` | Optional icon path in Authentik media. |
-| `access_level` | `string` | `"member"` | Key in `base.authentik.groups` granting baseline access. |
-| `extra_authorized_groups` | `map(string)` | `{}` | Extra groups allowed beyond `access_level`. |
+| `authorized_groups` | `list(string)` | `["member"]` | Authentik group names allowed in. Higher tiers nest under lower, so a baseline tier admits everyone above. |
 | `monitoring_enabled` | `bool` | `true` | Wire log paths into monitoring. |
 | `deployment_host_key` | `string` | `"apps"` | Target host. |
 | `image_tag` | `string` | `"32-apache"` | Nextcloud image tag. Pin to a major. |

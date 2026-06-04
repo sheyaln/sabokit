@@ -13,8 +13,7 @@ Agent role for monitored hosts ships separately. The bundle opens the manager's 
 | `hostname` | `string` | — (required when enabled) | Dashboard hostname. |
 | `category_group` | `string` | `"Security"` | Authentik portal category. |
 | `icon_url` | `string` | `null` | Optional icon. |
-| `access_level` | `string` | `"admin"` | Defaults admin-only — SIEM + active response. |
-| `extra_authorized_groups` | `map(string)` | `{}` | Extra groups. |
+| `authorized_groups` | `list(string)` | `["admin"]` | Authentik group names allowed in. Higher tiers nest under lower, so naming a baseline tier admits every tier above it. Defaults admin-only — SIEM + active response. |
 | `oidc_admin_group` | `string` | `"admin"` | Authentik group mapped to opensearch `all_access` (full dashboard + active response). |
 | `oidc_readonly_group` | `string` | `""` | Optional Authentik group mapped to `kibana_user` + `readall` (read-only dashboard). Empty = admin-only. |
 | `monitoring_enabled` | `bool` | `true` | Wire log paths into monitoring. |
@@ -37,7 +36,7 @@ Agent role for monitored hosts ships separately. The bundle opens the manager's 
 |------|-------------|
 | `enabled` | Mirrors `var.enabled`. |
 | `app_url` | `https://<hostname>` or null. |
-| `authentik_provider_id` | OIDC provider ID. Wazuh uses **native** OIDC via opensearch-security — do NOT add to identity's `extra_forward_auth_provider_ids` (that list is for proxy-providers only). Exposed for tooling. |
+| `authentik_provider_id` | OIDC provider ID. Wazuh uses **native** OIDC via opensearch-security, not the embedded forward-auth outpost — its provider is never bound into the application layer's outpost. Exposed for tooling. |
 | `authentik_application_group_id` | Per-app group `app-wazuh`. |
 | `monitoring` | Log paths contribution. |
 | `required_inbound_rules` | TCP 1514 + 1515 + UDP 514 open on the host SG. Aggregated by consumer-template. |

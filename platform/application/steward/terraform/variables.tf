@@ -98,7 +98,7 @@ variable "image_tag" {
 }
 
 variable "admin_group_name" {
-  description = "Name of the Authentik group whose members are granted Steward admin access. Must match the access_level group name in Authentik so the OIDC `groups` claim contains it for authorized users."
+  description = "Name of the Authentik group whose members are granted Steward admin access. Should be one of `authorized_groups` (or a higher tier nested under one) so the OIDC `groups` claim carries it for signed-in users."
   type        = string
   default     = "steward-admins"
 }
@@ -182,7 +182,7 @@ variable "extra_docker_networks" {
 
 
 variable "authorized_groups" {
-  description = "Authentik group NAMES allowed to access this app; each must exist in base.authentik.groups (declared in your tier_slots/extra_groups). The bundle binds one access policy per group. Tiering/cascade is a consumer decision — list every group that should have access. Default [\"admin\"] = admin-only."
+  description = "Authentik group NAMES allowed to access this app; each must exist in base.authentik.groups (declared in your tier_slots/extra_groups). The bundle binds one access policy per group; higher tiers nest under lower ones in Authentik, so naming a baseline tier also admits every tier above it. Default [\"delegate\"] admits delegates and up."
   type        = list(string)
-  default     = ["admin"]
+  default     = ["delegate"]
 }

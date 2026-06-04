@@ -11,8 +11,7 @@ Vikunja — open-source task and project tracker. OIDC, DNS record, PostgreSQL D
 | `hostname` | `string` | `""` | Full hostname (required when enabled). |
 | `category_group` | `string` | `"Productivity"` | Authentik portal category. |
 | `icon_url` | `string` | `null` | Icon path in Authentik media. |
-| `access_level` | `string` | `"member"` | Key in `base.authentik.groups` for baseline access. |
-| `extra_authorized_groups` | `map(string)` | `{}` | Extra Authentik group IDs. Keys must be static strings. |
+| `authorized_groups` | `list(string)` | `["member"]` | Authentik group names allowed in. Higher tiers nest under lower, so a baseline tier admits everyone above. |
 | `monitoring_enabled` | `bool` | `true` | Contribute to the monitoring aggregate. |
 | `deployment_host_key` | `string` | `"apps"` | Key in `base.compute.hosts` for the target VM. |
 | `image_tag` | `string` | `"latest"` | Vikunja image tag. |

@@ -11,8 +11,7 @@ Jitsi Meet — self-hosted WebRTC video conferencing. Deploys five containers (w
 | `hostname` | `string` | — (required when enabled) | Full hostname Jitsi is served at. |
 | `category_group` | `string` | `"Communication"` | Authentik portal category. |
 | `icon_url` | `string` | `null` | Optional icon path in Authentik media. |
-| `access_level` | `string` | `"member"` | Key in `base.authentik.groups` granting baseline access. |
-| `extra_authorized_groups` | `map(string)` | `{}` | Additional Authentik groups allowed beyond `access_level`. |
+| `authorized_groups` | `list(string)` | `["member"]` | Authentik group names allowed in. Higher tiers nest under lower, so a baseline tier admits everyone above. |
 | `monitoring_enabled` | `bool` | `true` | Wire log paths into monitoring. |
 | `deployment_host_key` | `string` | `"apps"` | Target host. |
 | `image_tag` | `string` | `"stable-9823"` | Docker tag for every jitsi/* image. Pin in production. |

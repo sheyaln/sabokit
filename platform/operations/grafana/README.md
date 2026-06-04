@@ -11,8 +11,7 @@ Grafana UI behind Authentik OIDC, with Prometheus + Loki datasources pre-provisi
 | `hostname` | `string` | — (required when enabled) | Public hostname. |
 | `category_group` | `string` | `"Operations"` | Authentik portal category. |
 | `icon_url` | `string` | `null` | Optional Authentik icon. |
-| `access_level` | `string` | `"admin"` | Defaults to admin-only — Grafana is ops. |
-| `extra_authorized_groups` | `map(string)` | `{}` | Extra groups beyond `access_level`. |
+| `authorized_groups` | `list(string)` | `["admin"]` | Authentik group names allowed in. Ops dashboards → admin-only by default; higher tiers nest under lower. |
 | `monitoring_enabled` | `bool` | `true` | Self-scrape + log paths into monitoring. |
 | `deployment_host_key` | `string` | `"management"` | Host this runs on. Co-locate with prometheus + loki for in-network DNS (`http://prometheus:9090`, `http://loki:3100`), or split them across hosts and let the base `split-dns` role bridge them via the public hostnames. |
 | `image` | `string` | `"grafana/grafana"` | Image repo. |

@@ -11,8 +11,7 @@ EspoCRM — open-source PHP CRM for tracking customers, members, donors, or any 
 | `hostname` | `string` | — (required when enabled) | Full hostname EspoCRM is served at. |
 | `category_group` | `string` | `"Tools"` | Authentik portal category. |
 | `icon_url` | `string` | `null` | Optional icon path in Authentik media. |
-| `access_level` | `string` | `"member"` | Key in `base.authentik.groups` granting baseline access. |
-| `extra_authorized_groups` | `map(string)` | `{}` | Extra groups allowed beyond `access_level`. |
+| `authorized_groups` | `list(string)` | `["delegate"]` | Authentik group names allowed in. CRM holds member PII → delegates and up by default; higher tiers nest under lower. |
 | `monitoring_enabled` | `bool` | `true` | Wire log paths into monitoring. |
 | `deployment_host_key` | `string` | `"apps"` | Target host. |
 | `image_tag` | `string` | `"latest"` | EspoCRM Docker image tag. |

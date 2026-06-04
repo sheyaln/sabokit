@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Validate consumer-template/apps-manifest.yaml against the real Terraform
-# inputs in platform/apps/<id>/terraform/variables.tf for every declared app.
+# inputs in platform/application/<id>/terraform/variables.tf for every declared app.
 #
 # - ERROR: a manifest input that doesn't exist as a `variable` in the HCL.
 #   (Manifest lying to consumers — they'll send a tfvar that terraform rejects.)
@@ -28,7 +28,7 @@ fi
 
 # Inputs that always exist in HCL but are deliberately excluded from any
 # user-facing manifest entry. Not flagged as missing-from-manifest.
-INTERNAL_VARS=(base extra_authorized_groups)
+INTERNAL_VARS=(base)
 
 # Manifest-only inputs that are consumed by consumer-template wiring (not by
 # any bundle HCL variable). Format: "<app_id>:<input_name>". Not flagged as
@@ -62,15 +62,15 @@ for entry in "${entries[@]}"; do
 
   case "$tier" in
     apps)
-      # Apps tier may live under platform/apps/ or, for the core-services
-      # subset (loki/prometheus/grafana/wazuh), under platform/core/. Try
-      # apps first, then core.
-      vars_tf="$REPO_ROOT/platform/apps/$id/terraform/variables.tf"
+      # Apps tier may live under platform/application/ or, for the
+      # operations-services subset (loki/prometheus/grafana/wazuh), under
+      # platform/operations/. Try application first, then operations.
+      vars_tf="$REPO_ROOT/platform/application/$id/terraform/variables.tf"
       if [[ ! -f "$vars_tf" ]]; then
-        vars_tf="$REPO_ROOT/platform/core/$id/terraform/variables.tf"
+        vars_tf="$REPO_ROOT/platform/operations/$id/terraform/variables.tf"
       fi
       ;;
-    host_services) vars_tf="$REPO_ROOT/platform/base/host-services/$id/terraform/variables.tf" ;;
+    host_services) vars_tf="$REPO_ROOT/platform/infra/host-services/$id/terraform/variables.tf" ;;
     *)             echo "ERROR: unknown tier '$tier'" >&2; errors=$((errors+1)); continue ;;
   esac
 

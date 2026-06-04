@@ -6,7 +6,7 @@ Backrest — web UI over restic (https://github.com/garethgeorge/backrest). Sing
 
 ## Forward-auth wiring
 
-Backrest's `config.json` sets `auth.disabled = true`. **Every** instance's `authentik_provider_id` MUST be added to the identity module's `extra_forward_auth_provider_ids` (use `compact()` to drop nulls from disabled instances). Forgetting this leaves the instance reachable but the middleware returns 500. Default `access_level` is `"admin"` — Backrest exposes raw filesystem paths and a restore UI.
+Backrest's `config.json` sets `auth.disabled = true`, so the embedded forward-auth outpost guards it. The application layer binds every instance's `authentik_provider_id` into `authentik_outpost.embedded` (via `compact()` over the backrest instances, dropping nulls from disabled ones); without that the instance is reachable but the middleware returns 500. Default `authorized_groups` is `["admin"]` — Backrest exposes raw filesystem paths and a restore UI.
 
 ## Backup sources
 
@@ -30,8 +30,7 @@ If an app writes outside both trees, **extend (don't replace)** the default via 
 | `deployment_host_key` | `string` | — | Key in `base.compute.hosts` for the host being backed up. |
 | `category_group` | `string` | `"Operations"` | Authentik portal category. |
 | `icon_url` | `string` | `null` | Optional icon path in Authentik media. |
-| `access_level` | `string` | `"admin"` | Ops-only by default. |
-| `extra_authorized_groups` | `map(string)` | `{}` | Extra groups beyond `access_level`. |
+| `authorized_groups` | `list(string)` | `["admin"]` | Authentik group names allowed in. Raw paths + restore UI → admin-only by default; higher tiers nest under lower. |
 | `monitoring_enabled` | `bool` | `true` | Wire `/metrics` + log paths into monitoring. |
 | `image_tag` | `string` | `"latest"` | Backrest Docker image tag. Pin in production. |
 | `backup_plans` | `list(object)` | `[]` | Plans rendered into `config.json`. See type signature in `variables.tf`. |

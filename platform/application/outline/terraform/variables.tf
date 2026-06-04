@@ -169,7 +169,7 @@ variable "extra_docker_networks" {
 }
 
 variable "authorized_groups" {
-  description = "Authentik group NAMES allowed to access this app; each must exist in base.authentik.groups (declared in your tier_slots/extra_groups). The bundle binds one access policy per group. Tiering/cascade is a consumer decision — list every group that should have access. Default [\"admin\"] = admin-only."
+  description = "Authentik group NAMES allowed to access this app; each must exist in base.authentik.groups (declared in your tier_slots/extra_groups). The bundle binds one access policy per group; higher tiers nest under lower ones in Authentik, so naming a baseline tier also admits every tier above it. Default [\"member\"] admits the whole membership."
   type        = list(string)
-  default     = ["admin"]
+  default     = ["member"]
 }

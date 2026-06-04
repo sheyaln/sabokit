@@ -52,8 +52,7 @@ In `site.yml`:
 | `hostname` | `string` | — (required when enabled) | Full hostname. |
 | `category_group` | `string` | `"Automation"` | Authentik portal category. |
 | `icon_url` | `string` | `null` | Optional icon. |
-| `access_level` | `string` | `"admin"` | Defaults to admin-only — n8n is an ops tool. |
-| `extra_authorized_groups` | `map(string)` | `{}` | Extra groups beyond `access_level`. |
+| `authorized_groups` | `list(string)` | `["admin"]` | Authentik group names allowed in. Automation can reach everything → admin-only by default; higher tiers nest under lower. |
 | `monitoring_enabled` | `bool` | `true` | Wire log paths into monitoring. |
 | `deployment_host_key` | `string` | `"apps"` | Target host. |
 | `image_tag` | `string` | `"latest"` | n8n image tag (used for both n8n and the runners sidecar). |

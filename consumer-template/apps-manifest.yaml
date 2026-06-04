@@ -71,22 +71,10 @@ apps:
           description: Which host (key in compute_hosts) Outline runs on.
           ui: advanced
 
-        access_level:
-          type: string
-          default: member
-          description: Authentik group key granting baseline access.
-          ui: advanced
-
-        tier_cascade_enabled:
-          type: bool
-          default: true
-          description: Derive authorized groups from the platform tier_slots cascade. When true, the app binds every group in base.authentik.tier_cascade[tier_access_level] (the peer's own group + all groups in strictly-higher slots). Set false to fall back to access_level + extra_authorized_groups.
-          ui: advanced
-
-        tier_access_level:
-          type: string
-          default: admin
-          description: peer_name from your tier_slots schema that grants baseline access. The app binds the peer's own group plus every group in every strictly-higher slot. Only consulted when tier_cascade_enabled = true.
+        authorized_groups:
+          type: list(string)
+          default: [member]
+          description: Authentik group names allowed to access this app. Higher tiers nest under lower ones in Authentik, so naming a baseline tier also admits every tier above it. Default [member] admits the whole membership.
           ui: advanced
 
         smtp_from_email:
@@ -205,22 +193,10 @@ apps:
           description: Which host (key in compute_hosts) Steward runs on.
           ui: advanced
 
-        access_level:
-          type: string
-          default: admin
-          description: Authentik group key granting baseline access (admin by default — Steward is itself an admin surface).
-          ui: advanced
-
-        tier_cascade_enabled:
-          type: bool
-          default: true
-          description: Derive authorized groups from the platform tier_slots cascade. When true, the app binds every group in base.authentik.tier_cascade[tier_access_level] (the peer's own group + all groups in strictly-higher slots). Set false to fall back to access_level + extra_authorized_groups.
-          ui: advanced
-
-        tier_access_level:
-          type: string
-          default: admin
-          description: peer_name from your tier_slots schema that grants baseline access. The app binds the peer's own group plus every group in every strictly-higher slot. Only consulted when tier_cascade_enabled = true.
+        authorized_groups:
+          type: list(string)
+          default: [delegate]
+          description: Authentik group names allowed to access this app. Higher tiers nest under lower ones in Authentik, so naming a baseline tier also admits every tier above it. Default [delegate] admits delegates and up — Steward delegates member management to officers.
           ui: advanced
 
         monitoring_enabled:
@@ -351,22 +327,10 @@ apps:
           description: Which host (key in compute_hosts) Vikunja runs on.
           ui: advanced
 
-        access_level:
-          type: string
-          default: member
-          description: Authentik group key granting baseline access.
-          ui: advanced
-
-        tier_cascade_enabled:
-          type: bool
-          default: true
-          description: Derive authorized groups from the platform tier_slots cascade. When true, the app binds every group in base.authentik.tier_cascade[tier_access_level] (the peer's own group + all groups in strictly-higher slots). Set false to fall back to access_level + extra_authorized_groups.
-          ui: advanced
-
-        tier_access_level:
-          type: string
-          default: admin
-          description: peer_name from your tier_slots schema that grants baseline access. The app binds the peer's own group plus every group in every strictly-higher slot. Only consulted when tier_cascade_enabled = true.
+        authorized_groups:
+          type: list(string)
+          default: [member]
+          description: Authentik group names allowed to access this app. Higher tiers nest under lower ones in Authentik, so naming a baseline tier also admits every tier above it. Default [member] admits the whole membership.
           ui: advanced
 
         monitoring_enabled:
@@ -463,22 +427,10 @@ apps:
           description: Which host (key in compute_hosts) BentoPDF runs on.
           ui: advanced
 
-        access_level:
-          type: string
-          default: member
-          description: Authentik group key granting baseline access.
-          ui: advanced
-
-        tier_cascade_enabled:
-          type: bool
-          default: true
-          description: Derive authorized groups from the platform tier_slots cascade. When true, the app binds every group in base.authentik.tier_cascade[tier_access_level] (the peer's own group + all groups in strictly-higher slots). Set false to fall back to access_level + extra_authorized_groups.
-          ui: advanced
-
-        tier_access_level:
-          type: string
-          default: admin
-          description: peer_name from your tier_slots schema that grants baseline access. The app binds the peer's own group plus every group in every strictly-higher slot. Only consulted when tier_cascade_enabled = true.
+        authorized_groups:
+          type: list(string)
+          default: [member]
+          description: Authentik group names allowed to access this app. Higher tiers nest under lower ones in Authentik, so naming a baseline tier also admits every tier above it. Default [member] admits the whole membership.
           ui: advanced
 
         monitoring_enabled:
@@ -592,22 +544,10 @@ apps:
           description: Which host (key in compute_hosts) Broadsheet runs on.
           ui: advanced
 
-        access_level:
-          type: string
-          default: admin
-          description: Authentik group key granting baseline access. Default admin-only (Broadsheet is an operator tool).
-          ui: advanced
-
-        tier_cascade_enabled:
-          type: bool
-          default: true
-          description: Derive authorized groups from the platform tier_slots cascade. When true, the app binds every group in base.authentik.tier_cascade[tier_access_level] (the peer's own group + all groups in strictly-higher slots). Set false to fall back to access_level + extra_authorized_groups.
-          ui: advanced
-
-        tier_access_level:
-          type: string
-          default: admin
-          description: peer_name from your tier_slots schema that grants baseline access. The app binds the peer's own group plus every group in every strictly-higher slot. Only consulted when tier_cascade_enabled = true.
+        authorized_groups:
+          type: list(string)
+          default: [delegate]
+          description: Authentik group names allowed to access this app. Higher tiers nest under lower ones in Authentik, so naming a baseline tier also admits every tier above it. Default [delegate] admits delegates and up — Broadsheet sends mass email.
           ui: advanced
 
         monitoring_enabled:
@@ -836,22 +776,10 @@ apps:
           description: Which host (key in compute_hosts) Nextcloud runs on.
           ui: advanced
 
-        access_level:
-          type: string
-          default: member
-          description: Authentik group key granting baseline access.
-          ui: advanced
-
-        tier_cascade_enabled:
-          type: bool
-          default: true
-          description: Derive authorized groups from the platform tier_slots cascade. When true, the app binds every group in base.authentik.tier_cascade[tier_access_level] (the peer's own group + all groups in strictly-higher slots). Set false to fall back to access_level + extra_authorized_groups.
-          ui: advanced
-
-        tier_access_level:
-          type: string
-          default: admin
-          description: peer_name from your tier_slots schema that grants baseline access. The app binds the peer's own group plus every group in every strictly-higher slot. Only consulted when tier_cascade_enabled = true.
+        authorized_groups:
+          type: list(string)
+          default: [member]
+          description: Authentik group names allowed to access this app. Higher tiers nest under lower ones in Authentik, so naming a baseline tier also admits every tier above it. Default [member] admits the whole membership.
           ui: advanced
 
         monitoring_enabled:
@@ -1082,22 +1010,10 @@ apps:
           description: Which host (key in compute_hosts) Decidim runs on.
           ui: advanced
 
-        access_level:
-          type: string
-          default: member
-          description: Authentik group key granting baseline access.
-          ui: advanced
-
-        tier_cascade_enabled:
-          type: bool
-          default: true
-          description: Derive authorized groups from the platform tier_slots cascade. When true, the app binds every group in base.authentik.tier_cascade[tier_access_level] (the peer's own group + all groups in strictly-higher slots). Set false to fall back to access_level + extra_authorized_groups.
-          ui: advanced
-
-        tier_access_level:
-          type: string
-          default: admin
-          description: peer_name from your tier_slots schema that grants baseline access. The app binds the peer's own group plus every group in every strictly-higher slot. Only consulted when tier_cascade_enabled = true.
+        authorized_groups:
+          type: list(string)
+          default: [member]
+          description: Authentik group names allowed to access this app. Higher tiers nest under lower ones in Authentik, so naming a baseline tier also admits every tier above it. Default [member] admits the whole membership.
           ui: advanced
 
         monitoring_enabled:
@@ -1231,22 +1147,10 @@ apps:
           description: Which host (key in compute_hosts) Jitsi runs on.
           ui: advanced
 
-        access_level:
-          type: string
-          default: member
-          description: Authentik group key granting baseline access (relevant when the OIDC adapter gates room creation).
-          ui: advanced
-
-        tier_cascade_enabled:
-          type: bool
-          default: true
-          description: Derive authorized groups from the platform tier_slots cascade. When true, the app binds every group in base.authentik.tier_cascade[tier_access_level] (the peer's own group + all groups in strictly-higher slots). Set false to fall back to access_level + extra_authorized_groups.
-          ui: advanced
-
-        tier_access_level:
-          type: string
-          default: admin
-          description: peer_name from your tier_slots schema that grants baseline access. The app binds the peer's own group plus every group in every strictly-higher slot. Only consulted when tier_cascade_enabled = true.
+        authorized_groups:
+          type: list(string)
+          default: [member]
+          description: Authentik group names allowed to access this app. Higher tiers nest under lower ones in Authentik, so naming a baseline tier also admits every tier above it. Default [member] admits the whole membership.
           ui: advanced
 
         monitoring_enabled:
@@ -1367,22 +1271,10 @@ apps:
           description: Which host (key in compute_hosts) EspoCRM runs on.
           ui: advanced
 
-        access_level:
-          type: string
-          default: member
-          description: Authentik group key granting baseline access.
-          ui: advanced
-
-        tier_cascade_enabled:
-          type: bool
-          default: true
-          description: Derive authorized groups from the platform tier_slots cascade. When true, the app binds every group in base.authentik.tier_cascade[tier_access_level] (the peer's own group + all groups in strictly-higher slots). Set false to fall back to access_level + extra_authorized_groups.
-          ui: advanced
-
-        tier_access_level:
-          type: string
-          default: admin
-          description: peer_name from your tier_slots schema that grants baseline access. The app binds the peer's own group plus every group in every strictly-higher slot. Only consulted when tier_cascade_enabled = true.
+        authorized_groups:
+          type: list(string)
+          default: [delegate]
+          description: Authentik group names allowed to access this app. Higher tiers nest under lower ones in Authentik, so naming a baseline tier also admits every tier above it. Default [delegate] admits delegates and up — the CRM holds member PII.
           ui: advanced
 
         monitoring_enabled:
@@ -1497,22 +1389,10 @@ apps:
           description: Which host (key in compute_hosts) n8n runs on.
           ui: advanced
 
-        access_level:
-          type: string
-          default: member
-          description: Authentik group key granting baseline access.
-          ui: advanced
-
-        tier_cascade_enabled:
-          type: bool
-          default: true
-          description: Derive authorized groups from the platform tier_slots cascade. When true, the app binds every group in base.authentik.tier_cascade[tier_access_level] (the peer's own group + all groups in strictly-higher slots). Set false to fall back to access_level + extra_authorized_groups.
-          ui: advanced
-
-        tier_access_level:
-          type: string
-          default: admin
-          description: peer_name from your tier_slots schema that grants baseline access. The app binds the peer's own group plus every group in every strictly-higher slot. Only consulted when tier_cascade_enabled = true.
+        authorized_groups:
+          type: list(string)
+          default: [admin]
+          description: Authentik group names allowed to access this app. Higher tiers nest under lower ones in Authentik, so naming a baseline tier also admits every tier above it. Default [admin] is admin-only — n8n automation can reach everything.
           ui: advanced
 
         monitoring_enabled:
@@ -1689,22 +1569,10 @@ apps:
           description: Which host (key in compute_hosts) this backrest instance runs on. Typically the host you're backing up.
           ui: advanced
 
-        access_level:
-          type: string
-          default: admin
-          description: Authentik group key granting baseline access. Default admin — Backrest exposes raw paths and a restore UI.
-          ui: advanced
-
-        tier_cascade_enabled:
-          type: bool
-          default: true
-          description: Derive authorized groups from the platform tier_slots cascade. When true, the app binds every group in base.authentik.tier_cascade[tier_access_level] (the peer's own group + all groups in strictly-higher slots). Set false to fall back to access_level + extra_authorized_groups.
-          ui: advanced
-
-        tier_access_level:
-          type: string
-          default: admin
-          description: peer_name from your tier_slots schema that grants baseline access. The app binds the peer's own group plus every group in every strictly-higher slot. Only consulted when tier_cascade_enabled = true.
+        authorized_groups:
+          type: list(string)
+          default: [admin]
+          description: Authentik group names allowed to access this app. Higher tiers nest under lower ones in Authentik, so naming a baseline tier also admits every tier above it. Default [admin] is admin-only — Backrest exposes raw paths and a restore UI.
           ui: advanced
 
         monitoring_enabled:
@@ -1944,22 +1812,10 @@ apps:
           description: Which host this Grafana runs on. Should match prometheus + loki for in-network DNS.
           ui: advanced
 
-        access_level:
-          type: string
-          default: admin
-          description: Authentik group key for baseline access (defaults to admin — Grafana is ops).
-          ui: advanced
-
-        tier_cascade_enabled:
-          type: bool
-          default: true
-          description: Derive authorized groups from the platform tier_slots cascade. When true, the app binds every group in base.authentik.tier_cascade[tier_access_level] (the peer's own group + all groups in strictly-higher slots). Set false to fall back to access_level + extra_authorized_groups.
-          ui: advanced
-
-        tier_access_level:
-          type: string
-          default: admin
-          description: peer_name from your tier_slots schema that grants baseline access. The app binds the peer's own group plus every group in every strictly-higher slot. Only consulted when tier_cascade_enabled = true.
+        authorized_groups:
+          type: list(string)
+          default: [admin]
+          description: Authentik group names allowed to access this app. Higher tiers nest under lower ones in Authentik, so naming a baseline tier also admits every tier above it. Default [admin] is admin-only — Grafana is an ops dashboard.
           ui: advanced
 
         oidc_admin_group:
@@ -2120,22 +1976,10 @@ apps:
           description: Which host the Wazuh manager runs on.
           ui: advanced
 
-        access_level:
-          type: string
-          default: admin
-          description: Authentik group key for baseline access (Wazuh defaults admin-only).
-          ui: advanced
-
-        tier_cascade_enabled:
-          type: bool
-          default: true
-          description: Derive authorized groups from the platform tier_slots cascade. When true, the app binds every group in base.authentik.tier_cascade[tier_access_level] (the peer's own group + all groups in strictly-higher slots). Set false to fall back to access_level + extra_authorized_groups.
-          ui: advanced
-
-        tier_access_level:
-          type: string
-          default: admin
-          description: peer_name from your tier_slots schema that grants baseline access. The app binds the peer's own group plus every group in every strictly-higher slot. Only consulted when tier_cascade_enabled = true.
+        authorized_groups:
+          type: list(string)
+          default: [admin]
+          description: Authentik group names allowed to access this app. Higher tiers nest under lower ones in Authentik, so naming a baseline tier also admits every tier above it. Default [admin] is admin-only — Wazuh is SIEM + active response.
           ui: advanced
 
         release_version:
