@@ -64,12 +64,13 @@ locals {
     # ── Identity (REQUIRED, persistent) ──────────────────────────────────
     # Tier DAG. Models the org's authority hierarchy as a list of slots,
     # each holding one or more peer roles at that rank. peer_name is the
-    # stable token bundles' tier_access_level matches against; group_name
-    # is the underlying Authentik group's display name.
+    # key; group_name is the underlying Authentik group's display name.
     #
-    # Cascade-up semantics: an app scoped to peer P in slot S admits P's
-    # own group + every group in every strictly-higher slot. Peers in the
-    # same slot do NOT see each other through the cascade.
+    # Each slot nests under the one below it, so a higher-slot user is a
+    # member of every lower group through Authentik group nesting. Apps name
+    # the groups they admit (authorized_groups); naming a baseline tier
+    # therefore admits that tier and every slot above it. Peers in the same
+    # slot do NOT inherit each other — list both to admit both.
     identity = {
       tier_slots = [
         # Slot 1 (lowest privilege)

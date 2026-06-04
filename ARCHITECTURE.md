@@ -315,17 +315,11 @@ variable "icon_url" {
   default     = null
 }
 
-variable "access_level" {
-  description = "Required role to access this app. Must be a key in base.authentik.groups (e.g. \"admin\", \"member\")."
-  type        = string
-  default     = "member"
-  # No validation enum — base provides the group taxonomy, apps reference it.
-}
-
-variable "extra_authorized_groups" {
-  description = "Additional Authentik group IDs allowed to access this app beyond the access_level chain."
+variable "authorized_groups" {
+  description = "Authentik group NAMES allowed to access this app; each must exist in base.authentik.groups. The bundle binds one access policy per group, and Authentik nests higher tiers under lower, so naming a baseline tier admits every tier above it."
   type        = list(string)
-  default     = []
+  default     = ["admin"]
+  # No validation enum — base provides the group taxonomy, apps reference it.
 }
 
 variable "monitoring_enabled" {
@@ -741,7 +735,7 @@ module "outline" {
 | Authentik   | `authentik_provider_oauth2.this` — OIDC provider for Outline           |
 |             | `authentik_application.this` — application visible in the user portal   |
 |             | `authentik_group.this` — per-app group `app-outline`                    |
-|             | `authentik_policy_binding.access_level` — gates access by `access_level`|
+|             | `authentik_policy_binding.authorized` — one binding per `authorized_groups` entry |
 |             | `authentik_policy_binding.application_group` — explicit per-app grant   |
 | DNS         | `scaleway_domain_record.this` — A record `wiki.example.org` → host IP  |
 | Storage     | `scaleway_object_bucket.attachments` — bucket for user uploads          |

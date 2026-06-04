@@ -96,7 +96,7 @@ In app bundles, the `hostname` variable is REQUIRED (no default). Consumers alwa
 
 Every module should provide at least one of these so consumers can extend without forking:
 
-1. **`extra_*` pass-through inputs** — `extra_inbound_rules`, `extra_authorized_groups`, `additional_property_mapping_ids`. Lists or maps that the module unions with its own defaults.
+1. **`extra_*` pass-through inputs** — `extra_inbound_rules`, `extra_docker_networks`, `additional_property_mapping_ids`. Lists or maps that the module unions with its own defaults.
 2. **Raw resource ID outputs** — expose the underlying resource ID (`provider_id`, `bucket_name`, `instance_id`) so consumers can attach their own resources to it.
 3. **`existing_*` bring-your-own inputs** — `existing_vpc_id`, `existing_postgres_instance_id`. When provided, the module skips creating one and uses the passed-in resource.
 
