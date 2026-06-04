@@ -77,11 +77,11 @@ locals {
 }
 
 # The data-source contract: rebuilds `base` ({scaleway, compute, domains,
-# authentik}) from the infra + identity layers by name/tag — no remote_state,
-# no passed-in var.base. Every sub-bundle consumes module.base.base exactly as
-# it consumed the passed-in var.base in v0.1.0. The authentik provider this
-# module's data.authentik_* lookups need is configured at the consumer root
-# (from the ${org}-${env}-authentik-admin secret) and inherited here.
+# authentik}) from the infra + identity layers by name/tag — no remote_state.
+# Every sub-bundle consumes module.base.base as its var.base. The authentik
+# provider this module's data.authentik_* lookups need is configured at the
+# consumer root (from the ${org}-${env}-authentik-admin secret) and inherited
+# here.
 module "base" {
   source = "../../_shared/contract"
 

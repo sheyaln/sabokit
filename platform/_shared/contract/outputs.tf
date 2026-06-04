@@ -1,12 +1,11 @@
 # The single output every downstream layer feeds to its bundles as
-# `base = module.base.base`. Shape matches v0.1.0's in-memory local.base
-# (`{ scaleway, compute, domains, authentik }`) so bundles are unchanged —
-# the authentik sub-map is trimmed to the fields bundles actually consume
-# (groups, icon_base_url, identity_domain, three flows). No tier_cascade: the
-# tiered-access cascade was removed; bundles take an explicit authorized_groups
-# name list and resolve it against `groups`, so the cascade (if any) is a
-# consumer decision. The rest of identity's output (api_url, sources,
-# outpost_id, branding paths, the unused flows) is not reconstructed.
+# `base = module.base.base`. The shape — `{ scaleway, compute, domains,
+# authentik }` — is exactly what every bundle reads as var.base. The authentik
+# sub-map carries only the fields bundles use (groups, icon_base_url,
+# identity_domain, three flows); bundles bind an explicit authorized_groups name
+# list resolved against `groups`, so there is no tier_cascade — the access
+# cascade (if any) is a consumer decision. The other authentik fields (api_url,
+# sources, outpost_id, branding paths, the unused flows) aren't reconstructed.
 
 output "base" {
   description = "The base contract object. Pass verbatim as `base` to every bundle in the layer. See ARCHITECTURE.md for the field contract."

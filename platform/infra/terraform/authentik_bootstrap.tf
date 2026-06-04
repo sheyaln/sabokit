@@ -1,27 +1,16 @@
 # Authentik's logical DB + bootstrap secrets — the root-of-trust exception.
 #
-# Per V1.0-PLAN: infra owns Authentik's DB + admin/server/bootstrap-token
-# secrets, even though identity owns everything else Authentik. The reason is
-# apply-order: Authentik's container boots in the MIDDLE of the identity layer
-# (ansible), between "DB must exist" and "configure via TF". If identity owned
-# the DB its scaleway-TF would run before its ansible and its authentik-TF
-# after — a mid-apply straddle. Parking the DB + secrets in the rarely-touched
-# substrate keeps identity a clean ansible→TF layer.
-#
-# Folded here from the v0.1.0 platform/identity/bootstrap (now
-# platform/infra/authentik-bootstrap). In v0.1.0 the consumer stack called it
-# as module.identity_bootstrap alongside module.base; v1.0 nests it inside the
-# infra composition so the four-layer split is clean.
-#
-# Carve note (1→4 migration / no-op dry-run): prod's
-#   module.stack.module.identity_bootstrap.*
-# maps to
-#   module.infra.module.authentik_bootstrap[0].*
-# — a state-mv prefix swap + the [0] from the count gate below.
+# Infra owns Authentik's DB + admin/server/bootstrap-token secrets, even though
+# identity owns everything else Authentik. The reason is apply-order: Authentik's
+# container boots in the MIDDLE of the identity layer (ansible), between "DB must
+# exist" and "configure via TF". If identity owned the DB its scaleway-TF would
+# run before its ansible and its authentik-TF after — a mid-apply straddle.
+# Parking the DB + secrets in the rarely-touched substrate keeps identity a clean
+# ansible→TF layer.
 #
 # Variables + outputs are colocated here (rather than in the shared
-# variables.tf/outputs.tf) because they exist only to wire this one folded
-# concern; they travel together if the fold ever changes.
+# variables.tf/outputs.tf) because they exist only to wire this one concern;
+# they travel together.
 
 module "authentik_bootstrap" {
   source = "../authentik-bootstrap"

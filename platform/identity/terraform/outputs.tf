@@ -55,11 +55,10 @@ output "authentik" {
       var.enable_apple_social_login ? { apple = authentik_source_oauth.apple[0].uuid } : {},
     )
 
-    # No outpost_id: the embedded outpost relocated to the application layer
-    # (v1.0 — all forward-auth providers are app-tier, so the outpost + its
-    # protocol_providers binding live where the providers are born). Apps bind
-    # to it via the application layer's own authentik_outpost.embedded, not via
-    # this output (nothing consumed base.authentik.outpost_id anyway).
+    # No outpost_id: the embedded outpost is owned by the application layer (all
+    # forward-auth providers are app-tier, so the outpost + its protocol_providers
+    # binding live where the providers are born). Apps bind to it via the
+    # application layer's own authentik_outpost.embedded, not via this output.
     branding_assets_path = "${path.module}/assets"
 
     icon_base_url = local.effective_icon_base_url

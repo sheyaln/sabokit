@@ -4,10 +4,9 @@ Rebuilds the `base` object (`{ scaleway, compute, domains, authentik }`) that
 bundles consume as `var.base`, by **discovering** what the infra and identity
 layers provisioned — by name/tag, never `remote_state`.
 
-In v0.1.0 the single-root stack built `local.base` in memory and handed it to
-every bundle. v1.0 splits the stack into four per-env layer roots with four
-separate states. The downstream layers (operations, application) can't read the
-infra/identity roots' in-memory wiring, so each calls this module instead:
+Each per-env layer has its own state, so the downstream layers (operations,
+application) can't read the infra/identity layers' wiring directly. Each calls
+this module to rebuild `base` from data sources instead:
 
 ```hcl
 module "base" {
