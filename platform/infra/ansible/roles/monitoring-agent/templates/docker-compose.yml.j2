@@ -18,8 +18,9 @@ services:
       - --collector.textfile.directory=/host/textfile_collector
       - --web.max-requests=40
       - --log.level=warn
-    ports:
-      - "{{ node_exporter_port }}:9100"
+    # No published port: the local Alloy agent scrapes this over the shared
+    # docker network (node-exporter:9100) and remote_writes to the central
+    # Prometheus, so nothing off-host needs to reach it.
     volumes:
       - /proc:/host/proc:ro
       - /sys:/host/sys:ro
@@ -54,8 +55,8 @@ services:
       - --whitelisted_container_labels=com.docker.compose.service,com.docker.compose.project
       - --max_housekeeping_interval=35s
       - --allow_dynamic_housekeeping=true
-    ports:
-      - "{{ cadvisor_port }}:8080"
+    # No published port: scraped locally by Alloy (cadvisor:8080) over the
+    # shared docker network and pushed via remote_write.
     privileged: true
     security_opt:
       - apparmor:unconfined

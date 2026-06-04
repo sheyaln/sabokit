@@ -1,12 +1,92 @@
 // {{ ansible_managed }}
-// Grafana Alloy configuration: collect docker container logs + system logs
-// and ship them to a central Loki.
+// Grafana Alloy configuration. Ships docker + system logs to a central Loki and
+// remote_writes host + container metrics to a central Prometheus. Every host
+// runs this agent and PUSHES — the central stack is never given a scrape port
+// into the app/identity hosts (only the ops host accepts the push, in-VPC).
 
 {% if monitoring_loki_push_url | length > 0 %}
 loki.write "central_loki" {
   endpoint {
     url = env("LOKI_PUSH_URL")
   }
+}
+{% endif %}
+
+{% if monitoring_prometheus_remote_write_url | length > 0 %}
+// ── Metrics → central Prometheus (remote_write) ──────────────────────────────
+prometheus.remote_write "central" {
+  endpoint {
+    url = env("PROMETHEUS_REMOTE_WRITE_URL")
+  }
+  external_labels = {
+    host        = "{{ monitoring_host_label }}",
+    environment = "{{ monitoring_environment }}",
+  }
+}
+
+// Local exporters, reached by container name over the shared docker network —
+// no host-published port, so nothing outside this host can scrape them.
+prometheus.scrape "node" {
+  targets         = [{"__address__" = "node-exporter:9100", "job" = "node", "instance" = "{{ monitoring_host_label }}"}]
+  forward_to      = [prometheus.remote_write.central.receiver]
+  scrape_interval = "30s"
+}
+
+prometheus.scrape "cadvisor" {
+  targets         = [{"__address__" = "cadvisor:8080", "job" = "cadvisor", "instance" = "{{ monitoring_host_label }}"}]
+  forward_to      = [prometheus.remote_write.central.receiver]
+  scrape_interval = "30s"
+}
+
+// App-exported metrics are opt-in: a container labels itself
+// `sabokit.metrics.port=<port>` (optional `sabokit.metrics.path`, default
+// /metrics) and Alloy discovers + scrapes it on the shared network. cadvisor
+// already covers per-container resource metrics, so this is only for
+// application-level metrics a bundle chooses to expose.
+discovery.docker "app_metrics" {
+  host             = "unix:///var/run/docker.sock"
+  refresh_interval = "30s"
+  filter {
+    name   = "label"
+    values = ["sabokit.metrics.port"]
+  }
+}
+
+discovery.relabel "app_metrics" {
+  targets = discovery.docker.app_metrics.targets
+
+  // job + base address from the container name (strip the leading slash).
+  rule {
+    source_labels = ["__meta_docker_container_name"]
+    regex         = "/(.*)"
+    target_label  = "job"
+  }
+  rule {
+    source_labels = ["__meta_docker_container_name"]
+    regex         = "/(.*)"
+    target_label  = "__address__"
+  }
+  // Append the labelled port → "<container>:<port>".
+  rule {
+    source_labels = ["__address__", "__meta_docker_container_label_sabokit_metrics_port"]
+    separator     = ":"
+    target_label  = "__address__"
+  }
+  rule {
+    source_labels = ["__meta_docker_container_label_sabokit_metrics_path"]
+    regex         = "(.+)"
+    target_label  = "__metrics_path__"
+  }
+  rule {
+    target_label = "instance"
+    replacement  = "{{ monitoring_host_label }}"
+  }
+}
+
+prometheus.scrape "app_metrics" {
+  targets         = discovery.relabel.app_metrics.output
+  forward_to      = [prometheus.remote_write.central.receiver]
+  scrape_interval = "30s"
 }
 {% endif %}
 
