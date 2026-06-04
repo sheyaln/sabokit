@@ -3,8 +3,8 @@
 # Adding a host-services bundle: append to HOST_SERVICES_BUNDLES in the
 # generator, then re-run it.
 #
-# Host-services sub-tier deploy. Bundles live under platform/base/host-services/
-# and auto-fan-out one container per compute_host from the base tier.
+# Host-services sub-tier deploy. Bundles live under platform/infra/host-services/
+# and auto-fan-out one container per compute_host from the infra tier.
 # Each import passes the full per-host instance map as
 # `<key>_all_instances`; the bundle's playbook iterates internally over
 # instances destined for each host's group memberships.
@@ -13,21 +13,21 @@
 # non-empty. That map is produced by `terraform output -json enabled_host_services`
 # in the per-env deploy script and passed via `-e @enabled_host_services.json`.
 #
-# Ordered between bootstrap (docker, ufw, traefik) and apps so host-services
-# are live before any app container starts.
-- import_playbook: ../base/host-services/diun/ansible/playbook.yml
+# Ordered between host bootstrap (docker, ufw, traefik) and the application
+# tier so host-services are live before any app container starts.
+- import_playbook: ../infra/host-services/diun/ansible/playbook.yml
   vars:
     diun_all_instances: "{{ enabled_host_services.diun }}"
   when: enabled_host_services.diun is defined
         and (enabled_host_services.diun | length) > 0
   tags: [host-services, diun]
-- import_playbook: ../base/host-services/autoheal/ansible/playbook.yml
+- import_playbook: ../infra/host-services/autoheal/ansible/playbook.yml
   vars:
     autoheal_all_instances: "{{ enabled_host_services.autoheal }}"
   when: enabled_host_services.autoheal is defined
         and (enabled_host_services.autoheal | length) > 0
   tags: [host-services, autoheal]
-- import_playbook: ../base/host-services/wazuh-agent/ansible/playbook.yml
+- import_playbook: ../infra/host-services/wazuh-agent/ansible/playbook.yml
   vars:
     wazuh_agent_all_instances: "{{ enabled_host_services.wazuh_agent }}"
   when: enabled_host_services.wazuh_agent is defined

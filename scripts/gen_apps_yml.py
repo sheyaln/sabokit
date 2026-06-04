@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
 """
-Regenerate platform/ansible/apps.yml and platform/ansible/down.yml from every
+Regenerate platform/ansible/application.yml and platform/ansible/down.yml from every
 bundle's terraform outputs.tf.
 
 For each bundle declared in BUNDLES below, this script:
-  1. Parses platform/apps/<dir>/terraform/outputs.tf for the `vars = { ... }`
+  1. Parses platform/application/<dir>/terraform/outputs.tf for the `vars = { ... }`
      block inside the `output "ansible" { ... }` stanza.
-  2. Emits a YAML `- import_playbook:` block (apps.yml) that explicitly maps
+  2. Emits a YAML `- import_playbook:` block (application.yml) that explicitly maps
      every terraform-rendered var into the role namespace + adds
      <slug>_host_group.
   3. Emits a YAML teardown play (down.yml) tagged [down, <slug>] that runs
@@ -21,7 +21,7 @@ new bundle is one edit (the BUNDLES list) instead of N hand-written YAML
 keys per bundle that drift the moment someone changes outputs.tf.
 
 Usage:
-  python3 scripts/gen_apps_yml.py            # write apps.yml + down.yml
+  python3 scripts/gen_apps_yml.py            # write application.yml + down.yml
   python3 scripts/gen_apps_yml.py --check    # exit 1 if either is stale (CI)
 
 The CI workflow at .github/workflows/autogen.yml runs without --check on
@@ -44,15 +44,6 @@ REPO_ROOT = Path(__file__).resolve().parent.parent
 #   the consumer-template emits one `.instances` map under the bundle key
 #   instead of a flat object.
 # - role-slug is the underscored prefix used in each role's defaults/vars.
-# Bootstrap-tier bundles. Live under platform/bootstrap/ rather than
-# platform/apps/ because they're host services apps depend on (inbound mail,
-# etc.) rather than user-facing apps. Same import-playbook shape, different
-# source directory.
-BOOTSTRAP_BUNDLES = [
-    # (dir, consumer-key, role-slug)
-    ("protonmail-bridge", "protonmail_bridge", "protonmail_bridge"),
-]
-
 BUNDLES = [
     # (dir, consumer-key, role-slug)
     ("outline",        "outline",         "outline"),
@@ -78,13 +69,13 @@ MULTI_INSTANCE_BUNDLES = [
     ("backrest", "backrest"),
 ]
 
-# Host-services sub-tier bundles. Live under platform/base/host-services/.
-# Auto-fanned-out per compute_host from platform/base/terraform/host_services.tf
-# rather than via per-instance module blocks in consumer-template/modules/stack.
-# Each emits a per-host instance map under `enabled_host_services.<key>`; the
-# rendered playbook iterates internally over instances matching each host's
-# group memberships. Written to a separate host-services.yml so the deploy
-# ordering (bootstrap → host-services → apps) stays explicit in site.yml.
+# Host-services sub-tier bundles. Live under platform/infra/host-services/.
+# Auto-fanned-out per compute_host from platform/infra/terraform/host_services.tf
+# rather than via per-instance module blocks. Each emits a per-host instance map
+# under `enabled_host_services.<key>`; the rendered playbook iterates internally
+# over instances matching each host's group memberships. Written to a separate
+# host-services.yml so the deploy ordering (host bootstrap → host-services →
+# application) stays explicit in site.yml.
 # Entries: (dir, consumer-key, role-slug)
 HOST_SERVICES_BUNDLES = [
     ("diun",        "diun",        "diun"),
@@ -92,30 +83,31 @@ HOST_SERVICES_BUNDLES = [
     ("wazuh-agent", "wazuh_agent", "wazuh_agent"),
 ]
 
-# Core-tier bundles. Live under platform/core/ — monitoring + SIEM stack
-# every consumer gets by default. Same import-playbook shape as apps-tier,
-# different source directory; rendered into a separate platform/ansible/core.yml
-# so site.yml can sequence base -> bootstrap -> core -> apps.
-CORE_BUNDLES = [
+# Operations-tier bundles. Live under platform/operations/ — monitoring + SIEM stack
+# every consumer gets by default. Same import-playbook shape as the application
+# tier, different source directory; rendered into a separate
+# platform/ansible/operations.yml so site.yml sequences operations before application.
+OPERATIONS_BUNDLES = [
     # (dir, consumer-key, role-slug)
-    ("loki",       "loki",       "loki"),
-    ("prometheus", "prometheus", "prometheus"),
-    ("grafana",    "grafana",    "grafana"),
-    ("wazuh",      "wazuh",      "wazuh"),
+    ("loki",              "loki",              "loki"),
+    ("prometheus",        "prometheus",        "prometheus"),
+    ("grafana",           "grafana",           "grafana"),
+    ("wazuh",             "wazuh",             "wazuh"),
+    ("protonmail-bridge", "protonmail_bridge", "protonmail_bridge"),
 ]
 
-OUTPUT_PATH = REPO_ROOT / "platform/ansible/apps.yml"
+OUTPUT_PATH = REPO_ROOT / "platform/ansible/application.yml"
 DOWN_OUTPUT_PATH = REPO_ROOT / "platform/ansible/down.yml"
 HOST_SERVICES_OUTPUT_PATH = REPO_ROOT / "platform/ansible/host-services.yml"
-CORE_OUTPUT_PATH = REPO_ROOT / "platform/ansible/core.yml"
+OPERATIONS_OUTPUT_PATH = REPO_ROOT / "platform/ansible/operations.yml"
 
 HOST_SERVICES_HEADER = """---
 # AUTO-GENERATED by scripts/gen_apps_yml.py. Do not edit by hand.
 # Adding a host-services bundle: append to HOST_SERVICES_BUNDLES in the
 # generator, then re-run it.
 #
-# Host-services sub-tier deploy. Bundles live under platform/base/host-services/
-# and auto-fan-out one container per compute_host from the base tier.
+# Host-services sub-tier deploy. Bundles live under platform/infra/host-services/
+# and auto-fan-out one container per compute_host from the infra tier.
 # Each import passes the full per-host instance map as
 # `<key>_all_instances`; the bundle's playbook iterates internally over
 # instances destined for each host's group memberships.
@@ -124,19 +116,19 @@ HOST_SERVICES_HEADER = """---
 # non-empty. That map is produced by `terraform output -json enabled_host_services`
 # in the per-env deploy script and passed via `-e @enabled_host_services.json`.
 #
-# Ordered between bootstrap (docker, ufw, traefik) and apps so host-services
-# are live before any app container starts.
+# Ordered between host bootstrap (docker, ufw, traefik) and the application
+# tier so host-services are live before any app container starts.
 """
 
-CORE_HEADER = """---
+OPERATIONS_HEADER = """---
 # AUTO-GENERATED by scripts/gen_apps_yml.py. Do not edit by hand.
-# Adding a core-tier bundle: append to CORE_BUNDLES in the generator, then
-# re-run it.
+# Adding an operations-tier bundle: append to OPERATIONS_BUNDLES in the
+# generator, then re-run it.
 #
-# Core-tier deploy. Bundles live under platform/core/ — monitoring + SIEM
+# Operations-tier deploy. Bundles live under platform/operations/ — monitoring + SIEM
 # stack every consumer gets by default. Imports are conditional on the
-# matching enabled_apps.<key> being non-null. Ordered between bootstrap and
-# apps in site.yml so observability is live before apps come up.
+# matching enabled_apps.<key> being non-null. Ordered before the application
+# tier in site.yml so observability is live before apps come up.
 """
 
 
@@ -244,9 +236,8 @@ def render_bundle(dir_name: str, consumer_key: str, role_slug: str,
         f"and enabled_apps.{consumer_key} is not none"
     )
     # Tier-tag mirrors the directory layout so consumers can scope by tier
-    # (--tags core, --tags apps, --tags bootstrap) without re-listing bundles.
-    tag_tier = "apps" if tier == "bootstrap" else tier
-    lines.append(f"  tags: [{tag_tier}, {consumer_key}]")
+    # (--tags operations, --tags application) without re-listing bundles.
+    lines.append(f"  tags: [{tier}, {consumer_key}]")
     return "\n".join(lines) + "\n"
 
 
@@ -254,7 +245,7 @@ def render_multi_instance_bundle(dir_name: str, consumer_key: str) -> str:
     """Render the import_playbook for a multi-instance bundle. The playbook
     iterates internally over <key>.instances; we pass the whole map in."""
     lines: list[str] = []
-    lines.append(f"- import_playbook: ../apps/{dir_name}/ansible/playbook.yml")
+    lines.append(f"- import_playbook: ../application/{dir_name}/ansible/playbook.yml")
     lines.append("  vars:")
     lines.append(
         f"    {consumer_key}_all_instances: "
@@ -269,7 +260,7 @@ def render_multi_instance_bundle(dir_name: str, consumer_key: str) -> str:
     lines.append(
         f"        and (enabled_apps.{consumer_key}.instances | length) > 0"
     )
-    lines.append(f"  tags: [apps, {consumer_key}]")
+    lines.append(f"  tags: [application, {consumer_key}]")
     return "\n".join(lines) + "\n"
 
 
@@ -323,8 +314,11 @@ def render_down_bundle(dir_name: str, consumer_key: str,
     lines.append("  tasks:")
     lines.append("    - name: Load role defaults")
     lines.append("      ansible.builtin.include_vars:")
+    # The role directory matches the bundle dir name (hyphenated for
+    # privacy-policy / protonmail-bridge); the role_slug (underscored) is only
+    # the var prefix, so it can't index the path.
     lines.append(
-        f'        file: "../{tier}/{dir_name}/ansible/roles/{role_slug}/defaults/main.yml"'
+        f'        file: "../{tier}/{dir_name}/ansible/roles/{dir_name}/defaults/main.yml"'
     )
     lines.append(
         f"      when: enabled_apps.{consumer_key} is defined "
@@ -351,7 +345,7 @@ def render_host_service_bundle(dir_name: str, consumer_key: str) -> str:
     bundle's playbook iterates internally."""
     lines: list[str] = []
     lines.append(
-        f"- import_playbook: ../base/host-services/{dir_name}/ansible/playbook.yml"
+        f"- import_playbook: ../infra/host-services/{dir_name}/ansible/playbook.yml"
     )
     lines.append("  vars:")
     lines.append(
@@ -399,21 +393,18 @@ def render_down_host_service_bundle(dir_name: str, consumer_key: str) -> str:
 
 def generate() -> str:
     out = [HEADER]
-    for tier, bundles in (("bootstrap", BOOTSTRAP_BUNDLES), ("apps", BUNDLES)):
-        for dir_name, consumer_key, role_slug in bundles:
-            outputs_tf = REPO_ROOT / f"platform/{tier}/{dir_name}/terraform/outputs.tf"
-            if not outputs_tf.exists():
-                raise SystemExit(
-                    f"ERROR: {outputs_tf} not found (bundle dir mismatch?)"
-                )
-            vars = extract_ansible_vars(outputs_tf)
-            if not vars:
-                raise SystemExit(
-                    f"ERROR: no ansible.vars block found in {outputs_tf} — "
-                    "did the output shape change?"
-                )
-            out.append("")  # blank line between blocks
-            out.append(render_bundle(dir_name, consumer_key, role_slug, vars, tier))
+    for dir_name, consumer_key, role_slug in BUNDLES:
+        outputs_tf = REPO_ROOT / f"platform/application/{dir_name}/terraform/outputs.tf"
+        if not outputs_tf.exists():
+            raise SystemExit(f"ERROR: {outputs_tf} not found (bundle dir mismatch?)")
+        vars = extract_ansible_vars(outputs_tf)
+        if not vars:
+            raise SystemExit(
+                f"ERROR: no ansible.vars block found in {outputs_tf} — "
+                "did the output shape change?"
+            )
+        out.append("")  # blank line between blocks
+        out.append(render_bundle(dir_name, consumer_key, role_slug, vars, "application"))
     # Multi-instance bundles (one TF module per compute_host; playbook
     # iterates internally). Always emitted under apps/.
     for dir_name, consumer_key in MULTI_INSTANCE_BUNDLES:
@@ -425,7 +416,7 @@ def generate() -> str:
 def generate_host_services() -> str:
     out = [HOST_SERVICES_HEADER]
     for dir_name, consumer_key, _role_slug in HOST_SERVICES_BUNDLES:
-        outputs_tf = REPO_ROOT / f"platform/base/host-services/{dir_name}/terraform/outputs.tf"
+        outputs_tf = REPO_ROOT / f"platform/infra/host-services/{dir_name}/terraform/outputs.tf"
         if not outputs_tf.exists():
             raise SystemExit(
                 f"ERROR: {outputs_tf} not found (host-services dir mismatch?)"
@@ -437,10 +428,10 @@ def generate_host_services() -> str:
     return "".join(out)
 
 
-def generate_core() -> str:
-    out = [CORE_HEADER]
-    for dir_name, consumer_key, role_slug in CORE_BUNDLES:
-        outputs_tf = REPO_ROOT / f"platform/core/{dir_name}/terraform/outputs.tf"
+def generate_operations() -> str:
+    out = [OPERATIONS_HEADER]
+    for dir_name, consumer_key, role_slug in OPERATIONS_BUNDLES:
+        outputs_tf = REPO_ROOT / f"platform/operations/{dir_name}/terraform/outputs.tf"
         if not outputs_tf.exists():
             raise SystemExit(
                 f"ERROR: {outputs_tf} not found (bundle dir mismatch?)"
@@ -452,16 +443,15 @@ def generate_core() -> str:
                 "did the output shape change?"
             )
         out.append("")
-        out.append(render_bundle(dir_name, consumer_key, role_slug, vars, "core"))
+        out.append(render_bundle(dir_name, consumer_key, role_slug, vars, "operations"))
     return "".join(out)
 
 
 def generate_down() -> str:
     out = [DOWN_HEADER]
     for tier, bundles in (
-        ("bootstrap", BOOTSTRAP_BUNDLES),
-        ("core", CORE_BUNDLES),
-        ("apps", BUNDLES),
+        ("operations", OPERATIONS_BUNDLES),
+        ("application", BUNDLES),
     ):
         for dir_name, consumer_key, role_slug in bundles:
             out.append("")  # blank line between plays
@@ -485,7 +475,7 @@ def main() -> int:
     args = parser.parse_args()
 
     new_apps = generate()
-    new_core = generate_core()
+    new_operations = generate_operations()
     new_down = generate_down()
     new_host_services = generate_host_services()
 
@@ -493,7 +483,7 @@ def main() -> int:
         stale = False
         for path, new in (
             (OUTPUT_PATH, new_apps),
-            (CORE_OUTPUT_PATH, new_core),
+            (OPERATIONS_OUTPUT_PATH, new_operations),
             (DOWN_OUTPUT_PATH, new_down),
             (HOST_SERVICES_OUTPUT_PATH, new_host_services),
         ):
@@ -510,13 +500,13 @@ def main() -> int:
         return 1 if stale else 0
 
     OUTPUT_PATH.write_text(new_apps)
-    CORE_OUTPUT_PATH.write_text(new_core)
+    OPERATIONS_OUTPUT_PATH.write_text(new_operations)
     DOWN_OUTPUT_PATH.write_text(new_down)
     HOST_SERVICES_OUTPUT_PATH.write_text(new_host_services)
-    total_apps = len(BUNDLES) + len(BOOTSTRAP_BUNDLES)
-    total_down = total_apps + len(CORE_BUNDLES)
+    total_apps = len(BUNDLES)
+    total_down = total_apps + len(OPERATIONS_BUNDLES)
     print(f"Wrote {OUTPUT_PATH.relative_to(REPO_ROOT)} ({total_apps} bundles).")
-    print(f"Wrote {CORE_OUTPUT_PATH.relative_to(REPO_ROOT)} ({len(CORE_BUNDLES)} bundles).")
+    print(f"Wrote {OPERATIONS_OUTPUT_PATH.relative_to(REPO_ROOT)} ({len(OPERATIONS_BUNDLES)} bundles).")
     print(f"Wrote {DOWN_OUTPUT_PATH.relative_to(REPO_ROOT)} ({total_down} bundles).")
     print(
         f"Wrote {HOST_SERVICES_OUTPUT_PATH.relative_to(REPO_ROOT)} "

@@ -1,15 +1,15 @@
 ---
-# Full deploy: bootstrap → host-services → core-tier monitoring → every enabled app.
+# Full deploy: host bootstrap → host-services → operations-tier monitoring → every enabled app.
 #
 # Common invocations:
-#   ansible-playbook site.yml                          # full bootstrap + host-services + core + apps
-#   ansible-playbook site.yml --skip-tags bootstrap    # host-services + core + apps only (fast redeploy)
+#   ansible-playbook site.yml                          # host bootstrap + host-services + operations + application
+#   ansible-playbook site.yml --skip-tags bootstrap    # host-services + operations + application only (fast redeploy)
 #   ansible-playbook site.yml --tags outline           # just one app + its bootstrap prereqs
-#   ansible-playbook site.yml --tags apps              # all apps, skip bootstrap + host-services + core
+#   ansible-playbook site.yml --tags application        # all apps, skip host bootstrap + host-services + operations
 #   ansible-playbook site.yml --tags host-services     # diun + autoheal + wazuh-agent only
-#   ansible-playbook site.yml --tags core              # core-tier only (loki, prometheus, grafana, wazuh)
+#   ansible-playbook site.yml --tags operations        # operations-tier only (loki, prometheus, grafana, wazuh, protonmail-bridge)
 
 - import_playbook: bootstrap.yml
 - import_playbook: host-services.yml
-- import_playbook: core.yml
-- import_playbook: apps.yml
+- import_playbook: operations.yml
+- import_playbook: application.yml

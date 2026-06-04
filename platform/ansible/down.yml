@@ -16,22 +16,6 @@
 # Usage:
 #   ansible-playbook down.yml -i env/inventory.ini -e @env/enabled_apps.json
 #   ansible-playbook down.yml -i env/inventory.ini -e @env/enabled_apps.json --tags outline
-- name: "down: protonmail-bridge"
-  hosts: "{{ (enabled_apps.protonmail_bridge | default({})).ansible_group | default('all') }}"
-  become: true
-  gather_facts: false
-  tags: [down, protonmail_bridge]
-  tasks:
-    - name: Load role defaults
-      ansible.builtin.include_vars:
-        file: "../bootstrap/protonmail-bridge/ansible/roles/protonmail_bridge/defaults/main.yml"
-      when: enabled_apps.protonmail_bridge is defined and enabled_apps.protonmail_bridge is not none
-    - name: Stop and remove the compose stack
-      community.docker.docker_compose_v2:
-        project_src: "{{ protonmail_bridge_install_dir | default('/opt/protonmail-bridge') }}"
-        state: absent
-      when: enabled_apps.protonmail_bridge is defined and enabled_apps.protonmail_bridge is not none
-      ignore_errors: true  # compose file may already be gone
 - name: "down: loki"
   hosts: "{{ (enabled_apps.loki | default({})).ansible_group | default('all') }}"
   become: true
@@ -40,7 +24,7 @@
   tasks:
     - name: Load role defaults
       ansible.builtin.include_vars:
-        file: "../core/loki/ansible/roles/loki/defaults/main.yml"
+        file: "../operations/loki/ansible/roles/loki/defaults/main.yml"
       when: enabled_apps.loki is defined and enabled_apps.loki is not none
     - name: Stop and remove the compose stack
       community.docker.docker_compose_v2:
@@ -56,7 +40,7 @@
   tasks:
     - name: Load role defaults
       ansible.builtin.include_vars:
-        file: "../core/prometheus/ansible/roles/prometheus/defaults/main.yml"
+        file: "../operations/prometheus/ansible/roles/prometheus/defaults/main.yml"
       when: enabled_apps.prometheus is defined and enabled_apps.prometheus is not none
     - name: Stop and remove the compose stack
       community.docker.docker_compose_v2:
@@ -72,7 +56,7 @@
   tasks:
     - name: Load role defaults
       ansible.builtin.include_vars:
-        file: "../core/grafana/ansible/roles/grafana/defaults/main.yml"
+        file: "../operations/grafana/ansible/roles/grafana/defaults/main.yml"
       when: enabled_apps.grafana is defined and enabled_apps.grafana is not none
     - name: Stop and remove the compose stack
       community.docker.docker_compose_v2:
@@ -88,13 +72,29 @@
   tasks:
     - name: Load role defaults
       ansible.builtin.include_vars:
-        file: "../core/wazuh/ansible/roles/wazuh/defaults/main.yml"
+        file: "../operations/wazuh/ansible/roles/wazuh/defaults/main.yml"
       when: enabled_apps.wazuh is defined and enabled_apps.wazuh is not none
     - name: Stop and remove the compose stack
       community.docker.docker_compose_v2:
         project_src: "{{ wazuh_install_dir | default('/opt/wazuh') }}"
         state: absent
       when: enabled_apps.wazuh is defined and enabled_apps.wazuh is not none
+      ignore_errors: true  # compose file may already be gone
+- name: "down: protonmail-bridge"
+  hosts: "{{ (enabled_apps.protonmail_bridge | default({})).ansible_group | default('all') }}"
+  become: true
+  gather_facts: false
+  tags: [down, protonmail_bridge]
+  tasks:
+    - name: Load role defaults
+      ansible.builtin.include_vars:
+        file: "../operations/protonmail-bridge/ansible/roles/protonmail-bridge/defaults/main.yml"
+      when: enabled_apps.protonmail_bridge is defined and enabled_apps.protonmail_bridge is not none
+    - name: Stop and remove the compose stack
+      community.docker.docker_compose_v2:
+        project_src: "{{ protonmail_bridge_install_dir | default('/opt/protonmail-bridge') }}"
+        state: absent
+      when: enabled_apps.protonmail_bridge is defined and enabled_apps.protonmail_bridge is not none
       ignore_errors: true  # compose file may already be gone
 - name: "down: outline"
   hosts: "{{ (enabled_apps.outline | default({})).ansible_group | default('all') }}"
@@ -104,7 +104,7 @@
   tasks:
     - name: Load role defaults
       ansible.builtin.include_vars:
-        file: "../apps/outline/ansible/roles/outline/defaults/main.yml"
+        file: "../application/outline/ansible/roles/outline/defaults/main.yml"
       when: enabled_apps.outline is defined and enabled_apps.outline is not none
     - name: Stop and remove the compose stack
       community.docker.docker_compose_v2:
@@ -120,7 +120,7 @@
   tasks:
     - name: Load role defaults
       ansible.builtin.include_vars:
-        file: "../apps/steward/ansible/roles/steward/defaults/main.yml"
+        file: "../application/steward/ansible/roles/steward/defaults/main.yml"
       when: enabled_apps.steward is defined and enabled_apps.steward is not none
     - name: Stop and remove the compose stack
       community.docker.docker_compose_v2:
@@ -136,7 +136,7 @@
   tasks:
     - name: Load role defaults
       ansible.builtin.include_vars:
-        file: "../apps/vikunja/ansible/roles/vikunja/defaults/main.yml"
+        file: "../application/vikunja/ansible/roles/vikunja/defaults/main.yml"
       when: enabled_apps.vikunja is defined and enabled_apps.vikunja is not none
     - name: Stop and remove the compose stack
       community.docker.docker_compose_v2:
@@ -152,7 +152,7 @@
   tasks:
     - name: Load role defaults
       ansible.builtin.include_vars:
-        file: "../apps/bentopdf/ansible/roles/bentopdf/defaults/main.yml"
+        file: "../application/bentopdf/ansible/roles/bentopdf/defaults/main.yml"
       when: enabled_apps.bentopdf is defined and enabled_apps.bentopdf is not none
     - name: Stop and remove the compose stack
       community.docker.docker_compose_v2:
@@ -168,7 +168,7 @@
   tasks:
     - name: Load role defaults
       ansible.builtin.include_vars:
-        file: "../apps/broadsheet/ansible/roles/broadsheet/defaults/main.yml"
+        file: "../application/broadsheet/ansible/roles/broadsheet/defaults/main.yml"
       when: enabled_apps.broadsheet is defined and enabled_apps.broadsheet is not none
     - name: Stop and remove the compose stack
       community.docker.docker_compose_v2:
@@ -184,7 +184,7 @@
   tasks:
     - name: Load role defaults
       ansible.builtin.include_vars:
-        file: "../apps/privacy-policy/ansible/roles/privacy_policy/defaults/main.yml"
+        file: "../application/privacy-policy/ansible/roles/privacy-policy/defaults/main.yml"
       when: enabled_apps.privacy_policy is defined and enabled_apps.privacy_policy is not none
     - name: Stop and remove the compose stack
       community.docker.docker_compose_v2:
@@ -200,7 +200,7 @@
   tasks:
     - name: Load role defaults
       ansible.builtin.include_vars:
-        file: "../apps/nextcloud/ansible/roles/nextcloud/defaults/main.yml"
+        file: "../application/nextcloud/ansible/roles/nextcloud/defaults/main.yml"
       when: enabled_apps.nextcloud is defined and enabled_apps.nextcloud is not none
     - name: Stop and remove the compose stack
       community.docker.docker_compose_v2:
@@ -216,7 +216,7 @@
   tasks:
     - name: Load role defaults
       ansible.builtin.include_vars:
-        file: "../apps/decidim/ansible/roles/decidim/defaults/main.yml"
+        file: "../application/decidim/ansible/roles/decidim/defaults/main.yml"
       when: enabled_apps.decidim is defined and enabled_apps.decidim is not none
     - name: Stop and remove the compose stack
       community.docker.docker_compose_v2:
@@ -232,7 +232,7 @@
   tasks:
     - name: Load role defaults
       ansible.builtin.include_vars:
-        file: "../apps/jitsi/ansible/roles/jitsi/defaults/main.yml"
+        file: "../application/jitsi/ansible/roles/jitsi/defaults/main.yml"
       when: enabled_apps.jitsi is defined and enabled_apps.jitsi is not none
     - name: Stop and remove the compose stack
       community.docker.docker_compose_v2:
@@ -248,7 +248,7 @@
   tasks:
     - name: Load role defaults
       ansible.builtin.include_vars:
-        file: "../apps/espocrm/ansible/roles/espocrm/defaults/main.yml"
+        file: "../application/espocrm/ansible/roles/espocrm/defaults/main.yml"
       when: enabled_apps.espocrm is defined and enabled_apps.espocrm is not none
     - name: Stop and remove the compose stack
       community.docker.docker_compose_v2:
@@ -264,7 +264,7 @@
   tasks:
     - name: Load role defaults
       ansible.builtin.include_vars:
-        file: "../apps/n8n/ansible/roles/n8n/defaults/main.yml"
+        file: "../application/n8n/ansible/roles/n8n/defaults/main.yml"
       when: enabled_apps.n8n is defined and enabled_apps.n8n is not none
     - name: Stop and remove the compose stack
       community.docker.docker_compose_v2:

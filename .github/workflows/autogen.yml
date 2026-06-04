@@ -4,7 +4,8 @@
 # regenerated file back to the same branch.
 #
 # Files currently auto-generated:
-#   - platform/ansible/apps.yml  (from each bundle's outputs.tf)
+#   - platform/ansible/{application,operations,host-services,down}.yml
+#     (from each bundle's outputs.tf)
 #
 # Adding a new generator:
 #   1. Drop a script in scripts/gen_*.py
