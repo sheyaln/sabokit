@@ -217,6 +217,25 @@
     n8n_workflows_dir: "{{ enabled_apps.n8n.ansible_vars.n8n_workflows_dir }}"
   when: enabled_apps.n8n is defined and enabled_apps.n8n is not none
   tags: [application, n8n]
+- name: Drop backup plans for backrest
+  hosts: all
+  become: true
+  gather_facts: false
+  tags: [backup-plans]
+  tasks:
+    - name: Ensure the backup-plans directory exists
+      ansible.builtin.file:
+        path: /opt/sabokit/backup-plans
+        state: directory
+        mode: "0755"
+    - name: Write each enabled bundle's backup-plan file on this host
+      ansible.builtin.copy:
+        content: "{{ item.value.backup_plan | to_nice_json }}"
+        dest: "/opt/sabokit/backup-plans/{{ item.key }}.json"
+        mode: "0644"
+      loop: "{{ enabled_apps | default({}) | dict2items | selectattr('value', 'mapping') | selectattr('value.backup_plan', 'defined') | rejectattr('value.backup_plan', 'none') | selectattr('value.ansible_group', 'in', group_names) | list }}"
+      loop_control:
+        label: "{{ item.key }}"
 - import_playbook: ../application/backrest/ansible/playbook.yml
   vars:
     backrest_all_instances: "{{ enabled_apps.backrest.instances }}"

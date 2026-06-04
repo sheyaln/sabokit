@@ -405,12 +405,52 @@ def generate() -> str:
             )
         out.append("")  # blank line between blocks
         out.append(render_bundle(dir_name, consumer_key, role_slug, vars, "application"))
+    # Drop every enabled bundle's backup_plan on its host AFTER the apps deploy
+    # and BEFORE backrest runs, so backrest's per-host glob sees them.
+    out.append("")
+    out.append(render_backup_plan_drop())
     # Multi-instance bundles (one TF module per compute_host; playbook
-    # iterates internally). Always emitted under apps/.
+    # iterates internally). Always emitted under application/.
     for dir_name, consumer_key in MULTI_INSTANCE_BUNDLES:
         out.append("")
         out.append(render_multi_instance_bundle(dir_name, consumer_key))
     return "".join(out)
+
+
+def render_backup_plan_drop() -> str:
+    """One play that writes each enabled bundle's backup_plan to
+    /opt/sabokit/backup-plans/<key>.json on whichever host runs it. backrest
+    globs that directory per host to build its restic config — no cross-layer
+    TF aggregation. The loop skips null entries (disabled apps), the backrest
+    instances map (no backup_plan key), bundles with backup disabled (null
+    plan), and bundles not on this host."""
+    lines = [
+        "- name: Drop backup plans for backrest",
+        "  hosts: all",
+        "  become: true",
+        "  gather_facts: false",
+        "  tags: [backup-plans]",
+        "  tasks:",
+        "    - name: Ensure the backup-plans directory exists",
+        "      ansible.builtin.file:",
+        "        path: /opt/sabokit/backup-plans",
+        "        state: directory",
+        '        mode: "0755"',
+        "    - name: Write each enabled bundle's backup-plan file on this host",
+        "      ansible.builtin.copy:",
+        '        content: "{{ item.value.backup_plan | to_nice_json }}"',
+        '        dest: "/opt/sabokit/backup-plans/{{ item.key }}.json"',
+        '        mode: "0644"',
+        "      loop: \"{{ enabled_apps | default({}) | dict2items"
+        " | selectattr('value', 'mapping')"
+        " | selectattr('value.backup_plan', 'defined')"
+        " | rejectattr('value.backup_plan', 'none')"
+        " | selectattr('value.ansible_group', 'in', group_names)"
+        " | list }}\"",
+        "      loop_control:",
+        '        label: "{{ item.key }}"',
+    ]
+    return "\n".join(lines) + "\n"
 
 
 def generate_host_services() -> str:
@@ -444,6 +484,10 @@ def generate_operations() -> str:
             )
         out.append("")
         out.append(render_bundle(dir_name, consumer_key, role_slug, vars, "operations"))
+    # Drop the operations bundles' backup plans on the ops host; backrest (in the
+    # application layer, deployed later) globs them alongside the app plans.
+    out.append("")
+    out.append(render_backup_plan_drop())
     return "".join(out)
 
 

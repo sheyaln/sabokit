@@ -67,6 +67,39 @@
 # last. The `register: ..._changed` + conditional final restart keeps every
 # iteration self-contained.
 
+# Per-host backup-plan assembly. Each enabled bundle dropped its backup_plan to
+# /opt/sabokit/backup-plans/<key>.json on this host (the backup-plans play in
+# application.yml / operations.yml). Glob + read them so config.json backs up
+# exactly the bundles present on this host — no cross-layer TF aggregation.
+# Consumer-supplied backrest_backup_plans ride along.
+- name: Ensure the backup-plans directory exists
+  ansible.builtin.file:
+    path: /opt/sabokit/backup-plans
+    state: directory
+    mode: "0755"
+
+- name: Find dropped backup-plan files
+  ansible.builtin.find:
+    paths: /opt/sabokit/backup-plans
+    patterns: "*.json"
+    file_type: file
+  register: _backrest_plan_files
+
+- name: Reset the assembled plan list
+  ansible.builtin.set_fact:
+    _backrest_globbed_plans: []
+
+- name: Read each dropped backup-plan file
+  ansible.builtin.set_fact:
+    _backrest_globbed_plans: "{{ _backrest_globbed_plans + [lookup('file', item.path) | from_json] }}"
+  loop: "{{ _backrest_plan_files.files }}"
+  loop_control:
+    label: "{{ item.path }}"
+
+- name: Combine globbed + consumer-supplied backup plans
+  ansible.builtin.set_fact:
+    backrest_backup_plans: "{{ _backrest_globbed_plans + (backrest_backup_plans | default([])) }}"
+
 - name: Render Backrest config.json
   ansible.builtin.template:
     src: config.json.j2

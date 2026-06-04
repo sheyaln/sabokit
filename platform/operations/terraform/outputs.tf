@@ -7,33 +7,38 @@
 # required_inbound_rules outputs are gone.
 
 output "core_apps" {
-  description = "Per-service flattened {url, ansible_vars, ansible_group, monitoring, push_url} map. Surfaced as the operations layer's enabled_apps so the ansible playbook dispatch shape stays consistent."
+  description = "Per-service flattened {url, ansible_vars, ansible_group, monitoring, push_url, backup_plan} map. Surfaced as the operations layer's enabled_apps so the ansible playbook dispatch shape stays consistent."
   value = {
     loki = module.loki.enabled ? {
       ansible_vars  = module.loki.ansible.vars
       ansible_group = module.loki.ansible.host_group
       push_url      = module.loki.push_url
+      backup_plan   = module.loki.backup_plan
     } : null
     prometheus = module.prometheus.enabled ? {
       ansible_vars  = module.prometheus.ansible.vars
       ansible_group = module.prometheus.ansible.host_group
       monitoring    = module.prometheus.monitoring
+      backup_plan   = module.prometheus.backup_plan
     } : null
     grafana = module.grafana.enabled ? {
       url           = module.grafana.app_url
       ansible_vars  = module.grafana.ansible.vars
       ansible_group = module.grafana.ansible.host_group
       monitoring    = module.grafana.monitoring
+      backup_plan   = module.grafana.backup_plan
     } : null
     wazuh = module.wazuh.enabled ? {
       url           = module.wazuh.app_url
       ansible_vars  = module.wazuh.ansible.vars
       ansible_group = module.wazuh.ansible.host_group
       monitoring    = module.wazuh.monitoring
+      backup_plan   = module.wazuh.backup_plan
     } : null
     protonmail_bridge = module.protonmail_bridge.enabled ? {
       ansible_vars  = module.protonmail_bridge.ansible.vars
       ansible_group = module.protonmail_bridge.ansible.host_group
+      backup_plan   = module.protonmail_bridge.backup_plan
     } : null
   }
 }

@@ -4,73 +4,84 @@
 # deploy time; there are no cross-layer aggregation outputs.
 
 output "enabled_apps" {
-  description = "Map of enabled app name -> {url, ansible_vars, ansible_group, monitoring}. backrest is a nested {instances = {host -> ...}} map. Null entries are disabled apps."
+  description = "Map of enabled app name -> {url, ansible_vars, ansible_group, monitoring, backup_plan}. backrest is a nested {instances = {host -> ...}} map. Null entries are disabled apps."
   value = {
     outline = module.outline.enabled ? {
       url           = module.outline.app_url
       ansible_vars  = module.outline.ansible.vars
       ansible_group = module.outline.ansible.host_group
       monitoring    = module.outline.monitoring
+      backup_plan   = module.outline.backup_plan
     } : null
     steward = module.steward.enabled ? {
       url           = module.steward.app_url
       ansible_vars  = module.steward.ansible.vars
       ansible_group = module.steward.ansible.host_group
       monitoring    = module.steward.monitoring
+      backup_plan   = module.steward.backup_plan
     } : null
     vikunja = module.vikunja.enabled ? {
       url           = module.vikunja.app_url
       ansible_vars  = module.vikunja.ansible.vars
       ansible_group = module.vikunja.ansible.host_group
       monitoring    = module.vikunja.monitoring
+      backup_plan   = module.vikunja.backup_plan
     } : null
     bentopdf = module.bentopdf.enabled ? {
       url           = module.bentopdf.app_url
       ansible_vars  = module.bentopdf.ansible.vars
       ansible_group = module.bentopdf.ansible.host_group
       monitoring    = module.bentopdf.monitoring
+      backup_plan   = module.bentopdf.backup_plan
     } : null
     privacy_policy = module.privacy_policy.enabled ? {
       url           = module.privacy_policy.app_url
       ansible_vars  = module.privacy_policy.ansible.vars
       ansible_group = module.privacy_policy.ansible.host_group
       monitoring    = module.privacy_policy.monitoring
+      backup_plan   = module.privacy_policy.backup_plan
     } : null
     broadsheet = module.broadsheet.enabled ? {
       url           = module.broadsheet.app_url
       ansible_vars  = module.broadsheet.ansible.vars
       ansible_group = module.broadsheet.ansible.host_group
       monitoring    = module.broadsheet.monitoring
+      backup_plan   = module.broadsheet.backup_plan
     } : null
     nextcloud = module.nextcloud.enabled ? {
       url           = module.nextcloud.app_url
       ansible_vars  = module.nextcloud.ansible.vars
       ansible_group = module.nextcloud.ansible.host_group
       monitoring    = module.nextcloud.monitoring
+      backup_plan   = module.nextcloud.backup_plan
     } : null
     decidim = module.decidim.enabled ? {
       url           = module.decidim.app_url
       ansible_vars  = module.decidim.ansible.vars
       ansible_group = module.decidim.ansible.host_group
       monitoring    = module.decidim.monitoring
+      backup_plan   = module.decidim.backup_plan
     } : null
     jitsi = module.jitsi.enabled ? {
       url           = module.jitsi.app_url
       ansible_vars  = module.jitsi.ansible.vars
       ansible_group = module.jitsi.ansible.host_group
       monitoring    = module.jitsi.monitoring
+      backup_plan   = module.jitsi.backup_plan
     } : null
     espocrm = module.espocrm.enabled ? {
       url           = module.espocrm.app_url
       ansible_vars  = module.espocrm.ansible.vars
       ansible_group = module.espocrm.ansible.host_group
       monitoring    = module.espocrm.monitoring
+      backup_plan   = module.espocrm.backup_plan
     } : null
     n8n = module.n8n.enabled ? {
       url           = module.n8n.app_url
       ansible_vars  = module.n8n.ansible.vars
       ansible_group = module.n8n.ansible.host_group
       monitoring    = module.n8n.monitoring
+      backup_plan   = module.n8n.backup_plan
     } : null
     # Per-host backrest instances, keyed by compute_host. The playbook iterates
     # the .instances map internally (one repo per host).
