@@ -296,3 +296,27 @@ module "wazuh" {
   extra_env_vars        = try(var.wazuh.extra_env_vars, {})
   extra_docker_networks = try(var.wazuh.extra_docker_networks, [])
 }
+
+# ProtonMail Bridge — IMAP gateway apps fetch mail through (n8n inbox polling).
+# OFF by default; needs enabled + imap_username + bridge_login_secret_id.
+module "protonmail_bridge" {
+  source = "../protonmail-bridge/terraform"
+
+  enabled = try(var.protonmail_bridge.enabled, false)
+  base    = module.base.base
+
+  # imap_username + bridge_login_secret_id are required when enabled; the try()
+  # placeholders keep the module type-checking when disabled (the bundle's count
+  # gating means they're never consumed in that case).
+  imap_username          = try(var.protonmail_bridge.imap_username, "")
+  bridge_login_secret_id = try(var.protonmail_bridge.bridge_login_secret_id, "")
+
+  deployment_host_key     = try(var.protonmail_bridge.deployment_host_key, "management")
+  image_tag               = try(var.protonmail_bridge.image_tag, "latest")
+  timezone                = try(var.protonmail_bridge.timezone, "UTC")
+  imap_config_secret_name = try(var.protonmail_bridge.imap_config_secret_name, "imap-config")
+  diun_watch_enabled      = try(var.protonmail_bridge.diun_watch_enabled, false)
+  autoheal_enabled        = try(var.protonmail_bridge.autoheal_enabled, true)
+  extra_env_vars          = try(var.protonmail_bridge.extra_env_vars, {})
+  extra_docker_networks   = try(var.protonmail_bridge.extra_docker_networks, [])
+}

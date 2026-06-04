@@ -119,3 +119,9 @@ variable "wazuh" {
   type        = any
   default     = {}
 }
+
+variable "protonmail_bridge" {
+  description = "ProtonMail Bridge (IMAP gateway apps fetch mail through). See platform/operations/protonmail-bridge/terraform/variables.tf. OFF by default; set enabled + imap_username + bridge_login_secret_id to turn on."
+  type        = any
+  default     = {}
+}

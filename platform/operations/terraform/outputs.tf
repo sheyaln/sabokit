@@ -31,6 +31,10 @@ output "core_apps" {
       ansible_group = module.wazuh.ansible.host_group
       monitoring    = module.wazuh.monitoring
     } : null
+    protonmail_bridge = module.protonmail_bridge.enabled ? {
+      ansible_vars  = module.protonmail_bridge.ansible.vars
+      ansible_group = module.protonmail_bridge.ansible.host_group
+    } : null
   }
 }
 

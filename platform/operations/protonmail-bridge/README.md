@@ -1,10 +1,18 @@
-# bootstrap/protonmail-bridge
+# operations/protonmail-bridge
 
-IMAP gateway for apps that need to FETCH mail from a ProtonMail account (typically n8n workflows polling an inbox). First bundle in the `platform/bootstrap/` tier.
+IMAP gateway for apps that need to FETCH mail from a ProtonMail account (typically n8n workflows polling an inbox). A shared mail-provider service in the operations tier; composes in `platform/operations/terraform/`, gated on `var.protonmail_bridge`.
 
-**Not for SMTP.** Outbound mail is handled by Scaleway TEM at the `platform/base/` tier — base writes the well-known `smtp-config` Scaleway secret that every app sends through. This bundle writes the parallel `imap-config` secret apps consume when they need to receive.
+**Not for SMTP.** Outbound mail is handled by Scaleway TEM in the `platform/infra/` tier — infra writes the well-known `smtp-config` Scaleway secret that every app sends through. This bundle writes the parallel `imap-config` secret apps consume when they need to receive.
 
-See `ARCHITECTURE.md` → "Tiers" for what makes a bundle bootstrap-tier vs apps-tier.
+## Mail-provider convention: one provider per capability, no abstract dispatcher
+
+Each mail/IMAP provider gets its own bundle; a consumer picks **one** for a given capability by enabling exactly that provider. There is no abstract `smtp-gateway`/`imap-gateway` module that dispatches across providers. Why:
+
+- Provider semantics differ wildly — ProtonMail Bridge needs interactive first-login + a runtime IMAP container; Scaleway TEM is an API-key relay with no container; generic SMTP is just credentials. An abstract dispatcher would leak every provider's quirks into one variable surface.
+- Picking a provider is a one-shot wiring decision, not a runtime switch.
+- Each provider bundle stays single-purpose and reads cleanly.
+
+Apps never care which provider produced the secret — they read `imap-config` (inbound) / `smtp-config` (outbound) by name. Planned siblings, not yet built: a TEM SMTP-relay container (the API-direct path already covers most apps) and a generic BYO-SMTP relay (Mailgun/SES/Postfix) writing `smtp-config`, mutually exclusive with the TEM path.
 
 ## Inputs
 
@@ -73,4 +81,4 @@ n8n workflow IMAP nodes: create an IMAP credential pointing at this; reference i
 
 - Container listens on docker hostname `protonmail-bridge:143`. Apps must join `protonmail-bridge-net` docker network OR bridge must be joined to the app's network.
 - Data volume contains login state — backed up by default via `backup_plan`.
-- Outbound mail (SMTP) is NOT handled here. Use Scaleway TEM via base.
+- Outbound mail (SMTP) is NOT handled here. Use Scaleway TEM (infra tier).
