@@ -1,17 +1,17 @@
-# Core-tier composition. Instantiates the monitoring/SIEM stack (loki,
-# prometheus, grafana, wazuh) as a single tier between bootstrap and apps.
-# Each sub-bundle is a host-singleton (one instance per env, typically on
-# the management host) — plain module blocks, not per-host fan-outs.
+# Operations-tier composition. Instantiates the monitoring/SIEM stack (loki,
+# prometheus, grafana, wazuh) as one layer. Each sub-bundle is a host-singleton
+# (one instance per env, typically on the ops host) — plain module blocks, not
+# per-host fan-outs.
 #
-# Tier philosophy: the category is non-optional (every consumer gets a
-# place where logs/metrics/dashboards/alerts land), but each individual
-# service is flippable via var.<svc>.enabled. Defaults are production-grade
-# (every service on, deployment_host_key = "management").
+# Tier philosophy: the category is non-optional (every consumer gets a place
+# where logs/metrics/dashboards/alerts land), but each individual service is
+# flippable via var.<svc>.enabled. Defaults are production-grade (every service
+# on, deployment_host_key = "management").
 #
-# Cross-bundle wiring is folded in below so prometheus scrapes grafana's
-# /metrics, grafana provisions prometheus's dashboards, etc. Each core
-# bundle's own monitoring output feeds back into its siblings via the
-# locals — no need to route through the consumer-template.
+# Cross-bundle wiring is folded into the locals below so prometheus scrapes
+# grafana's /metrics, grafana provisions prometheus's dashboards, etc. — each
+# bundle's own monitoring is computed from var.* + path.module rather than read
+# off a sibling module's output, which would cycle.
 
 locals {
   # Core-tier self-wiring: grafana scrape, blackbox probes for grafana +

@@ -1,11 +1,13 @@
-# What the core tier surfaces back to consumer-template. Per-service outputs
-# are re-exposed so the stack module can flatten them into enabled_apps the
-# same way it does for apps-tier modules, and the aggregation locals
-# (backup plans, monitoring contribs, split-dns, inbound rules) can keep
-# reading per-service.
+# What the operations layer surfaces. core_apps is the per-service enabled_apps
+# dispatch the layer's own ansible consumes; the per-service handles below are
+# read by callers needing a specific service's address/ids. v1.0 has NO
+# cross-layer aggregation outputs — per-app monitoring/backup move to ansible
+# push, split-dns is config-derived, and the SG inbound superset is static in
+# infra — so the old backup_plans/monitoring_contribs/split_dns_entries/
+# required_inbound_rules outputs are gone.
 
 output "core_apps" {
-  description = "Per-service flattened {url, ansible_vars, ansible_group, monitoring, push_url} map. Consumer-template merges this into enabled_apps so the ansible playbook dispatch shape stays consistent."
+  description = "Per-service flattened {url, ansible_vars, ansible_group, monitoring, push_url} map. Surfaced as the operations layer's enabled_apps so the ansible playbook dispatch shape stays consistent."
   value = {
     loki = module.loki.enabled ? {
       ansible_vars  = module.loki.ansible.vars
@@ -30,43 +32,6 @@ output "core_apps" {
       monitoring    = module.wazuh.monitoring
     } : null
   }
-}
-
-# Aggregation contributions. Consumer-template's apps.tf reads these into
-# its existing aggregated_* locals so per-app rolled-up scrape configs,
-# alert rules, dashboards, backup plans, split-dns entries continue to
-# include the core-tier services.
-
-output "backup_plans" {
-  description = "List of non-null backup_plan contributions from each enabled core-tier bundle. Flattened into local.aggregated_backup_plans alongside per-app contributions."
-  value = [for plan in [
-    module.loki.backup_plan,
-    module.prometheus.backup_plan,
-    module.grafana.backup_plan,
-    module.wazuh.backup_plan,
-  ] : plan if plan != null]
-}
-
-output "monitoring_contribs" {
-  description = "List of non-null monitoring contributions (prometheus + grafana + wazuh; loki has none). Flattened into local._monitoring_contribs."
-  value = [for c in [
-    module.prometheus.monitoring,
-    module.grafana.monitoring,
-    module.wazuh.monitoring,
-  ] : c if c != null]
-}
-
-output "split_dns_entries" {
-  description = "Aggregated split-DNS contributions (public hostname -> private IP) from each core-tier bundle that exposes a hostname."
-  value = concat(
-    module.grafana.split_dns_entries,
-    module.wazuh.split_dns_entries,
-  )
-}
-
-output "required_inbound_rules" {
-  description = "Security group rules required by core-tier bundles (wazuh manager ports — agents on every host reach the manager here). Aggregated into base.default_security_group_extra_inbound_rules."
-  value       = module.wazuh.required_inbound_rules
 }
 
 # Service-specific handles other tiers / host-services consume directly.
