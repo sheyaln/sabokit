@@ -51,4 +51,4 @@ Re-applies are a no-op: Terraform pins the token via `lifecycle.ignore_changes =
 
 ## When NOT to use
 
-If you bring your own IdP (external Keycloak, Okta, Azure AD), skip this role. Drop `platform/identity/` from your `consumer-template/modules/stack/identity.tf` and provide your own `local.base.authentik = { ... }` map matching the contract documented in `ARCHITECTURE.md`.
+If you bring your own IdP (external Keycloak, Okta, Azure AD), skip this role: don't apply the `identity` layer, and point the operations/application layers at your own Authentik-compatible API matching the `base.authentik` contract documented in `ARCHITECTURE.md`.

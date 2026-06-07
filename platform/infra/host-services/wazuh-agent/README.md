@@ -34,7 +34,7 @@ File Integrity Monitoring is **on by default**: a custom `ossec.conf` is mounted
 
 - Uses `network_mode: host` because the agent monitors host-level logs and connects to the manager over the host's network interfaces.
 - Reads `/var/log` read-only — bind-mounted from the host. When `fim_enabled = true`, `/var/log/audit` is also bind-mounted so the agent can tail `audit.log`.
-- Auto-instantiated per `var.compute_hosts` entry from `platform/base/terraform/host_services.tf` at v3.4.0+. Consumer surface is `var.base.wazuh_agent.{enabled, disabled_hosts, manager_address, ...}` — see `platform/base/terraform/variables.tf`. `manager_address` auto-wires from `module.core.wazuh.manager_private_ip` when the wazuh manager is enabled.
+- Auto-instantiated per `var.compute_hosts` entry from `platform/infra/terraform/host_services.tf`. Consumer surface is the `wazuh_agent.{enabled, disabled_hosts, manager_address, ...}` block in `infra.yml` — see `platform/infra/terraform/variables.tf`. `manager_address` is the wazuh manager's private IP (surfaced by the operations layer's `wazuh.manager_private_ip` output); set it in `infra.yml`'s `wazuh_agent` block.
 - FIM auditd rules require the `auditd` package on the host. The role skips rendering them (and emits a debug warning) when `/etc/audit/rules.d` is absent. Syscheck still runs in that case — only the kernel-sourced `-w … -p wa -k …` events are missed.
 - `rootcheck`, `syscollector scan_on_start`, and `syscheck realtime="yes"` on large trees are intentionally avoided — historical sources of agent OOMs and manager crashes.
 

@@ -18,23 +18,25 @@ Scaffold a project + deploy:
 
 ```bash
 sabokit init my-stack --env prod --base-domain example.com
-cd my-stack/environments/prod
+cd my-stack
 
-# fill in the env config
-cp config.tf.example     config.tf     && $EDITOR config.tf
-cp backend.hcl.example   backend.hcl   && $EDITOR backend.hcl
-cp inventory.ini.example inventory.ini
+# fill in the env config (committed YAML)
+$EDITOR environments/prod/env.yml           # project_id, domains, infra_email, sizing
+$EDITOR environments/prod/application.yml    # which apps, at which hostnames
+for l in infra identity operations application; do
+  cp environments/prod/$l/backend.hcl.example environments/prod/$l/backend.hcl
+done
 
 # Scaleway credentials + arm64 fallback (runner image is amd64-only)
 export SCW_ACCESS_KEY=... SCW_SECRET_KEY=... SCW_DEFAULT_PROJECT_ID=...
 export SABOKIT_PLATFORM=linux/amd64   # arm64 hosts only
 
-sabokit up        # preflight + provision + Authentik install
-sabokit deploy    # deploy apps via the runner container
+sabokit up        # infra → identity → operations → application
+sabokit deploy    # redeploy apps via the runner container
 sabokit status    # terraform outputs + docker ps across hosts
 ```
 
-`sabokit init` clones consumer-template at a pinned tag and writes `.sabokit/config.yml`. `sabokit up` chains the consumer-template scaffolding scripts locally. `sabokit deploy` runs ansible against the env via the published runner image — no local terraform or ansible install required for redeploys.
+`sabokit init` clones consumer-template at a pinned tag and writes `.sabokit/config.yml`. `sabokit up` chains the per-layer deploy scripts (`scripts/up.sh`) locally. `sabokit deploy` runs ansible against the env via the published runner image — no local terraform or ansible install required for redeploys.
 
 Full CLI reference: [github.com/sheyaln/sabokit-cli](https://github.com/sheyaln/sabokit-cli).
 
@@ -44,7 +46,7 @@ Import the sabokit base image once per Scaleway project and provisioning skips ~
 
 ```bash
 ./consumer-template/scripts/import-base-image.sh v3.3.2
-# → prints IMAGE_ID; paste into config.tf under compute_hosts.<host>.image
+# → prints IMAGE_ID; paste into environments/<env>/hosts.yml under compute_hosts.<host>.image
 ```
 
 See [`packer/README.md`](./packer/README.md) for the maintainer-side build flow.
@@ -54,52 +56,42 @@ See [`packer/README.md`](./packer/README.md) for the maintainer-side build flow.
 ## Repository layout
 
 ```
-modules/                                # Low-level Terraform primitives. No application semantics.
-├── infrastructure/{app_dns, common_security_rules, compute, network,
-│                    secrets, security_group, storage/{object_bucket,
-│                    postgres, postgres_database}}
-└── authentik/{oidc-app, saml-app, bookmark, traefik-forward-auth}
-
-platform/                               # The platform every consumer needs.
-├── base/                               # Always-on Scaleway primitives.
-│   ├── terraform/                      #   Network, compute, postgres, default SG,
-│   │                                   #   gateway DNS record.
-│   └── ansible/roles/                  #   Bootstrap roles: docker, traefik, fail2ban,
-│                                       #   scw-secrets, monitoring-agent, ufw,
-│                                       #   log-mgmt, unattended-upgrades.
-│                                       #   Every role no-ops on a fc-base image.
-├── identity/                           # Authentik instance.
-│   ├── bootstrap/                      #   Pre-Authentik TF: admin secret + DB + token.
-│   ├── terraform/                      #   Post-Authentik TF: flows, brand, groups,
-│   │                                   #   outpost (configured via API).
+platform/                               # The platform, re-tiered into four layers.
+├── _shared/                            # Reusable wrappers every layer draws on.
+│   ├── infrastructure/{app_dns, common_security_rules, compute, network,
+│   │                    secrets, security_group, storage/{object_bucket,
+│   │                    postgres, postgres_database}}
+│   ├── authentik/{oidc-app, saml-app, bookmark, traefik-forward-auth}
+│   └── contract/                       #   Rebuilds `base` from ${org}-${env} data sources.
+├── infra/                              # Layer 1 — Scaleway substrate (birth-once).
+│   ├── terraform/                      #   VPC, compute, postgres (incl. Authentik's DB),
+│   │                                   #   TEM, gateway DNS, per-role SGs, secrets.
+│   ├── ansible/roles/                  #   docker, traefik, ufw, monitoring-agent (Alloy), …
+│   ├── authentik-bootstrap/            #   Authentik admin/DB/token secrets (root of trust).
+│   ├── host-services/{diun, autoheal, wazuh-agent}
+│   └── base-image/ + runner-image/     #   Packer base image + the docker runner image.
+├── identity/                           # Layer 2 — Authentik config (configured via the API).
+│   ├── terraform/                      #   Flows, brand, tier groups + nesting.
 │   └── ansible/roles/authentik-server/ #   Installs the Authentik docker stack.
-├── apps/                               # One self-contained bundle per app.
-│   ├── outline/{terraform, ansible/roles/outline, monitoring}
-│   └── steward/{terraform, ansible/roles/steward}
-└── ansible/                            # Orchestration only — no role definitions here.
-    ├── ansible.cfg                     #   roles_path points at every bundle's ansible/roles.
-    ├── bootstrap.yml                   #   docker, traefik, ..., authentik-server.
-    ├── apps.yml                        #   Per-enabled-app import_playbook.
-    └── site.yml                        #   bootstrap + apps.
+├── operations/                         # Layer 3 — observability + protonmail-bridge.
+│   └── {loki, prometheus, grafana, wazuh, protonmail-bridge}/{terraform, ansible}
+├── application/                        # Layer 4 — the user-facing app suite + the outpost.
+│   └── {outline, nextcloud, …, backrest}/{terraform, ansible}
+└── ansible/                            # Orchestration only — generated import-playbooks.
+    ├── bootstrap.yml                   #   docker, traefik, …, authentik-server.
+    ├── host-services.yml / operations.yml / application.yml
+    └── site.yml                        #   bootstrap + host-services + operations + application.
 
 consumer-template/                      # The starter you cp into your own repo.
-├── modules/stack/                      #   Shared TF wiring; one source of truth across envs.
-├── environments/_template/             #   Copy to prod/, staging/, etc.
-│   ├── main.tf, providers.tf, variables.tf, secrets.tf
-│   ├── config.tf.example               #   Persistent infra shape: apps catalog, host topology, tier_slots (committable).
-│   ├── terraform.tfvars.example        #   Per-env values: project_id, domains, instance sizes, infra_email (gitignored).
-│   ├── backend.hcl.example             #   State-backend config (state bucket name).
-│   ├── inventory.ini.example           #   Reference shape; real file is generated by `sabokit up` from terraform output.
-│   ├── preflight.sh                    #   Idempotent env-readiness check.
-│   ├── up.sh                           #   Step 1: provision + install platform.
-│   ├── configure.sh                    #   Step 2: configure Authentik + app TF.
-│   └── _lib.sh                         #   Shared helpers (sourced by both scripts).
-└── scripts/{bump-version.sh, import-base-image.sh}
+├── environments/
+│   ├── common.yml                      #   org_slug, org_name (cross-env).
+│   └── _template/                      #   Copy to prod/, staging/, … (dir name = env name).
+│       ├── {env,hosts,infra,identity,operations,application}.yml   # committed config.
+│       └── {infra,identity,operations,application}/  # one TF root per layer, own state.
+└── scripts/{lib,infra,identity,operations,application,up,down,bump-version}.sh
 
-packer/                                 # Pre-baked Scaleway base image (Ubuntu + docker +
-└── base.pkr.hcl + provisioners/        # ufw + fail2ban + node_exporter + cadvisor + scw CLI).
-
-tests/local-validate/                # In-repo terraform-validate harness for CI.
+tests/local-validate/                # Per-bundle terraform-validate harness for CI.
+tests/stack-composition-validate/    # Validates the four consumer roots end-to-end.
 ```
 
 ---
@@ -110,18 +102,18 @@ Every module is consumed by Git ref, pinned to a tag. **Never** consume `master`
 
 ```hcl
 module "private_network" {
-  source = "git::https://github.com/sheyaln/sabokit.git//modules/infrastructure/network?ref=v2.1.0"
+  source = "git::https://github.com/sheyaln/sabokit.git//platform/_shared/infrastructure/network?ref=v2.1.0"
 
   name   = "prod-internal"
   region = "fr-par"
 }
 ```
 
-Most consumers won't call low-level modules directly — they'll call `module.stack` from `consumer-template/modules/stack/` which composes `module.base` + `module.identity_bootstrap` + `module.identity` + `module.<app>` per enabled app.
+Most consumers won't call low-level modules directly — they copy `consumer-template/environments/_template`, which holds one Terraform root per layer (`infra/`, `identity/`, `operations/`, `application/`). Each root's `stack.tf` sources `//platform/<layer>/terraform?ref=<tag>` and the layers self-discover each other by name (no remote_state).
 
 ### Bumping a version
 
-`consumer-template/scripts/bump-version.sh v2.1.0` rewrites every `?ref=` pin under `modules/stack/` AND moves the `sabokit` git submodule to the same tag in one pass. Leaves the working tree dirty — you commit.
+`consumer-template/scripts/bump-version.sh v2.1.0` rewrites every `?ref=` pin under `environments/*/*/stack.tf` AND moves the `sabokit` checkout to the same tag in one pass. Leaves the working tree dirty — you commit.
 
 ---
 

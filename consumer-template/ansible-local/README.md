@@ -19,13 +19,13 @@ $EDITOR ansible-local/roles/my-thing/tasks/main.yml
 # Add an `import_playbook` block to ansible-local/site.yml (see comment skeleton).
 ```
 
-For roles that will eventually go upstream: structure them like a `platform/apps/<name>/ansible/roles/<name>/` so the eventual port is a straight copy.
+For roles that will eventually go upstream: structure them like a `platform/application/<name>/ansible/roles/<name>/` so the eventual port is a straight copy.
 
 ## When upstream ships a bundle that supersedes a local role
 
 ```bash
-# 1. Add the upstream module to modules/stack/apps.tf
-# 2. terraform plan + apply (the new module starts creating cloud resources)
+# 1. Enable the upstream bundle in environments/<env>/application.yml
+# 2. scripts/application.sh <env>  (the new module starts creating cloud resources)
 # 3. If you have existing state, terraform state mv local.<old> module.<new>
 # 4. Delete ansible-local/roles/<old> and the import_playbook entry in site.yml
 ```

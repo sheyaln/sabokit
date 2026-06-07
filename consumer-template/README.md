@@ -1,109 +1,113 @@
 # consumer-template
 
-The starter you copy into your own infrastructure repo. Two layers:
-
-- **`modules/stack/`** — shared TF wiring. Every environment calls this module. When `sabokit` ships a new app bundle, you add one `module` block here once and every env picks it up.
-- **`environments/<env>/`** — one dir per environment (prod, staging, …). The per-env root that `terraform` / `sabokit` deploy; non-secret per-env values live keyed in `environments/env-values.yml`.
+The starter you copy into your own infrastructure repo. An environment is
+**four Terraform roots** — one per layer (infra, identity, operations,
+application), each its own state — driven by committed YAML config and deployed
+by the per-layer scripts.
 
 ## Layout
 
 ```
 consumer-template/
-├── modules/stack/                # Shared module wiring (one source of truth)
-│   ├── base.tf                   # module "base"     — Scaleway primitives
-│   ├── identity.tf               # module "identity" — Authentik instance
-│   ├── apps.tf                   # module "<app>" per shipped app
-│   ├── variables.tf, outputs.tf, versions.tf
-│   └── README.md
 ├── environments/
-│   ├── env-values.yml.example    # per-env NON-secret values, keyed by env — copy to env-values.yml
-│   ├── _template/                # Copy this to create new envs (dir name = env name)
-│   │   ├── main.tf               # module "stack" { source = "../../modules/stack" ... }
-│   │   ├── env.tf                # resolves ../env-values.yml[<dir name>] -> local.env
-│   │   ├── config.tf.example     # persistent infra SHAPE (locals.config) — copy to config.tf
-│   │   ├── providers.tf          # Scaleway + Authentik providers + S3 backend
-│   │   ├── variables.tf          # secrets only (SCW creds, authentik token)
-│   │   ├── secrets.tf            # optional scaleway_secret_version data sources
-│   │   ├── backend.hcl.example
-│   │   ├── inventory.ini.example
+│   ├── common.yml                # org_slug, org_name, icon_base_url (cross-env)
+│   ├── _template/                # copy this to create an env (dir name = env name)
+│   │   ├── env.yml               # per-env scope/domains/sizing
+│   │   ├── hosts.yml             # compute-host topology
+│   │   ├── infra.yml             # infra-layer knobs
+│   │   ├── identity.yml          # the Authentik tier DAG + branding
+│   │   ├── operations.yml        # observability + protonmail-bridge
+│   │   ├── application.yml        # the app suite
+│   │   ├── infra/        { stack.tf, providers.tf, outputs.tf, backend.hcl.example }
+│   │   ├── identity/     { … }
+│   │   ├── operations/   { … }
+│   │   ├── application/  { … }
 │   │   ├── .gitignore
-│   │   └── README.md             # per-env runbook (manual + CLI)
+│   │   └── README.md             # the per-env runbook
 │   └── (your envs land here)
 ├── apps-manifest.yaml            # GUI-consumable declaration of every app bundle
+├── ansible-local/                # your org-only roles (wrap platform's site.yml)
 ├── scripts/
-│   ├── bump-version.sh           # Bump every ?ref=… pin to a new tag
-│   └── import-base-image.sh      # Pull the pre-baked Scaleway image into your project
-├── .gitignore
+│   ├── lib.sh                    # shared deploy engine (sourced)
+│   ├── infra.sh / identity.sh / operations.sh / application.sh
+│   ├── up.sh / down.sh           # all layers, in dependency order
+│   ├── bump-version.sh           # bump every ?ref= pin to a new sabokit tag
+│   └── import-base-image.sh
 └── README.md
 ```
 
+Each layer's `stack.tf` reads the YAML and calls the pinned platform layer
+(`//platform/<layer>/terraform?ref=vX.Y.Z`). The layers self-discover each
+other by name (`${org}-${env}-…` tags) — there is no remote_state between them.
+
 ## Quick start
 
-The supported path is [sabokit-cli](https://github.com/sheyaln/sabokit-cli). It wraps every terraform / ansible / scaleway-cli invocation in pinned docker images — the only host requirements are `docker` and `ssh`. No local terraform, ansible, jq, python, scw.
+The supported path is [sabokit-cli](https://github.com/sheyaln/sabokit-cli),
+which wraps every terraform / ansible / scaleway-cli call in pinned docker
+images (host needs only `docker` + `ssh`):
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/sheyaln/sabokit-cli/master/install.sh | bash
-
 export SCW_ACCESS_KEY=... SCW_SECRET_KEY=... SCW_DEFAULT_PROJECT_ID=...
 
-# 1. Scaffold the project (clones this template at a pinned tag, prompts for
-#    base_domain / org / first env / ssh user+key, writes .sabokit/config.yml
-#    and environments/env-values.yml)
-sabokit init my-stack
-cd my-stack
-
-# 2. Optionally tweak per-env values, or the shape, before first deploy
-$EDITOR environments/env-values.yml      # project_id / domains / sizes (per env)
-$EDITOR environments/prod/config.tf      # compute_hosts / identity / apps (shape)
-
-# 3. Full first deploy: terraform apply (base + identity), ansible bootstrap,
-#    terraform apply (full), every enabled app's ansible playbook, end-to-end.
-sabokit up
-
-# 4. Subsequent app redeploys / config pushes
-sabokit deploy                    # all enabled apps
-sabokit deploy --apps wazuh       # one app (its playbook + tags)
-sabokit deploy --apps backrest    # re-render config + restart on every host
-sabokit status                    # tf outputs + docker ps across hosts
-sabokit secrets list --tag authentik
+sabokit init my-stack && cd my-stack
+$EDITOR environments/prod/env.yml          # project_id / domains / sizing
+$EDITOR environments/prod/application.yml   # which apps, at which hostnames
+sabokit up                                  # infra → identity → operations → application
 ```
 
-`sabokit init` does the equivalent of `cp -r consumer-template/` + `cp -r environments/_template environments/prod` + `cp *.example` + scaffolding state buckets. **The CLI is an assistant, not a requirement:** `env.tf` reads `env-values.yml` itself, so plain `terraform apply` works in any env dir with no CLI. `sabokit up` just orchestrates the two terraform phases + ansible + admin-token fetch.
+**The CLI is an assistant, not a requirement** — it shells out to the same
+`scripts/*.sh`. The manual path needs `terraform`, `ansible`, `jq`, `python3`,
+and `scw` on PATH:
 
-For staging or any other env, `sabokit init --env staging` repeats the scaffold under `environments/staging/` (and adds a `staging:` key to `env-values.yml`). Each env has its own state, its own credentials, its own deploy.
+```bash
+cp -r environments/_template environments/prod
+$EDITOR environments/prod/env.yml
+for l in infra identity operations application; do
+  cp environments/prod/$l/backend.hcl.example environments/prod/$l/backend.hcl   # set the bucket
+done
+export SCW_ACCESS_KEY=... SCW_SECRET_KEY=...
+scripts/up.sh prod            # or one layer at a time: scripts/infra.sh prod, …
+scripts/down.sh prod          # teardown, reverse order
+```
 
-See `environments/_template/README.md` for the per-env runbook — the same deploy by hand (plain terraform + ansible) and via the CLI.
+Each env has its own state, credentials, and deploy. See
+`environments/_template/README.md` for the per-env runbook and the apply rhythm.
 
 ## Adding an app
 
+Add (or uncomment) a block in `environments/<env>/application.yml` with the
+app's `enabled`, full `hostname`, and any overrides (see `apps-manifest.yaml`
+for each bundle's inputs), then redeploy the application layer:
+
 ```bash
-sabokit apps list                 # browse the catalog (NAME, CATEGORY, DESCRIPTION)
-sabokit apps add wazuh            # edits environments/<env>/config.tf — uncomments the module, flips enabled
-$EDITOR environments/prod/config.tf  # set hostname + any per-app overrides
-sabokit up                        # picks up the new app on next apply + deploys
+scripts/application.sh prod        # terraform apply + ansible, app layer only
 ```
 
-The manual path: add a `module "<name>"` block to `modules/stack/apps.tf` (following the Outline pattern), set `apps.<name> = { enabled = true, hostname = "…" }` in `config.tf`, then `terraform -chdir=environments/<env> apply` + `ansible-playbook "$SABOKIT_DIR/platform/ansible/site.yml" -i inventory.ini -e @.ansible-vars.json --tags <name>`. The umbrella playbook is `site.yml` (which imports `bootstrap.yml` + `host-services.yml` + `core.yml` + `apps.yml`); use `--tags <name>` to scope to one app, `--tags core` for monitoring stack only, `--tags apps` to skip bootstrap + host-services + core.
+`authorized_groups` defaults per app (member-collaboration / delegate-management
+/ admin-infra); override it to widen or narrow access. Listing a baseline tier
+admits that tier and every higher one via Authentik group nesting.
 
 ## Bumping sabokit
 
 ```bash
-./scripts/bump-version.sh v2.1.0
-for env in environments/*/; do
-  [[ -d "$env" && "$env" != */"_template"/ ]] || continue
-  (cd "$env" && terraform init -upgrade && terraform plan)
-done
+./scripts/bump-version.sh v1.1.0   # bumps every ?ref= pin + the sabokit checkout
+# then re-init + plan each layer of each env (the script prints the loop)
 ```
 
 Major bumps may require `terraform state mv` — check the release notes.
 
 ## Secrets hygiene
 
-`environments/env-values.yml` is committed — it holds only NON-secret per-env values. `backend.hcl`, `inventory.ini`, `.json` runtime artifacts, and `.envrc` (secrets) are gitignored; `.example` siblings are tracked. Credentials come from `SCW_*` / `TF_VAR_*` env vars (or a gitignored `.envrc`), never a committed file.
+The config YAML is committed (non-secret, reviewable). `backend.hcl`,
+`inventory.ini`, fetched `.json` runtime artifacts, and `.env`/`.envrc` are
+gitignored; `.example` siblings are tracked. Credentials come from `SCW_*` env
+vars (or a gitignored `.envrc`); the Authentik admin token is fetched from the
+infra bootstrap secret by the deploy scripts — never a committed file.
 
-## Required tools
+## Required tools (manual path)
 
 ```bash
-brew install terraform ansible jq scaleway-cli   # or apt/dnf equivalents
+brew install terraform ansible jq python3 scaleway-cli   # or apt/dnf equivalents
 ansible-galaxy collection install community.docker community.general scaleway.scaleway
 ```
