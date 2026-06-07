@@ -1,60 +1,57 @@
 #!/usr/bin/env bash
-# Composition-layer validate. Sed-rewrites every `?ref=v...` git URL in
-# `consumer-template/modules/stack/*.tf` to point at the current working
-# tree's local `platform/` paths, then runs `terraform init + validate`.
-# Reverts the rewrites at exit so a clean working tree is restored even on
-# failure.
+# Composition-layer validate. Exercises the four per-layer consumer roots in
+# consumer-template/environments/_template/{infra,identity,operations,application}
+# against the current working tree — NOT a tagged release.
 #
-# Run from this directory:
-#   ./validate.sh
+# For each root it sed-rewrites the `?ref=v...` git URL in stack.tf to the local
+# platform/ path, runs `terraform init -backend=false + validate`, then reverts
+# the rewrite (via git checkout) so the tree is restored even on failure. This
+# catches composition bugs (wrong var wiring, bad config→var mapping, for_each
+# fan-out) that the per-bundle tests/local-validate fixture can't see.
 #
-# Or via repo-root convenience:
-#   make stack-composition-validate    # if Makefile target wired
 #   ./tests/stack-composition-validate/validate.sh
 
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 REPO_ROOT="$(cd "${SCRIPT_DIR}/../.." && pwd)"
-STACK_DIR="${REPO_ROOT}/consumer-template/modules/stack"
+TEMPLATE_DIR="${REPO_ROOT}/consumer-template/environments/_template"
+LAYERS=(infra identity operations application)
 
-# Files we'll rewrite + restore.
-TF_FILES=("${STACK_DIR}"/*.tf)
+ROOTS=()
+for l in "${LAYERS[@]}"; do ROOTS+=("${TEMPLATE_DIR}/${l}/stack.tf"); done
 
-REWROTE=0  # set to 1 after sed runs; gates cleanup so we don't clobber
-           # uncommitted operator edits on the early-exit path.
-
+REWROTE=0
 cleanup() {
   cd "$REPO_ROOT"
-  if [[ "$REWROTE" == "1" ]]; then
-    git -C "$REPO_ROOT" checkout -- "${STACK_DIR}"/*.tf 2>/dev/null || true
-  fi
-  rm -rf "${SCRIPT_DIR}/.terraform" "${SCRIPT_DIR}/.terraform.lock.hcl"
+  [[ "$REWROTE" == "1" ]] && git -C "$REPO_ROOT" checkout -- "${ROOTS[@]}" 2>/dev/null || true
+  for l in "${LAYERS[@]}"; do rm -rf "${TEMPLATE_DIR}/${l}/.terraform" "${TEMPLATE_DIR}/${l}/.terraform.lock.hcl"; done
 }
 trap cleanup EXIT
 
-# Refuse to run if consumer-template/modules/stack has uncommitted changes —
-# our cleanup uses `git checkout` and would clobber them.
-if ! git -C "$REPO_ROOT" diff --quiet -- "${STACK_DIR}"/*.tf; then
-  echo "ERROR: ${STACK_DIR}/*.tf has uncommitted changes." >&2
+# Cleanup uses `git checkout`; refuse to clobber uncommitted root edits.
+if ! git -C "$REPO_ROOT" diff --quiet -- "${ROOTS[@]}"; then
+  echo "ERROR: ${TEMPLATE_DIR}/*/stack.tf has uncommitted changes." >&2
   echo "       Commit or stash before running this fixture (cleanup uses git checkout)." >&2
   exit 2
 fi
 
-echo "==> Rewriting ?ref= URLs to local paths in ${STACK_DIR}/*.tf ..."
-# Match: git::https://github.com/<owner>/<repo>.git//<path>?ref=v<X>.<Y>.<Z>
-# Replace with: ../../<path>  (relative to consumer-template/modules/stack/)
+echo "==> Rewriting ?ref= URLs to local platform/ paths ..."
+# git::https://github.com/<owner>/<repo>.git//<path>?ref=v<X.Y.Z>  ->  ../../../../<path>
+# (relative to consumer-template/environments/_template/<layer>/)
 sed -i.tmp -E \
-  's|git::https://github\.com/[^/]+/[^/]+\.git//([^"?]+)\?ref=v[0-9]+\.[0-9]+\.[0-9]+|../../../\1|g' \
-  "${TF_FILES[@]}"
-rm -f "${STACK_DIR}"/*.tf.tmp
+  's|git::https://github\.com/[^/]+/[^/]+\.git//([^"?]+)\?ref=v[0-9]+\.[0-9]+\.[0-9]+|../../../../\1|g' \
+  "${ROOTS[@]}"
+rm -f "${ROOTS[@]/%/.tmp}"
 REWROTE=1
 
-echo "==> terraform init ..."
-cd "$SCRIPT_DIR"
-terraform init -backend=false -upgrade >/dev/null
+fail=0
+for l in "${LAYERS[@]}"; do
+  echo "==> [$l] terraform init + validate ..."
+  ( cd "${TEMPLATE_DIR}/${l}" \
+      && terraform init -backend=false -upgrade >/dev/null \
+      && terraform validate ) || { echo "==> [$l] FAILED"; fail=1; }
+done
 
-echo "==> terraform validate ..."
-terraform validate
-
-echo "==> ok"
+[[ "$fail" == "0" ]] && echo "==> ok (all four roots valid)"
+exit "$fail"

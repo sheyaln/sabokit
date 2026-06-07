@@ -1,11 +1,11 @@
 ---
 # Deploy Backrest instances per compute_host. The terraform-side fan-out
-# (consumer-template/modules/stack/apps.tf for_each) creates the per-host
+# (the application layer's module.backrest for_each) creates the per-host
 # Scaleway resources; this playbook deploys the corresponding container on
 # each host whose group matches one of the instances' ansible_group.
 #
 # Input contract: `backrest_all_instances` is the full map of backrest
-# instances keyed by compute_hosts key (passed from platform/ansible/apps.yml).
+# instances keyed by compute_hosts key (passed from platform/ansible/application.yml).
 # Each value carries an ansible_group + ansible_vars block.
 
 - name: Deploy Backrest instances per host

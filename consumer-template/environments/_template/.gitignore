@@ -1,13 +1,16 @@
-# Per-env runtime artifacts. config.tf, env.tf, secrets.tf, and sibling
-# consumer .tf files ARE committable (and should be committed) — they're the
-# auditable infra spec, along with environments/env-values.yml one level up.
-# Only generated state + remote-backend config stays out of git.
-.terraform/
-.terraform.lock.hcl
-backend.hcl
+# Per-env runtime artifacts. The config YAML (common.yml one level up, env.yml,
+# hosts.yml, infra/identity/operations/application.yml) and every layer's
+# stack.tf/providers.tf/outputs.tf ARE committable — they're the auditable infra
+# spec. Only generated state, fetched secrets, and remote-backend config stay out.
+*/.terraform/
+*/.terraform.lock.hcl
+*/backend.hcl
+*/*.tfplan
+*/*.tfstate
+*/*.tfstate.*
+.env
+.envrc
 inventory.ini
-.tf-output.json
-.ansible-vars.json
-*.tfplan
-*.tfstate
-*.tfstate.*
+.tf-output*.json
+.ansible-vars*.json
+.enabled_apps*.json

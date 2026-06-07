@@ -2,11 +2,10 @@
 # Stack composition layer validate.
 #
 # tests/local-validate/ exercises platform BUNDLES in isolation. This
-# workflow exercises consumer-template/modules/stack/'s composition layer,
+# workflow exercises the four per-layer consumer roots
+# (consumer-template/environments/_template/{infra,identity,operations,application}),
 # which is where bugs that only manifest when bundles are wired together
-# slip through. Three v3.5.x patches in a row (v3.5.1 wazuh-ref,
-# v3.5.2 moved-ambiguity, v3.5.3 sensitive-flag propagation) all attributed
-# to the same coverage gap; this closes it.
+# through the composition layer slip through.
 
 name: stack-composition-validate
 
@@ -24,7 +23,8 @@ jobs:
 
       - uses: hashicorp/setup-terraform@v3
         with:
-          terraform_version: "1.7.5"
+          # >= 1.10: the consumer roots' S3 backend uses use_lockfile.
+          terraform_version: "1.13.3"
           terraform_wrapper: false
 
       - name: Run stack composition validate

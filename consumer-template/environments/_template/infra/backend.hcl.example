@@ -1,0 +1,4 @@
+# Copy to backend.hcl (gitignored). One bucket per env, one state key per layer.
+# The bucket must exist before `terraform init` (provision it out-of-band).
+bucket = "acme-tfstate-prod"
+key    = "infra/terraform.tfstate"

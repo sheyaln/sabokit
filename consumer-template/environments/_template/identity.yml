@@ -1,0 +1,34 @@
+# Identity-layer config: the Authentik tier model + branding + notifications.
+# Read by the identity root only.
+#
+# tier_slots is the authority DAG, lowest privilege first. Each slot maps
+# peer_name -> group_name. Slot S+1 nests under slot S, so a higher-slot user is
+# transitively a member of every lower group (Authentik group nesting). Apps
+# name the groups they admit in authorized_groups (application.yml); naming a
+# baseline tier therefore admits that tier and every slot above it. admin must
+# exist as a peer in some slot.
+
+tier_slots:
+  - { name: l1, peers: { member: member } }       # lowest privilege
+  - { name: l2, peers: { delegate: delegate } }
+  - { name: l3, peers: { treasurer: treasurer } }  # add parallel peers for parallel officer roles
+  - { name: l4, peers: { admin: admin } }          # highest
+
+# Named-group pointers (defaults shown). Override when the org renames a tier.
+# admin_group_name: admin
+# member_group_name: member
+# delegate_group_name: delegate
+# delegate_role_name: delegate
+
+# Extra (non-tier) Authentik groups: service accounts, app-specific gating.
+extra_groups: {}
+
+# ── Branding / enrollment / notifications (defaults shown) ────────────────────
+# member_id_label: "Member ID"
+# enable_google_social_login: false
+# enable_apple_social_login: false
+# notification_webhook_url: ""
+# notification_welcome_message: "Welcome!"
+#
+# The Authentik image tag (authentik_version) is set in infra.yml — infra owns
+# the bootstrap that pins it.

@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# Bump every `?ref=...` pin in consumer-template/modules/stack/ to a new
-# tag, commit the ref-bump as a chore commit, tag the commit, and push
+# Bump every `?ref=...` pin in consumer-template/environments/_template/*/stack.tf
+# to a new tag, commit the ref-bump as a chore commit, tag the commit, and push
 # master + the tag. One-shot replacement for the manual perl + git tag +
 # push dance.
 #
@@ -29,7 +29,11 @@ fi
 NEW="$1"
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
-STACK_DIR="${REPO_ROOT}/consumer-template/modules/stack"
+# The per-layer consumer roots whose ?ref= pins get bumped (one stack.tf per
+# layer under the template env). Real consumer env dirs are bumped by the
+# consumer's own scripts/bump-version.sh, not here.
+TEMPLATE_DIR="${REPO_ROOT}/consumer-template/environments/_template"
+REF_FILES=("${TEMPLATE_DIR}"/*/stack.tf)
 
 if [[ ! "$NEW" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
   echo "ERROR: tag must look like vX.Y.Z (got: $NEW)"
@@ -58,7 +62,7 @@ if ! grep -q "^## ${NEW} " "${REPO_ROOT}/CHANGELOG.md"; then
   exit 1
 fi
 
-# Find every ?ref= currently in consumer-template/modules/stack/*.tf.
+# Find every ?ref= currently in consumer-template/environments/_template/*/stack.tf.
 # Only scan .tf files (README/markdown in the same dir can mention literal
 # `?ref=...` in documentation without proper quoting and the loose regex
 # would pick those up). Tight regex — only alphanumeric/dot/dash/underscore
@@ -71,14 +75,14 @@ fi
 #
 # Bash 3.2 (macOS default) lacks associative arrays — using sorted-unique
 # plain text instead.
-DISTINCT_REFS=$(grep -hEo '\?ref=[a-zA-Z0-9._-]+' "${STACK_DIR}"/*.tf 2>/dev/null | sort -u | sed 's/^?ref=//')
+DISTINCT_REFS=$(grep -hEo '\?ref=[a-zA-Z0-9._-]+' "${REF_FILES[@]}" 2>/dev/null | sort -u | sed 's/^?ref=//')
 
 if [[ -z "$DISTINCT_REFS" ]]; then
-  echo "ERROR: no ?ref= pins found in $STACK_DIR/*.tf. Wrong dir?"
+  echo "ERROR: no ?ref= pins found in ${TEMPLATE_DIR}/*/stack.tf. Wrong dir?"
   exit 1
 fi
 
-echo "Bumping consumer-template/modules/stack/ refs to $NEW:"
+echo "Bumping consumer-template/environments/_template/*/stack.tf refs to $NEW:"
 case "$(uname)" in
   Darwin) SED_INPLACE=(sed -i '') ;;
   *)      SED_INPLACE=(sed -i) ;;
@@ -99,12 +103,12 @@ while IFS= read -r OLD; do
   while IFS= read -r f; do
     "${SED_INPLACE[@]}" "s|?ref=${OLD}|?ref=${NEW}|g" "$f"
     count=$((count + 1))
-  done < <(grep -l "?ref=${OLD}" "${STACK_DIR}"/*.tf)
+  done < <(grep -l "?ref=${OLD}" "${REF_FILES[@]}")
   echo "  $OLD → $NEW (${count} file(s))"
 done <<< "$DISTINCT_REFS"
 
-# Verify the bump landed — same tight regex + .tf-only as the discovery.
-RESIDUAL=$(grep -hEo '\?ref=[a-zA-Z0-9._-]+' "${STACK_DIR}"/*.tf 2>/dev/null | sort -u | grep -v "?ref=${NEW}" || true)
+# Verify the bump landed — same tight regex as the discovery.
+RESIDUAL=$(grep -hEo '\?ref=[a-zA-Z0-9._-]+' "${REF_FILES[@]}" 2>/dev/null | sort -u | grep -v "?ref=${NEW}" || true)
 if [[ -n "$RESIDUAL" ]]; then
   echo "ERROR: residual non-$NEW refs after bump:"
   echo "$RESIDUAL"
@@ -112,7 +116,7 @@ if [[ -n "$RESIDUAL" ]]; then
 fi
 
 # Stage only the consumer-template changes.
-git add "${STACK_DIR}"
+git add "${TEMPLATE_DIR}"
 
 # Detect if there's anything to commit (no-op if already on $NEW everywhere).
 if git diff --cached --quiet; then

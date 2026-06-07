@@ -1,6 +1,0 @@
-# Per-env remote state config. Copy to backend.hcl. The bucket must exist
-# before `terraform init` (provision it manually in Scaleway, separate from
-# this stack).
-
-bucket = "acme-tfstate-prod"
-key    = "stack/terraform.tfstate"

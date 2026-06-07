@@ -48,3 +48,7 @@ Thumbs.db
 .env.*
 !.env.example
 credentials.json
+
+# Python bytecode
+__pycache__/
+*.pyc

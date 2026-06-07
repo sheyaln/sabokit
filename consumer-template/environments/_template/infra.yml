@@ -1,0 +1,45 @@
+# Infra-layer config: Scaleway substrate (network, compute SG extras, managed
+# Postgres for Authentik, TEM outbound mail, gateway DNS, per-host watchers).
+# Birth-once tier — rarely changes. Read by the infra root only.
+
+# ── Gateway DNS ──────────────────────────────────────────────────────────────
+manage_gateway_dns: true
+gateway_compute_host_key: null   # null = auto-pick the identity host
+
+# ── Managed PostgreSQL (Authentik's DB lives here — the root-of-trust tier) ───
+postgres_enabled: true
+postgres_node_type: db-dev-s
+postgres_high_availability: false
+# postgres_engine: PostgreSQL-16   # operations/application read this to discover the instance
+
+# ── Authentik image tag ───────────────────────────────────────────────────────
+# Infra owns the Authentik bootstrap (root-of-trust fold), so the version pin
+# lives here. Empty tracks the version this blueprint release was validated
+# against. Authentik has breaking inter-release DB migrations — pin deliberately.
+# authentik_version: "2025.12.1"
+
+# ── Scaleway TEM (outbound SMTP every app sends through) ──────────────────────
+tem_enabled: true
+# tem_webhook_name_override: ""        # set only to dodge a leaked-name reservation
+# tem_webhook_n8n_url: "https://automate.example.org"  # TEM delivery alerting → n8n (cross-layer: set the n8n URL literally)
+
+# ── DMARC aggregate reports ───────────────────────────────────────────────────
+# dmarc_rua_email: dmarc@example.org   # empty = no rua (reports black-holed)
+
+# ── Per-host watchers (one per compute host) ──────────────────────────────────
+autoheal:
+  enabled: true
+diun:
+  enabled: true
+  # n8n_webhook_url: "https://automate.example.org/webhook/diun-new-image"
+wazuh_agent:
+  enabled: true
+  # manager_address: ""   # the wazuh manager's private IP (operations layer); set when the manager is deployed
+
+# ── Custom DNS records (MX for inbound mail, extra TXT/SRV) ────────────────────
+# Keyed by zone; zones must match base/mgmt domain. Co-exists with TEM's
+# auto-managed SPF/DKIM/DMARC.
+custom_dns_records: {}
+
+# ── Extra per-role inbound SG rules (appended to the role's static superset) ───
+extra_inbound_rules_by_role: {}

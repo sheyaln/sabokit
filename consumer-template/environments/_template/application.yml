@@ -1,0 +1,69 @@
+# Application-layer config: the user-facing app suite. Each block is passed
+# through verbatim to its bundle; see platform/application/<app>/terraform/
+# variables.tf (or apps-manifest.yaml) for every knob. Read by the application
+# root only.
+#
+# Hostnames are FULL (bundles never assemble subdomains). Disabled apps may be
+# omitted entirely. authorized_groups defaults per app (member-collaboration /
+# delegate-management / admin-infra) — override to widen or narrow access.
+
+outline:
+  enabled: true
+  hostname: wiki.example.org
+  # authorized_groups: [member]   # default; [member] admits every tier via nesting
+
+# steward:
+#   enabled: true
+#   hostname: members.example.org
+#   authorized_groups: [delegate]
+
+# vikunja:
+#   enabled: true
+#   hostname: tasks.example.org
+
+# bentopdf:
+#   enabled: true
+#   hostname: pdf.example.org
+
+# broadsheet:
+#   enabled: true
+#   hostname: email.example.org
+#   root_admin_email: ops@example.org
+#   authorized_groups: [delegate]
+
+# privacy_policy:
+#   enabled: true
+#   hostname: privacy.example.org
+
+# nextcloud:
+#   enabled: true
+#   hostname: cloud.example.org
+#   onlyoffice_hostname: docs.example.org
+#   talk_hostname: talk.example.org
+
+# decidim:
+#   enabled: true
+#   hostname: voting.example.org
+#   organization_name: Example Assembly
+#   system_admin_email: ops@example.org
+
+# jitsi:
+#   enabled: true
+#   hostname: meet.example.org
+
+# espocrm:
+#   enabled: true
+#   hostname: crm.example.org
+#   authorized_groups: [delegate]
+
+# n8n:
+#   enabled: true
+#   hostname: automate.example.org
+#   authorized_groups: [admin]
+
+# backrest auto-instantiates one instance per compute host. Override per-host
+# knobs via per_host (keyed by compute_hosts key).
+# backrest:
+#   per_host:
+#     management:
+#       hostname: backup.management.example.org

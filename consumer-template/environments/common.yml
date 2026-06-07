@@ -1,0 +1,10 @@
+# Cross-env, cross-layer config. Identical for every environment; read by all
+# four layer roots. Per-env values live in <env>/env.yml; per-layer values in
+# <env>/{infra,identity,operations,application}.yml.
+
+org_slug: acme            # short, URL-safe; appears in every resource name
+org_name: Acme Cooperative
+
+# Where app-tile icons are fetched from by filename. Empty = the sabokit-assets
+# master-branch default. Point at your own CDN/mirror to self-host icons.
+icon_base_url: ""

@@ -1,0 +1,20 @@
+# Operations-layer config: observability (loki/prometheus/grafana/wazuh) + the
+# protonmail-bridge IMAP gateway. Each block is passed through verbatim to its
+# bundle; see platform/operations/<svc>/terraform/variables.tf for every knob.
+# Read by the operations root only. Hostnames are full (no subdomain assembly).
+
+loki:
+  enabled: true
+prometheus:
+  enabled: true
+grafana:
+  enabled: true
+  hostname: grafana.ops.example.org
+  # authorized_groups defaults to ["admin"] (ops dashboard)
+wazuh:
+  enabled: true
+  hostname: wazuh.ops.example.org
+
+# ProtonMail Bridge — OFF unless you fetch inbound mail through Proton. Set
+# enabled + imap_username + bridge_login_secret_id to turn on.
+protonmail_bridge: {}
