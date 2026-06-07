@@ -1,12 +1,12 @@
-# platform/identity/bootstrap
+# authentik-bootstrap
 
 Provisions the secrets and the PostgreSQL database that Authentik needs to come up on first boot. Pair with `platform/identity/terraform/` (which configures the running Authentik via API) and the `authentik-server` Ansible role (which installs the container).
 
-The module exists as a separate root-level dependency because `platform/identity/terraform/` uses the `goauthentik/authentik` provider — and that provider can't function until Authentik itself is running. Splitting the bootstrap into its own module lets `deploy.sh` apply it in an early `-target=` phase before Authentik exists.
+It's a submodule of the **infra** layer (the root-of-trust fold): the `goauthentik/authentik` provider the identity layer uses can't function until Authentik is running, so the secrets + DB Authentik boots from must exist first. Composing the bootstrap into infra mints them in the first apply, well before the identity layer's Ansible boots the Authentik container.
 
 ## What it provisions
 
-- **`authentik` PostgreSQL database** in your managed Postgres instance, via [`modules/infrastructure/storage/postgres_database`](../../../modules/infrastructure/storage/postgres_database). The connection details land in a Scaleway secret.
+- **`authentik` PostgreSQL database** in your managed Postgres instance, via [`_shared/infrastructure/storage/postgres_database`](../../_shared/infrastructure/storage/postgres_database). The connection details land in a Scaleway secret.
 - **`<org>-<env>-authentik-admin` secret** — JSON `{username, email, password, api_token}`. The password is consumed via `AUTHENTIK_BOOTSTRAP_PASSWORD` and the token via `AUTHENTIK_BOOTSTRAP_TOKEN`; Authentik creates both atomically on first boot.
 - **`<org>-<env>-authentik-server` secret** — JSON `{secret_key}` for cookie signing and internal crypto.
 
@@ -14,17 +14,19 @@ The admin secret is created with `lifecycle.ignore_changes = [data]`, so the tok
 
 ## Usage
 
+Composed by the infra layer — `platform/infra/terraform/authentik_bootstrap.tf` instantiates it from the layer's own Postgres:
+
 ```hcl
-module "identity_bootstrap" {
-  source = "git::https://github.com/sheyaln/sabokit.git//platform/identity/bootstrap?ref=vX.Y.Z"
+module "authentik_bootstrap" {
+  source = "../authentik-bootstrap"
 
   org_slug    = var.org_slug
   environment = var.environment
   infra_email = var.infra_email
 
-  postgres_instance_id = module.base.scaleway.postgres_instance_id
-  postgres_endpoint    = module.base.scaleway.postgres_endpoint
-  postgres_engine      = module.base.scaleway.postgres_engine
+  postgres_instance_id = module.postgres[0].instance_id
+  postgres_endpoint    = module.postgres[0].endpoint
+  postgres_engine      = var.postgres_engine
 
   # Optional: pin the Authentik image tag. Empty (default) defers to the
   # authentik-server role's pinned default. Authentik has breaking
@@ -33,25 +35,16 @@ module "identity_bootstrap" {
 }
 ```
 
-Then in your `deploy.sh`:
+The apply rhythm, driven by the per-layer deploy scripts:
 
 ```bash
-# Phase 1: stand up the bootstrap secrets + database, nothing else.
-terraform apply \
-  -target=module.base \
-  -target=module.identity_bootstrap \
-  -auto-approve
+# 1. infra applies — mints these secrets + the authentik DB.
+scripts/infra.sh <env>
 
-# Phase 2: Ansible installs Authentik server. The role reads identity_bootstrap.*
-ANSIBLE_EXTRA_VARS="identity_bootstrap=$(terraform output -json identity_bootstrap)"
-ansible-playbook bootstrap.yml -e "$ANSIBLE_EXTRA_VARS"
-
-# Phase 3: fetch the token Authentik just created and feed it to the provider.
-ADMIN_TOKEN=$(scw secret version access \
-  secret-id=$(terraform output -raw identity_bootstrap | jq -r .admin_secret_id) \
-  revision=latest --output json | jq -r '.data | @base64d | fromjson | .api_token')
-
-TF_VAR_authentik_admin_token="$ADMIN_TOKEN" terraform apply -auto-approve
+# 2. identity: ansible boots the Authentik server (the authentik-server role
+#    reads `identity_bootstrap`), then terraform configures it. The script
+#    fetches api_token from admin_secret_id -> TF_VAR_authentik_admin_token.
+scripts/identity.sh <env>
 ```
 
 ## Outputs

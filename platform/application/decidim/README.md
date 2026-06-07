@@ -1,4 +1,4 @@
-# apps/decidim
+# decidim
 
 Decidim — Rails-based participatory democracy platform. Deploys app + sidekiq + redis as a docker-compose stack with a one-shot `db-init` container that bootstraps the first organization. PostgreSQL is the shared instance; uploads go to S3.
 

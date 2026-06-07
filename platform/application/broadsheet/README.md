@@ -1,4 +1,4 @@
-# apps/broadsheet
+# broadsheet
 
 Broadsheet — newsletters + transactional email manager. Ships the [sabokit-broadsheet](https://github.com/sheyaln/sabokit-broadsheet) fork of notifuse: same delivery engine, rebranded UI, fork carries the OIDC patches. Single-container docker-compose stack behind Traefik. PostgreSQL is the shared instance; an S3 bucket holds marketing assets. Defaults to admin-only access — Broadsheet is an operator tool.
 

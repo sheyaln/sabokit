@@ -1,10 +1,10 @@
-# apps/n8n
+# n8n
 
 n8n — open-source workflow automation. Self-contained bundle:
 
 - Authentik OIDC provider + application + per-app group (defaults to admin-only access; n8n holds credentials for every connected system)
 - DNS A record on the consumer's base domain
-- PostgreSQL database + user in the shared instance from `platform/base/`
+- PostgreSQL database + user in the shared instance from `platform/infra/`
 - Scaleway-managed secrets bag (`N8N_ENCRYPTION_KEY`, runners auth token, OIDC bag)
 - Ansible role that deploys n8n + the `n8nio/runners` Python+JS sidecar as a single docker-compose stack
 - Traefik routing with a separate, rate-limited router for the public webhook paths
@@ -19,28 +19,25 @@ n8n — open-source workflow automation. Self-contained bundle:
 
 ```hcl
 module "n8n" {
-  source   = "git::https://github.com/sheyaln/sabokit.git//platform/apps/n8n/terraform?ref=v2.3.0"
-  enabled  = try(var.apps.n8n.enabled, false)
-  hostname = try(var.apps.n8n.hostname, "")
-  base     = module.base
+  source   = "git::https://github.com/sheyaln/sabokit.git//platform/application/n8n/terraform?ref=v2.3.0"
+  enabled  = try(var.n8n.enabled, false)
+  hostname = try(var.n8n.hostname, "")
+  base     = module.base.base
 }
 ```
 
-In `terraform.tfvars`:
+In `application.yml`:
 
-```hcl
-apps = {
-  n8n = {
-    enabled  = true
-    hostname = "flows.example.org"
-  }
-}
+```yaml
+n8n:
+  enabled: true
+  hostname: flows.example.org
 ```
 
 In `site.yml`:
 
 ```yaml
-- import_playbook: ../apps/n8n/ansible/playbook.yml
+- import_playbook: ../application/n8n/ansible/playbook.yml
 ```
 
 ## Inputs
@@ -130,7 +127,7 @@ apps = {
 }
 ```
 
-On each `ansible-playbook ../../../platform/ansible/apps.yml ...` run (from `environments/<env>/`) the role syncs the directory to the apps host at `/opt/n8n/workflows-import/`, bind-mounts it read-only into the n8n container at `/workflows-import/`, and runs `n8n import:workflow --separate --input=/workflows-import/` after the container is healthy.
+On each `ansible-playbook ../../../platform/ansible/application.yml ...` run (from `environments/<env>/`) the role syncs the directory to the apps host at `/opt/n8n/workflows-import/`, bind-mounts it read-only into the n8n container at `/workflows-import/`, and runs `n8n import:workflow --separate --input=/workflows-import/` after the container is healthy.
 
 - Path resolution: relative paths resolve against the playbook invocation cwd (i.e. `environments/<env>/` where `up.sh` runs); absolute paths used verbatim.
 - Idempotence: n8n's importer upserts by workflow `id`. Re-runs are no-ops against the DB.
@@ -173,7 +170,7 @@ All workflows ship as `"active": false` — review and activate manually after i
 | `SMTP` | SMTP | nextcloud form notifiers, anything sending email | Same SMTP creds shared across platform. |
 | `JotForm account` | JotForm API | jotform-submission-notifier | API key from your JotForm account's `Settings → API`. |
 
-**Required n8n environment variables** (set in `platform/apps/n8n/ansible/.../docker-compose` env or the host's `/opt/n8n/.env`):
+**Required n8n environment variables** (set in `platform/application/n8n/ansible/.../docker-compose` env or the host's `/opt/n8n/.env`):
 
 | Variable | Used by | Example |
 |----------|---------|---------|

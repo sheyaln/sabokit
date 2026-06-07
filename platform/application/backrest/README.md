@@ -1,4 +1,4 @@
-# apps/backrest
+# backrest
 
 Backrest — web UI over restic (https://github.com/garethgeorge/backrest). Single-container compose stack behind Traefik, forward-auth via Authentik (Backrest's own auth is disabled). Each instance gets its own S3 bucket + IAM principal + restic encryption password — no shared DB, no shared repo. State lives in `./data` and `./config` on the host.
 

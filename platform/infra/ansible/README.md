@@ -1,6 +1,6 @@
-# platform/base/ansible
+# platform/infra/ansible
 
-The bootstrap layer every consumer of `sabokit` runs on its hosts before deploying any app bundle. App bundles (`platform/apps/<name>/ansible/`) `import_role` from here for Docker, Traefik labels, secret fetching, and the monitoring agent.
+The bootstrap layer every consumer of `sabokit` runs on its hosts before deploying any app bundle. App bundles (`platform/application/<name>/ansible/`) `import_role` from here for Docker, Traefik labels, secret fetching, and the monitoring agent.
 
 ## What's here
 
@@ -81,8 +81,8 @@ A consumer's `site.yml` for a single application host:
         monitoring_scraper_cidrs:
           - "10.0.0.5/32"   # central prometheus
 
-- import_playbook: ../apps/outline/ansible/playbook.yml
-- import_playbook: ../apps/steward/ansible/playbook.yml
+- import_playbook: ../application/outline/ansible/playbook.yml
+- import_playbook: ../application/steward/ansible/playbook.yml
 ```
 
 ## Conventions
@@ -95,4 +95,4 @@ A consumer's `site.yml` for a single application host:
 
 ## Versioning
 
-`platform/base/ansible` is versioned together with the rest of the repo (see `ARCHITECTURE.md`'s "Versioning" section). Consumers pin via a repo-level tag. Breaking changes to a role's variable surface bump the major version of the entire blueprint.
+`platform/infra/ansible` is versioned together with the rest of the repo (see `ARCHITECTURE.md`'s "Versioning" section). Consumers pin via a repo-level tag. Breaking changes to a role's variable surface bump the major version of the entire blueprint.

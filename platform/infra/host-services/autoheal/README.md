@@ -1,4 +1,4 @@
-# apps/autoheal
+# autoheal
 
 [Autoheal](https://github.com/willfarrell/docker-autoheal) — restart Docker containers when their healthcheck flips to unhealthy. One container per host. Pure host-service.
 

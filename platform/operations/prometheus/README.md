@@ -1,4 +1,4 @@
-# apps/prometheus
+# prometheus
 
 Prometheus TSDB + (optional) `node_exporter` + `cadvisor` sidecars on one host. Headless — internal-only via Grafana or SSH tunnel by default; bind to a private-network IP to let other hosts on the VPC scrape directly.
 
@@ -68,7 +68,7 @@ Enable with `tem_exporter_enabled = true`. The bundle then deploys a Python side
 
 The sidecar runs the stock `python:3.12-alpine` image with `pip install` on start — no custom registry image to publish. Source lives in `ansible/roles/prometheus/files/tem-exporter/`.
 
-The exporter reuses the TEM-scoped API key that `platform/base/terraform/tem.tf` already provisions (the SMTP password in the `smtp-config` secret is a Scaleway IAM key with `TransactionalEmailFullAccess`). No extra credential.
+The exporter reuses the TEM-scoped API key that `platform/infra/terraform/tem.tf` already provisions (the SMTP password in the `smtp-config` secret is a Scaleway IAM key with `TransactionalEmailFullAccess`). No extra credential.
 
 Shipped alongside:
 

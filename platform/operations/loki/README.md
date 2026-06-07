@@ -1,4 +1,4 @@
-# apps/loki
+# loki
 
 [Loki](https://grafana.com/oss/loki/) — single-tenant log aggregator, filesystem-backed. Receives pushes from Alloy/Promtail agents on every host (each app declares its log paths via `monitoring.loki_log_paths`). Grafana reads logs back via its Loki datasource.
 

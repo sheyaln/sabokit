@@ -1,4 +1,4 @@
-# apps/wazuh-agent
+# wazuh-agent
 
 [Wazuh agent](https://documentation.wazuh.com/current/deployment-options/docker/wazuh-container.html) — host-network container that ships logs, FIM events, and system events to a Wazuh manager. Multi-instance: deploy once per host you want monitored.
 

@@ -1,4 +1,4 @@
-# platform/base/host-services/
+# platform/infra/host-services/
 
 Host-tier services - one instance per compute_host. Each watches/touches state local to its own host:
 
@@ -8,7 +8,7 @@ Host-tier services - one instance per compute_host. Each watches/touches state l
 
 Each service is default-on. Consumers turn services off via `var.base.<service>.enabled = false` (whole service) or `disabled_hosts` (per-host opt-out).
 
-Auto-instantiated by `platform/base/terraform/host_services.tf` via `for_each` over `var.compute_hosts`.
+Auto-instantiated by `platform/infra/terraform/host_services.tf` via `for_each` over `var.compute_hosts`.
 
 Consumer surface is `var.base.<service>.{enabled, disabled_hosts, per_host, ...}`. See ARCHITECTURE.md.
 

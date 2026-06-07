@@ -91,17 +91,15 @@ cd consumer-template/scripts
 ./import-base-image.sh v2.1.0
 ```
 
-The script downloads the qcow2 from the GitHub Release, uploads it to a temporary object-storage bucket in the consumer's Scaleway project, imports it as a block snapshot, registers it as an instance image, and prints the resulting `image_id`. The consumer pastes that ID into their `terraform.tfvars`:
+The script downloads the qcow2 from the GitHub Release, uploads it to a temporary object-storage bucket in the consumer's Scaleway project, imports it as a block snapshot, registers it as an instance image, and prints the resulting `image_id`. The consumer pastes that ID into their `hosts.yml`:
 
-```hcl
-compute_hosts = {
-  tools = {
-    instance_type = "PRO2-S"
-    image         = "11111111-2222-3333-4444-555555555555"  # fc-base-2.1.0
-    role          = "apps"
-    ansible_group = "apps"
-  }
-}
+```yaml
+# hosts.yml — image override per host (instance sizing comes from env.yml)
+compute_hosts:
+  tools:
+    role: tools
+    ansible_group: tools
+    image: "11111111-2222-3333-4444-555555555555"  # sabokit-base-2.1.0
 ```
 
 Consumers who skip the import keep `image = "ubuntu_jammy"` and pay the apt-install cost on bootstrap. Both paths converge to identical post-bootstrap state thanks to the Ansible role guards.

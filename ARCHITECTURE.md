@@ -1,6 +1,6 @@
 # Sabokit Architecture
 
-This document is the **contract** for module authors and consumers. It defines how `base/`, `apps/`, `modules/`, and `consumer-template/` fit together and what each must guarantee.
+This document is the **contract** for module authors and consumers. It defines how `platform/`'s four layers, the shared `_shared/` wrappers, and `consumer-template/` fit together and what each must guarantee.
 
 If you are adding a new app bundle, building a new base sub-module, or writing a new consumer, this is your spec.
 
@@ -9,7 +9,7 @@ If you are adding a new app bundle, building a new base sub-module, or writing a
 - [Layered model](#layered-model)
 - [Terraform vs Ansible](#terraform-vs-ansible)
 - [The base ↔ app contract](#the-base--app-contract)
-  - [What `base/` outputs](#what-base-outputs)
+  - [What `base` provides](#what-base-provides)
   - [What every app bundle consumes](#what-every-app-bundle-consumes)
   - [What every app bundle exports](#what-every-app-bundle-exports)
 - [App bundle layout](#app-bundle-layout)
@@ -23,85 +23,57 @@ If you are adding a new app bundle, building a new base sub-module, or writing a
 
 ---
 
-## Tiers
+## Layers
 
-The repo organizes bundles by **what they're a dependency of**, not by what they do. Five tiers, ordered by who-depends-on-whom:
+The repo organizes bundles by **what they're a dependency of**, not by what they do. Four layers, each its own Terraform state, ordered by who-depends-on-whom:
 
-| Tier | Path | What lives here | Startup order |
-|------|------|-----------------|---------------|
-| **Base** | `platform/base/` | Cloud primitives — VPC, RDB, IAM, Secret Manager, DNS zones, baseline security groups, the shared Postgres instance, **Scaleway TEM** for outbound SMTP (writes the well-known `smtp-config` Scaleway secret every app sends through). Sub-tier `platform/base/host-services/` holds per-host watchers (diun, autoheal, wazuh-agent) that auto-instantiate from every compute host. | First. Nothing else can plan without these outputs. |
-| **Identity** | `platform/identity/` | The SSO server (Authentik) + flows + brand. Every OIDC-using app pulls its provider info from here. | After base. |
-| **Bootstrap** | `platform/bootstrap/` | Services that **apps depend on at runtime** beyond what base provides. Most apps use SMTP — Scaleway TEM in base covers that universally. Bootstrap is for the narrower set: IMAP gateways for mail-fetching apps, similar shared dependencies. Apps consume via shared Scaleway secrets (`imap-config` for the IMAP case) that bootstrap bundles write. | After base + identity. Before apps that depend on it. |
-| **Core** | `platform/core/` | Monitoring + SIEM stack every consumer gets by default — Loki (logs), Prometheus (metrics + alertmanager-style rules), Grafana (dashboards + unified alerting), Wazuh manager (SIEM events ingested from per-host wazuh-agents). Category non-optional; individual services flippable via `var.core.<svc>.enabled`. | After bootstrap. Before apps so apps emit metrics/logs into a running stack. |
-| **Apps** | `platform/apps/` | User-facing apps + per-host platform enrichment that's not core (backrest). Nothing depends on these for startup order; they consume base + identity + bootstrap + core, never the other way around. | Last. |
+| Layer | Path | What lives here | Apply order |
+|-------|------|-----------------|-------------|
+| **Infra** | `platform/infra/` | Scaleway substrate — VPC, RDB (incl. Authentik's DB), IAM, Secret Manager, DNS zones, per-role security groups, the shared Postgres instance, **Scaleway TEM** for outbound SMTP (writes the well-known `smtp-config` secret every app sends through), and the Authentik **bootstrap** secrets (admin/DB/token — the root of trust). Sub-tier `platform/infra/host-services/` holds per-host watchers (diun, autoheal, wazuh-agent) that auto-instantiate from every compute host. | First — birth-once. |
+| **Identity** | `platform/identity/` | The SSO server config (Authentik): flows, brand, tier groups + their nesting. Configured via the Authentik API. Every OIDC/forward-auth app pulls its provider info from here. | After infra. |
+| **Operations** | `platform/operations/` | Monitoring + SIEM every consumer gets by default — Loki (logs), Prometheus (metrics + rules), Grafana (dashboards + alerting), Wazuh manager (SIEM) — plus the `protonmail-bridge` IMAP gateway for mail-fetching apps. Each service flippable via its `<svc>.enabled` flag (default `true`). | After identity. |
+| **Application** | `platform/application/` | User-facing apps + the embedded forward-auth outpost + `backrest` (per-host backups). Apps consume the layers below and never each other (except gated `integrations/`). | Last — churns most. |
 
-### What makes something bootstrap-tier vs apps-tier
+The layers **self-discover** each other by name: a downstream layer rebuilds its `base` object from tagged `${org}-${env}-…` Scaleway + Authentik data sources (`platform/_shared/contract/`), not from `remote_state`. The dependency DAG is `infra → identity → {operations, application}`.
 
-A bundle is **bootstrap-tier** when ALL of these are true:
+### Where SMTP and IMAP live
 
-1. Other apps REQUIRE it to be running for their normal operation (not just "can use" — actually depend on).
-2. The dependency is platform-wide — consumed via a shared mechanism (Scaleway secret, base output, well-known DNS name), not via app-to-app TF references.
-3. Real startup-order constraint at deploy time.
-4. Single instance per environment.
-5. Disabling it breaks the platform's default "everything works" flow, not just one specific app.
+SMTP is a managed Scaleway product (TEM) with no host-side runtime, so it lives in **infra** (which already owns Scaleway resources) and writes `smtp-config`. The one runtime mail provider, `protonmail-bridge` (IMAP, for apps that *fetch* mail), is an **operations** bundle writing `imap-config`. Apps consume both by well-known secret name, never via app-to-app TF references.
 
-Counter-examples: an app that other apps merely *can* call (Outline isn't bootstrap-tier — nothing depends on it). Per-host enrichment without structural app-dependency (backrest — apps-tier, even though it's "platform" in spirit). Notifuse: it sends through SMTP itself; it's not the SMTP gateway. Apps-tier.
+### Host-services sub-tier (under infra)
 
-### Core-tier vs apps-tier vs base host-services
-
-The platform-enrichment fleet splits across three tiers based on **scope** + **per-host vs single-instance**:
-
-- `platform/base/host-services/` — per-host watchers (one container per compute host). diun, autoheal, wazuh-agent. Auto-instantiated by base from `var.compute_hosts`. No app-level toggle; opt-out per-host via `disabled_hosts`.
-- `platform/core/` — single-instance monitoring/SIEM stack (loki, prometheus, grafana, wazuh manager). One per env, typically on the `management` host. Category non-optional; per-service `var.core.<svc>.enabled` toggle.
-- `platform/apps/` — backrest (multi-instance per backed-up host; consumer-instantiated explicitly), plus all user-facing apps.
-
-SMTP (Scaleway TEM) lives in **base**, not bootstrap, because (a) every app uses it, (b) it's a managed Scaleway product with no host-side runtime — base already owns Scaleway resources. The bootstrap tier is for runtime-host-bound services where base would be the wrong owner.
-
-### Host-services sub-tier (under base)
-
-`platform/base/host-services/` holds per-host runtime watchers — one instance per `compute_hosts` entry, fanned out automatically by `platform/base/terraform/host_services.tf`. Consumer surface is `var.base.<service>.{enabled, disabled_hosts, per_host, ...}`; no per-host `module ".." { ... }` blocks in the consumer.
-
-Earmarked for this sub-tier: `diun/` (notify-on-new-image), `autoheal/` (container restart on unhealthy), `wazuh-agent/` (log shipper to wazuh manager). These currently still live in `platform/apps/` and are scheduled to move in subsequent v3.4.0 tickets; the sub-tree exists in v3.4.0-prep as scaffolding only.
-
-Host-services are distinct from `platform/bootstrap/`: bootstrap is shared infrastructure providers (SMTP/IMAP gateways) consumed by many apps; host-services are per-host runtime watchers consumed by nobody. They sit under `base/` because every host needs them by default and they bind to the host's lifecycle, not an app's.
+`platform/infra/host-services/` holds per-host runtime watchers — one instance per `compute_hosts` entry, fanned out by `platform/infra/terraform/host_services.tf`. Consumer surface is the `<service>.{enabled, disabled_hosts, ...}` block in `infra.yml`; no per-host `module ".." { ... }` blocks in the consumer. They sit under infra because every host needs them by default and bind to the host's lifecycle, not an app's. The fleet: `diun/` (notify-on-new-image), `autoheal/` (restart unhealthy containers), `wazuh-agent/` (log shipper to the wazuh manager).
 
 ---
 
 ## Layered model
 
 ```
-modules/             # Low-level Terraform primitives. No application semantics.
-                     # Reusable building blocks: network, compute, postgres,
-                     # object_bucket, secrets, app_dns, oidc-app, saml-app, etc.
+platform/_shared/        # Low-level Terraform primitives + Authentik app wrappers +
+                         # the data-source contract. No environment specifics.
+                         #   infrastructure/{network, compute, postgres, object_bucket,
+                         #   secrets, app_dns, …}, authentik/{oidc-app, saml-app, …},
+                         #   contract/ (rebuilds `base` from ${org}-${env} data sources).
 
-base/                # The platform every consumer needs once.
-                     # Composes modules/ into a Scaleway project layout, the
-                     # shared postgres + TEM, and a set of bootstrap Ansible
-                     # roles (docker, traefik, fail2ban, ...). host-services/
-                     # is a sub-tier of per-host watchers.
+platform/infra/          # Layer 1. Scaleway substrate + Authentik bootstrap secrets +
+                         # host-services. Birth-once.
 
-identity/            # Authentik + flows + groups.
+platform/identity/       # Layer 2. Authentik flows + tier groups + brand (via the API).
 
-bootstrap/<name>/    # Bootstrap-tier provider bundles (protonmail-bridge,
-                     # future SMTP providers).
+platform/operations/<svc>/   # Layer 3. loki, prometheus, grafana, wazuh, protonmail-bridge.
 
-core/<name>/         # Core-tier monitoring/SIEM bundles (loki, prometheus,
-                     # grafana, wazuh manager). Composed via core/terraform/
-                     # into a single module.core block.
+platform/application/<name>/ # Layer 4. One self-contained bundle per app. Owns its
+                         # Authentik OIDC/SAML resources, DNS records, S3 bucket,
+                         # database, secrets, monitoring artifacts, and Ansible deploy
+                         # role. Inert when disabled.
 
-apps/<name>/         # One self-contained bundle per app. Owns its Authentik
-                     # OIDC/SAML resources, its DNS records, its S3 bucket,
-                     # its database, its secrets, its monitoring artifacts,
-                     # and its Ansible deploy role. Inert when disabled.
-
-consumer-template/   # The starter a new org copies. Calls base/ once and
-                     # calls platform/apps/<name>/ as many times as the org needs.
-                     # Holds config.tf, backend.hcl, inventory.ini, and site.yml.
+consumer-template/       # The starter a new org copies. One Terraform root per layer
+                         # under environments/<env>/; the per-layer scripts deploy them.
 ```
 
-**Dependency direction**: `consumer-template` → `base` and `apps/*`. `apps/*` → `base` (via consumer-passed outputs) and `modules/*`. `base` → `modules/*`. `modules/*` depends on nothing in this tree.
+**Dependency direction**: each consumer root → its `platform/<layer>/terraform` → `platform/_shared/*`. Downstream layers discover upstream resources by tag (no cross-layer TF references); `_shared/*` depends on nothing in this tree.
 
-Apps never depend on each other directly. Cross-app coupling lives in `platform/apps/<name>/integrations/<other-app>.tf` and is gated by a toggle that only fires if both apps are enabled.
+Apps never depend on each other directly. Cross-app coupling lives in `platform/application/<name>/integrations/<other-app>.tf` and is gated by a toggle that only fires if both apps are enabled.
 
 ---
 
@@ -126,7 +98,7 @@ Apps never depend on each other directly. Cross-app coupling lives in `platform/
 
 ### The bridge: `output "ansible"`
 
-Every bundle's TF emits one map describing how Ansible should deploy it. Example from `platform/apps/outline/terraform/outputs.tf`:
+Every bundle's TF emits one map describing how Ansible should deploy it. Example from `platform/application/outline/terraform/outputs.tf`:
 
 ```hcl
 output "ansible" {
@@ -198,14 +170,14 @@ For consumers migrating off a pre-v3 stack: bring credentials over by populating
 
 ## The base ↔ app contract
 
-### What `base/` outputs
+### What `base` provides
 
-`base/` is the contract surface for every app. Every output here is stable across patch and minor releases. Breaking these is a major version bump.
+`base` is the contract surface for every app — assembled by `platform/_shared/contract/` from the infra + identity layers' tagged resources, and passed to each bundle as `var.base`. Every field here is stable across patch and minor releases. Breaking these is a major version bump.
 
 The contract is split by concern:
 
 ```hcl
-# From platform/base/terraform/outputs.tf
+# From platform/infra/terraform/outputs.tf
 output "scaleway" {
   description = "Scaleway platform handles. Apps use these to provision their own resources."
   value = {
@@ -281,7 +253,7 @@ Apps consume `var.base` as one object. Adding a field to `base` requires no cons
 
 ### What every app bundle consumes
 
-Every app bundle MUST declare these inputs in `platform/apps/<name>/variables.tf`:
+Every app bundle MUST declare these inputs in `platform/application/<name>/variables.tf`:
 
 ```hcl
 variable "enabled" {
@@ -333,7 +305,7 @@ An app MAY declare additional inputs for its own specifics (e.g. `outline_smtp_f
 
 ### What every app bundle exports
 
-Every app bundle MUST export these outputs in `platform/apps/<name>/outputs.tf`:
+Every app bundle MUST export these outputs in `platform/application/<name>/outputs.tf`:
 
 ```hcl
 output "enabled" {
@@ -423,10 +395,10 @@ The split-dns aggregation makes the monitoring stack truly host-independent: Gra
 
 ## App bundle layout
 
-Every `platform/apps/<name>/` directory follows this exact structure:
+Every `platform/application/<name>/` directory follows this exact structure:
 
 ```
-platform/apps/outline/
+platform/application/outline/
 ├── terraform/
 │   ├── versions.tf          # Required providers (scaleway, authentik, random)
 │   ├── variables.tf         # The contract inputs above, plus app-specific ones
@@ -457,7 +429,7 @@ platform/apps/outline/
 └── README.md                 # Spec: inputs, outputs, what this app brings, what integrations exist
 ```
 
-Files in `terraform/` may be omitted when not applicable (a static app may have no `database.tf`). Files in `monitoring/` may be empty stubs when the app exposes no metrics. The `ansible/` directory is required for every app (no terraform-only apps in this design — if you only need Authentik config, write a `bookmark` app or extend `base/`).
+Files in `terraform/` may be omitted when not applicable (a static app may have no `database.tf`). Files in `monitoring/` may be empty stubs when the app exposes no metrics. The `ansible/` directory is required for every app (no terraform-only apps in this design — if you only need Authentik config, write a `bookmark` app or extend the infra layer).
 
 ---
 
@@ -486,9 +458,9 @@ The consumer's `apps.tf` reads `var.apps` and passes per-app config to each modu
 
 ```hcl
 module "outline" {
-  source   = "git::https://github.com/sheyaln/sabokit.git//platform/apps/outline/terraform?ref=v2.1.0"
-  enabled  = try(var.apps.outline.enabled, false)
-  hostname = try(var.apps.outline.hostname, "")
+  source   = "git::https://github.com/sheyaln/sabokit.git//platform/application/outline/terraform?ref=v2.1.0"
+  enabled  = try(var.outline.enabled, false)
+  hostname = try(var.outline.hostname, "")
   base     = module.base
 }
 ```
@@ -515,7 +487,7 @@ Every app declares its monitoring artifacts whether or not monitoring is enabled
 ### Inside an app: `monitoring.tf`
 
 ```hcl
-# platform/apps/outline/terraform/monitoring.tf
+# platform/application/outline/terraform/monitoring.tf
 output "monitoring" {
   description = "Monitoring contribution. null when disabled or opted out."
   value = (var.enabled && var.monitoring_enabled) ? {
@@ -562,8 +534,8 @@ locals {
 ```hcl
 module "prometheus" {
   source         = "git::...//apps/prometheus/terraform?ref=v2.1.0"
-  enabled        = try(var.apps.prometheus.enabled, false)
-  hostname       = try(var.apps.prometheus.hostname, "")
+  enabled        = try(var.prometheus.enabled, false)
+  hostname       = try(var.prometheus.hostname, "")
   base           = module.base
   scrape_configs = local.all_scrape_configs
   alert_rules    = local.all_alert_rules
@@ -582,7 +554,7 @@ This pattern means:
 When app A needs to know about app B, write `apps/A/terraform/integrations/B.tf`. The file is gated by a per-integration toggle and a check that both apps are enabled.
 
 ```hcl
-# apps/n8n/terraform/integrations/nextcloud.tf
+# platform/application/n8n/terraform/integrations/nextcloud.tf
 # Creates an Authentik service account that n8n uses to talk to Nextcloud's API.
 
 variable "integrate_with_nextcloud" {
@@ -620,10 +592,10 @@ In the consumer:
 ```hcl
 module "n8n" {
   source                            = "git::...//apps/n8n/terraform?ref=v2.1.0"
-  enabled                           = try(var.apps.n8n.enabled, false)
-  hostname                          = try(var.apps.n8n.hostname, "")
+  enabled                           = try(var.n8n.enabled, false)
+  hostname                          = try(var.n8n.hostname, "")
   base                              = module.base
-  integrate_with_nextcloud          = try(var.apps.n8n.integrate_with_nextcloud, false)
+  integrate_with_nextcloud          = try(var.n8n.integrate_with_nextcloud, false)
   nextcloud_application_group_id    = module.nextcloud.authentik_application_group_id
 }
 ```
@@ -685,13 +657,13 @@ module "base" {
 Tags drive everything. Consumers pin module sources to a tag:
 
 ```hcl
-source = "git::https://github.com/sheyaln/sabokit.git//platform/apps/outline/terraform?ref=v2.1.0"
+source = "git::https://github.com/sheyaln/sabokit.git//platform/application/outline/terraform?ref=v2.1.0"
 ```
 
-Tag scheme: `v<major>.<minor>.<patch>` at the repo root. **One tag covers the whole monorepo** — every module under `base/`, `apps/`, and `modules/` is versioned together. This trades fine-grained independence for "the whole platform moves as one", which is the right trade-off for a blueprint.
+Tag scheme: `v<major>.<minor>.<patch>` at the repo root. **One tag covers the whole monorepo** — every layer and bundle under `platform/` is versioned together. This trades fine-grained independence for "the whole platform moves as one", which is the right trade-off for a blueprint.
 
 - **Patch** (`v1.0.1`): bug fixes, doc-only changes. Safe to bump without reading notes.
-- **Minor** (`v1.1.0`): additive. New inputs with defaults, new outputs, new apps in `apps/`. Safe to bump.
+- **Minor** (`v1.1.0`): additive. New inputs with defaults, new outputs, new apps in `platform/application/`. Safe to bump.
 - **Major** (`v2.0.0`): breaking. Variable renames, removed outputs, resource address changes requiring `terraform state mv`. Release notes detail every required migration step.
 
 A consumer bumps via the `scripts/bump-version.sh <version>` helper (shipped with `consumer-template/`). The script greps for `ref=v` and rewrites in place.
@@ -721,9 +693,9 @@ locals {
 
 ```hcl
 module "outline" {
-  source   = "git::https://github.com/sheyaln/sabokit.git//platform/apps/outline/terraform?ref=v2.1.0"
-  enabled  = try(var.apps.outline.enabled, false)
-  hostname = try(var.apps.outline.hostname, "")
+  source   = "git::https://github.com/sheyaln/sabokit.git//platform/application/outline/terraform?ref=v2.1.0"
+  enabled  = try(var.outline.enabled, false)
+  hostname = try(var.outline.hostname, "")
   base     = module.base
 }
 ```
@@ -752,14 +724,14 @@ module "outline" {
 
 ### What the Ansible role does
 
-`platform/apps/outline/ansible/role/tasks/main.yml`:
+`platform/application/outline/ansible/role/tasks/main.yml`:
 1. Fetches the bag of secrets from Scaleway Secret Manager (uses base's `scw-secrets` role)
 2. Renders `docker-compose.yml.j2` with the secret values and the Outline image
 3. Renders `env.j2` with non-secret config (FORCE_HTTPS=true, hostname, etc.)
 4. Ensures Traefik labels are present on the compose service for routing
 5. Runs `docker compose up -d` on the target host
 
-`platform/apps/outline/ansible/playbook.yml`:
+`platform/application/outline/ansible/playbook.yml`:
 ```yaml
 - name: Deploy Outline
   hosts: "{{ outline_host_group | default('tools') }}"
@@ -771,8 +743,8 @@ module "outline" {
 ### Consumer site.yml
 
 ```yaml
-- import_playbook: ../apps/outline/ansible/playbook.yml
-- import_playbook: ../apps/steward/ansible/playbook.yml
+- import_playbook: ../application/outline/ansible/playbook.yml
+- import_playbook: ../application/steward/ansible/playbook.yml
 # ... etc; comment lines for apps you don't want
 ```
 

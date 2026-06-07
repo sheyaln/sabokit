@@ -4,7 +4,7 @@ Installs and runs a self-hosted Authentik (server + worker) as a docker-compose 
 
 ## Run order
 
-1. `platform/base/ansible/roles/traefik` must have run on the host first (the Authentik container attaches to the `traefik` Docker network and emits routing labels).
+1. `platform/infra/ansible/roles/traefik` must have run on the host first (the Authentik container attaches to the `traefik` Docker network and emits routing labels).
 2. The Scaleway Postgres `authentik` database must exist (provisioned via terraform — either base postgres + a per-app `postgres_database` module call, or pre-existing).
 3. The Scaleway secrets enumerated below must be populated before this role runs.
 
@@ -14,7 +14,7 @@ Installs and runs a self-hosted Authentik (server + worker) as a docker-compose 
 |----------|--------|
 | `authentik_hostname` | Full hostname Authentik is served at (`auth.example.org`). |
 | `authentik_postgres_secret_id` | Scaleway secret ID. Payload: `{host, port, dbname, username, password}`. |
-| `authentik_admin_secret_id` | Scaleway secret ID. Payload: `{username, email, password, api_token}`. The bootstrap admin user is created from password+email on first boot, and the api_token field becomes the AUTHENTIK_BOOTSTRAP_TOKEN — Authentik creates a Token row with that key, which is what the Terraform `authentik` provider then authenticates with. See `platform/identity/bootstrap/`. |
+| `authentik_admin_secret_id` | Scaleway secret ID. Payload: `{username, email, password, api_token}`. The bootstrap admin user is created from password+email on first boot, and the api_token field becomes the AUTHENTIK_BOOTSTRAP_TOKEN — Authentik creates a Token row with that key, which is what the Terraform `authentik` provider then authenticates with. See `platform/infra/authentik-bootstrap/`. |
 | `authentik_server_secret_id` | Scaleway secret ID. Payload: `{secret_key}` (32+ random bytes). |
 
 ## Optional variables
@@ -45,7 +45,7 @@ Installs and runs a self-hosted Authentik (server + worker) as a docker-compose 
 
 The role wires `AUTHENTIK_BOOTSTRAP_TOKEN` from the `api_token` field of the admin secret. Authentik's first-boot migration creates a Token row whose `key` equals that env var's value — so by the time the role's "wait for healthy" loop exits, the token already exists and matches what was stored in Terraform state.
 
-`deploy.sh` reads the same `api_token` field from the admin secret and exports it as `TF_VAR_authentik_admin_token` before the second-phase `terraform apply` that drives the `authentik` provider. The provider authenticates with the same value Authentik just minted — no out-of-band mint, no `ak shell`, no `POST /api/v3/core/tokens/`.
+The identity deploy script (`scripts/identity.sh`) reads the same `api_token` field from the admin secret and exports it as `TF_VAR_authentik_admin_token` before the identity-layer `terraform apply` that drives the `authentik` provider. The provider authenticates with the same value Authentik just minted — no out-of-band mint, no `ak shell`, no `POST /api/v3/core/tokens/`.
 
 Re-applies are a no-op: Terraform pins the token via `lifecycle.ignore_changes = [data]` on the admin secret version, and Authentik treats the env var as a no-op once a Token with that key exists.
 

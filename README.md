@@ -163,7 +163,7 @@ Per-module documentation lives next to each module's `main.tf`.
 
 ## Project status
 
-The end-to-end consumer flow (`sabokit init` → `sabokit up` → `sabokit deploy`) is dogfooded against a real staging Scaleway project every release cycle. The platform↔app contract is validated in CI by `tests/local-validate/`. Adding a new app: copy `platform/apps/outline/` as the reference and follow the bundle contract in [CONVENTIONS.md](./CONVENTIONS.md).
+The end-to-end consumer flow (`sabokit init` → `sabokit up` → `sabokit deploy`) is dogfooded against a real staging Scaleway project every release cycle. The platform↔app contract is validated in CI by `tests/local-validate/`. Adding a new app: copy `platform/application/outline/` as the reference and follow the bundle contract in [CONVENTIONS.md](./CONVENTIONS.md).
 
 ## License
 

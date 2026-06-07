@@ -1,4 +1,4 @@
-# apps/privacy-policy
+# privacy-policy
 
 Public static HTML page for serving your organization's privacy policy at a stable URL. Single nginx container behind Traefik, DNS A record, no DB, no Authentik integration — privacy policies must be reachable without login for compliance. The consumer supplies HTML and (optionally) a logo via Ansible vars.
 

@@ -4,7 +4,7 @@
 
 Replaces the legacy `apps/watchtower` bundle (Watchtower upstream was archived 2025-12-17). Behaviour shift: Diun **notifies**, it does NOT pull or restart. Operator (or an n8n workflow) decides whether/when to apply each update.
 
-Auto-instantiated per `var.compute_hosts` entry from `platform/base/terraform/host_services.tf` at v3.4.0+. Consumer surface is `var.base.diun.{enabled, disabled_hosts, ...}` — see `platform/base/terraform/variables.tf`. Not called as a standalone module from consumer-template.
+Auto-instantiated per `var.compute_hosts` entry from `platform/infra/terraform/host_services.tf` at v3.4.0+. Consumer surface is `var.base.diun.{enabled, disabled_hosts, ...}` — see `platform/infra/terraform/variables.tf`. Not called as a standalone module from consumer-template.
 
 ## Inputs
 

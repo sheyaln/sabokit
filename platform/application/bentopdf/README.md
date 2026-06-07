@@ -1,4 +1,4 @@
-# apps/bentopdf
+# bentopdf
 
 BentoPDF — browser-based PDF toolkit (merge, split, OCR, redact). Stateless: no DB, no secrets, no S3. Authentik proxy-provider + per-app group, DNS record, single-container docker-compose deploy behind Traefik.
 

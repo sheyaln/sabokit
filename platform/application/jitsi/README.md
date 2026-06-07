@@ -1,4 +1,4 @@
-# apps/jitsi
+# jitsi
 
 Jitsi Meet — self-hosted WebRTC video conferencing. Deploys five containers (web, prosody, jicofo, jvb, oidc-adapter) as a docker-compose stack with OIDC via an external JWT adapter.
 

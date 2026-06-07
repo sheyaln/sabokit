@@ -1,4 +1,4 @@
-# apps/wazuh
+# wazuh
 
 [Wazuh](https://wazuh.com) server stack — manager + indexer (OpenSearch fork) + dashboard. SIEM + endpoint detection. Dashboard delegates SSO to opensearch-security's native OIDC backend pointed at Authentik — users hit the dashboard with their own identity, group claims become opensearch backend roles via `roles_mapping.yml`.
 

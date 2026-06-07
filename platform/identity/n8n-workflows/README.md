@@ -2,7 +2,7 @@
 
 n8n workflow JSONs that implement the **user-onboarding pipeline**. Authentik fires a webhook on user lifecycle events (signup, activation, update, deactivation); the parent dispatcher routes the event to the right downstream subworkflows (Slack notifications + threaded reply, EspoCRM Member upsert, Slack-workspace invite stub, Broadsheet mailing-list subscribe).
 
-Lives in `platform/identity/` (not `platform/apps/n8n/`) because these workflows are **identity-flow concerns**: their inputs are Authentik user events and their outputs span identity, CRM, comms, and email — they're not part of n8n the app, they happen to run on it.
+Lives in `platform/identity/` (not `platform/application/n8n/`) because these workflows are **identity-flow concerns**: their inputs are Authentik user events and their outputs span identity, CRM, comms, and email — they're not part of n8n the app, they happen to run on it.
 
 The n8n role does NOT auto-import these. They're versioned JSON artifacts an operator imports once via the n8n UI. The pipeline expects all four to be present.
 

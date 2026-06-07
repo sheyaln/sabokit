@@ -1,4 +1,4 @@
-# apps/steward
+# steward
 
 [Steward](https://github.com/sheyaln/sabokit-steward) — friendly Authentik admin UI for non-technical organization admins (membership secretaries, organizers, chapter admins). OIDC login plus a non-expiring Authentik API token for server-to-server admin calls; PostgreSQL DB for Steward's audit log and import-job state; Ansible role deploying `web` + `qcluster` containers behind Traefik. Authentik remains the source of truth — Steward holds no local user mirror.
 

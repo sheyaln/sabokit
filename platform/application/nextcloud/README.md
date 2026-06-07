@@ -1,4 +1,4 @@
-# apps/nextcloud
+# nextcloud
 
 Nextcloud + OnlyOffice Document Server + Talk HPB as one bundle: five containers, three hostnames, one docker-compose stack. Primary file storage is S3; PostgreSQL is the shared instance.
 

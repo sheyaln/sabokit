@@ -1,4 +1,4 @@
-# apps/outline
+# outline
 
 Outline — Markdown-first knowledge base. OIDC, DNS record, S3 bucket for attachments, PostgreSQL DB, secrets bag, Ansible role deploying Outline + Redis via docker-compose. ARCHITECTURE.md uses this bundle as its worked example.
 

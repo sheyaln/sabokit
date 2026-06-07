@@ -35,7 +35,7 @@ With an overlay:
 docker run --rm -it \
   -v "$PWD/env:/env:ro" \
   -v "$PWD/ansible-local:/consumer:ro" \
-  -e ANSIBLE_ROLES_PATH=/opt/sabokit/platform/apps:/opt/sabokit/platform/base/ansible/roles:/consumer/roles \
+  -e ANSIBLE_ROLES_PATH=/opt/sabokit/platform/apps:/opt/sabokit/platform/infra/ansible/roles:/consumer/roles \
   -v "$SSH_AUTH_SOCK:/ssh-agent" -e SSH_AUTH_SOCK=/ssh-agent \
   ghcr.io/sheyaln/sabokit-runner:vX.Y.Z \
   /opt/sabokit/platform/ansible/site.yml /consumer/extensions.yml \

@@ -1,6 +1,6 @@
 # local-validate
 
-End-to-end `terraform validate` harness. Wires `platform/base/terraform`, `platform/identity/terraform`, and `apps/outline` together to catch cross-module type mismatches in CI.
+End-to-end `terraform validate` harness. Wires `platform/infra/terraform`, `platform/identity/terraform`, and `apps/outline` together to catch cross-module type mismatches in CI.
 
 ```bash
 cd tests/local-validate

@@ -1,4 +1,4 @@
-# apps/vikunja
+# vikunja
 
 Vikunja — open-source task and project tracker. OIDC, DNS record, PostgreSQL DB, secrets bag, Ansible role deploying a single-container docker-compose stack with a host-side bind mount for attachments. No S3, no Redis — Vikunja keeps state in Postgres plus a filesystem volume.
 

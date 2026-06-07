@@ -2,7 +2,7 @@
 
 The rules every module and app bundle in this repo follows. Read [ARCHITECTURE.md](./ARCHITECTURE.md) first — that's the contract. This file is the style guide.
 
-If you are adding a new module under `modules/`, a new app bundle under `apps/`, or extending `base/`, follow these conventions. If you find a violation in existing code, fix it.
+If you are adding a new wrapper under `platform/_shared/`, a new app bundle under `platform/application/`, or extending a layer (`platform/infra|identity|operations/`), follow these conventions. If you find a violation in existing code, fix it.
 
 ---
 
@@ -75,7 +75,7 @@ In app bundles, the `hostname` variable is REQUIRED (no default). Consumers alwa
 
 ### Naming
 - Match the input name when reflecting back: input `private_network_id`, output `private_network_id`.
-- Prefer one structured output (`output "scaleway" { value = {...} }`) over many flat outputs for the platform-contract surface. See `platform/base/terraform/outputs.tf` for the canonical shape.
+- Prefer one structured output (`output "scaleway" { value = {...} }`) over many flat outputs for the platform-contract surface. See `platform/infra/terraform/outputs.tf` for the canonical shape.
 - App bundle outputs are defined in [ARCHITECTURE.md "What every app bundle exports"](./ARCHITECTURE.md#what-every-app-bundle-exports). Don't add others without updating the contract.
 
 ### Sensitive
@@ -124,7 +124,7 @@ A module is one purpose. If you find yourself wanting `if-this-thing-also` flags
 
 ## READMEs
 
-Every directory under `modules/`, `base/`, and `apps/` has a `README.md` with this structure:
+Every bundle and wrapper directory under `platform/` has a `README.md` with this structure:
 
 ```markdown
 # <module-name>
@@ -161,5 +161,5 @@ No fluff. No "why we built this" essays — that's for ARCHITECTURE.md and commi
 ## When in doubt
 
 1. Read [ARCHITECTURE.md](./ARCHITECTURE.md).
-2. Look at how `platform/base/terraform/` does it (canonical platform module) or `platform/apps/outline/` (canonical app bundle).
+2. Look at how `platform/infra/terraform/` does it (canonical platform module) or `platform/application/outline/` (canonical app bundle).
 3. If still in doubt, copy the closest existing pattern and ask in a PR.

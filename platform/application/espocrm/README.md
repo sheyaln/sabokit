@@ -1,4 +1,4 @@
-# apps/espocrm
+# espocrm
 
 EspoCRM — open-source PHP CRM for tracking customers, members, donors, or any other constituent relationship. Deploys EspoCRM + its cron daemon as a docker-compose stack behind Traefik. PostgreSQL is the shared instance; the rest lives in the `espocrm-data` named volume. **Back up that volume** — it holds `data/config.php` plus the application files. No S3, no Redis. After deploy, three PHP bootstrap scripts are `docker cp`'d in to wire OIDC, optional member entities, and optional webhooks.
 

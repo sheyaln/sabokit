@@ -1,6 +1,6 @@
 # platform/ansible
 
-Orchestration layer for the platform's Ansible side. Role *definitions* live next to the bundles they belong to (`platform/base/ansible/roles/`, `platform/apps/<name>/ansible/roles/`, `platform/identity/ansible/roles/`); this directory holds the *playbooks* that wire them together.
+Orchestration layer for the platform's Ansible side. Role *definitions* live next to the bundles they belong to (`platform/infra/ansible/roles/`, `platform/application/<name>/ansible/roles/`, `platform/identity/ansible/roles/`); this directory holds the *playbooks* that wire them together.
 
 ## Files
 
@@ -8,8 +8,10 @@ Orchestration layer for the platform's Ansible side. Role *definitions* live nex
 |------|---------|
 | [`ansible.cfg`](./ansible.cfg) | `roles_path` enumerating every bundle's `ansible/roles/` dir. When you add a new app, append it. |
 | [`bootstrap.yml`](./bootstrap.yml) | Prereqs every host needs once: docker, traefik, fail2ban, scw-secrets, monitoring-agent, ufw, log-management, unattended-upgrades. Tag: `bootstrap`. |
-| [`apps.yml`](./apps.yml) | One `import_playbook` per app, conditional on `enabled_apps.<name>` being non-null. Tag: `apps`, plus per-app tag. |
-| [`site.yml`](./site.yml) | `bootstrap.yml` + `apps.yml`. The default entry point. |
+| [`host-services.yml`](./host-services.yml) | One `import_playbook` per per-host watcher instance (diun/autoheal/wazuh-agent). Tag: `host-services`. **Auto-generated** by `scripts/gen_apps_yml.py`. |
+| [`operations.yml`](./operations.yml) | One `import_playbook` per operations service (loki/prometheus/grafana/wazuh/protonmail-bridge). Tag: `operations`, plus per-service tag. **Auto-generated.** |
+| [`application.yml`](./application.yml) | One `import_playbook` per app, conditional on `enabled_apps.<name>` being non-null. Tag: `application`, plus per-app tag. **Auto-generated.** |
+| [`site.yml`](./site.yml) | `bootstrap.yml` + `host-services.yml` + `operations.yml` + `application.yml`. The default entry point. |
 
 ## Two-stage deploy model
 
@@ -21,13 +23,13 @@ App roles assume bootstrap is already done — they assert prereqs (e.g. `docker
 
 ## How the consumer drives this
 
-Consumers don't usually invoke this dir directly. They use `consumer-template/environments/<env>/deploy.sh`, which:
+Consumers don't usually invoke this dir directly. They use the per-layer scripts (`consumer-template/scripts/{infra,identity,operations,application}.sh`, or `up.sh`), each of which:
 
-1. Runs `terraform apply`.
+1. Runs `terraform apply` for its layer.
 2. Writes `terraform output -json enabled_apps > .enabled_apps.json`.
-3. Calls `ansible-playbook platform/ansible/site.yml -e @.enabled_apps.json -i inventory.ini`.
+3. Calls `ansible-playbook ansible-local/site.yml -e @.enabled_apps.json -i inventory.ini --tags <layer>`.
 
-Each app's `import_playbook` in `apps.yml` is gated on `enabled_apps.<name> is not none`, so disabled apps are silently skipped.
+Each app's `import_playbook` is gated on `enabled_apps.<name> is not none`, so disabled apps are silently skipped.
 
 ## `[secrets]` tag — rotation path
 
@@ -35,9 +37,9 @@ Tasks tagged `[secrets]` form the secret-rotation path — running `ansible-play
 
 ## Adding a new app
 
-1. Ship the app bundle under `platform/apps/<new-app>/`.
+1. Ship the app bundle under `platform/application/<new-app>/`.
 2. Append its `ansible/roles` dir to `ansible.cfg`'s `roles_path`.
-3. Add an `import_playbook` block in `apps.yml` with the right `when:` and `vars:`.
+3. Run `python3 scripts/gen_apps_yml.py` to regenerate `application.yml` from the bundle's `ansible` output — never hand-edit the generated playbooks.
 
 ## Required collections
 

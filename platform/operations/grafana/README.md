@@ -1,4 +1,4 @@
-# apps/grafana
+# grafana
 
 Grafana UI behind Authentik OIDC, with Prometheus + Loki datasources pre-provisioned. Reads metrics from the `prometheus` bundle and logs from the `loki` bundle via the shared `monitoring_internal` docker network.
 
