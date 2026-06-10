@@ -14,12 +14,14 @@ locals {
   hosts    = yamldecode(file("${path.root}/../hosts.yml"))
   infra    = yamldecode(file("${path.root}/../infra.yml"))
 
-  # Merge per-env sizing (env.yml, keyed by host role) into the persistent
-  # topology (hosts.yml). The module needs instance_type + disk_size per host.
+  # Merge per-env sizing (env.yml, keyed by host KEY) into the persistent
+  # topology (hosts.yml). Keyed by the host key, not role — a host's role
+  # (apps/auth/…) need not equal its key (tools/identity/…), and sizing is
+  # per-host. The module needs instance_type + disk_size per host.
   compute_hosts = {
     for k, h in local.hosts.compute_hosts : k => merge(h, {
-      instance_type = local.env.compute_instance_types[h.role]
-      disk_size     = local.env.compute_disk_sizes[h.role]
+      instance_type = local.env.compute_instance_types[k]
+      disk_size     = local.env.compute_disk_sizes[k]
     })
   }
 }

@@ -19,16 +19,19 @@ output "spf_include" {
 output "host_services" {
   description = "Per-host watcher instances (diun/autoheal/wazuh-agent) the host-services play deploys."
   value       = module.infra.host_services
+  sensitive   = true
 }
 
 output "identity_bootstrap" {
   description = "Secret-ID map the authentik-server Ansible role consumes. Passed to the identity deploy as -e identity_bootstrap=$(terraform output -json identity_bootstrap)."
   value       = module.infra.identity_bootstrap
+  sensitive   = true
 }
 
 output "authentik_admin_secret_id" {
   description = "Scaleway secret holding {username,email,password,api_token}. The deploy scripts fetch api_token -> TF_VAR_authentik_admin_token for the identity/operations/application layers."
   value       = module.infra.authentik_admin_secret_id
+  sensitive   = true
 }
 
 output "infra_email" {
