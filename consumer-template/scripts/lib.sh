@@ -16,6 +16,25 @@ set -euo pipefail
 
 ENVIRONMENTS_DIR="environments"
 
+# The blueprint tree. ../sabokit is the sibling-checkout convention; inside
+# the runner image it's the baked /workspace/sabokit -> /opt/sabokit symlink.
+SABOKIT_TREE="${SABOKIT_TREE:-../sabokit}"
+
+# Ansible plays run from the consumer root (no ansible.cfg there), so point
+# ansible at the blueprint's cfg and pin the role search paths absolutely —
+# relative roles_path entries don't survive a non-platform/ansible cwd.
+if [ -z "${ANSIBLE_CONFIG:-}" ] && [ -f "${SABOKIT_TREE}/platform/ansible/ansible.cfg" ]; then
+  export ANSIBLE_CONFIG="${SABOKIT_TREE}/platform/ansible/ansible.cfg"
+fi
+if [ -z "${ANSIBLE_ROLES_PATH:-}" ]; then
+  _p="$(cd "${SABOKIT_TREE}/platform" 2>/dev/null && pwd || true)"
+  if [ -n "$_p" ]; then
+    export ANSIBLE_ROLES_PATH="${_p}/infra/ansible/roles:${_p}/identity/ansible/roles:$(pwd)/ansible-local/roles"
+  fi
+  unset _p
+fi
+export ANSIBLE_HOST_KEY_CHECKING="${ANSIBLE_HOST_KEY_CHECKING:-False}"
+
 log()  { printf '\033[1;34m[sabokit]\033[0m %s\n' "$*" >&2; }
 die()  { printf '\033[1;31m[sabokit] ERROR:\033[0m %s\n' "$*" >&2; exit 1; }
 
@@ -25,6 +44,61 @@ layer_dir() { echo "${ENVIRONMENTS_DIR}/$1/$2"; }
 require_env() {
   [ -n "${1:-}" ] || die "usage: $(basename "${0:-script}") <env>"
   [ -d "$(env_dir "$1")" ] || die "no $(env_dir "$1") — copy environments/_template first"
+}
+
+# env_value <env> <key> [default] — read one scalar from the env's env.yml.
+env_value() {
+  python3 - "$(env_dir "$1")/env.yml" "$2" "${3:-}" <<'PY'
+import sys, yaml
+d = yaml.safe_load(open(sys.argv[1])) or {}
+v = d.get(sys.argv[2])
+print(v if v is not None else sys.argv[3])
+PY
+}
+
+# ── Waits (the slow physics between layers) ──────────────────────────────────
+# wait_for <desc> <timeout_s> <interval_s> <probe...> — poll probe until it
+# exits 0 or the deadline passes.
+
+wait_for() {
+  local desc="$1" timeout="$2" interval="$3"; shift 3
+  local deadline=$(( $(date +%s) + timeout ))
+  until "$@" >/dev/null 2>&1; do
+    [ "$(date +%s)" -lt "$deadline" ] || die "timed out after ${timeout}s waiting for ${desc}"
+    sleep "$interval"
+  done
+}
+
+tcp_open()     { (exec 3<>"/dev/tcp/$1/$2") 2>/dev/null; }
+dns_resolves() { getent hosts "$1" >/dev/null 2>&1 || python3 -c 'import socket,sys; socket.gethostbyname(sys.argv[1])' "$1" 2>/dev/null; }
+# No -k: this is also the Let's-Encrypt gate — traefik's self-signed
+# placeholder cert must NOT pass.
+https_200()    { [ "$(curl -sm 10 -o /dev/null -w '%{http_code}' "$1" 2>/dev/null)" = "200" ]; }
+
+# wait_ssh_hosts <env> — block until every infra compute host accepts TCP 22.
+wait_ssh_hosts() {
+  local env="$1" ip
+  for ip in $(tf "$env" infra output -json compute | jq -r '.hosts[].public_ip // empty'); do
+    log "waiting for ssh on ${ip}:22"
+    wait_for "ssh on ${ip}" 300 5 tcp_open "$ip" 22
+  done
+}
+
+# Authentik post-boot indexing: the canonical default-* flows + the RBAC
+# view_application permission must be queryable before the identity layer's
+# terraform (and everything downstream) can plan its data sources.
+REQUIRED_FLOWS="default-source-authentication default-source-enrollment default-invalidation-flow default-user-settings-flow default-provider-authorization-implicit-consent default-provider-invalidation-flow"
+
+authentik_indexed() {
+  local gw="$1" token="$2" slug n
+  for slug in $REQUIRED_FLOWS; do
+    n="$(curl -sm 10 -H "Authorization: Bearer ${token}" \
+      "https://${gw}/api/v3/flows/instances/?slug=${slug}" | jq -r '.pagination.count // 0')"
+    [ "${n:-0}" -ge 1 ] || return 1
+  done
+  n="$(curl -sm 10 -H "Authorization: Bearer ${token}" \
+    "https://${gw}/api/v3/rbac/permissions/?codename=view_application" | jq -r '.pagination.count // 0')"
+  [ "${n:-0}" -ge 1 ]
 }
 
 # ── Terraform ────────────────────────────────────────────────────────────────
@@ -115,13 +189,23 @@ print((d.get("loki") or {}).get("deployment_host_key") or (d.get("grafana") or {
 
 run_ansible() {
   local env="$1" tags="$2"; shift 2
-  local inv ea; inv="$(env_dir "$env")/inventory.ini"; ea="$(env_dir "$env")/.enabled_apps.json"
+  local inv ea site; inv="$(env_dir "$env")/inventory.ini"; ea="$(env_dir "$env")/.enabled_apps.json"
   [ -f "$inv" ] || die "no inventory — run regen_inventory first"
-  log "ansible-playbook --tags ${tags}"
-  ansible-playbook ansible-local/site.yml \
+  # The consumer wrapper (upstream site.yml + local roles) when it exists,
+  # else the blueprint's site.yml straight from the sibling/baked tree.
+  if [ -f ansible-local/site.yml ]; then
+    site="ansible-local/site.yml"
+  elif [ -f "${SABOKIT_TREE}/platform/ansible/site.yml" ]; then
+    site="${SABOKIT_TREE}/platform/ansible/site.yml"
+  else
+    die "no ansible-local/site.yml and no ${SABOKIT_TREE}/platform/ansible/site.yml — checkout sabokit as a sibling or run inside the runner image"
+  fi
+  log "ansible-playbook ${site} --tags ${tags}"
+  ansible-playbook "$site" \
     -i "$inv" \
     -e "@${ea}" \
     -e "env_name=${env}" \
+    -e "identity_domain=$(env_value "$env" identity_domain)" \
     --tags "$tags" \
     "$@"
 }
