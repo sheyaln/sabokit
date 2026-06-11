@@ -2,6 +2,34 @@
 
 All notable changes to sabokit go here. Versioning follows semver; major bumps signal breaking contract changes for consumers. As of v0.1.0, sabokit and sabokit-cli release in tandem on one shared semver line.
 
+## v0.2.0-beta1 - 2026-06-11
+
+The four-layer re-tier. The single-root `module.stack` is replaced by four per-environment, per-layer composition roots — `infra` → `identity` → `operations` / `application` — each with its own Terraform state. Downstream layers self-discover upstream resources by name through a data-source contract (no `remote_state`), which removes the old identity bootstrap dance. **Breaking for every consumer** — existing single-state installs migrate by carving their state into four (see migration notes). Beta: the Terraform split is validated end-to-end against `dciww-commons` prod; the ansible/deploy path is still under test.
+
+### Added
+
+- **`platform/_shared/contract`** — a data-source `base` module each downstream layer instantiates to rebuild the `base` contract object from `${org}-${env}-*` tagged Scaleway + Authentik data sources. No cross-layer `remote_state`; layers depend only on named, already-applied resources.
+- **Per-layer consumer roots** — `consumer-template/environments/_template/{infra,identity,operations,application}/`, each a thin root that pins `?ref=` and feeds the env's committed YAML config. Per-layer apply scripts replace the monolithic up/configure flow.
+- **Explicit `authorized_groups`** — bundles take a list of Authentik group names and bind one policy per name; access is whatever those groups (plus Authentik group nesting) admit.
+
+### Changed
+
+- **Single root → four roots / four states.** `infra` owns the Scaleway substrate (including the Authentik DB); `identity` configures Authentik; `operations` runs observability; `application` runs the app suite plus the embedded forward-auth outpost. Dependency arrows point one way and never cross back.
+- **Embedded outpost** moved from the identity tier to the application layer.
+- **Monitoring agent** pushes metrics via `remote_write` instead of exposing exporter host ports.
+
+### Removed
+
+- **`consumer-template/modules/stack/`** — the single-root stack module is gone; consumers compose the four layer roots directly.
+- **Tiered-access cascade** — no platform-computed `tier_cascade`; the access cascade (if any) is a consumer decision expressed in `authorized_groups`.
+- **Cross-layer aggregation outputs** — each layer emits only what its own ansible consumes; no aggregated roll-up across layers.
+
+### Operator migration notes
+
+- **This is a breaking re-architecture; plan a state migration.** A single-state install splits into four. Per layer: stand up the new backend (one state key per layer), carve the relevant addresses out of a *backup* of the old state with `terraform state mv` (subtree moves remap a whole module prefix), `state push` into the layer, then `plan` to confirm no spurious drift. Apply order is `infra` → `identity` → `operations`/`application`, because downstream layers discover infra's per-role security groups (and identity's groups/flows) by name and can't plan until those exist live.
+- **Re-point every env root** `source` to the per-layer module at this tag, e.g. `git::https://github.com/sheyaln/sabokit.git//platform/infra/terraform?ref=v0.2.0-beta1` (one per layer). The `consumer-template/modules/stack` references are gone.
+- **Re-pin sabokit-cli** to the matching release; the per-layer apply scripts replace the old single up/configure path.
+
 ## v0.1.0 - 2026-05-28
 
 Version reset. All prior tags (`infra-modules-v0.x`, `v1.0.0` through `v3.5.12-beta1`) and their GitHub releases were deleted; sabokit restarts at `v0.1.0` and now releases in tandem with sabokit-cli on a single shared version line. No code or contract change from `v3.5.12-beta1` — this only re-baselines the version number and the `consumer-template/modules/stack/` pins.
