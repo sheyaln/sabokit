@@ -189,7 +189,7 @@ resource "authentik_policy_expression" "shared_member_id_unique" {
             qs = qs.exclude(pk=pending_pk)
 
         if qs.exists():
-            ak_message("That member ID is already in use. Leave the field blank or pick a different value.")
+            ak_message("That ${var.member_id_label} is already in use. Leave the field blank or pick a different value.")
             return False
     except Exception as e:
         ak_logger.error(f"Error checking member_id uniqueness: {e}")

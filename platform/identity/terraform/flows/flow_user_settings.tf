@@ -72,7 +72,7 @@ resource "authentik_stage_prompt_field" "user_settings_locale" {
 resource "authentik_stage_prompt_field" "user_settings_member_id" {
   name                     = "user-settings-field-member-id"
   field_key                = "attributes.member_id"
-  label                    = "Member ID"
+  label                    = var.member_id_label
   type                     = "text"
   required                 = false
   placeholder              = ""
