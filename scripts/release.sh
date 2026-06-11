@@ -35,8 +35,8 @@ REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 TEMPLATE_DIR="${REPO_ROOT}/consumer-template/environments/_template"
 REF_FILES=("${TEMPLATE_DIR}"/*/stack.tf)
 
-if [[ ! "$NEW" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
-  echo "ERROR: tag must look like vX.Y.Z (got: $NEW)"
+if [[ ! "$NEW" =~ ^v[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?$ ]]; then
+  echo "ERROR: tag must look like vX.Y.Z or vX.Y.Z-suffix (got: $NEW)"
   exit 1
 fi
 
@@ -91,7 +91,7 @@ esac
 while IFS= read -r OLD; do
   [[ -z "$OLD" ]] && continue
   # Defensive — refuse to sed anything that doesn't look like a tag.
-  if ! [[ "$OLD" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+  if ! [[ "$OLD" =~ ^v[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?$ ]]; then
     echo "  $OLD: skipped (doesn't look like a vX.Y.Z tag)"
     continue
   fi
