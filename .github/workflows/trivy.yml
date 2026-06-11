@@ -43,7 +43,7 @@ jobs:
           echo "ref=ghcr.io/${GITHUB_REPOSITORY_OWNER}/sabokit-runner:${ref}" >> "$GITHUB_OUTPUT"
 
       - name: Trivy image scan (SARIF)
-        uses: aquasecurity/trivy-action@0.36.0
+        uses: aquasecurity/trivy-action@v0.36.0
         with:
           image-ref: ${{ steps.img.outputs.ref }}
           format: sarif
