@@ -7,7 +7,6 @@
 **/.audit
 **/node_modules
 **/.DS_Store
-consumer-template/
 platform/infra/base-image/
 platform/infra/runner-image/
 .github/

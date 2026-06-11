@@ -5,11 +5,11 @@
 # ansible deploys the containers. The churn layer — re-run freely as apps come
 # and go.
 #
-#   scripts/application.sh <env>
+#   scripts/application.sh <env> [extra ansible args...]
 set -euo pipefail
 source "$(cd "$(dirname "$0")" && pwd)/lib.sh"
 
-ENV="${1:-}"; require_env "$ENV"
+ENV="${1:-}"; require_env "$ENV"; shift || true
 
 log "application: terraform apply (apps + outpost)"
 fetch_authentik_token "$ENV"
@@ -18,5 +18,5 @@ tf_apply "$ENV" application
 log "application: ansible deploy"
 regen_inventory "$ENV"
 build_enabled_apps "$ENV" >/dev/null
-run_ansible "$ENV" application
+run_ansible "$ENV" application "$@"
 log "application done."

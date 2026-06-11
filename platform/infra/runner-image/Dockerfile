@@ -1,18 +1,25 @@
-# Ansible runner for sabokit.
+# Ansible + Terraform + scw runner for sabokit.
 #
-# Bakes ansible-core + collections + the entire platform/ tree at the matching
-# repo tag. Consumers drop their local ansible install and run:
+# Bakes everything the consumer-template layer scripts need — ansible-core +
+# collections, the Terraform CLI, the Scaleway CLI, jq — plus the entire
+# platform/ tree and the consumer-template at the matching repo tag.
+#
+# sabokit-cli mounts the consumer repo at /workspace/consumer and runs the
+# layer scripts (the consumer's scripts/ if present, else the baked
+# /opt/sabokit/consumer-template/scripts/) with the consumer repo as cwd:
 #
 #   docker run --rm \
-#     -v "$PWD/env:/env:ro" \
+#     -v "$PWD:/workspace/consumer" -w /workspace/consumer \
 #     -v "$SSH_AUTH_SOCK:/ssh-agent" -e SSH_AUTH_SOCK=/ssh-agent \
+#     -e SCW_ACCESS_KEY -e SCW_SECRET_KEY \
+#     --entrypoint bash \
 #     ghcr.io/sheyaln/sabokit-runner:vX.Y.Z \
-#     site.yml -i /env/inventory.ini -e @/env/enabled_apps.json
+#     /opt/sabokit/consumer-template/scripts/up.sh <env>
 #
-# /env is the consumer's convention: their inventory.ini, enabled_apps.json
-# (produced from `terraform output -json enabled_apps`), and any extra vars
-# files. The runner does not generate enabled_apps.json — TF state lives on
-# the consumer side, not in the image.
+# /workspace/sabokit is a baked symlink to /opt/sabokit so the consumer's
+# ansible-local/site.yml `../../sabokit/platform/ansible/site.yml` import
+# resolves exactly like a sibling checkout on a host. TF state and secrets
+# stay on the consumer side, never in the image.
 
 # syntax=docker/dockerfile:1.7
 FROM python:3.12-slim
@@ -20,6 +27,7 @@ FROM python:3.12-slim
 ARG ANSIBLE_CORE_VERSION=2.18.1
 ARG SABOKIT_VERSION=dev
 ARG TERRAFORM_VERSION=1.10.5
+ARG SCW_CLI_VERSION=2.56.0
 
 LABEL org.opencontainers.image.source="https://github.com/sheyaln/sabokit"
 LABEL org.opencontainers.image.description="Ansible + Terraform runner for sabokit. Ansible-core + collections + Terraform CLI + every bundle's role baked in at the matching repo tag."
@@ -66,12 +74,26 @@ RUN curl -fsSL https://releases.hashicorp.com/terraform/${TERRAFORM_VERSION}/ter
     && rm /tmp/tf.zip \
     && terraform -version
 
-COPY platform/ /opt/sabokit/platform/
-COPY scripts/  /opt/sabokit/scripts/
+# Scaleway CLI. The layer scripts read the Authentik admin token from the
+# Scaleway secret infra mints (lib.sh fetch_authentik_token), so scw must be
+# on PATH inside the runner. Single static binary per arch.
+RUN curl -fsSL https://github.com/scaleway/scaleway-cli/releases/download/v${SCW_CLI_VERSION}/scaleway-cli_${SCW_CLI_VERSION}_linux_${TARGETARCH} \
+      -o /usr/local/bin/scw \
+    && chmod +x /usr/local/bin/scw \
+    && scw version
+
+COPY platform/          /opt/sabokit/platform/
+COPY scripts/           /opt/sabokit/scripts/
+COPY consumer-template/ /opt/sabokit/consumer-template/
+
+# /workspace/sabokit mirrors the sibling-checkout convention: the consumer
+# repo is mounted at /workspace/consumer, so its ansible-local/site.yml
+# `../../sabokit/...` import resolves into the baked tree.
+RUN mkdir -p /workspace && ln -s /opt/sabokit /workspace/sabokit
 
 # Default WORKDIR is the ansible tree (most invocations are ansible-playbook).
-# For terraform invocations the sabokit CLI sets its own workdir and mounts the
-# consumer's TF tree at /project.
+# Layer-script invocations override with -w /workspace/consumer; terraform
+# invocations set their own workdir on the consumer's mounted TF tree.
 WORKDIR /opt/sabokit/platform/ansible
 
 ENTRYPOINT ["ansible-playbook"]

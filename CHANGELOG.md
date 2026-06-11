@@ -2,6 +2,25 @@
 
 All notable changes to sabokit go here. Versioning follows semver; major bumps signal breaking contract changes for consumers. As of v0.1.0, sabokit and sabokit-cli release in tandem on one shared semver line.
 
+## v0.2.0-beta2 - 2026-06-11
+
+Single-command end-to-end deploys. The runner image now carries everything the four-layer scripts need, and the scripts gate the slow physics between layers, so `sabokit up` (or a bare `docker run … up.sh <env>`) takes a fresh environment from empty Scaleway project to deployed app suite unattended.
+
+### Added
+
+- **Runner image: Scaleway CLI** (`scw`, pinned via `SCW_CLI_VERSION` build arg) — `lib.sh fetch_authentik_token` reads the infra-minted admin secret in-container.
+- **Runner image: baked `consumer-template/`** at `/opt/sabokit/consumer-template/` — consumers without a vendored `scripts/` run the layer scripts at exactly the tag their environment pins. `/workspace/sabokit` symlinks to `/opt/sabokit` so a consumer repo mounted at `/workspace/consumer` resolves `ansible-local/site.yml`'s sibling-checkout import unchanged.
+- **`scripts/identity.sh` waits** — SSH reachability on every compute host, gateway DNS propagation, a TLS-verified Let's Encrypt gate, and Authentik flow/RBAC indexing now sit between the bootstrap deploy and the identity terraform apply. Re-runs resume wherever the last attempt stopped.
+- **`scripts/refresh.sh`** — regenerate `inventory.ini` + `.enabled_apps.json` from current layer state.
+- **`scripts/deploy.sh <env> [tags]`** — ansible-only redeploy (no terraform), the fast path for app churn.
+- **`scripts/destroy-layer.sh <env> <layer>`** — single-layer terraform destroy; `down.sh` remains the full reverse-order teardown.
+- **Passthrough args** — `identity.sh`/`operations.sh`/`application.sh` forward extra args to ansible (`application.sh prod --check`).
+
+### Fixed
+
+- **`identity_domain` extra var** — `lib.sh run_ansible` now passes it from `env.yml`; the bootstrap play's traefik outpost URL templated an undefined variable when run via the layer scripts.
+- **Ansible config off-tree** — the layer scripts run from the consumer root where no `ansible.cfg` exists; `lib.sh` now exports `ANSIBLE_CONFIG` (the blueprint's cfg) and an absolute `ANSIBLE_ROLES_PATH` (infra + identity roles + the consumer's `ansible-local/roles/`), so role resolution no longer depends on cwd.
+
 ## v0.2.0-beta1 - 2026-06-11
 
 The four-layer re-tier. The single-root `module.stack` is replaced by four per-environment, per-layer composition roots — `infra` → `identity` → `operations` / `application` — each with its own Terraform state. Downstream layers self-discover upstream resources by name through a data-source contract (no `remote_state`), which removes the old identity bootstrap dance. **Breaking for every consumer** — existing single-state installs migrate by carving their state into four (see migration notes). Beta: the Terraform split is validated end-to-end against `dciww-commons` prod; the ansible/deploy path is still under test.
