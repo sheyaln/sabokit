@@ -15,7 +15,7 @@ locals {
 }
 
 module "identity" {
-  source = "git::https://github.com/sheyaln/sabokit.git//platform/identity/terraform?ref=v0.2.0-beta1"
+  source = "git::https://github.com/sheyaln/sabokit.git//platform/identity/terraform?ref=v0.2.0-beta2"
   providers = {
     scaleway  = scaleway
     authentik = authentik
