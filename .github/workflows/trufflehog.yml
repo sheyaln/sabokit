@@ -37,5 +37,6 @@ jobs:
           # No base/head: the action infers the range per event — PR diff,
           # push commit range, full scan on schedule/dispatch. An explicit
           # head with empty base made every push/schedule run die with
-          # "BASE and HEAD commits are the same".
-          extra_args: --results=verified --fail
+          # "BASE and HEAD commits are the same". The action passes --fail
+          # itself; repeating it in extra_args is an error.
+          extra_args: --results=verified

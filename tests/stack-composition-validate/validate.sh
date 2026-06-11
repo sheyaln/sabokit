@@ -40,7 +40,7 @@ echo "==> Rewriting ?ref= URLs to local platform/ paths ..."
 # git::https://github.com/<owner>/<repo>.git//<path>?ref=v<X.Y.Z>  ->  ../../../../<path>
 # (relative to consumer-template/environments/_template/<layer>/)
 sed -i.tmp -E \
-  's|git::https://github\.com/[^/]+/[^/]+\.git//([^"?]+)\?ref=v[0-9]+\.[0-9]+\.[0-9]+|../../../../\1|g' \
+  's|git::https://github\.com/[^/]+/[^/]+\.git//([^"?]+)\?ref=v[0-9]+\.[0-9]+\.[0-9]+([-A-Za-z0-9.]+)?|../../../../\1|g' \
   "${ROOTS[@]}"
 rm -f "${ROOTS[@]/%/.tmp}"
 REWROTE=1
