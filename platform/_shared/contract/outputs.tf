@@ -41,10 +41,14 @@ output "base" {
     compute = {
       hosts = {
         for k, h in var.compute_hosts : k => {
-          id        = data.scaleway_instance_server.host[k].id
-          name      = data.scaleway_instance_server.host[k].name
-          public_ip = data.scaleway_instance_server.host[k].public_ip
-          # private_ips carries IPv4 + IPv6; filter for IPv4 like the compute module.
+          id   = data.scaleway_instance_server.host[k].id
+          name = data.scaleway_instance_server.host[k].name
+          # The data source exposes public_ips/private_ips (plural lists of
+          # {address,...}), not singular *_ip — filter each for the IPv4 entry.
+          public_ip = try(
+            [for ip in data.scaleway_instance_server.host[k].public_ips : ip.address if can(regex("^[0-9]+\\.[0-9]+\\.[0-9]+\\.[0-9]+$", ip.address))][0],
+            null
+          )
           private_ip = try(
             [for ip in data.scaleway_instance_server.host[k].private_ips : ip.address if can(regex("^[0-9]+\\.[0-9]+\\.[0-9]+\\.[0-9]+$", ip.address))][0],
             null
