@@ -83,13 +83,14 @@ module "wazuh_agent" {
   base                = local.host_services_base
   deployment_host_key = each.value
 
-  image                = var.wazuh_agent.image
-  release_version      = var.wazuh_agent.release_version
-  manager_address      = var.wazuh_agent.manager_address != "" ? var.wazuh_agent.manager_address : local.ops_host_private_ip
-  fim_enabled          = var.wazuh_agent.fim_enabled
-  fim_extra_paths      = var.wazuh_agent.fim_extra_paths
-  fim_extra_exclusions = var.wazuh_agent.fim_extra_exclusions
-  diun_watch_enabled   = var.wazuh_agent.diun_watch_enabled
-  autoheal_enabled     = var.wazuh_agent.autoheal_enabled
-  extra_env_vars       = var.wazuh_agent.extra_env_vars
+  image                  = var.wazuh_agent.image
+  release_version        = var.wazuh_agent.release_version
+  manager_address        = var.wazuh_agent.manager_address != "" ? var.wazuh_agent.manager_address : local.ops_host_private_ip
+  registration_secret_id = var.wazuh_agent.registration_secret_id
+  fim_enabled            = var.wazuh_agent.fim_enabled
+  fim_extra_paths        = var.wazuh_agent.fim_extra_paths
+  fim_extra_exclusions   = var.wazuh_agent.fim_extra_exclusions
+  diun_watch_enabled     = var.wazuh_agent.diun_watch_enabled
+  autoheal_enabled       = var.wazuh_agent.autoheal_enabled
+  extra_env_vars         = var.wazuh_agent.extra_env_vars
 }

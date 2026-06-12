@@ -41,6 +41,11 @@ variable "manager_address" {
   type        = string
 }
 
+variable "registration_secret_id" {
+  description = "Scaleway secret ID of the manager bundle's app-secrets bag (its `app_secret_id` output). The agent fetches WAZUH_AUTHD_PASSWORD from it and presents it on enrollment — the manager requires it (use_password=yes). Required: the manager rejects passwordless enrollment."
+  type        = string
+}
+
 variable "diun_watch_enabled" {
   description = "Whether Diun watches this app's containers for upstream image updates. When true (default) the bundle emits a `diun.enable=true` label on each compose service, opting it into the platform Diun bundle's registry polling. Flip false to silence notifications for this app."
   type        = bool

@@ -5,6 +5,11 @@ wazuh_agent_install_dir: "/opt/wazuh-agent"
 wazuh_agent_name: ""
 wazuh_agent_manager_address: ""
 
+# Scaleway secret ID of the manager bundle's app-secrets bag. The role fetches
+# WAZUH_AUTHD_PASSWORD from it and enrolls with it. Required — the manager runs
+# use_password=yes and rejects passwordless enrollment.
+wazuh_agent_registration_secret_id: ""
+
 wazuh_agent_diun_watch_enabled: true
 wazuh_agent_autoheal_enabled: true
 

@@ -8,7 +8,21 @@
     that:
       - wazuh_agent_name | length > 0
       - wazuh_agent_manager_address | length > 0
-    fail_msg: "wazuh_agent_name and wazuh_agent_manager_address are required."
+      - wazuh_agent_registration_secret_id | length > 0
+    fail_msg: "wazuh_agent_name, wazuh_agent_manager_address, and wazuh_agent_registration_secret_id are required (the manager requires a password on enrollment)."
+
+# Enrollment password. Fetched from the manager bundle's app-secrets bag and
+# presented to authd on the 1515 port; the manager runs use_password=yes.
+- name: Normalize registration secret ID
+  ansible.builtin.set_fact:
+    _wazuh_agent_registration_secret_uuid: "{{ wazuh_agent_registration_secret_id | regex_replace('^[^/]+/', '') }}"
+  tags: [secrets]
+
+- name: Look up agent enrollment password from Scaleway
+  ansible.builtin.set_fact:
+    wazuh_agent_registration_password: "{{ (lookup('scaleway.scaleway.scaleway_secret', _wazuh_agent_registration_secret_uuid) | b64decode | from_json).WAZUH_AUTHD_PASSWORD }}"
+  no_log: true
+  tags: [secrets]
 
 - name: Assert Docker is installed and running
   ansible.builtin.command: docker info
@@ -64,6 +78,15 @@
     - not (wazuh_agent_auditd_dir.stat.exists | default(false))
 
 # ── Container ──────────────────────────────────────────────────────────────
+- name: Render env (enrollment password for compose interpolation)
+  ansible.builtin.template:
+    src: env.j2
+    dest: "{{ wazuh_agent_install_dir }}/.env"
+    mode: "0600"
+  no_log: true
+  notify: Restart wazuh-agent
+  tags: [secrets]
+
 - name: Render docker-compose.yml
   ansible.builtin.template:
     src: docker-compose.yml.j2

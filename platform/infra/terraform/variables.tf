@@ -313,19 +313,20 @@ variable "diun" {
 }
 
 variable "wazuh_agent" {
-  description = "HIDS log-shipper running on every compute host, reporting to the wazuh manager. Default on because SSH-as-deploy means hosts are always exposed and host-level intrusion detection is a sensible production default. Consumers without a wazuh manager set `enabled = false` (whole service off) or list every host under `disabled_hosts`. `manager_address` is the manager's reachable network address — consumer-template auto-wires it from `module.wazuh.manager_private_ip` when the manager app is enabled."
+  description = "HIDS log-shipper running on every compute host, reporting to the wazuh manager. Default on because SSH-as-deploy means hosts are always exposed and host-level intrusion detection is a sensible production default. Consumers without a wazuh manager set `enabled = false` (whole service off) or list every host under `disabled_hosts`. `manager_address` is the manager's reachable network address — consumer-template auto-wires it from `module.wazuh.manager_private_ip` when the manager app is enabled. `registration_secret_id` is the manager bundle's app-secrets bag ID (operations layer) — agents fetch the enrollment password from it; the manager runs use_password=yes and rejects passwordless enrollment, so set this once the manager is deployed."
   type = object({
-    enabled              = optional(bool, true)
-    disabled_hosts       = optional(list(string), [])
-    image                = optional(string, "wazuh/wazuh-agent")
-    release_version      = optional(string, "4.9.0")
-    manager_address      = optional(string, "")
-    fim_enabled          = optional(bool, true)
-    fim_extra_paths      = optional(list(string), [])
-    fim_extra_exclusions = optional(list(string), [])
-    diun_watch_enabled   = optional(bool, true)
-    autoheal_enabled     = optional(bool, true)
-    extra_env_vars       = optional(map(string), {})
+    enabled                = optional(bool, true)
+    disabled_hosts         = optional(list(string), [])
+    image                  = optional(string, "wazuh/wazuh-agent")
+    release_version        = optional(string, "4.9.0")
+    manager_address        = optional(string, "")
+    registration_secret_id = optional(string, "")
+    fim_enabled            = optional(bool, true)
+    fim_extra_paths        = optional(list(string), [])
+    fim_extra_exclusions   = optional(list(string), [])
+    diun_watch_enabled     = optional(bool, true)
+    autoheal_enabled       = optional(bool, true)
+    extra_env_vars         = optional(map(string), {})
   })
   default = {}
 }

@@ -35,6 +35,7 @@ diun:
 wazuh_agent:
   enabled: true
   # manager_address: ""   # the wazuh manager's private IP (operations layer); set when the manager is deployed
+  # registration_secret_id: ""   # the wazuh manager's app-secrets bag ID (operations layer output); REQUIRED once the manager is deployed — enrollment uses a password
 
 # ── Custom DNS records (MX for inbound mail, extra TXT/SRV) ────────────────────
 # Keyed by zone; zones must match base/mgmt domain. Co-exists with TEM's

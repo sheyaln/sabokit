@@ -87,7 +87,7 @@ services:
     ports:
       - "80:80"
       - "443:443"
-      - "${TRAEFIK_METRICS_BIND:-0.0.0.0}:{{ traefik_metrics_port }}:{{ traefik_metrics_port }}"
+      - "${TRAEFIK_METRICS_BIND:-127.0.0.1}:{{ traefik_metrics_port }}:{{ traefik_metrics_port }}"
     volumes:
       - ./data:/letsencrypt
       - ./logs:/var/log/traefik

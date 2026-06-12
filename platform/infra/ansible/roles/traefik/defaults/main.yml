@@ -35,8 +35,16 @@ traefik_metrics_port: 9101                  # prometheus metrics endpoint
 # -----------------------------------------------------------------------------
 # Image pins
 # -----------------------------------------------------------------------------
-traefik_image: "traefik:v3.1"
-traefik_socket_proxy_image: "tecnativa/docker-socket-proxy:latest"
+# Pinned by digest: a moved tag or a tampered registry entry fails the pull
+# instead of silently swapping the image. Tags are kept as human labels only;
+# Docker resolves by the @sha256 digest. Re-pin deliberately on upgrade.
+#
+# DRIFT (resolve under the stability gate, needs e2e + HAProxy-template recheck):
+# the base image (variables.pkr.hcl) pre-pulls traefik:v3.3, but this role runs
+# v3.1 — first boot pays an extra pull and the versions disagree. Align to v3.3
+# once the patched haproxy.cfg.template is re-verified against it.
+traefik_image: "traefik:v3.1@sha256:74d72c7a1345984f186bddbabcc462b2128d0d8054177dc84afaeac4db1f0f56"
+traefik_socket_proxy_image: "tecnativa/docker-socket-proxy:latest@sha256:1f3a6f303320723d199d2316a3e82b2e2685d86c275d5e3deeaf182573b47476"
 
 # -----------------------------------------------------------------------------
 # TLS / forwarded headers
@@ -74,7 +82,9 @@ traefik_external_redirects: []
 # -----------------------------------------------------------------------------
 # Optional bind address for the metrics endpoint
 # -----------------------------------------------------------------------------
-# If set, the prometheus metrics port is published on this IP only (typically
-# the host's private network IP, so it's reachable from a monitoring server
-# but not the public internet). Empty = bind to all interfaces.
-traefik_metrics_bind_address: ""
+# The prometheus metrics port is published on this IP only. Defaults to
+# loopback so the endpoint is never internet-reachable out of the box —
+# Docker-published ports bypass the host firewall (UFW), so a 0.0.0.0 bind
+# would be exposed regardless of ufw rules. Set to the host's private-network
+# IP for a cross-host monitoring server to scrape it.
+traefik_metrics_bind_address: "127.0.0.1"

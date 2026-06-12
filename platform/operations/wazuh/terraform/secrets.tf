@@ -35,10 +35,23 @@ resource "random_password" "dashboard" {
   }
 }
 
+# Agent enrollment (authd) password. The manager requires it on the 1515
+# enrollment port (use_password=yes); every agent presents it to register.
+# Without it, enrollment is open to anyone who can reach 1515.
+resource "random_password" "authd" {
+  count   = var.enabled ? 1 : 0
+  length  = 32
+  special = false
+
+  lifecycle {
+    ignore_changes = all
+  }
+}
+
 resource "scaleway_secret" "app" {
   count       = var.enabled ? 1 : 0
   name        = "${local.slug}-app-secrets"
-  description = "Wazuh internal-user passwords (indexer admin, API, dashboard)"
+  description = "Wazuh internal-user passwords (indexer admin, API, dashboard, agent enrollment)"
   tags        = ["automated", local.slug]
   type        = "key_value"
 }
@@ -47,6 +60,7 @@ locals {
   indexer_password   = var.enabled ? (random_password.indexer_admin[0].result) : ""
   api_password       = var.enabled ? (random_password.api[0].result) : ""
   dashboard_password = var.enabled ? (random_password.dashboard[0].result) : ""
+  authd_password     = var.enabled ? (random_password.authd[0].result) : ""
   app_secret_id      = var.enabled ? (scaleway_secret.app[0].id) : ""
 }
 
@@ -58,6 +72,7 @@ resource "scaleway_secret_version" "app" {
     WAZUH_INDEXER_PASSWORD   = local.indexer_password
     WAZUH_API_PASSWORD       = local.api_password
     WAZUH_DASHBOARD_PASSWORD = local.dashboard_password
+    WAZUH_AUTHD_PASSWORD     = local.authd_password
     OIDC_CLIENT_ID           = module.authentik[0].client_id
     OIDC_CLIENT_SECRET       = module.authentik[0].client_secret
     OIDC_DISCOVERY_URL       = local.oidc_discovery_url

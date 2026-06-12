@@ -11,9 +11,21 @@ variable "enable_http" {
 }
 
 variable "enable_ssh" {
-  description = "Allow inbound SSH (TCP 22) from anywhere."
+  description = "Allow inbound SSH (TCP 22)."
   type        = bool
   default     = true
+}
+
+variable "ssh_cidr" {
+  description = "Source CIDR allowed to reach SSH (TCP 22) when enable_ssh is true. Defaults to anywhere for first-boot reachability; scope to an admin/bastion CIDR for a hardened fleet. Key-only auth + fail2ban still apply regardless."
+  type        = string
+  default     = "0.0.0.0/0"
+}
+
+variable "wazuh_manager_cidr" {
+  description = "Source CIDR allowed to reach the Wazuh manager ports (1514/1515/514) when enable_wazuh_manager is true. Defaults to anywhere; scope to the fleet's egress/public IPs. Enrollment also requires a password (authd use_password=yes), so this is defence-in-depth, not the only control."
+  type        = string
+  default     = "0.0.0.0/0"
 }
 
 variable "enable_dns" {

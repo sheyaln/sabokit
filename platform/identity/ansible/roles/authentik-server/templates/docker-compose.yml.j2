@@ -61,9 +61,14 @@ services:
     command: worker
     env_file:
       - .env
+{% if authentik_worker_docker_integration | default(false) %}
+    # Docker-managed outposts only. Grants the worker host-root via the socket.
     user: root
+{% endif %}
     volumes:
+{% if authentik_worker_docker_integration | default(false) %}
       - /var/run/docker.sock:/var/run/docker.sock
+{% endif %}
       - ./data:/data
       - ./certs:/certs
       - ./custom-templates:/templates

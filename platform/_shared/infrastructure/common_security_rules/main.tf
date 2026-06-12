@@ -9,7 +9,7 @@ locals {
   ] : []
 
   ssh_rules = var.enable_ssh ? [
-    { protocol = "TCP", port = 22, port_range = "22-22", ip_range = "0.0.0.0/0" },
+    { protocol = "TCP", port = 22, port_range = "22-22", ip_range = var.ssh_cidr },
   ] : []
 
   dns_rules = var.enable_dns ? [
@@ -24,9 +24,9 @@ locals {
   ] : []
 
   wazuh_manager_rules = var.enable_wazuh_manager ? [
-    { protocol = "TCP", port = 1514, port_range = "1514-1514", ip_range = "0.0.0.0/0" },
-    { protocol = "TCP", port = 1515, port_range = "1515-1515", ip_range = "0.0.0.0/0" },
-    { protocol = "UDP", port = 514, port_range = "514-514", ip_range = "0.0.0.0/0" },
+    { protocol = "TCP", port = 1514, port_range = "1514-1514", ip_range = var.wazuh_manager_cidr },
+    { protocol = "TCP", port = 1515, port_range = "1515-1515", ip_range = var.wazuh_manager_cidr },
+    { protocol = "UDP", port = 514, port_range = "514-514", ip_range = var.wazuh_manager_cidr },
   ] : []
 
   monitoring_rules = var.monitoring_cidr == null ? [] : [

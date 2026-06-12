@@ -25,14 +25,14 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
         with:
           # Full history needed for the scheduled/manual sweep; cheap enough
           # on PRs that we use it unconditionally rather than branching.
           fetch-depth: 0
 
       - name: TruffleHog secret scan
-        uses: trufflesecurity/trufflehog@v3.95.3
+        uses: trufflesecurity/trufflehog@37b77001d0174ebec2fcca2bd83ff83a6d45a3ab # v3.95.3
         with:
           # No base/head: the action infers the range per event — PR diff,
           # push commit range, full scan on schedule/dispatch. An explicit

@@ -13,26 +13,32 @@ on:
   pull_request:
     paths:
       - 'consumer-template/apps-manifest.yaml'
-      - 'platform/apps/*/terraform/variables.tf'
+      - 'platform/application/*/terraform/variables.tf'
       - 'scripts/check-manifest-coverage.sh'
       - '.github/workflows/manifest-guard.yml'
   push:
     branches: [master]
     paths:
       - 'consumer-template/apps-manifest.yaml'
-      - 'platform/apps/*/terraform/variables.tf'
+      - 'platform/application/*/terraform/variables.tf'
       - 'scripts/check-manifest-coverage.sh'
+
+permissions:
+  contents: read
 
 jobs:
   check:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
 
       - name: Install yq
         run: |
+          YQ_VERSION="v4.44.3"
+          YQ_SHA256="a2c097180dd884a8d50c956ee16a9cec070f30a7947cf4ebf87d5f36213e9ed7"
           sudo wget -q -O /usr/local/bin/yq \
-            https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64
+            "https://github.com/mikefarah/yq/releases/download/${YQ_VERSION}/yq_linux_amd64"
+          echo "${YQ_SHA256}  /usr/local/bin/yq" | sha256sum -c - || { echo "yq checksum mismatch"; exit 1; }
           sudo chmod +x /usr/local/bin/yq
           yq --version
 

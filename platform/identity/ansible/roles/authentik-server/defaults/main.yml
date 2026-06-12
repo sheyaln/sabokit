@@ -63,6 +63,16 @@ authentik_worker_cpu_reservation: "0.25"
 # Set to the host's private IP if you want metrics bound to it. Empty = 0.0.0.0.
 authentik_metrics_bind_ip: ""
 
+# ── Worker Docker integration (DANGEROUS — default off) ─────────────────────
+# Authentik's worker can manage Docker-based outposts (proxy/LDAP/RADIUS) by
+# talking to the host Docker socket, which it needs as root. That grants the
+# worker container host-root-equivalent access — an RCE in the IdP worker owns
+# the host. This deployment routes outposts through Traefik labels and does not
+# use Docker-managed outposts, so the socket stays unmounted and the worker
+# runs unprivileged. Flip true ONLY if you add Docker-managed outposts, and
+# prefer fronting the socket with a read-scoped proxy (see the traefik role).
+authentik_worker_docker_integration: false
+
 # Ops-bundle opt-in labels for Diun (notify-on-new-image) + Autoheal sidecars
 # on the same host. diun_watch_enabled defaults false — Authentik has breaking
 # changes between releases and post-upgrade DB migrations; bumping unattended

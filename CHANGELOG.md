@@ -2,6 +2,27 @@
 
 All notable changes to sabokit go here. Versioning follows semver; major bumps signal breaking contract changes for consumers. As of v0.1.0, sabokit and sabokit-cli release in tandem on one shared semver line.
 
+## Unreleased
+
+Security hardening sweep. Closes the internet-reachable findings from the fortress review: unauthenticated Wazuh enrollment, the root Authentik worker with a live docker socket, an internet-bindable metrics port, mutable image/action pins.
+
+### Security
+
+- **Wazuh agent enrollment now requires a password.** The manager generates a 32-char enrollment secret (`WAZUH_AUTHD_PASSWORD` in its app-secrets bag), writes it to `/var/ossec/etc/authd.pass` (0600), and runs `authd` with `use_password=yes`. Agents fetch it from the manager bag and present it via `WAZUH_REGISTRATION_PASSWORD` (rendered into a 0600 `.env`, kept out of the world-readable compose file). **Breaking for the wazuh-agent host-service:** the bundle gains a `registration_secret_id` input (the manager bundle's `app_secret_id`); set it in `infra.yml` once the operations-layer manager is deployed, or agents fail enrollment. Layer the network rule down too — `wazuh_manager_cidr` now scopes 1514/1515/514.
+- **Authentik worker runs unprivileged by default.** Dropped `user: root` and the `/var/run/docker.sock` mount from the worker (an RCE there was host-root on the IdP). Docker-managed outposts — the only thing that needed it — are now opt-in behind `authentik_worker_docker_integration` (default `false`); prefer a socket proxy if you enable it.
+- **Traefik metrics bind defaults to loopback.** `traefik_metrics_bind_address` now defaults to `127.0.0.1` instead of `0.0.0.0`. Docker-published ports bypass UFW, so the old default exposed the metrics endpoint to the internet behind only the security group. Set the host's private IP for cross-host scraping.
+- **SSH source CIDR is configurable.** `common_security_rules` gains `ssh_cidr` (default `0.0.0.0/0`) so operators scope SSH to an admin/bastion range without forking the module.
+- **Images pinned by digest.** The Traefik docker-socket-proxy (was `:latest`) and the Traefik image are now `@sha256` pinned. (Flagged drift: the base image pre-pulls `traefik:v3.3` but the role runs `v3.1` — align under the stability gate.)
+- **CI supply chain.** Every GitHub Action is SHA-pinned (was tag/branch refs); `hashicorp/setup-packer@main` — a mutable branch — is pinned to a commit. Added `permissions: contents: read` to `manifest-guard` and `stack-composition-validate`, pinned + checksum-verified the `yq` download in `manifest-guard`, and added Dependabot (`github-actions`, weekly) to keep the pins fresh.
+
+### Fixed
+
+- **`manifest-guard` path filter** pointed at the pre-re-tier `platform/apps/*` and matched nothing; corrected to `platform/application/*`.
+
+### Operator migration notes
+
+- **Existing Wazuh installs:** the manager's app-secrets bag carries `lifecycle { ignore_changes = all }`, so a re-apply will *not* add `WAZUH_AUTHD_PASSWORD` to an already-created secret version — yet the manager now runs `use_password=yes` and will reject passwordless enrollment. Either add a `WAZUH_AUTHD_PASSWORD` key to the existing bag (32 random chars) or recreate the secret version, then set each agent's `registration_secret_id`. Fresh deploys need no action.
+
 ## v0.2.0-beta2 - 2026-06-11
 
 Single-command end-to-end deploys. The runner image now carries everything the four-layer scripts need, and the scripts gate the slow physics between layers, so `sabokit up` (or a bare `docker run … up.sh <env>`) takes a fresh environment from empty Scaleway project to deployed app suite unattended.
