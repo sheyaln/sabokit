@@ -148,7 +148,12 @@ resource "scaleway_domain_record" "app_mx" {
   dns_zone = var.domain_zones[each.value.domain_key]
   name     = each.value.subdomain
   type     = "MX"
-  data     = each.value.target
+  # MX target is "<priority> <host.>" (per the var docs, e.g. "10 mail.x.com.").
+  # Scaleway keeps the priority in its own `priority` field, not in `data` —
+  # putting the whole "10 mail.x.com." in data serves a broken "10 10 mail.x.com.".
+  # Split so priority and the mail host land in the right fields.
+  priority = tonumber(split(" ", each.value.target)[0])
+  data     = trimprefix(each.value.target, "${split(" ", each.value.target)[0]} ")
   ttl      = each.value.ttl
 
   lifecycle {
