@@ -4,7 +4,9 @@ All notable changes to sabokit go here. Versioning follows semver; major bumps s
 
 ## Unreleased
 
-Security hardening sweep. Closes the internet-reachable findings from the fortress review: unauthenticated Wazuh enrollment, the root Authentik worker with a live docker socket, an internet-bindable metrics port, mutable image/action pins.
+## v0.2.1-beta1 - 2026-06-16
+
+Security hardening sweep plus two carried fixes. Closes the internet-reachable findings from the fortress review: unauthenticated Wazuh enrollment, the root Authentik worker with a live docker socket, an internet-bindable metrics port, mutable image/action pins. Also lands the app_dns MX priority fix and moves the consumer-template Authentik token to a Scaleway secret.
 
 ### Security
 
@@ -15,8 +17,13 @@ Security hardening sweep. Closes the internet-reachable findings from the fortre
 - **Images pinned by digest.** The Traefik docker-socket-proxy (was `:latest`) and the Traefik image are now `@sha256` pinned. (Flagged drift: the base image pre-pulls `traefik:v3.3` but the role runs `v3.1` — align under the stability gate.)
 - **CI supply chain.** Every GitHub Action is SHA-pinned (was tag/branch refs); `hashicorp/setup-packer@main` — a mutable branch — is pinned to a commit. Added `permissions: contents: read` to `manifest-guard` and `stack-composition-validate`, pinned + checksum-verified the `yq` download in `manifest-guard`, and added Dependabot (`github-actions`, weekly) to keep the pins fresh.
 
+### Changed
+
+- **consumer-template identity layer reads the Authentik admin token from a Scaleway secret.** The `<org>-<env>-authentik-admin` bag is fetched by name; the provider falls back to `var.authentik_admin_token` only when it is set, so a bare `terraform apply` no longer needs `TF_VAR_authentik_admin_token` in the environment.
+
 ### Fixed
 
+- **`app_dns` MX records now set the provider `priority` field.** The module folded the priority into `data` (e.g. `10 mail.example.com.`), which Scaleway re-served as a broken `10 10 mail...`. MX records now split the literal into the provider's separate `priority` attribute with a bare host in `data`.
 - **`manifest-guard` path filter** pointed at the pre-re-tier `platform/apps/*` and matched nothing; corrected to `platform/application/*`.
 
 ### Operator migration notes
