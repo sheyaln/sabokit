@@ -2,6 +2,12 @@
 # four layer roots. Per-env values live in <env>/env.yml; per-layer values in
 # <env>/{infra,identity,operations,application}.yml.
 
+# The pinned sabokit blueprint version. Source of truth for the `?ref=` in every
+# per-layer stack.tf (Terraform can't read a module source from YAML, so
+# scripts/bump-version.sh propagates this value into the stack.tf literals).
+# Bump with: scripts/bump-version.sh vX.Y.Z
+sabokit_version: v0.2.1-beta1
+
 org_slug: acme            # short, URL-safe; appears in every resource name
 org_name: Acme Cooperative
 

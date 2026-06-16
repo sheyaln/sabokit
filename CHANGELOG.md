@@ -4,6 +4,10 @@ All notable changes to sabokit go here. Versioning follows semver; major bumps s
 
 ## Unreleased
 
+### Changed
+
+- **consumer-template version pin moved to `common.yml`.** `environments/common.yml` gains `sabokit_version:` as the single source of truth for the platform pin; `scripts/bump-version.sh` propagates it into every per-layer `stack.tf` `?ref=` (Terraform can't read a module source from YAML). `release.sh` keeps `common.yml` in lockstep with the template refs. `bump-version.sh vX.Y.Z` sets the pin and syncs; the no-arg form re-syncs to whatever `common.yml` says.
+
 ## v0.2.1-beta1 - 2026-06-16
 
 Security hardening sweep plus two carried fixes. Closes the internet-reachable findings from the fortress review: unauthenticated Wazuh enrollment, the root Authentik worker with a live docker socket, an internet-bindable metrics port, mutable image/action pins. Also lands the app_dns MX priority fix and moves the consumer-template Authentik token to a Scaleway secret.

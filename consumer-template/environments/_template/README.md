@@ -19,8 +19,9 @@ _template/
 ```
 
 `stack.tf` reads the YAML and calls the pinned platform layer
-(`//platform/<layer>/terraform?ref=vX.Y.Z`). The version pin lives in each
-`stack.tf`; bump it with `scripts/bump-version.sh`.
+(`//platform/<layer>/terraform?ref=vX.Y.Z`). The pin's source of truth is
+`../common.yml` (`sabokit_version`); `scripts/bump-version.sh` propagates it
+into each `stack.tf` (Terraform can't read a module source from YAML).
 
 ## Create an environment
 

@@ -115,8 +115,16 @@ if [[ -n "$RESIDUAL" ]]; then
   exit 1
 fi
 
-# Stage only the consumer-template changes.
-git add "${TEMPLATE_DIR}"
+# Keep common.yml's sabokit_version (the consumer-facing source of truth) in
+# lockstep with the template's ?ref= pins.
+COMMON_YML="${REPO_ROOT}/consumer-template/environments/common.yml"
+if grep -qE '^[[:space:]]*sabokit_version:' "$COMMON_YML"; then
+  "${SED_INPLACE[@]}" -E "s|^([[:space:]]*sabokit_version:[[:space:]]*).*|\1${NEW}|" "$COMMON_YML"
+  echo "Set common.yml sabokit_version → $NEW"
+fi
+
+# Stage the consumer-template changes (per-layer refs + common.yml pin).
+git add "${TEMPLATE_DIR}" "${COMMON_YML}"
 
 # Detect if there's anything to commit (no-op if already on $NEW everywhere).
 if git diff --cached --quiet; then

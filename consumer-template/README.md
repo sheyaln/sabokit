@@ -31,7 +31,7 @@ consumer-template/
 │   ├── lib.sh                    # shared deploy engine (sourced)
 │   ├── infra.sh / identity.sh / operations.sh / application.sh
 │   ├── up.sh / down.sh           # all layers, in dependency order
-│   ├── bump-version.sh           # bump every ?ref= pin to a new sabokit tag
+│   ├── bump-version.sh           # sync common.yml sabokit_version -> every ?ref= pin
 │   └── import-base-image.sh
 └── README.md
 ```
@@ -90,8 +90,13 @@ admits that tier and every higher one via Authentik group nesting.
 
 ## Bumping sabokit
 
+The pinned version's source of truth is `environments/common.yml`
+(`sabokit_version`). Terraform can't read a module `source` from YAML, so
+`bump-version.sh` propagates that value into every `stack.tf` `?ref=`.
+
 ```bash
-./scripts/bump-version.sh v1.1.0   # bumps every ?ref= pin + the sabokit checkout
+./scripts/bump-version.sh v1.1.0   # set common.yml + sync every ?ref= + the sabokit checkout
+./scripts/bump-version.sh          # re-sync stack.tf to whatever common.yml says
 # then re-init + plan each layer of each env (the script prints the loop)
 ```
 
