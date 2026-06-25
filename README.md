@@ -1,5 +1,7 @@
 # Sabokit
 
+![Sabokit logo](images/sabokit-logo.png)
+
 A Terraform + Ansible blueprint for self-hosting an identity-managed application suite on Scaleway. You consume tagged versions of its modules from your own infrastructure repository — clone [`consumer-template/`](./consumer-template/), fill in per-env config, run three commands.
 
 The blueprint covers the two layers that are tedious to get right: provider-side primitives (network, compute, storage, secrets, DNS) and an opinionated Authentik configuration (flows, sources, groups, per-app providers). One pre-baked Scaleway image per release cuts host-bootstrap time from ~10 minutes to under one.
