@@ -2,11 +2,22 @@
 
 All notable changes to sabokit go here. Versioning follows semver; major bumps signal breaking contract changes for consumers. As of v0.1.0, sabokit and sabokit-cli release in tandem on one shared semver line.
 
-## Unreleased
+## v0.2.2-beta1 - 2026-07-11
+
+Fixes the false "Authentik down / no metrics" alert by wiring app-level metrics through the per-host Alloy agent for the first time. The `sabokit.metrics.port` discovery path shipped in the four-layer split, but no bundle used it and the agent had no route to the app networks, so no application metrics ever flowed. Authentik now labels itself and the Alloy agent joins the traefik network. Also carries the consumer-template pin move to `common.yml`.
+
+### Added
+
+- **`sabokit.metrics.job` label for Alloy metrics discovery.** A container that exposes `sabokit.metrics.port` can now also set `sabokit.metrics.job` to pin its Prometheus job label (default stays the container name). Lets alert rules key off a stable job name that is independent of the container's name.
+- **`monitoring_agent_app_networks` on the monitoring agent** (default `[traefik]`): the docker networks the Alloy agent joins so it can scrape app containers by container name. Every host that runs the agent also runs traefik (same bootstrap play), so the default is safe; the role ensures each network exists before the compose file references it as external.
 
 ### Changed
 
 - **consumer-template version pin moved to `common.yml`.** `environments/common.yml` gains `sabokit_version:` as the single source of truth for the platform pin; `scripts/bump-version.sh` propagates it into every per-layer `stack.tf` `?ref=` (Terraform can't read a module source from YAML). `release.sh` keeps `common.yml` in lockstep with the template refs. `bump-version.sh vX.Y.Z` sets the pin and syncs; the no-arg form re-syncs to whatever `common.yml` says.
+
+### Fixed
+
+- **Authentik metrics are scraped again, clearing the false "Authentik down / no metrics" alert.** The `authentik-server` container carried no metrics-discovery label, and the per-host Alloy agent sat alone on its `monitoring` network with no path to the app containers, so nothing ever scraped Authentik's `:9300` endpoint. The `up{job="authentik-app"}` series never existed and any rule querying it fired on absence (in dciww, a Grafana rule with `no_data_state = "Alerting"`). Authentik now labels itself `sabokit.metrics.port=9300` / `sabokit.metrics.job=authentik-app`, and the Alloy agent joins the traefik network so it reaches the labelled container by name. This was a four-layer-split regression: the `sabokit.metrics.port` discovery path shipped but no bundle wired it and the agent was never given a route to the app networks, so app-level metrics never flowed for any bundle. The identity bundle's empty `prometheus_scrape_configs` is correct under this push model; its stale comment claiming a consumer cross-host scrape knob is corrected.
 
 ## v0.2.1-beta1 - 2026-06-16
 

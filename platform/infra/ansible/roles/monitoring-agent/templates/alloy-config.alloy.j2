@@ -61,6 +61,14 @@ discovery.relabel "app_metrics" {
     regex         = "/(.*)"
     target_label  = "job"
   }
+  // Optional job override: a container sets `sabokit.metrics.job` to control its
+  // Prometheus job label (else it stays the container name above). Lets alerts
+  // key off a stable job name independent of the container's name.
+  rule {
+    source_labels = ["__meta_docker_container_label_sabokit_metrics_job"]
+    regex         = "(.+)"
+    target_label  = "job"
+  }
   rule {
     source_labels = ["__meta_docker_container_name"]
     regex         = "/(.*)"

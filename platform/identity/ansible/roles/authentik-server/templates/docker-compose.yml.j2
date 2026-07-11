@@ -48,6 +48,10 @@ services:
       - "traefik.http.routers.authentik-main.tls.certresolver={{ authentik_traefik_cert_resolver }}"
       - "traefik.http.routers.authentik-main.service=authentik"
       - "traefik.http.routers.authentik-main.priority=10"
+      # Metrics discovery: the per-host Alloy agent scrapes :9300 over the shared
+      # traefik network and pins the Prometheus job so alerts key off it.
+      - "sabokit.metrics.port=9300"
+      - "sabokit.metrics.job=authentik-app"
 {% if authentik_diun_watch_enabled | default(false) %}
       - "diun.enable=true"
 {% endif %}

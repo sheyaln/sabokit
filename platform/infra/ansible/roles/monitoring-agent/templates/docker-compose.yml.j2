@@ -105,6 +105,9 @@ services:
       - /tmp
     networks:
       - {{ monitoring_agent_network }}
+{% for net in monitoring_agent_app_networks %}
+      - {{ net }}
+{% endfor %}
     user: "0:0"
     security_opt:
       - no-new-privileges:true
@@ -118,6 +121,12 @@ services:
 networks:
   {{ monitoring_agent_network }}:
     external: true
+{% if monitoring_agent_enable_alloy %}
+{% for net in monitoring_agent_app_networks %}
+  {{ net }}:
+    external: true
+{% endfor %}
+{% endif %}
 
 {% if monitoring_agent_enable_alloy %}
 volumes:

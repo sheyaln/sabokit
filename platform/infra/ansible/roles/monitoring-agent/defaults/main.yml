@@ -49,6 +49,16 @@ monitoring_agent_textfile_collector_dir: "/var/lib/node_exporter/textfile_collec
 monitoring_agent_owner: ubuntu
 monitoring_agent_network: monitoring
 
+# Extra docker networks the Alloy agent joins so it can scrape app containers
+# that expose `sabokit.metrics.port` by container name. Must be networks the
+# app containers actually share. Bundles attach to the traefik network, and
+# every host that runs this agent also runs traefik (same bootstrap play), so
+# the default is safe. Override if the app network is renamed; empty = the
+# agent only scrapes its node-exporter/cadvisor siblings on
+# `monitoring_agent_network`.
+monitoring_agent_app_networks:
+  - traefik
+
 # -----------------------------------------------------------------------------
 # Image pins
 # -----------------------------------------------------------------------------
