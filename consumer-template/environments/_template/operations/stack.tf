@@ -23,7 +23,7 @@ locals {
 }
 
 module "operations" {
-  source = "git::https://github.com/sheyaln/sabokit.git//platform/operations/terraform?ref=v0.2.3-beta1"
+  source = "git::https://github.com/sheyaln/sabokit.git//platform/operations/terraform?ref=v0.2.4-beta1"
   providers = {
     scaleway  = scaleway
     authentik = authentik
