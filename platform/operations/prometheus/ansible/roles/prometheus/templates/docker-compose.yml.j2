@@ -24,7 +24,6 @@ services:
       - "{{ prometheus_private_ip_bind | default('127.0.0.1', true) }}:9090:9090"
     volumes:
       - ./config:/etc/prometheus:ro
-      - ./rules:/etc/prometheus/rules:ro
       - prometheus-data:/prometheus
     environment:
       TZ: "{{ prometheus_timezone }}"

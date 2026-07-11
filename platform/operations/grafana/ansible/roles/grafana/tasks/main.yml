@@ -68,10 +68,13 @@
 
 # File provider polls every 30s (see dashboard-provider.yml.j2), so no
 # restart is needed when only the JSON contents change.
+# contents_b64 is base64-decoded rather than templated: a b64decode result is
+# not re-evaluated as Jinja, so dashboard legend braces ({{server}}/{{instance}})
+# land in the file verbatim instead of erroring as undefined vars.
 - name: Provision aggregated dashboards
   ansible.builtin.copy:
     dest: "{{ grafana_install_dir }}/provisioning/dashboards/{{ item.filename }}"
-    content: "{{ item.contents }}"
+    content: "{{ item.contents_b64 | b64decode }}"
     mode: "0644"
   loop: "{{ grafana_dashboards }}"
   loop_control:
@@ -153,3 +156,4 @@
     project_src: "{{ grafana_install_dir }}"
     state: present
     pull: missing
+    remove_orphans: true

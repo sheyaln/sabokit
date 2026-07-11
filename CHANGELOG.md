@@ -2,9 +2,20 @@
 
 All notable changes to sabokit go here. Versioning follows semver; major bumps signal breaking contract changes for consumers. As of v0.1.0, sabokit and sabokit-cli release in tandem on one shared semver line.
 
-## v0.2.4-beta1 - 2026-07-11
+## v0.2.5-beta1 - 2026-07-11
 
-Fixes the ops host being unable to ship its own metrics and logs. Every other host reaches the ops Prometheus and Loki across the VPC on the ops private IP, but the ops host pushing to its own private IP hairpins the traffic back out through the host firewall and times out ("context deadline exceeded"), so the box running the monitoring stack was dark to itself. The ops host now pushes to the co-located Prometheus and Loki by container name over their `monitoring_internal` docker network instead.
+First real deployment of the operations Prometheus/Grafana bundles surfaced four deploy-blocking bugs. The observability stack (prometheus/loki/grafana) had never actually run anywhere until it went onto dciww prod; standing it up for the first time exposed a broken rules mount, a config-reload that targeted the wrong address on a private-IP bind, orphan containers left behind when exporters toggle off, and dashboard JSON being mangled by Ansible re-templating. This ship fixes all four.
+
+### Fixed
+
+- **Prometheus alert rules mount correctly.** The role rendered rules into a top-level `rules/` dir that was bind-mounted at `/etc/prometheus/rules`, but `prometheus.yml` (mounted from `config/`) referenced them by a `config/`-relative path, so Prometheus never loaded any rules. Rules now render under `config/rules/` and ride in on the single `./config:/etc/prometheus:ro` mount; the separate `./rules:/etc/prometheus/rules:ro` mount is gone.
+- **Prometheus config reload reaches the listener on a private-IP bind.** The reload handler POSTed to `http://127.0.0.1:9090/-/reload`, but Prometheus publishes on `prometheus_private_ip_bind` (a private IP in a real deploy), so the reload got connection-refused and rule/scrape changes never took effect without a full restart. The handler now targets `{{ prometheus_private_ip_bind | default('127.0.0.1', true) }}:9090`; the task runs on the ops host, which reaches its own private-IP-published port. Verified reload=200 in prod. Falls back to loopback when the bind is unset.
+- **Toggling an ops exporter off removes its container.** The prometheus, loki, and grafana "ensure running" `docker_compose_v2` tasks now pass `remove_orphans: true`. Flipping a knob like `prometheus_exporters_enabled` to false drops a service from the rendered compose, but `docker compose up` leaves the already-running container in place by default, so a disabled exporter kept running and kept being scraped. Orphans are now pruned on every converge.
+- **Grafana dashboards are written verbatim instead of being re-templated.** The "Provision aggregated dashboards" task wrote `content: "{{ item.contents }}"`, so Ansible evaluated the Prometheus legend syntax embedded in dashboard JSON (`{{server}}`, `{{instance}}`) as Jinja and failed the deploy with "'server' is undefined". The operations module now base64-encodes each dashboard JSON in Terraform (`contents_b64 = base64encode(file(p))`) and the role writes `content: "{{ item.contents_b64 | b64decode }}"`; a b64decode result is not re-templated by Ansible, so the legend braces land in the file unchanged.
+
+### Breaking
+
+- **`grafana_dashboards` entries now carry `contents_b64`, not `contents`.** The grafana bundle's `grafana_dashboards` input is now `list(object({filename, contents_b64}))`. Consumers overriding dashboards via `var.grafana.grafana_dashboards` must base64-encode the JSON (`contents_b64 = base64encode(<json>)`) instead of passing raw `contents`. The operations aggregation module already does this for the bundle's own dashboards; only hand-supplied overrides need updating. Every other host reaches the ops Prometheus and Loki across the VPC on the ops private IP, but the ops host pushing to its own private IP hairpins the traffic back out through the host firewall and times out ("context deadline exceeded"), so the box running the monitoring stack was dark to itself. The ops host now pushes to the co-located Prometheus and Loki by container name over their `monitoring_internal` docker network instead.
 
 ### Fixed
 
