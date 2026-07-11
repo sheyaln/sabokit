@@ -27,7 +27,7 @@ locals {
 }
 
 module "infra" {
-  source = "git::https://github.com/sheyaln/sabokit.git//platform/infra/terraform?ref=v0.2.4-beta1"
+  source = "git::https://github.com/sheyaln/sabokit.git//platform/infra/terraform?ref=v0.2.5-beta1"
   providers = {
     scaleway     = scaleway
     scaleway.dns = scaleway.dns

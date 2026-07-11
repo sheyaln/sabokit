@@ -21,7 +21,7 @@ locals {
 }
 
 module "application" {
-  source = "git::https://github.com/sheyaln/sabokit.git//platform/application/terraform?ref=v0.2.4-beta1"
+  source = "git::https://github.com/sheyaln/sabokit.git//platform/application/terraform?ref=v0.2.5-beta1"
   providers = {
     scaleway  = scaleway
     authentik = authentik
