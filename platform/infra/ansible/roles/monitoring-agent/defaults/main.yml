@@ -26,6 +26,26 @@ monitoring_loki_push_url: ""
 monitoring_prometheus_remote_write_url: ""
 
 # -----------------------------------------------------------------------------
+# Ops-host self-push (hairpin avoidance)
+# -----------------------------------------------------------------------------
+# On the ops host (the one running central Prometheus + Loki), Alloy pushing to
+# its own private IP hairpins back through the host firewall and times out. When
+# a host's own addresses include monitoring_ops_host_ip, the role joins the ops
+# Prometheus/Loki docker network and pushes to those containers by name instead.
+# Empty (the default) disables the detection, so non-ops consumers behave as
+# before. lib.sh's ops_extra_vars() sets this to the ops host private IP for all
+# hosts.
+monitoring_ops_host_ip: ""
+
+# Must match the external network the ops Prometheus/Loki attach to
+# (prometheus_internal_network / loki_internal_network, both "monitoring_internal").
+monitoring_ops_internal_network: "monitoring_internal"
+
+# Container-name endpoints Alloy pushes to when this host is the ops host.
+monitoring_ops_prometheus_endpoint: "prometheus:9090"
+monitoring_ops_loki_endpoint: "loki:3100"
+
+# -----------------------------------------------------------------------------
 # Scraper firewall allow-list
 # -----------------------------------------------------------------------------
 # List of CIDRs allowed to scrape the exporter ports. The role drops UFW

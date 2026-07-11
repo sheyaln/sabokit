@@ -108,6 +108,9 @@ services:
 {% for net in monitoring_agent_app_networks %}
       - {{ net }}
 {% endfor %}
+{% if _monitoring_is_ops_host | default(false) %}
+      - {{ monitoring_ops_internal_network }}
+{% endif %}
     user: "0:0"
     security_opt:
       - no-new-privileges:true
@@ -126,6 +129,10 @@ networks:
   {{ net }}:
     external: true
 {% endfor %}
+{% if _monitoring_is_ops_host | default(false) %}
+  {{ monitoring_ops_internal_network }}:
+    external: true
+{% endif %}
 {% endif %}
 
 {% if monitoring_agent_enable_alloy %}
