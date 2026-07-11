@@ -2,11 +2,15 @@
 # monitoring outputs so the consumer-template's _monitoring_contribs aggregation
 # picks these up alongside every app's contribution.
 #
-# The alert rules below target Authentik's stock Prometheus metrics
-# (authentik_app job). They assume a scrape config exists in the consumer's
-# topology — the consumer-template adds it via the cross-host scrape knob on
-# the prometheus bundle. Disabling monitoring_enabled emits null so the
-# aggregator skips this contribution.
+# The alert rules below target Authentik's stock Prometheus metrics under the
+# `authentik-app` job. Those metrics reach the central Prometheus via the
+# per-host Alloy agent, which discovers the authentik-server container by its
+# `sabokit.metrics.port=9300` label and remote_writes the scrape (job pinned to
+# `authentik-app` by the container's `sabokit.metrics.job` label). No central
+# scrape config is needed: the agent is push-only and never exposes a scrape
+# port into the identity host, so prometheus_scrape_configs stays empty.
+# Disabling monitoring_enabled emits null so the aggregator skips this
+# contribution.
 
 variable "monitoring_enabled" {
   description = "Emit the identity bundle's monitoring contribution (Prometheus alert rules for Authentik availability/latency/login health). Default true. Set false to suppress when the consumer manages identity alerts out of band."

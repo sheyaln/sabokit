@@ -54,6 +54,17 @@
     state: present
     driver: bridge
 
+# Alloy joins these to scrape app containers by name. Normally already created
+# by the traefik role earlier in the same play; ensured here so a missing net
+# can't fail `docker compose up` on its external reference. Plain bridge, same
+# as traefik makes it, so this stays a no-op when it exists.
+- name: Ensure app networks exist
+  community.docker.docker_network:
+    name: "{{ item }}"
+    state: present
+    driver: bridge
+  loop: "{{ monitoring_agent_app_networks }}"
+
 - name: Render Alloy configuration
   ansible.builtin.template:
     src: alloy-config.alloy.j2
