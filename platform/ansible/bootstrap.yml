@@ -25,7 +25,7 @@
     - role: docker
     - role: fail2ban
 
-- name: Bootstrap application hosts (Traefik + secrets + monitoring agent)
+- name: Bootstrap application hosts (Traefik + secrets)
   hosts: apps
   become: true
   tags: [bootstrap]
@@ -38,15 +38,6 @@
     - role: scw-secrets
       vars:
         scw_secrets_project_id: "{{ scaleway_project_id }}"
-
-    - role: monitoring-agent
-      vars:
-        monitoring_host_label: "{{ inventory_hostname }}"
-        monitoring_environment: "{{ env_name | default('prod') }}"
-        # monitoring_loki_push_url comes through as an extra-var when set;
-        # role default ("") handles the unset case. A self-referencing line
-        # ({{ monitoring_loki_push_url | default('') }}) tripped Ansible's
-        # template recursion guard, so we let the precedence chain handle it.
 
 # Identity-host install: runs Authentik server on hosts in the [identity]
 # inventory group. For single-VM setups (e.g. staging), the same host can be
@@ -70,3 +61,19 @@
         # default (defaults/main.yml) — `omit` drops the key entirely so an
         # empty string can't shadow the default into a broken `image:tag` ref.
         authentik_version: "{{ identity_bootstrap.authentik_version | default('') or omit }}"
+
+# Monitoring agent on every compute host: identity and management hosts must
+# ship metrics/logs too, not just apps hosts.
+- name: Deploy monitoring agent on all hosts
+  hosts: all
+  become: true
+  tags: [bootstrap]
+  roles:
+    - role: monitoring-agent
+      vars:
+        monitoring_host_label: "{{ inventory_hostname }}"
+        monitoring_environment: "{{ env_name | default('prod') }}"
+        # monitoring_loki_push_url comes through as an extra-var when set;
+        # role default ("") handles the unset case. A self-referencing line
+        # ({{ monitoring_loki_push_url | default('') }}) tripped Ansible's
+        # template recursion guard, so we let the precedence chain handle it.

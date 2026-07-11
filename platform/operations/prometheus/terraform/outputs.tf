@@ -20,7 +20,7 @@ output "ansible" {
       prometheus_alert_rules                   = var.alert_rules
       prometheus_exporters_enabled             = var.exporters_enabled
       prometheus_remote_write_enabled          = var.remote_write_enabled
-      prometheus_private_ip_bind               = var.private_ip_bind
+      prometheus_private_ip_bind               = coalesce(var.private_ip_bind, var.base.compute.hosts[var.deployment_host_key].private_ip)
       prometheus_memory_limit                  = var.memory_limit
       prometheus_memory_reservation            = var.memory_reservation
       prometheus_cpu_limit                     = var.cpu_limit

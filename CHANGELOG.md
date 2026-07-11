@@ -2,6 +2,21 @@
 
 All notable changes to sabokit go here. Versioning follows semver; major bumps signal breaking contract changes for consumers. As of v0.1.0, sabokit and sabokit-cli release in tandem on one shared semver line.
 
+## v0.2.3-beta1 - 2026-07-11
+
+Makes the push-model monitoring pipeline work out of the box. Each host's Alloy agent remote_writes metrics and pushes logs to the ops host's Prometheus (9090) and Loki (3100), but several blueprint gaps meant a fresh deploy never delivered them: the ops services bound loopback while the agent used the private IP, the agent only ran on apps hosts, and deploying the agent bounced the Docker daemon. This ship closes those gaps.
+
+### Fixed
+
+- **Ops Loki and Prometheus bind the ops host private IP by default.** The `loki_private_ip_bind` / `prometheus_private_ip_bind` ansible vars now coalesce to the deployment host's private IP (matching the address Loki's `push_url` already advertised and the URLs `consumer-template/scripts/lib.sh` builds), so Alloy remote_write and log push reach the containers on first deploy instead of hitting a loopback-only listener. A consumer can still pin a specific bind (for example `"127.0.0.1"`) by setting `private_ip_bind` explicitly; a non-empty value wins over the private-IP default.
+- **monitoring-agent runs on every compute host.** It moved from the apps-only bootstrap play into a new `hosts: all` play, so identity and management hosts ship their own metrics and logs too (previously they were dark to the monitoring stack).
+- **Deploying monitoring-agent no longer restarts Docker.** The role dropped its `- role: docker` meta-dependency (Docker is already guaranteed by the first `hosts: all` bootstrap play). The docker role re-renders `/etc/docker/daemon.json` and notifies a daemon restart, so the meta-dep bounced every container on the host on each agent deploy (it bounced Authentik in prod).
+- **node-exporter and cAdvisor readiness is checked in-container.** The exporters are not host-published under the push model (Alloy scrapes them over the shared docker network), so the readiness probes moved from host-port `wait_for` (0.0.0.0) checks to `docker exec ... wget` checks inside each container.
+
+### Operator notes
+
+- **Ops firewall for remote_write (9090):** the per-role security group already opens 9090 to the VPC for the ops role (alongside 3100), so remote_write from compute hosts is permitted at the network edge with no change. Docker-published ports bypass host UFW via the DOCKER-USER chain, so there is no host-level firewall gate to open for these ports.
+
 ## v0.2.2-beta1 - 2026-07-11
 
 Fixes the false "Authentik down / no metrics" alert by wiring app-level metrics through the per-host Alloy agent for the first time. The `sabokit.metrics.port` discovery path shipped in the four-layer split, but no bundle used it and the agent had no route to the app networks, so no application metrics ever flowed. Authentik now labels itself and the Alloy agent joins the traefik network. Also carries the consumer-template pin move to `common.yml`.
