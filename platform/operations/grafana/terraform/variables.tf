@@ -156,10 +156,10 @@ variable "jsm_severity_gate" {
 }
 
 variable "grafana_dashboards" {
-  description = "Dashboards to provision into Grafana's file provider. The consumer reads each path from every enabled app's monitoring.grafana_dashboards (list(string) of file paths), turns it into {filename, contents}, and passes the union here. The role writes one file per entry under /etc/grafana/provisioning/dashboards/; Grafana's file provider auto-reloads (no restart needed)."
+  description = "Dashboards to provision into Grafana's file provider. The consumer reads each path from every enabled app's monitoring.grafana_dashboards (list(string) of file paths), turns it into {filename, contents_b64 = base64encode(<json>)}, and passes the union here. contents_b64 (not raw) because dashboard JSON embeds Prometheus legend syntax ({{server}}/{{instance}}) that Ansible would otherwise re-template; the role b64decodes so those braces survive verbatim. The role writes one file per entry under /etc/grafana/provisioning/dashboards/; Grafana's file provider auto-reloads (no restart needed)."
   type = list(object({
-    filename = string
-    contents = string
+    filename     = string
+    contents_b64 = string
   }))
   default = []
 }

@@ -20,7 +20,7 @@ Grafana UI behind Authentik OIDC, with Prometheus + Loki datasources pre-provisi
 | `plugins` | `list(string)` | `[]` | Comma-joined into `GF_PLUGINS_PREINSTALL`. |
 | `oidc_admin_group` | `string` | `"admin"` | Authentik group mapped to Grafana `Admin` role. |
 | `oidc_editor_group` | `string` | `"manager"` | Authentik group mapped to Grafana `Editor` role. Everyone else lands on `Viewer`. |
-| `grafana_dashboards` | `list(object({filename, contents}))` | `[]` | Dashboards to provision via the file provider. Consumer aggregates every enabled app's `monitoring.grafana_dashboards` paths into this. File provider auto-reloads (30s poll), no restart. |
+| `grafana_dashboards` | `list(object({filename, contents_b64}))` | `[]` | Dashboards to provision via the file provider. Consumer aggregates every enabled app's `monitoring.grafana_dashboards` paths into this, base64-encoding each JSON (`contents_b64 = base64encode(<json>)`) so the role can b64decode it verbatim, keeping Prometheus legend braces (`{{server}}`/`{{instance}}`) from being re-templated by Ansible. File provider auto-reloads (30s poll), no restart. |
 | `jsm_api_key_secret_id` | `string` | `""` | Scaleway secret holding the JSM Operations (heritage Opsgenie) API integration key as `{"api_key": "..."}`. Empty = no JSM provisioning, root policy uses Grafana's built-in default. Non-empty = `jsm-default` contact point + root policy routed to it. |
 | `jsm_api_region` | `string` | `"us"` | `us` or `eu`. Picks the api.atlassian.com vs api.eu.atlassian.com endpoint. |
 | `jsm_priority_mapping` | `map(string)` | `{critical=P1, warning=P3, info=P5}` | Grafana `severity` label -> JSM priority. |

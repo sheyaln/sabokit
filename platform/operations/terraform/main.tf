@@ -68,10 +68,14 @@ locals {
     local._prom_dashboards_blackbox,
   )
 
+  # base64 the JSON so the raw file crosses the TF -> ansible boundary intact.
+  # Grafana dashboards embed Prometheus legend syntax ({{server}}, {{instance}});
+  # a b64decode result is not re-templated by Ansible, so those braces survive
+  # instead of being evaluated as undefined Jinja vars.
   _self_dashboards = [
     for p in local._self_dashboard_paths : {
-      filename = basename(p)
-      contents = file(p)
+      filename     = basename(p)
+      contents_b64 = base64encode(file(p))
     }
   ]
 }
@@ -232,6 +236,8 @@ module "grafana" {
   # v1.0: no var.aggregated_grafana_dashboards — per-app dashboards land via
   # ansible push to grafana's provisioning dir at deploy time. This layer's own
   # dashboards (_self_dashboards) + consumer overrides remain TF-managed.
+  # Overrides supplied via var.grafana.grafana_dashboards must carry
+  # {filename, contents_b64} (base64encode the JSON so legend braces survive).
   grafana_dashboards = concat(
     local._self_dashboards,
     try(var.grafana.grafana_dashboards, []),

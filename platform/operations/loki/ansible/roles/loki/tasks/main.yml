@@ -47,3 +47,4 @@
     project_src: "{{ loki_install_dir }}"
     state: present
     pull: missing
+    remove_orphans: true

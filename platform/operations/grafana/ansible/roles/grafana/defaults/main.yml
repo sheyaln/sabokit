@@ -25,7 +25,8 @@ grafana_autoheal_enabled: true
 
 # Dashboards provisioned via the file provider. Populated from the aggregated
 # union of every enabled app's monitoring.grafana_dashboards by the consumer.
-# Each entry: {filename: "foo.json", contents: "<rendered JSON>"}.
+# Each entry: {filename: "foo.json", contents_b64: "<base64 of the JSON>"}. The
+# task b64decodes so dashboard legend braces ({{server}}) aren't re-templated.
 grafana_dashboards: []
 
 # JSM (Jira Service Management Operations, heritage Opsgenie) integration.
