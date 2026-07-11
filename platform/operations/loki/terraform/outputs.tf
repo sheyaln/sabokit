@@ -25,7 +25,7 @@ output "ansible" {
       loki_retention               = var.retention
       loki_ingestion_rate_mb       = var.ingestion_rate_mb
       loki_ingestion_burst_size_mb = var.ingestion_burst_size_mb
-      loki_private_ip_bind         = var.private_ip_bind
+      loki_private_ip_bind         = coalesce(var.private_ip_bind, var.base.compute.hosts[var.deployment_host_key].private_ip)
       loki_memory_limit            = var.memory_limit
       loki_memory_reservation      = var.memory_reservation
       loki_cpu_limit               = var.cpu_limit

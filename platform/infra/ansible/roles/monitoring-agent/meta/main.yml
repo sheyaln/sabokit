@@ -13,8 +13,7 @@ galaxy_info:
     - name: Debian
       versions: [bookworm]
 
-dependencies:
-  - role: docker
+dependencies: []
 
 collections:
   - community.docker
