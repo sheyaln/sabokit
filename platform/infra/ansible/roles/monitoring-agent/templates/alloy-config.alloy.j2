@@ -7,7 +7,13 @@
 {% if monitoring_loki_push_url | length > 0 %}
 loki.write "central_loki" {
   endpoint {
+{% if _monitoring_is_ops_host | default(false) %}
+    // Ops host pushes to the co-located Loki by container name; pushing to its
+    // own private IP (env LOKI_PUSH_URL) hairpins through the host firewall.
+    url = "http://{{ monitoring_ops_loki_endpoint }}/loki/api/v1/push"
+{% else %}
     url = env("LOKI_PUSH_URL")
+{% endif %}
   }
 }
 {% endif %}
@@ -16,7 +22,14 @@ loki.write "central_loki" {
 // ── Metrics → central Prometheus (remote_write) ──────────────────────────────
 prometheus.remote_write "central" {
   endpoint {
+{% if _monitoring_is_ops_host | default(false) %}
+    // Ops host writes to the co-located Prometheus by container name; writing
+    // to its own private IP (env PROMETHEUS_REMOTE_WRITE_URL) hairpins through
+    // the host firewall.
+    url = "http://{{ monitoring_ops_prometheus_endpoint }}/api/v1/write"
+{% else %}
     url = env("PROMETHEUS_REMOTE_WRITE_URL")
+{% endif %}
   }
   external_labels = {
     host        = "{{ monitoring_host_label }}",

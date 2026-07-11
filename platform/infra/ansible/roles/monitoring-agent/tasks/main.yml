@@ -16,6 +16,14 @@
       - monitoring_host_label | length > 0
     fail_msg: "monitoring_host_label is REQUIRED — used to label every metric/log this host emits."
 
+# The ops host can't push to its own private IP (the traffic hairpins through
+# the host firewall and times out), so it pushes to the co-located Prometheus/
+# Loki by container name instead. Match the ops private IP against this host's
+# own addresses to decide. Requires gathered facts (bootstrap.yml gathers).
+- name: Detect whether this host is the ops host
+  ansible.builtin.set_fact:
+    _monitoring_is_ops_host: "{{ monitoring_ops_host_ip | length > 0 and monitoring_ops_host_ip in ansible_all_ipv4_addresses }}"
+
 - name: Open exporter ports to scraper CIDRs
   community.general.ufw:
     rule: allow
@@ -64,6 +72,17 @@
     state: present
     driver: bridge
   loop: "{{ monitoring_agent_app_networks }}"
+
+# On the ops host Alloy joins the ops Prometheus/Loki network to push by
+# container name. Bootstrap runs before the operations layer creates this net,
+# so ensure it here (plain bridge, same as the ops roles make it). Otherwise
+# the external reference in the compose file fails `docker compose up`.
+- name: Ensure ops internal network exists
+  community.docker.docker_network:
+    name: "{{ monitoring_ops_internal_network }}"
+    state: present
+    driver: bridge
+  when: _monitoring_is_ops_host | bool
 
 - name: Render Alloy configuration
   ansible.builtin.template:

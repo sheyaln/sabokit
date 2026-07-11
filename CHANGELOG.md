@@ -2,6 +2,18 @@
 
 All notable changes to sabokit go here. Versioning follows semver; major bumps signal breaking contract changes for consumers. As of v0.1.0, sabokit and sabokit-cli release in tandem on one shared semver line.
 
+## v0.2.4-beta1 - 2026-07-11
+
+Fixes the ops host being unable to ship its own metrics and logs. Every other host reaches the ops Prometheus and Loki across the VPC on the ops private IP, but the ops host pushing to its own private IP hairpins the traffic back out through the host firewall and times out ("context deadline exceeded"), so the box running the monitoring stack was dark to itself. The ops host now pushes to the co-located Prometheus and Loki by container name over their `monitoring_internal` docker network instead.
+
+### Fixed
+
+- **Ops host ships its own metrics and logs.** The `monitoring-agent` role self-detects the ops host by matching `monitoring_ops_host_ip` (now emitted for every host by `consumer-template/scripts/lib.sh`'s `ops_extra_vars()`, set to the ops host private IP) against the host's own addresses. On a match, the host's Alloy joins the ops Prometheus/Loki `monitoring_internal` network and pushes to `prometheus:9090` and `loki:3100` by container name rather than to the private-IP URLs, which hairpin through the host firewall and time out. Non-ops hosts are unchanged: they keep pushing to the ops private IP across the VPC via the env URLs. Consumers not using `lib.sh` leave `monitoring_ops_host_ip` empty and the detection stays off.
+
+### Added
+
+- **`monitoring_ops_host_ip`, `monitoring_ops_internal_network`, `monitoring_ops_prometheus_endpoint`, `monitoring_ops_loki_endpoint` on the monitoring agent.** `monitoring_ops_host_ip` (empty by default) is the ops host private IP used for self-detection; `monitoring_ops_internal_network` (default `monitoring_internal`) must match the network the ops Prometheus/Loki attach to (`prometheus_internal_network` / `loki_internal_network`); the two endpoint vars (`prometheus:9090`, `loki:3100`) are the container-name targets the ops host pushes to. Override the network or endpoints only if the ops role container names or network are renamed.
+
 ## v0.2.3-beta1 - 2026-07-11
 
 Makes the push-model monitoring pipeline work out of the box. Each host's Alloy agent remote_writes metrics and pushes logs to the ops host's Prometheus (9090) and Loki (3100), but several blueprint gaps meant a fresh deploy never delivered them: the ops services bound loopback while the agent used the private IP, the agent only ran on apps hosts, and deploying the agent bounced the Docker daemon. This ship closes those gaps.

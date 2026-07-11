@@ -182,6 +182,11 @@ print((d.get("loki") or {}).get("deployment_host_key") or (d.get("grafana") or {
   if [ -n "$ip" ]; then
     echo "-e" "monitoring_loki_push_url=http://${ip}:3100/loki/api/v1/push"
     echo "-e" "monitoring_prometheus_remote_write_url=http://${ip}:9090/api/v1/write"
+    # The ops host can't reach its own services via this private IP; the push
+    # hairpins back through the host firewall and times out. Every host receives
+    # the ops IP and self-detects; the ops host pushes to the co-located
+    # containers by name instead (see monitoring-agent role).
+    echo "-e" "monitoring_ops_host_ip=${ip}"
   fi
 }
 
