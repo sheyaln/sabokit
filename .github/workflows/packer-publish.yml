@@ -38,7 +38,7 @@ jobs:
     timeout-minutes: 45
 
     steps:
-      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
 
       - name: Resolve image version
         id: ver
@@ -81,7 +81,7 @@ jobs:
         # Pinned by SHA. Was @main — a mutable branch ref is a supply-chain
         # foothold: anyone landing a commit on that branch runs in this build.
         # Re-pin deliberately to a newer commit on upgrade.
-        uses: hashicorp/setup-packer@3286471d6cc6756d056a0b199fea5e0becdbc189 # tip of main as of pin
+        uses: hashicorp/setup-packer@ce93c3c08a6c2ff2275bf4b54ff0d9a75f6c9789 # tip of main as of pin
         with:
           version: '1.11.2'
 
